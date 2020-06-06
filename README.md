@@ -2,4 +2,4 @@
 
 Documentation du projet squarity
 
-auieuaieiua
+Licence Creative Commons CC-BY.
