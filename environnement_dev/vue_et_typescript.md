@@ -238,3 +238,26 @@ La config du projet est la même que le précédent test :
     $ npm run serve
 
 
+## Truc bizarre avec Vetur
+
+J'ai créé une classe contenant une méthode `getTheA`.
+
+Dans le fichier `App.vue`, je déclare un objet ayant cette classe, et j'utilise cette méthode.
+
+Le code se lance bien. Pas d'erreur dans les logs du serveur, ni dans la page web. La méthode exécute bien ce que je lui demande.
+
+Mais dans VSCode, j'ai ce message : "Property 'getTheA' does not exist on type 'BoardModel' Vetur (2339)".
+
+Apparemment, c'est un bug dans l'extension Vetur :
+
+https://github.com/vuejs/vetur/issues/1242
+
+Pour corriger, j'ai activé puis désactivé l'option "vetur.experimental.templateInterpolationService".
+
+Puis j'ai arrêté-relancé VSCode.
+
+C'est bizarre, et l'erreur risque de revenir. On fera d'autres tests à ce moment là.
+
+
+
+
