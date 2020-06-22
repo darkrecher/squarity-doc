@@ -162,7 +162,7 @@ Réflexion, lecture, inspiration :
  - https://vuejs.org/v2/guide/typescript.html
 
 
-**Décision** : pour l'instant, on utilise Vue avec TypeScript, mais on ne fait pas les préconisations indiquées dans les deux premiers liens. C'est peut-être pas nécessaire parce que tout serait (hypothétiquement configuré et intégré comme il faut avec Vue).
+**Architectural Decision Record** : pour l'instant, on utilise Vue avec TypeScript, mais on ne fait pas les préconisations indiquées dans les deux premiers liens. C'est peut-être pas nécessaire parce que tout serait (hypothétiquement configuré et intégré comme il faut avec Vue).
 
 Et on verra plus tard quand on connaîtra un peu mieux tout ce fatras.
 
@@ -251,6 +251,8 @@ Mais dans VSCode, j'ai ce message : "Property 'getTheA' does not exist on type '
 Apparemment, c'est un bug dans l'extension Vetur :
 
 https://github.com/vuejs/vetur/issues/1242
+https://github.com/vuejs/vetur/issues/1414
+https://github.com/vuejs/vetur/issues/1834
 
 Pour corriger, j'ai activé puis désactivé l'option "vetur.experimental.templateInterpolationService".
 
@@ -259,5 +261,90 @@ Puis j'ai arrêté-relancé VSCode.
 C'est bizarre, et l'erreur risque de revenir. On fera d'autres tests à ce moment là.
 
 
+## fonction "require"
 
+Vue connait cette fonction.
+
+Le code `console.log('paf ' + require('../assets/logo.png'))` affiche le texte `paf /img/logo.82b9c7a5.png` dans la console. C'est ce que je veux.
+
+Mais VSCode considère que la fonction "require" est inconnue.
+
+> Cannot find name 'require'. Do you need to install type definitions for node? Try `npm i @types/node` .Vetur(2580)
+
+Et c'est clairement TypeScript qui fait son relou. Parce que la même ligne de code dans le projet "test-vue", qui n'est pas typescript, n'affiche pas d'erreurs. Et elle marche tout aussi bien.
+
+Tentative de faire des trucs, avec ces docs :
+
+https://vuejs.org/v2/guide/typescript.html
+https://github.com/vuejs/vue/issues/8406
+
+Mais j'arrive à rien.
+
+Dans le repo squarity-code, le commit 4e2b26ccac25b078bc9ae2a46daaab15f7c5c549 est le résultat final de mes tentatives de faire du TypeScript.
+
+Lorsqu'on lance le serveur (npm run serve), on n'a aucun message d'erreur, ni dans les logs du serveur, ni dans la page web.
+
+Mais on a ce message d'erreur obscur dans la console.
+
+```
+componentNormalizer.js?2877:24 Uncaught TypeError: Cannot set property 'render' of undefined
+    at normalizeComponent (componentNormalizer.js?2877:24)
+    at eval (GameBoard.vue?4915:9)
+    at Module../src/components/GameBoard.vue (app.js:1158)
+    at __webpack_require__ (app.js:849)
+    at fn (app.js:151)
+    at eval (App.vue?ec60:10)
+    at Module../node_modules/cache-loader/dist/cjs.js?!./node_modules/babel-loader/lib/index.js!./node_modules/ts-loader/index.js?!./node_modules/cache-loader/dist/cjs.js?!./node_modules/vue-loader/lib/index.js?!./src/App.vue?vue&type=script&lang=ts& (app.js:938)
+    at __webpack_require__ (app.js:849)
+    at fn (app.js:151)
+    at eval (App.vue?96c8:1)
+```
+
+De plus, avec le code TypeScript, la complétion automatique de VSCode donne un peu n'importe quoi. Ce qui laisse penser que ma config actuelle de VSCode ne comprend rien à TypeScript.
+
+**Architectural Decision Record** : on vire TypeScript. On refait un projet Vue de zéro, sans TypeScript. Je m'y connais pas encore assez dans toutes ces javascripteries pour attaquer à la fois Vue et TypeScript.
+
+Donc on refait la technique pourrie de création d'un projet.
+
+
+    c:\Recher\personnel\temp
+    λ vue create squarity-code
+    Vue CLI v4.4.1
+    ┌─────────────────────────────────────────┐
+    │                                         │
+    │   New version available 4.4.1 → 4.4.4   │
+    │    Run npm i -g @vue/cli to update!     │
+    │                                         │
+    └─────────────────────────────────────────┘
+    ? Please pick a preset: default (babel, eslint)
+    Vue CLI v4.4.1
+    ✨  Creating project in c:\Recher\personnel\temp\squarity-code.
+    �  Initializing git repository...
+    ⚙️  Installing CLI plugins. This might take a while...
+    > yorkie@2.0.0 install c:\Recher\personnel\temp\squarity-code\node_modules\yorkie
+    > node bin/install.js
+    setting up Git hooks
+    done
+    > core-js@3.6.5 postinstall c:\Recher\personnel\temp\squarity-code\node_modules\core-js
+    > node -e "try{require('./postinstall')}catch(e){}"
+    > ejs@2.7.4 postinstall c:\Recher\personnel\temp\squarity-code\node_modules\ejs
+    > node ./postinstall.js
+    added 1218 packages from 847 contributors in 44.857s
+    42 packages are looking for funding
+    run `npm fund` for details
+    �  Invoking generators...
+    �  Installing additional dependencies...
+    added 53 packages from 36 contributors in 14.794s
+    45 packages are looking for funding
+    run `npm fund` for details
+    ⚓  Running completion hooks...
+    �  Generating README.md...
+    �  Successfully created project squarity-code.
+    �  Get started with the following commands:
+    $ cd squarity-code
+    $ npm run serve
+
+Puis on copie tout dans le vrai repo existant, en remplaçant tout le bazar existant (sauf le répertoie .git, évidemment).
+
+Juste pour marquer le coup, et aussi parce que le nom de ce fichier est devenu obsolète, la suite des aventures va se passer ici : [vue_apprentissage.md](vue_apprentissage.md).
 
