@@ -147,3 +147,56 @@ Si je rajoute `"semi": ["error", "never"]` dans les rules, ça vire les points-v
 
 On va faire avec... Quel genre de crétin fout des points-virgules quand il code ?
 
+C'est pas fini, car il faudrait intégrer le linter dans VSCode. Mais là c'est déjà pas mal.
+
+
+## Canvas
+
+Plein de conseils pour dessiner dans des canvas de manière optimisée :
+
+https://www.html5rocks.com/en/tutorials/canvas/performance/
+
+Chapitres qui pourraient me concerner :
+
+ - Pre-render to an off-screen canvas
+ - Render screen differences only, not the whole new state
+ - Use multiple layered canvases for complex scenes
+ - Optimize your animations with `requestAnimationFrame`
+
+
+## Re ESLint
+
+Installation du module ESLint dans VSCode, via le menu des extensions.
+
+v2.1.5
+
+Redémarrage de VSCode, on sait jamais.
+
+Rien à configurer, ça marche tout seul.
+
+Lorsque j'écris des conneries, ça souligne en rouge ou en jaune, selon le niveau de connerie.
+
+À priori, il a correctement pris la config de mon projet, car : "une connerie signalée dans VS Code <=> la même connerie indiquée dans la page web quand je sauvegarde."
+
+Enfin presque...
+
+Quand j'écris des conneries dans le HTML d'un fichier .vue, ça se souligne en jaune (warning).
+
+Par exemple : `<canvas id="c" truc="machin" />`
+
+Rien n'est affiché dans la page web quand je sauvegarde. Par contre, quand je lance la commande `npm run lint`, ça corrige automatiquement ma connerie.
+
+Dans les fichiers .js, le comportement est le même.
+
+Par contre, un truc amusant : il n'y a aucun check de case, d'utilisation de variable ou d'initialisation sur les variables membres.
+
+J'ai écrit `this.magician_x` et ça ne pose pas de problème. Je peux même le renommer en `this.magician_z` à un seul endroit, sans changer les autres occurrences du même nom. Le site ne marche plus, mais personne ne râle : ni VSCode, ni le site, ni "npm run lint".
+
+Je suppose que c'est un choix et une convention. On va laisser comme ça.
+
+Du coup, je me permet :
+
+**Architectural Decision Record** : Toutes les variables membres sont en snake case, parce que c'est ça que je suis habitué à écrire, et c'est ce qui est le plus lisible. Et si les conventions et les linters l'autorisent, y'a pas de raison de s'en priver.
+
+Et si c'est pas une bonne pratique, y'avait qu'à qu'ils configurent leurs linters pour signaler explicitement que c'est pas une bonne pratique !!
+
