@@ -184,7 +184,12 @@ Quand j'écris des conneries dans le HTML d'un fichier .vue, ça se souligne en 
 
 Par exemple : `<canvas id="c" truc="machin" />`
 
-Rien n'est affiché dans la page web quand je sauvegarde. Par contre, quand je lance la commande `npm run lint`, ça corrige automatiquement ma connerie.
+Rien n'est affiché dans la page web quand je sauvegarde. Par contre, quand je lance la commande `npm run lint`, ça corrige automatiquement ma connerie. Et ça l'écrit comme ça :
+
+    <canvas
+      id="c"
+      truc="machin"
+    />
 
 Dans les fichiers .js, le comportement est le même.
 
