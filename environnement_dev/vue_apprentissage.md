@@ -205,3 +205,30 @@ Du coup, je me permet :
 
 Et si c'est pas une bonne pratique, y'avait qu'à qu'ils configurent leurs linters pour signaler explicitement que c'est pas une bonne pratique !!
 
+
+## Intégration de brython
+
+Va y avoir plein de choses à dire sur le sujet.
+
+Pour l'instant, rien n'est fixé.
+
+Sinon que j'ai besoin d'un plugin de Vue, parce que ceci : https://stackoverflow.com/questions/45047126/how-to-add-external-js-scripts-to-vuejs-components
+
+    C:\Recher\personnel\squarity-code (master -> origin)
+    λ npm install --save vue-plugin-load-script
+    npm WARN optional SKIPPING OPTIONAL DEPENDENCY: fsevents@2.1.3 (node_modules\fsevents):
+    npm WARN notsup SKIPPING OPTIONAL DEPENDENCY: Unsupported platform for fsevents@2.1.3: wanted {"os":"darwin","arch":"any"} (current: {"os":"win32","arch":"x64"})
+    npm WARN optional SKIPPING OPTIONAL DEPENDENCY: fsevents@1.2.13 (node_modules\watchpack-chokidar2\node_modules\fsevents):
+    npm WARN notsup SKIPPING OPTIONAL DEPENDENCY: Unsupported platform for fsevents@1.2.13: wanted {"os":"darwin","arch":"any"} (current: {"os":"win32","arch":"x64"})
+    npm WARN optional SKIPPING OPTIONAL DEPENDENCY: fsevents@1.2.13 (node_modules\webpack-dev-server\node_modules\fsevents):
+    npm WARN notsup SKIPPING OPTIONAL DEPENDENCY: Unsupported platform for fsevents@1.2.13: wanted {"os":"darwin","arch":"any"} (current: {"os":"win32","arch":"x64"})
+
+    + vue-plugin-load-script@1.3.0
+    added 1 package from 1 contributor and audited 1319 packages in 6.541s
+
+    48 packages are looking for funding
+      run `npm fund` for details
+
+    found 370 low severity vulnerabilities
+      run `npm audit fix` to fix them, or `npm audit` for details
+
