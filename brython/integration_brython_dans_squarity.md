@@ -1,6 +1,6 @@
 # Particularités de Brython et intégration dans Squarity
 
-TODO : décrire tout ça.
+TODO : décrire tout ça. (l'intégration de Brython dans Squarity, et la manière dont j'ai dû my prendre pour exécuter le user-code).
 
 ## Conservation des variables
 
