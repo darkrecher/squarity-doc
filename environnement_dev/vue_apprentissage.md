@@ -232,3 +232,172 @@ Sinon que j'ai besoin d'un plugin de Vue, parce que ceci : https://stackoverflow
     found 370 low severity vulnerabilities
       run `npm audit fix` to fix them, or `npm audit` for details
 
+
+## Librairie de responsive design
+
+J'ai besoin de faire ça : https://vuejsexamples.com/responsive-grid-system-based-on-bootstrap-for-vue/
+
+Les deux moitiés de la page (la partie jeu et la partie code) doivent être côte à côte sur des grands écrans, et l'une au-dessus de l'autre sur des petits écrans.
+
+Allez, zou !
+
+    C:\Recher\personnel\squarity-code (master -> origin)
+    λ npm install vue-grid-responsive
+    npm WARN optional SKIPPING OPTIONAL DEPENDENCY: fsevents@1.2.13 (node_modules\watchpack-chokidar2\node_modules\fsevents):
+    npm WARN notsup SKIPPING OPTIONAL DEPENDENCY: Unsupported platform for fsevents@1.2.13: wanted {"os":"darwin","arch":"any"} (current: {"os":"win32","arch":"x64"})
+    npm WARN optional SKIPPING OPTIONAL DEPENDENCY: fsevents@1.2.13 (node_modules\webpack-dev-server\node_modules\fsevents):
+    npm WARN notsup SKIPPING OPTIONAL DEPENDENCY: Unsupported platform for fsevents@1.2.13: wanted {"os":"darwin","arch":"any"} (current: {"os":"win32","arch":"x64"})
+    npm WARN optional SKIPPING OPTIONAL DEPENDENCY: fsevents@2.1.3 (node_modules\fsevents):
+    npm WARN notsup SKIPPING OPTIONAL DEPENDENCY: Unsupported platform for fsevents@2.1.3: wanted {"os":"darwin","arch":"any"} (current: {"os":"win32","arch":"x64"})
+
+    + vue-grid-responsive@0.2.0
+    added 1 package from 1 contributor and audited 1320 packages in 7.174s
+
+    48 packages are looking for funding
+      run `npm fund` for details
+
+    found 371 vulnerabilities (370 low, 1 high)
+      run `npm audit fix` to fix them, or `npm audit` for details
+
+Comme d'hab, quelques warnings anxiogènes.
+
+
+## Mise à jour suite à une alerte de sécurité
+
+J'ai github qui m'envoie un message automatique de dependabot, à propos d'une vulnérabilité dans lodash.
+
+> Bump lodash from 4.17.15 to 4.17.19 #1
+
+Je vais faire ça manuellement plutôt que par un merge de github, parce que ça me semble plus maîtrisable.
+
+    C:\Recher\personnel\squarity-code (master -> origin)
+    λ npm update lodash
+
+    C:\Recher\personnel\squarity-code (master -> origin)
+    λ git diff
+
+    C:\Recher\personnel\squarity-code (master -> origin)
+    λ npm install lodash
+    npm ERR! code ENOENT
+    npm ERR! syscall rename
+    npm ERR! path C:\Recher\personnel\squarity-code\node_modules\lodash
+    npm ERR! dest C:\Recher\personnel\squarity-code\node_modules\.lodash.DELETE
+    npm ERR! errno -4058
+    npm ERR! enoent ENOENT: no such file or directory, rename 'C:\Recher\personnel\squarity-code\node_modules\lodash' -> 'C:\Recher\personnel\squarity-code\node_modules\.lodash.DELETE'
+    npm ERR! enoent This is related to npm not being able to find a file.
+    npm ERR! enoent
+
+    npm ERR! A complete log of this run can be found in:
+    npm ERR!     C:\Users\wlanglois\AppData\Roaming\npm-cache\_logs\2020-08-28T22_11_31_784Z-debug.log
+
+OK, donc c'était pas ça.
+
+Et du coup, ça m'a fait planter mon serveur local. Merci !!
+
+Failed to compile.
+
+    Error: Child compilation failed:
+    Module build failed: Error: ENOENT: no such file or directory, open 'C:\Recher\personnel\squarity-code\node_module  s\lodash\lodash.js':
+    Error: ENOENT: no such file or directory, open 'C:\Recher\personnel\squarity-code\node_modules\lodash\lodash.js'
+
+    - compiler.js:79 childCompiler.runAsChild
+      [squarity-code]/[html-webpack-plugin]/lib/compiler.js:79:16
+    - Compiler.js:343 compile
+      [squarity-code]/[webpack]/lib/Compiler.js:343:11
+    - Compiler.js:681 hooks.afterCompile.callAsync.err
+      [squarity-code]/[webpack]/lib/Compiler.js:681:15
+    - Hook.js:154 AsyncSeriesHook.lazyCompileHook
+      [squarity-code]/[tapable]/lib/Hook.js:154:20
+    - Compiler.js:678 compilation.seal.err
+      [squarity-code]/[webpack]/lib/Compiler.js:678:31
+    - Hook.js:154 AsyncSeriesHook.lazyCompileHook
+      [squarity-code]/[tapable]/lib/Hook.js:154:20
+    - Compilation.js:1423 hooks.optimizeAssets.callAsync.err
+      [squarity-code]/[webpack]/lib/Compilation.js:1423:35
+    - Hook.js:154 AsyncSeriesHook.lazyCompileHook
+      [squarity-code]/[tapable]/lib/Hook.js:154:20
+    - Compilation.js:1414 hooks.optimizeChunkAssets.callAsync.err
+      [squarity-code]/[webpack]/lib/Compilation.js:1414:32
+    - Hook.js:154 AsyncSeriesHook.lazyCompileHook
+      [squarity-code]/[tapable]/lib/Hook.js:154:20
+    - Compilation.js:1409 hooks.additionalAssets.callAsync.err
+      [squarity-code]/[webpack]/lib/Compilation.js:1409:36
+
+Et quand on essaie de relancer le serveur, ça pète.
+
+    C:\Recher\personnel\squarity-code (master -> origin)
+    λ npm run serve
+
+    > squarity-code@0.1.0 serve C:\Recher\personnel\squarity-code
+    > vue-cli-service serve
+
+    internal/modules/cjs/loader.js:584
+        throw err;
+        ^
+
+    Error: Cannot find module 'lodash/values'
+        at Function.Module._resolveFilename (internal/modules/cjs/loader.js:582:15)
+        at Function.Module._load (internal/modules/cjs/loader.js:508:25)
+        at Module.require (internal/modules/cjs/loader.js:637:17)
+        at require (internal/modules/cjs/helpers.js:22:18)
+        at Object.<anonymous> (C:\Recher\personnel\squarity-code\node_modules\webpack-merge\lib\index.js:3:16)
+        at Module._compile (internal/modules/cjs/loader.js:701:30)
+        at Object.Module._extensions..js (internal/modules/cjs/loader.js:712:10)
+        at Module.load (internal/modules/cjs/loader.js:600:32)
+        at tryModuleLoad (internal/modules/cjs/loader.js:539:12)
+        at Function.Module._load (internal/modules/cjs/loader.js:531:3)
+    npm ERR! code ELIFECYCLE
+    npm ERR! errno 1
+    npm ERR! squarity-code@0.1.0 serve: `vue-cli-service serve`
+    npm ERR! Exit status 1
+    npm ERR!
+    npm ERR! Failed at the squarity-code@0.1.0 serve script.
+    npm ERR! This is probably not a problem with npm. There is likely additional logging output above.
+
+    npm ERR! A complete log of this run can be found in:
+    npm ERR!     C:\Users\wlanglois\AppData\Roaming\npm-cache\_logs\2020-08-28T22_17_20_743Z-debug.log
+
+Ah, mais maintenant, quand je refais l'install, ça pète pas.
+
+    C:\Recher\personnel\squarity-code (master -> origin)
+    λ npm install lodash
+    npm WARN optional SKIPPING OPTIONAL DEPENDENCY: fsevents@1.2.13 (node_modules\watchpack-chokidar2\node_modules\fsevents):
+    npm WARN notsup SKIPPING OPTIONAL DEPENDENCY: Unsupported platform for fsevents@1.2.13: wanted {"os":"darwin","arch":"any"} (current: {"os":"win32","arch":"x64"})
+    npm WARN optional SKIPPING OPTIONAL DEPENDENCY: fsevents@1.2.13 (node_modules\webpack-dev-server\node_modules\fsevents):
+    npm WARN notsup SKIPPING OPTIONAL DEPENDENCY: Unsupported platform for fsevents@1.2.13: wanted {"os":"darwin","arch":"any"} (current: {"os":"win32","arch":"x64"})
+
+    + lodash@4.17.20
+    added 1 package from 2 contributors and audited 1321 packages in 6.218s
+
+    48 packages are looking for funding
+      run `npm fund` for details
+
+    found 1 high severity vulnerability
+      run `npm audit fix` to fix them, or `npm audit` for details
+
+Peut-être que j'aurais dû couper mon serveur avant de refaire l'install. Il pouvait pas gérer ça tout seul, ce gros con de npm, plutôt que de me faire flipper ?
+
+Le serveur refonctionne.
+
+Bon, il reste quand même une "high severity vulnerability", qui sort de je-sais-pas-où.
+
+Je vais pas trop chercher à comprendre, et je vais faire ce qu'il dit.
+
+    C:\Recher\personnel\squarity-code (master -> origin)
+    λ npm update copy-webpack-plugin --depth 2
+    npm WARN optional SKIPPING OPTIONAL DEPENDENCY: fsevents@1.2.13 (node_modules\watchpack-chokidar2\node_modules\fsevents):
+    npm WARN notsup SKIPPING OPTIONAL DEPENDENCY: Unsupported platform for fsevents@1.2.13: wanted {"os":"darwin","arch":"any"} (current: {"os":"win32","arch":"x64"})
+    npm WARN optional SKIPPING OPTIONAL DEPENDENCY: fsevents@1.2.13 (node_modules\webpack-dev-server\node_modules\fsevents):
+    npm WARN notsup SKIPPING OPTIONAL DEPENDENCY: Unsupported platform for fsevents@1.2.13: wanted {"os":"darwin","arch":"any"} (current: {"os":"win32","arch":"x64"})
+
+    + copy-webpack-plugin@5.1.2
+    updated 6 packages and audited 1321 packages in 5.685s
+
+    48 packages are looking for funding
+      run `npm fund` for details
+
+    found 0 vulnerabilities
+
+Yeaaaaaahh....
+
+Et github ne râle plus. Cool.
