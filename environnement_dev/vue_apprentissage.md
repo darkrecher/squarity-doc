@@ -233,7 +233,7 @@ Sinon que j'ai besoin d'un plugin de Vue, parce que ceci : https://stackoverflow
       run `npm audit fix` to fix them, or `npm audit` for details
 
 
-## Librairie de responsive design
+## Librairie de responsive design (1)
 
 J'ai besoin de faire ça : https://vuejsexamples.com/responsive-grid-system-based-on-bootstrap-for-vue/
 
@@ -401,3 +401,133 @@ Je vais pas trop chercher à comprendre, et je vais faire ce qu'il dit.
 Yeaaaaaahh....
 
 Et github ne râle plus. Cool.
+
+
+## Librairie de responsive design (2)
+
+C'est de la merde le package que j'ai installé : vue-grid-responsive
+
+Ça fait des grid, mais ça fait pas de putain d'offset.
+
+Je vais carrément foutre bootstrap dans la gueule, de toutes façons je sais rien utiliser que boostrap (et même ça, j'y connais que d'alle).
+
+    C:\Recher\personnel\squarity-code (master -> origin)
+    λ npm uninstall vue-grid-responsive
+    npm WARN optional SKIPPING OPTIONAL DEPENDENCY: fsevents@1.2.13 (node_modules\watchpack-chokidar2\node_modules\fsevents):
+    npm WARN notsup SKIPPING OPTIONAL DEPENDENCY: Unsupported platform for fsevents@1.2.13: wanted {"os":"darwin","arch":"any"} (current: {"os":"win32","arch":"x64"})
+    npm WARN optional SKIPPING OPTIONAL DEPENDENCY: fsevents@1.2.13 (node_modules\webpack-dev-server\node_modules\fsevents):
+    npm WARN notsup SKIPPING OPTIONAL DEPENDENCY: Unsupported platform for fsevents@1.2.13: wanted {"os":"darwin","arch":"any"} (current: {"os":"win32","arch":"x64"})
+
+    removed 1 package and audited 1320 packages in 5.317s
+
+    48 packages are looking for funding
+      run `npm fund` for details
+
+    found 0 vulnerabilities
+
+Et maintenant, bootstrap, le vrai !
+
+    C:\Recher\personnel\squarity-code (master -> origin)
+    λ npm install bootstrap-vue
+    npm WARN deprecated popper.js@1.16.1: You can find the new Popper v2 at @popperjs/core, this package is dedicated to the legacy v1
+
+    > bootstrap-vue@2.16.0 postinstall C:\Recher\personnel\squarity-code\node_modules\bootstrap-vue
+    > opencollective || exit 0
+
+
+                              ;iiiiiiiiiiSSSSSSSSiiiiiiiiii;
+                              .rXXXXXXXXXrrrrrrrSXXXXXXXXXr.
+                              :iXXXXXXXX2. ;;;;, r3XXXXXXXi;
+                            ,rSSSSSXXXX2..sSSi: r3XXXSSSSSr,
+                              ,siiiiS2XX2. :;;:,.rXX2Siiiis,
+                              ,riiiii2X2..5XXXi .22iiiiir,
+                                .riiiii22..::::,,r2iiiiir.
+                                .riiiii5SSiiiiS22iiiiir.
+                                  ;iiiii5X3333X5iiiii;
+                                    :iiiiiSXXXXSiiiii:
+                                    :siiiiSXXSiiiis:
+                                      ,siiiiiiiiiis,
+                                      .riiiiiiiir.
+                                        .riiiiiir.
+                                        .;iiii;.
+                                          ;ii;
+                                            ::
+
+                          Thanks for installing bootstrap-vue
+                    Please consider donating to our open collective
+                            to help us maintain this package.
+
+                              Number of contributors: 257
+                                  Number of backers: 160
+                                Annual budget: US$ 8,826
+                                Current balance: US$ 5,813
+
+              Donate: https://opencollective.com/bootstrap-vue/donate
+
+    npm WARN bootstrap@4.5.2 requires a peer of jquery@1.9.1 - 3 but none is installed. You must install peer dependencies yourself.
+    npm WARN optional SKIPPING OPTIONAL DEPENDENCY: fsevents@1.2.13 (node_modules\webpack-dev-server\node_modules\fsevents):
+    npm WARN notsup SKIPPING OPTIONAL DEPENDENCY: Unsupported platform for fsevents@1.2.13: wanted {"os":"darwin","arch":"any"} (current: {"os":"win32","arch":"x64"})
+    npm WARN optional SKIPPING OPTIONAL DEPENDENCY: fsevents@1.2.13 (node_modules\watchpack-chokidar2\node_modules\fsevents):
+    npm WARN notsup SKIPPING OPTIONAL DEPENDENCY: Unsupported platform for fsevents@1.2.13: wanted {"os":"darwin","arch":"any"} (current: {"os":"win32","arch":"x64"})
+
+    + bootstrap-vue@2.16.0
+    added 8 packages from 20 contributors and audited 1328 packages in 10.925s
+
+    50 packages are looking for funding
+      run `npm fund` for details
+
+    found 0 vulnerabilities
+
+Et ensuite bootstrap lui-même.
+
+    C:\Recher\personnel\squarity-code (master -> origin)
+    λ npm install bootstrap
+    npm WARN bootstrap@4.5.2 requires a peer of jquery@1.9.1 - 3 but none is installed. You must install peer dependencies yourself.
+    npm WARN optional SKIPPING OPTIONAL DEPENDENCY: fsevents@1.2.13 (node_modules\watchpack-chokidar2\node_modules\fsevents):
+    npm WARN notsup SKIPPING OPTIONAL DEPENDENCY: Unsupported platform for fsevents@1.2.13: wanted {"os":"darwin","arch":"any"} (current: {"os":"win32","arch":"x64"})
+    npm WARN optional SKIPPING OPTIONAL DEPENDENCY: fsevents@1.2.13 (node_modules\webpack-dev-server\node_modules\fsevents):
+    npm WARN notsup SKIPPING OPTIONAL DEPENDENCY: Unsupported platform for fsevents@1.2.13: wanted {"os":"darwin","arch":"any"} (current: {"os":"win32","arch":"x64"})
+
+    + bootstrap@4.5.2
+    updated 1 package and audited 1329 packages in 5.905s
+
+    50 packages are looking for funding
+      run `npm fund` for details
+
+    found 0 vulnerabilities
+
+Commit de la version actuelle car faut le faire avant de faire `vue add`. (Commit temporaire, qui n'apparaîtra pas dans le serveur git, car il est assez sale).
+
+    C:\Recher\personnel\squarity-code (master -> origin)
+    λ vue add bootstrap-vue
+
+    �  Installing vue-cli-plugin-bootstrap-vue...
+
+    + vue-cli-plugin-bootstrap-vue@0.6.0
+    added 1 package from 1 contributor in 6.467s
+
+    50 packages are looking for funding
+      run `npm fund` for details
+
+    ✔  Successfully installed plugin: vue-cli-plugin-bootstrap-vue
+
+    ? Use babel/polyfill? No
+
+    �  Invoking generator for vue-cli-plugin-bootstrap-vue...
+    �  Installing additional dependencies...
+
+    added 5 packages from 4 contributors in 7.386s
+
+    51 packages are looking for funding
+      run `npm fund` for details
+
+    ⚓  Running completion hooks...
+
+    ✔  Successfully invoked generator for plugin: vue-cli-plugin-bootstrap-vue
+
+    C:\Recher\personnel\squarity-code (master -> origin)
+
+(Je comprends pas grand-chose à ce que je fais, mais c'est pas grave).
+
+N'empêche que maintenant ça marche. Mes layout de grid s'affichent bien.
+
