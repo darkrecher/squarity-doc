@@ -531,3 +531,37 @@ Commit de la version actuelle car faut le faire avant de faire `vue add`. (Commi
 
 N'empêche que maintenant ça marche. Mes layout de grid s'affichent bien.
 
+
+## Il faut que je fasse des requêtes HTTP
+
+La bonne pratique pour faire ça dans Vue, c'est de pas spécialement le faire avec Vue.
+
+On met dans un fichier à part le code qui fait les requêtes HTTP, et on importe ce fichier où il faut. C'est tout.
+
+Inspirations :
+
+ - https://itnext.io/anyway-heres-how-to-do-ajax-api-calls-with-vue-js-e71e57d5cf12
+ - https://stackoverflow.com/questions/40813975/how-to-structure-api-calls-in-vue-js
+ - https://medium.com/canariasjs/vue-api-calls-in-a-smart-way-8d521812c322
+
+Et pour ça, il semblerait que la plupart des gens utilisent axios : https://www.npmjs.com/package/axios
+
+    C:\Recher\personnel\squarity-code (master -> origin)
+    λ npm install axios
+    npm WARN bootstrap@4.5.2 requires a peer of jquery@1.9.1 - 3 but none is installed. You must install peer dependencies yourself.
+    npm WARN The package bootstrap is included as both a dev and production dependency.
+    npm WARN optional SKIPPING OPTIONAL DEPENDENCY: fsevents@1.2.13 (node_modules\webpack-dev-server\node_modules\fsevents):
+    npm WARN notsup SKIPPING OPTIONAL DEPENDENCY: Unsupported platform for fsevents@1.2.13: wanted {"os":"darwin","arch":"any"} (current: {"os":"win32","arch":"x64"})
+    npm WARN optional SKIPPING OPTIONAL DEPENDENCY: fsevents@1.2.13 (node_modules\watchpack-chokidar2\node_modules\fsevents):
+    npm WARN notsup SKIPPING OPTIONAL DEPENDENCY: Unsupported platform for fsevents@1.2.13: wanted {"os":"darwin","arch":"any"} (current: {"os":"win32","arch":"x64"})
+
+    + axios@0.20.0
+    added 1 package from 1 contributor and audited 1337 packages in 6.479s
+
+    51 packages are looking for funding
+      run `npm fund` for details
+
+    found 0 vulnerabilities
+
+
+
