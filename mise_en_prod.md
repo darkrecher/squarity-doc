@@ -1,6 +1,6 @@
 # Mise en prod.
 
-## Première mise en prod
+## Mise en prod 01
 
 ### Création du compte sur pythonanywhere
 
@@ -92,5 +92,15 @@ Dans l'onglet web, recliquer sur le bouton "Reload squarity.pythonanywhere.com".
 Il est maintenant possible de tester [http://squarity.pythonanywhere.com/](http://squarity.pythonanywhere.com/). Dans le navigateur, l'url se modifie automatiquement, pour ajouter "index.html" à la fin, et le site se charge automatiquement. Tout fonctionne pareil qu'avant.
 
 Bon, c'est bien, mais ça reste assez rustique et fastidieux. Faudra vraiment automatiser tout ça.
+
+
+## Mise en prod 02
+
+2020-09-16
+
+commit : 61346d42
+
+Même méthode que la 1ère mise en prod. C'est à dire, à l'arrache.
+
 
 
