@@ -1,43 +1,44 @@
 # Manuel utilisateur de Squarity
 
-"Pour créer des histoires en jeux vidéos."
+[Squarity](http://squarity.fr) est un espace de création et de partage de jeux vidéo jouables en ligne.
 
-[Squarity](squarity.fr) est un espace de création et de partage de jeux vidéo jouables en ligne.
+Les jeux sont en 2D "case par case", (exemple : les dames, le démineur, ...). L'aire de jeu est une grille composée de carrés, sur lesquels sont placés des éléments.
 
-Les jeux sont en 2D "case par case", (exemple : les dames, le démineur, ...). L'aire de jeu est une grille composée de carrés, sur lesquelles sont placés les éléments.
-
-La "game logic" (le fonctionnement et les règles du jeu) sont définis par du code en python 3. Il s'agit d'un langage de programmation, dont vous trouverez beaucoup de tutoriels et de références sur internet.
+La "game logic" (le fonctionnement et les règles du jeu) est définie par du code en python 3. Il s'agit d'un langage de programmation, que vous pourrez découvrir par une [foisonnance de tutoriels](https://python.developpez.com/cours/).
 
 Pour créer un jeu, il faut définir trois composants :
 
- - le tileset
- - la configuration
- - le "game_code"
+ - tileset,
+ - configuration,
+ - "game_code".
 
-[TODO screenshot page web squarity]
+## Le tileset
 
-## Tileset
-
-Il s'agit d'une image, au format jpg, png ou autre, contenant tous les éléments (décors, personnages, objets) de votre jeu. Voici quelques exemples de tileset :
+Il s'agit d'une image, au format jpg, png ou autre, contenant les éléments (décors, personnages, objets) de votre jeu. En voici quelques exemples :
 
 ![https://squarity.pythonanywhere.com/img/h2o_tileset.c174edea.png](https://squarity.pythonanywhere.com/img/h2o_tileset.c174edea.png)
 
 ![https://opengameart.org/sites/default/files/HighContrastRoguelikeCastle.png](https://opengameart.org/sites/default/files/HighContrastRoguelikeCastle.png)
 
-Chaque élément doit être contenu dans un carré. Tous les éléments doivent avoir la même taille en pixels.
+Chaque élément de jeu doit être contenu dans un carré. Ils doivent tous avoir la même taille en pixels.
 
 La définition des pixels transparents, dans le format png, est prise en compte.
 
 Il est conseillé d'utiliser le format png, car le jpg modifie légèrement les couleurs des pixels pour diminuer la taille en octets de l'image. C'est très bien pour des photos, mais très gênant pour des tilesets qui doivent rester précis.
 
-Pour qu'il soit accessible dans Squarity, votre tileset doit être publié sur internet. Utilisez des sites d'hébergement d'images comme imgur ou imgbb, puis récupérer l'url directe de votre fichier image (clic droit, option "ouvrir l'image dans un nouvel onglet"). Indiquer cette url dans le champ Tileset.
+Pour qu'il soit accessible dans Squarity, votre tileset doit être publié sur internet. Utilisez des sites d'hébergement d'images comme imgur ou imgbb, puis récupérez l'url directe de votre fichier image (clic droit, option "ouvrir l'image dans un nouvel onglet"). Indiquez cette url dans le champ Tileset.
 
-Vous pouvez également convertir l'image en url data, avec un service en ligne comme [ezgif](https://ezgif.com/image-to-datauri).
+Si l'image n'est pas trop grande, vous pouvez également la convertir en url-data, avec un service en ligne comme [ezgif](https://ezgif.com/image-to-datauri).
 
 
-## Configuration
+## La configuration
 
-Il s'agit d'un texte, au format JSON. Ce format permet de définir des informations de manière structurée. Par exemple : une liste de nombre, une correspondance entre des mots et des nombres, une liste contenant une sous-liste contenant des sous-sous-correspondances de mots, etc.
+Il s'agit d'un texte, au format JSON. Ce format permet de définir des informations de manière structurée. Par exemple :
+
+ - une liste de nombre,
+ - une correspondance entre des mots et des nombres,
+ - une liste contenant une sous-liste contenant des sous-sous-correspondances de mots,
+ - etc.
 
 Exemple de configuration de jeu :
 
@@ -61,15 +62,15 @@ Exemple de configuration de jeu :
 
 La configuration est structurée comme ceci :
 
- - l'élément principal est un dictionnaire (une "correspondance"), contenant deux sous-éléments
-   - le premier a pour clé "tile_size", et pour valeur un nombre. Ce nombre correspond à la taille, en pixels, de tous les éléments du jeu, tel que vous les avez dessinés dans votre tileset.
-   - le suivant a pour clé "tile_coords", et pour valeur un sous-dictionnaire, contenant plusieurs sous-élément
+ - l'élément principal est un dictionnaire (une "correspondance"), contenant deux sous-éléments :
+   - le premier a pour clé `tile_size`, et pour valeur un nombre. Ce nombre correspond à la taille, en pixels, de chacun des éléments du jeu, tel que vous les avez dessinés dans votre tileset.
+   - le suivant a pour clé `tile_coords`, et pour valeur un sous-dictionnaire, contenant plusieurs sous-éléments :
      - chacun de ces sous-éléments a pour clé un texte (de un ou plusieurs caractères), correspondant à un nom d'objet dans votre jeu. La valeur est une liste de deux nombres, indiquant les coordonnées du coin supérieur gauche, dans le tileset, de l'image de cet objet du jeu.
 
 
-## game_code
+## Le game_code
 
-Il s'agit d'un texte, correspondant à un code informatique écrit en langage python version 3.
+Il s'agit d'un texte écrit dans le langage python version 3.
 
 Ce code doit décrire le contenu de l'aire de jeu (quels objets se trouvent sur quelle case), et les changements qui surviennent lorsque la personne qui joue appuie sur une touche de direction ou d'action.
 
@@ -94,11 +95,11 @@ class BoardModel():
         pass
 ```
 
-Ce code définit une classe `BoardModel`, contenant la fonction __init__ et trois callbacks, c'est à dire des fonctions qui sont appelées par le système du jeu à des moments précis.
+Ce code définit une classe `BoardModel`, contenant la fonction `__init__` et trois callbacks, c'est à dire des fonctions appelées à des moments précis par le système de jeu.
 
 Vous pouvez bien entendu ajouter d'autres classes, d'autres fonctions, d'autres variables membres dans BoardModel, etc.
 
-### Fonction BoardModel.__init__(self)
+### Fonction BoardModel.\_\_init\_\_(self)
 
 Cette fonction est exécutée une seule fois, au début du jeu.
 
@@ -117,88 +118,90 @@ Ensuite, vous pouvez remplir le contenu des cases de ce tableau, en ajoutant une
 
 Cette fonction est exécutée une seule fois, au début du jeu.
 
-Elle servira à définir les dimensions (largeur, hauteur) de l'aire de jeu. Pour l'instant, elle n'est pas configurable. Il faut donc renvoyer le tuple (20, 14). Vous pouvez utiliser les variables membres contenant ces dimensions :
+Elle servira à définir les dimensions (largeur, hauteur) de l'aire de jeu. Pour l'instant, ça ne fonctionne pas bien, vous devez donc renvoyer le tuple (20, 14). Vous pouvez utiliser les variables membres contenant ces dimensions :
 
     return self.w, self.h
 
 ### Fonction BoardModel.export_tile(self, x, y)
 
-Cette fonction est appelée à chaque redessin de l'aire de jeu, et pour chaque case. Les paramètres x et y indiquent les coordonnées de la case concernée.
+Cette fonction est appelée à chaque rendu de l'aire de jeu (lorsqu'on la redessine à l'écran), et pour chaque case. Les paramètres x et y indiquent les coordonnées de la case concernée.
 
-Il faut renvoyer une liste de strings (qui peut être vide). Chaque string doit correspondre à l'un des noms défini dans la partie "tile_coords" de la config json, et déclenchera le dessin de l'objet concerné, dans la case concerné.
+Il faut renvoyer une liste de strings, qui peut être vide. Chaque string doit correspondre à l'un des noms définis dans la partie "tile_coords" de la config json, et déclenchera le dessin de l'objet concerné, dans la case concerné.
 
-L'ordre des noms d'objets dans la liste définit l'ordre de dessin des objets sur la case concernée.
+L'ordre des noms d'objets dans la liste définit l'ordre de dessin des objets sur la case.
 
-Cette fonction peut effectuer des traitements spécifiques, par exemple construire le nom d'un objet complexe se trouvant sur la case. Mais le comportement le plus commun est de renvoyer la liste de string de `self.tiles` aux coordonnées correspondants aux paramètres :
+Cette fonction peut effectuer des traitements spécifiques, par exemple construire le nom d'un objet complexe et le placer dans la liste à renvoyer. Mais le comportement le plus commun est de renvoyer le contenu de l'élément de `self.tiles` correspondant :
 
     return self.tiles[y][x]
 
 ### Fonction BoardModel.on_game_event(self, event_name)
 
-Cette fonction est appelée à chaque événement du jeu, c'est à dire une action de la personne qui joue, ou bien une action différée qui a été préalablement enregistrée.
+Cette fonction est appelée à chaque événement du jeu : une action de la personne qui joue, ou bien une action différée qui a été préalablement enregistrée.
 
-Le paramètre `event_name` est une string qui renseigne le type d'action. Il peut prendre les valeurs suivantes :
+Le paramètre `event_name` est une string indiquant le type d'action. Il peut prendre les valeurs suivantes :
 
- - "U" (up) le bouton "haut" a été appuyé
- - "D" (down) bouton "bas"
- - "L" (left) bouton "gauche"
- - "R" (right) bouton "droit"
- - "action_1" bouton "1"
- - "action_2" bouton "2"
+ - "U" (up) : le bouton "haut" a été appuyé
+ - "D" (down) : bouton "bas"
+ - "L" (left) : bouton "gauche"
+ - "R" (right) : bouton "droit"
+ - "action_1" : bouton "1"
+ - "action_2" : bouton "2"
 
-Ces événements sont également déclenchés lorsque la personne qui joue appuie sur une touche (flèches de direction, "1" et "2" du pavé numérique ou du clavier normal). Pour cela, le focus doit être sur l'aire de jeu ou les touches, c'est à dire que la personne qui joue doit avoir cliqué dessus avec la souris.
+Ces événements sont également déclenchés lorsque la personne qui joue appuie sur une touche (flèches de direction, "1" et "2" du pavé numérique ou du clavier normal). Pour cela, le focus doit être sur l'aire de jeu ou sur les touches. Il faut avoir cliqué dessus avec la souris.
 
-Le paramètre `event_name` peut prendre d'autres valeurs, dans le cas des actions différée. Le nom est défini lors de l'enregistrement de l'action. Ce fonctionnement n'est pas documenté pour l'instant, mais ça devrait venir très vite.
+Le paramètre `event_name` peut prendre d'autres valeurs, dans le cas des actions différées. Elle est définie lors de l'enregistrement de l'action. Ce fonctionnement n'est pas documenté pour l'instant, mais ça devrait venir très vite.
 
-La fonction on_game_event a pour charge de modifier la situation du jeu, c'est à dire le contenu de `self.tiles` et des autres variables internes, en fonction de l'événement. Elle implémente la plus grande partie de la "game logic".
+La fonction `on_game_event` a pour charge de modifier la situation du jeu, c'est à dire le contenu de `self.tiles` et des autres variables internes, en fonction de l'événement. Elle implémente la plus grande partie de la "game logic".
 
-Un redessin complet de l'aire de jeu est déclenché après chaque appel de cette fonction. Sauf si on indique explicitement qu'on ne veut pas de redessi (fonctionnement non documenté pour l'instant).
+Un rendu complet de l'aire de jeu est déclenché après chaque appel de cette fonction. Sauf si on indique explicitement qu'on n'en veut pas (fonctionnement non documenté pour l'instant).
 
-### Différencs entre export_tile et get_tile_gamobjs
+### Différences entre export_tile et get_tile_gamobjs
 
-`export_tile` est une fonction "externe", elle est appelée automatiquement par le système lors de redessins.
+`export_tile` est une fonction "externe", elle est appelée automatiquement par le système, lors des rendus. Elle ne devrait pas être appelée par votre game_code.
 
-Elle pourra, dans le futur, renvoyer d'autres informatinos concernant les objets présents sur les cases.
+Elle pourra, dans le futur, renvoyer d'autres informations sur la situation du jeu.
 
-La fonction `get_tile_gamobjs` est "interne ", elle renvoie la liste d'objets d'une case. C'est une fonction d'aide pour ajouter/enlever des éléments dans l'aire de jeu.
+La fonction `get_tile_gamobjs` est "interne ", elle renvoie la liste d'objets d'une case. C'est une fonction d'aide pour ajouter/enlever des éléments dans l'aire de jeu. Vous pouvez l'appeler dans votre game_code.
 
-Elle est présente dans la plupart des game_code d'exemple, mais elle est facultative. Vous pouvez la supprimer si vous ne vous en servez pas.
+Elle est facultative, vous pouvez la supprimer si vous ne vous en servez pas.
 
-### Actions différées, actions bloquantes
+### Actions différées, actions bloquantes, annulation du rendu
 
-Non documenté pour l'instant, car pas le temps. Consultez l'exemple du jeu du magicien pour (essayer de) déterminer à quoi ça sert et comment ça fonctionne.
+Non documentés pour l'instant, car pas le temps. Consultez l'exemple du jeu du magicien pour (essayer de) déterminer à quoi ça sert et comment ça fonctionne.
 
 Ce sont les strings json renvoyées par `on_game_event`, permettant de montrer le déplacement progressif des boules de feu et les étapes intermédiaires lorsque le personnage passe une porte.
 
 ## Démarrer le jeu
 
-Cliquez sur le bouton "<< Envoyer le jeu" en bas de la page. Le jeu est entièrement réinitialisé, la classe `BoardModel` est détruite puis reconstruite.
+Cliquez sur le bouton "<< Envoyer le jeu" en bas de la page. Le jeu est entièrement réinitialisé, la classe `BoardModel` est reconstruite à partir du nouveau game_code.
 
-Il n'est pas possible de sauvegarder la situation du jeu. On recommence du début à chaque appui sur le bouton, et à chaque rechargement de la page. Ce sera amélioré dans un futur proche, quoi que indéterminé.
+Si l'url du tileset a changée, l'image est rechargée, sinon, celle qui est déjà en mémoire est conservée. Si vous avez modifié et republié votre tileset, mais que l'url est restée la même, vous devez changer l'url, envoyer le jeu, puis remettre l'ancienne url. Ce petit désagrément sera corrigé dès que possible.
+
+Il n'est pas possible de sauvegarder la partie en cours. On recommence du début à chaque renvoi du jeu, et à chaque rechargement de la page web. Ce sera amélioré dans un futur proche, quoi que indéterminé.
 
 
 ## Quelques détails techniques
 
-Le code python écrit dans le game_code est exécuté par votre navigateur web, grâce à la librairie [Brython 3.8](https://brython.info/). À priori, cela fonctionne également sur les smartphones, mais les tests effectués sur les différents appareils et navigateurs ne sont pas encore assez exhaustif.
+Le code python écrit dans le game_code est exécuté par votre navigateur web, grâce à la librairie [Brython 3.8](https://brython.info/). À priori, cela fonctionne également sur les smartphones, le peu de tests déjà effectués est assez concluant.
 
-Lorsque votre code python comporte des erreurs, celles-ci s'écrivent dans la console du navigateur web, mais pas toujours. Ce n'est pas très pratique, mais ce sera amélioré au plus vite.
+Lorsque votre code python comporte des erreurs, celles-ci s'écrivent dans la console du navigateur web, mais pas toujours. Ce n'est pas très pratique, ce sera amélioré au plus vite.
 
-En attendant, pour débugger, il reste toujours la solution des prints. Lorsque vous appelez la fonction `print(message)`, le contenu du message s'affiche dans la zone de texte en bas à gauche. Vous pouvez utiliser cette fonctionnalité pour le debug, mais aussi pour le jeu lui-même.
+En attendant, pour débugger, il reste toujours la solution des prints. Lorsque vous appelez la fonction `print("message")`, le texte s'affiche dans la zone en bas à gauche. Vous pouvez utiliser cette fonctionnalité pour le debug et pour le jeu lui-même.
 
-À l'exception du debug, évitez de déclencher des prints trop fréquents, sur chaque action du jeu. Les temps de réactions seront fortement diminués, car chaque print modifie le DOM (la structure interne de la page web), ce qui nécessite plusieurs opérations pour le navigateur web.
+Évitez de déclencher des prints trop fréquents et sur chaque action. Les temps de réactions seront un peu diminués, car chaque print modifie le DOM (la structure interne de la page web), ce qui nécessite d'effectuer diverses opérations par le navigateur web.
 
-Une bonne pratique serait d'avoir une fonction `debug(message)`, qui exécute un print, uniquement si un booléen global `debug_mode` est mis à True. Avant la distribution de votre jeu, mettez ce booléen à False dans le code.
+Une bonne pratique serait d'avoir une fonction `debug(message)`, exécutant un print uniquement si un booléen global `debug_mode` est mis à True. Avant la distribution de votre jeu, mettez ce booléen à False.
 
 
 ## Partager un jeu
 
-Il est possible d'enregistrer vos jeux, et de les partager avec d'autres personnes grâce à une simple url (quoi que un peu longue).
+Il est possible d'enregistrer vos jeux et de les partager avec d'autres personnes grâce à une simple url (quoi que un peu longue).
 
 Un compte sur https://github.com est nécessaire.
 
 Connectez-vous sur github, cliquez sur votre avatar en haut à droite et sélectionnez "Your gists".
 
-Cliquez sur le bouton "+" en haut à droite pour créer un nouveau gist (il s'agit d'un texte que vous publiez sur github).
+Cliquez sur le bouton "+" en haut à droite pour créer un nouveau gist : il s'agit d'un texte que vous publiez sur github.
 
 Choisissez un nom pour votre texte, **attention, pas d'underscore dans le nom du fichier, uniquement des caractères alphanumériques et des tirets "-"**.
 
@@ -214,9 +217,9 @@ En bas à droite, cliquez sur la flèche du bouton pour sélectionner "Create pu
 
 Lorsque votre gist est sauvegardé, cliquez sur le bouton "Raw" à droite du fichier texte.
 
-L'url de votre navigateur devrait être sous cette forme :
+L'url affichée dans votre navigateur devrait avoir cette forme :
 
-`https://gist.githubusercontent.com/votre-nom/xxx123/raw/yyy456/mon-super-jeu.txt`
+`https://gist.githubusercontent.com/votre-nom/xxx123/raw/yyy456/raw/mon-super-jeu.txt`
 
 Les parties "xxx123" et "yyy456" sont de longues suites de caractères alphanumériques, permettant d'identifier votre gist de manière unique.
 
@@ -224,19 +227,23 @@ Supprimer la partie "yyy456/" et recharger la page. Vérifier que le texte brut 
 
 Garder la fin de cette url, à partir de votre nom de compte github. C'est à dire : `votre-nom/xxx123/raw/mon-super-jeu.txt`.
 
-Ajouter au début l'url de squarity et le préfixe indiquant qu'il faut aller sur gist : `squarity.fr/#fetchez_githubgist_votre-nom/xxx123/raw/mon-super-jeu.txt`. Attention, si vous indiquez le protocole, mettez `http://`, et non pas `https://`. Le site n'est pas sécurisé. Ce n'est pas grave, c'est pas comme si c'était le site de votre messagerie mail ou de votre banque en ligne.
+Ajoutez au début l'url de squarity et le préfixe indiquant qu'il faut aller sur gist :
 
-C'est le lien vers votre jeu. Vérifiez qu'il fonctionne bien, puis distribuez-le à vos ami(e)s et devenez une star de la scène vidéoludique indépendante !
+`squarity.fr/#fetchez_githubgist_votre-nom/xxx123/raw/mon-super-jeu.txt`.
 
-Vous pouvez ensuite modifier votre gist, et améliorer ou corriger votre jeu. Le lien restera le même. Attention, après modification, il faut attendre quelques minutes pour que github mette à jour le lien vers la dernière version de votre gist. Vous devez donc [attendre un peu](https://stackoverflow.com/questions/47066049/github-gist-raw-permalink-wont-update) avant de vérifier que le lien mène vers votre jeu mis à jour.
+Attention, si vous indiquez le protocole, mettez `http://`, et non pas `https://`. Le site n'est pas sécurisé. Ce n'est pas grave, c'est pas comme si c'était le site de votre messagerie mail ou de votre banque en ligne.
+
+Cette url reconstruite est le lien vers votre jeu. Vérifiez qu'il fonctionne bien, puis distribuez-le à vos ami(e)s et devenez une star de la scène vidéoludique indépendante !
+
+Vous pouvez ensuite modifier votre gist pour améliorer ou corriger votre jeu. Le lien restera le même. Attention, après modification, il faut attendre quelques minutes pour que github mette à jour le lien vers la dernière version de votre gist. Vous devrez donc [attendre un peu](https://stackoverflow.com/questions/47066049/github-gist-raw-permalink-wont-update) avant de revérifier votre lien.
 
 À titre d'exemple, voici un pacman créé par une gentille personne du nom de 10kbis.
 
 Lien vers le gist : https://gist.githubusercontent.com/darkrecher/b5240940356e3bb7e59c8a2522c279d9/raw/pacman-10kbis.txt
 
-Lien pour jouer directement : [squarity.fr#fetchez_githubgist_darkrecher/b5240940356e3bb7e59c8a2522c279d9/raw/pacman-10kbis.txt](squarity.fr#fetchez_githubgist_darkrecher/b5240940356e3bb7e59c8a2522c279d9/raw/pacman-10kbis.txt)
+Lien pour jouer directement : [http://squarity.fr#fetchez_githubgist_darkrecher/b5240940356e3bb7e59c8a2522c279d9/raw/pacman-10kbis.txt](http://squarity.fr#fetchez_githubgist_darkrecher/b5240940356e3bb7e59c8a2522c279d9/raw/pacman-10kbis.txt)
 
-Attention, j'ai l'impression que son jeu plante. Il se bloque parfois après que vous récupériez une deuxième super-pat'gomm'. J'essayerais de corriger ça.
+J'ai l'impression que son jeu plante. Il se bloque parfois après que vous récupériez une deuxième super-pat'gomm'. J'essayerais de corriger ça.
 
 
 ## Améliorations prévues
@@ -246,7 +253,9 @@ Beaucoup, mais indéterminées. Une roadmap sera fournie dès que possible. En a
 
 ## Contacter l'admin de Squarity
 
-Moi c'est Réchèr. Je développe Squarity pendant mon temps libre, juste pour voir jusqu'où ça va me mener, et pour faire foisonner la créativité vidéoludique de l'humanité. Je n'ai pour l'instant prévu aucun moyen "officiel" pour me contacter. Il vous reste les autres moyens de contact si vous en connaissez un (réseau social, en vrai, etc.), ou en dernier recours, une petite issue dans github. J'essayerais de les consulter fréquemment.
+Moi c'est Réchèr. Je développe Squarity pendant mon temps libre, juste pour voir jusqu'où ça va me mener, et pour faire foisonner la créativité vidéoludique de l'humanité.
+
+Je n'ai pour l'instant prévu aucun moyen "officiel" pour me contacter. Il vous reste ceux que vous connaissez éventuellement déjà (réseau social, en vrai, etc.). En dernier recours, postez une petite issue dans github. J'essayerais de les consulter fréquemment.
 
 Amusez-vous bien !
 
