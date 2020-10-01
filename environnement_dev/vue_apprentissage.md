@@ -409,7 +409,7 @@ C'est de la merde le package que j'ai installé : vue-grid-responsive
 
 Ça fait des grid, mais ça fait pas de putain d'offset.
 
-Je vais carrément foutre bootstrap dans la gueule, de toutes façons je sais rien utiliser que boostrap (et même ça, j'y connais que d'alle).
+Je vais carrément foutre bootstrap dans la gueule, de toutes façons je sais rien utiliser d'autre que boostrap (et même ça, j'y connais que d'alle).
 
     C:\Recher\personnel\squarity-code (master -> origin)
     λ npm uninstall vue-grid-responsive
@@ -563,5 +563,15 @@ Et pour ça, il semblerait que la plupart des gens utilisent axios : https://www
 
     found 0 vulnerabilities
 
+
+## Pour avoir plusieurs pages
+
+Parce qu'il me faut quand même une autre page pour la doc. Même si actuellement, la doc, c'est pas ce que j'ai de mieux.
+
+https://router.vuejs.org/installation.html#direct-download-cdn
+
+Nan, on fera ça plus tard.
+
+Pour la doc, je vais pointer directement sur la page github, parce que je suis vraiment à l'arrache.
 
 
