@@ -6,6 +6,9 @@ https://raw.githubusercontent.com/darkrecher/squarity-doc/master/jeux/loops_in_p
       "ground": [0, 0],
       "cursor": [32, 0],
       "selection": [64, 0],
+      "fountain": [96, 0],
+      "darkfountain": [128, 0],
+      "goal": [160, 0],
       "v0": [0, 32],
       "v1": [32, 32],
       "v2": [64, 32],
@@ -29,15 +32,59 @@ https://raw.githubusercontent.com/darkrecher/squarity-doc/master/jeux/loops_in_p
       "m4": [128, 96],
       "m5": [160, 96],
       "m6": [192, 96],
-      "m7": [224, 96]
+      "m7": [224, 96],
+      "l0": [0, 128],
+      "l1": [32, 128],
+      "l2": [64, 128],
+      "l3": [96, 128],
+      "l4": [128, 128],
+      "l5": [160, 128],
+      "l6": [192, 128],
+      "l7": [224, 128]
     }
   }
 --------
-# LOOPS IN POOL
+"""
+********************************
+***       LOOPS IN POOL      ***
+********************************
+You are a magigardener. The Countess du Swagging asked you to clean
+her swimming-pool, which has been invaded by mud and vines.
 
+Select two tiles with the "1" button (numpad or keyboard)
+to exchange their vines.
 
-# http://squarity.fr/#fetchez_githubgist_darkrecher/948a01124b458f747baf66ffcef52d5c/raw/loops-in-pool
+Make some closed vine loops to remove the mud inside it.
+The clear fountain water propagates where there is no mud.
 
+You can not exchange the vines when the tile is not completely
+covered by mud or by water, because LOOPS STUCKS !!
+
+The "2" button is a special power :
+ - on a tile covered by water, it spins the vines.
+ - on a tile with mud, it adds a vine between two mud triangles.
+
+Each action costs Pool mana (totally unrelated to Mana pool !) :
+
+ - exchange : 1
+ - spin vines : 4
+ - add a vine on mud : 10
+
+Use the "1" button on the upper left fountain
+to know you current Pool mana.
+You regain some by propagating water.
+
+Try to reach the goal on the lower right.
+
+Good luck, magigardener !
+
+"""
+
+# The text below is the game source code, you are not obliged to read it.
+
+# https://raw.githubusercontent.com/darkrecher/squarity-doc/master/jeux/loops_in_pool
+
+# v = Vine. m = Mud.
 
 # Ouais, désolé. On peut pas encore importer la standard lib de python dans Squarity.
 # Du coup on est obligé d'avoir un recours dégueulasse au javascript pour faire du random.
@@ -110,6 +157,7 @@ TRIANGLES_FROM_VINE = {
 }
 
 ALL_MUD = [ "m" ] * 8
+ALL_WATER = [ "l" ] * 8
 
 # elem 1 et 2 : index de triangle adjacents, sur une même case.
 # elem 3 : index de la vine qui se trouve entre ces deux triangles adjacents.
@@ -123,6 +171,11 @@ VINES_INTER_TRI = (
     (6, 7, 7),
     (7, 0, 0),
 )
+
+MANA_START = 50
+MANA_COST_EXCHANGE = 1
+MANA_COST_ADD_VINE = 10
+MANA_COST_SPIN = 4
 
 class Tile():
 
@@ -149,6 +202,12 @@ class Tile():
         for idx_tri in tri_borders[border]:
             self.triangle_types[idx_tri] = "m"
 
+    def spin(self):
+        first_vine = self.vine_types[0]
+        for idx_vine in range(7):
+            self.vine_types[idx_vine] = self.vine_types[idx_vine + 1]
+        self.vine_types[7] = first_vine
+
 class BoardModel():
 
     def __init__(self):
@@ -171,10 +230,46 @@ class BoardModel():
             self.tiles[y][0].mudify_borders("L")
             self.tiles[y][self.w-1].mudify_borders("R")
 
+        self.tiles[0][0].triangle_types = [""] * 8
+        self.tiles[0][0].vine_types = [0] * 8
+        for idx_tri in (7, 6, 5, 4):
+            self.tiles[0][1].triangle_types[idx_tri] = ""
+        for idx_tri in (6, 7, 0, 1):
+            self.tiles[1][0].triangle_types[idx_tri] = ""
+        for idx_tri in (6, 7):
+            self.tiles[1][1].triangle_types[idx_tri] = ""
+        self.tiles[0][1].vine_types[0] = 1
+        self.tiles[0][1].vine_types[4] = 1
+        self.tiles[1][0].vine_types[6] = 1
+        self.tiles[1][0].vine_types[2] = 1
+        self.tiles[1][1].vine_types[6] = 1
+        self.tiles[1][1].vine_types[0] = 1
+
+        self.tiles[self.h-1][self.w-1].triangle_types = [""] * 8
+        self.tiles[self.h-1][self.w-1].vine_types = [0] * 8
+        for idx_tri in (5, 4, 3, 2):
+            self.tiles[self.h-2][self.w-1].triangle_types[idx_tri] = ""
+        for idx_tri in (0, 1, 2, 3):
+            self.tiles[self.h-1][self.w-2].triangle_types[idx_tri] = ""
+        for idx_tri in (3, 2):
+            self.tiles[self.h-2][self.w-2].triangle_types[idx_tri] = ""
+        self.tiles[self.h-2][self.w-1].vine_types[6] = 1
+        self.tiles[self.h-2][self.w-1].vine_types[2] = 1
+        self.tiles[self.h-1][self.w-2].vine_types[4] = 1
+        self.tiles[self.h-1][self.w-2].vine_types[0] = 1
+        self.tiles[self.h-2][self.w-2].vine_types[4] = 1
+        self.tiles[self.h-2][self.w-2].vine_types[2] = 1
+
+
         #self.propagate_some_mud()
         self.must_start_mud = True
         self.finished_init = False
         self.coord_tile_to_exchange = None
+        self.tile_coords_not_watered = []
+        for x in range(self.w):
+            for y in range(self.h):
+                self.tile_coords_not_watered.append((x, y))
+        self.pool_mana = MANA_START
 
     def story(self, text):
         print(text)
@@ -188,7 +283,10 @@ class BoardModel():
 
     def export_tile(self, x, y):
         the_tile = self.tiles[y][x]
-        gamobjs = []
+        gamobjs = ["ground"]
+
+        if x == self.w-1 and y == self.h-1:
+            gamobjs.append("goal")
 
         for idx_tri in range(8):
             tri_type = the_tile.triangle_types[idx_tri]
@@ -205,6 +303,13 @@ class BoardModel():
             gamobjs.append("selection")
         if self.cursor_coords == [x, y]:
             gamobjs.append("cursor")
+        if x == 0 and y == 0:
+            gamobjs.append("fountain")
+            if self.pool_mana < 100:
+                nb_fountain_darking = (100 - self.pool_mana) // 5
+                # print("nb_fountain_darking", nb_fountain_darking)
+                for _ in range(nb_fountain_darking):
+                    gamobjs.append("darkfountain")
         return gamobjs
 
     def clean_tri_tmp_data(self):
@@ -271,76 +376,54 @@ class BoardModel():
             self.tiles[y][x].triangle_types[idx_tri] = "m"
         return """{ "delayed_actions": [ {"name": "propagate_mud", "delay_ms": 100} ] }"""
 
-    def get_vines(self, x, y):
-        return list(VINES_SET.intersection(set(self.get_tile_gamobjs(x, y))))
+    def get_tri_next_to_water_one_tile(self, x, y):
+        triangles_next_to_water = []
+        the_tile = self.tiles[y][x]
+        for idx_tri in range(8):
+            if the_tile.triangle_types[idx_tri] == "":
+                for offset_x, offset_y, tri_type_adj, blocking_vine in TRI_CONNECTIONS["t" + str(idx_tri)]:
+                    target_x = x + offset_x
+                    target_y = y + offset_y
+                    if 0 <= target_x < self.w and 0 <= target_y < self.h:
+                        tri_adj_value = self.tiles[target_y][target_x].triangle_types[int(tri_type_adj[1])]
+                        if tri_adj_value == "l":
+                            triangles_next_to_water.append((x, y, idx_tri))
+                            break
+        # print("get tri", triangles_next_to_water)
+        return triangles_next_to_water
 
-    def get_inside_triangles(self, connected_vines):
-        xs = [ vine[0] for vine in connected_vines ]
-        ys = [ vine[1] for vine in connected_vines ]
-        bounding_x1 = min(xs)
-        bounding_x2 = max(xs)
-        bounding_y1 = min(ys)
-        bounding_y2 = max(ys)
-        out_x1 = bounding_x1 - 1
-        out_x2 = bounding_x2 + 1
-        out_y1 = bounding_y1 - 1
-        out_y2 = bounding_y2 + 1
-        # print("bounds", bounding_x1, bounding_y1, ";", bounding_x2, bounding_y2)
-        insides = []
-        out_triangles = set()
+    def propagate_some_water(self):
+        triangles_next_to_water = set()
+        coord_to_remove = []
+        for coord in self.tile_coords_not_watered:
+            x, y = coord
+            if self.tiles[y][x].triangle_types == ALL_WATER:
+                # print("fully watered", x, y)
+                coord_to_remove.append(coord)
+            else:
+                triangles_next_to_water = triangles_next_to_water.union(self.get_tri_next_to_water_one_tile(*coord))
+                if len(triangles_next_to_water) >= 5:
+                    break
 
-        for vine in connected_vines:
-            for tri_type_cur in TRIANGLES_FROM_VINE[vine[2]]:
+        if coord_to_remove:
+            for coord in coord_to_remove:
+                self.tile_coords_not_watered.remove(coord)
 
-                localised_tri = (vine[0], vine[1], tri_type_cur)
-                already_processed = False
-                for inside_triangle_pack in insides:
-                    if localised_tri in inside_triangle_pack:
-                        already_processed = True
-                        break
-                if already_processed:
-                    continue
+        if not triangles_next_to_water:
+            # print("tile_coords_not_watered")
+            # print(self.tile_coords_not_watered)
+            if self.tiles[self.h-1][self.w-1].triangle_types == ALL_WATER:
+                self.story("*" * 30)
+                self.story("YOU WON !!")
+                self.story("Your final score is : " + str(self.pool_mana))
+                self.story("*" * 30)
+                self.text_outing = 0
+            return
 
-                current_triangle_pack = [localised_tri]
-                current_triangle_pack_validated = []
-                is_pack_out = False
-                # print("start prop", localised_tri)
-
-                while current_triangle_pack:
-                    cur_tri_propagate = current_triangle_pack.pop(0)
-                    # print("cur_tri_propagate", cur_tri_propagate)
-                    if cur_tri_propagate in current_triangle_pack_validated:
-                        # print("already in")
-                        continue
-                    if cur_tri_propagate in out_triangles:
-                        is_pack_out = True
-                        # print("out because already out")
-                        break
-                    if cur_tri_propagate[0] in (out_x1, out_x2) or cur_tri_propagate[1] in (out_y1, out_y2):
-                        is_pack_out = True
-                        # print("out because limits")
-                        break
-                    # print("add in current prop")
-                    current_triangle_pack_validated.append(cur_tri_propagate)
-                    for offset_x, offset_y, tri_type_adj, blocking_vine in TRI_CONNECTIONS[cur_tri_propagate[2]]:
-                        blocked_by_vine = False
-                        if blocking_vine is not None:
-                            localised_blocking_vine = (cur_tri_propagate[0], cur_tri_propagate[1], blocking_vine)
-                            if localised_blocking_vine in connected_vines:
-                                blocked_by_vine = True
-                        if not blocked_by_vine:
-                            current_triangle_pack.append(
-                                (cur_tri_propagate[0] + offset_x, cur_tri_propagate[1] + offset_y, tri_type_adj)
-                            )
-
-                # print("tris out or not", is_pack_out, current_triangle_pack_validated)
-                if is_pack_out:
-                    out_triangles.union(current_triangle_pack_validated)
-                else:
-                    insides.append(current_triangle_pack_validated)
-
-        return insides
-
+        for x, y, idx_tri in triangles_next_to_water:
+            self.tiles[y][x].triangle_types[idx_tri] = "l"
+        self.pool_mana += len(triangles_next_to_water)
+        return """{ "delayed_actions": [ {"name": "propagate_some_water", "delay_ms": 400} ] }"""
 
     def get_inside_triangles_from_tile(self, coords):
         coord_x, coord_y = coords
@@ -356,6 +439,10 @@ class BoardModel():
 
             if self.tiles[coord_y][coord_x].triangle_tmp_data[idx_tri]:
                 # already processed
+                continue
+
+            if self.tiles[coord_y][coord_x].triangle_types[idx_tri] != "m":
+                # Not a mud triangle. No need to process.
                 continue
 
             localised_tri = (coord_x, coord_y, idx_tri)
@@ -429,10 +516,12 @@ class BoardModel():
             for tri_x, tri_y, idx_tri in tri_pack_inside:
                 self.tiles[tri_y][tri_x].triangle_types[idx_tri] = ""
 
+        return bool(insides)
+
     def on_game_event(self, event_name):
         # print(event_name)
 
-        if self.text_outing:
+        if self.text_outing and event_name != "propagate_some_water":
             print("")
             self.text_outing -= 1
 
@@ -441,7 +530,16 @@ class BoardModel():
             return self.propagate_some_mud()
 
         if event_name == "propagate_mud":
-            return self.propagate_some_mud()
+            still_mud = self.propagate_some_mud()
+            if still_mud:
+                return still_mud
+            else:
+                self.tiles[0][0].triangle_types[7] = "l"
+                return """{ "delayed_actions": [ {"name": "propagate_some_water", "delay_ms": 400} ] }"""
+
+        if event_name == "propagate_some_water":
+            return self.propagate_some_water()
+
 
         if event_name == "action_1":
             if not self.finished_init:
@@ -449,39 +547,63 @@ class BoardModel():
                 return
 
             x, y = self.cursor_coords
-            if self.tiles[y][x].triangle_types != ALL_MUD:
-                self.story("You can not exchange two tiles if they are not covered with mud")
+
+            if x == 0 and y == 0:
+                self.story("Your current Pool mana is : " + str(self.pool_mana))
+                return
+
+            if self.tiles[y][x].triangle_types != ALL_MUD and self.tiles[y][x].triangle_types != ALL_WATER:
+                self.story("You can not exchange two tiles if ")
+                self.story("they are not totally covered with mud,")
+                self.story("or not totally covered with water.")
                 return
 
             if self.coord_tile_to_exchange is None:
                 self.coord_tile_to_exchange = list(self.cursor_coords)
+                return
 
-            else:
-                cursor_x, cursor_y = self.cursor_coords
-                exch_x, exch_y = self.coord_tile_to_exchange
-                vines_tmp = self.tiles[cursor_y][cursor_x].vine_types
-                self.tiles[cursor_y][cursor_x].vine_types = list(self.tiles[exch_y][exch_x].vine_types)
-                self.tiles[exch_y][exch_x].vine_types = list(vines_tmp)
-
-                try:
-                    self.clean_tri_tmp_data()
-                    self.tmp_datas_inside = []
-                    self.tmp_datas_out = []
-                    self.remove_inside_mud(self.cursor_coords)
-                    self.clean_tri_tmp_data()
-                    self.tmp_datas_inside = []
-                    self.tmp_datas_out = []
-                    self.remove_inside_mud(self.coord_tile_to_exchange)
-                except Exception as blarg:
-                    print("The game failed. Not supposed to happen. Sorry")
-                    # print(blarg)
-                    # print(type(blarg))
-                    # print(blarg.__traceback__)
-                    # print(dir(blarg))
-
+            if self.coord_tile_to_exchange is not None and self.coord_tile_to_exchange == self.cursor_coords:
+                # print("canceling selection")
                 self.coord_tile_to_exchange = None
+                return
 
-            return
+            if self.pool_mana < MANA_COST_EXCHANGE:
+                self.story("You do not have enough mana to use the exchange power")
+                self.story("It seems you have lost...")
+                return
+
+            self.pool_mana -= MANA_COST_EXCHANGE
+            cursor_x, cursor_y = self.cursor_coords
+            exch_x, exch_y = self.coord_tile_to_exchange
+            vines_tmp = self.tiles[cursor_y][cursor_x].vine_types
+            self.tiles[cursor_y][cursor_x].vine_types = list(self.tiles[exch_y][exch_x].vine_types)
+            self.tiles[exch_y][exch_x].vine_types = list(vines_tmp)
+
+            removed_mud = False
+            try:
+                self.clean_tri_tmp_data()
+                self.tmp_datas_inside = []
+                self.tmp_datas_out = []
+                if self.remove_inside_mud(self.cursor_coords):
+                    removed_mud = True
+                self.clean_tri_tmp_data()
+                self.tmp_datas_inside = []
+                self.tmp_datas_out = []
+                if self.remove_inside_mud(self.coord_tile_to_exchange):
+                    removed_mud = True
+            except Exception as blarg:
+                print("The game failed. Not supposed to happen. Sorry")
+                # print(blarg)
+                # print(type(blarg))
+                # print(blarg.__traceback__)
+                # print(dir(blarg))
+
+            self.coord_tile_to_exchange = None
+
+            if removed_mud:
+                return """{ "delayed_actions": [ {"name": "propagate_some_water", "delay_ms": 400} ] }"""
+            else:
+                return
 
         if event_name == "action_2":
             if not self.finished_init:
@@ -489,29 +611,58 @@ class BoardModel():
                 return
 
             x, y = self.cursor_coords
+
+            if x == 0 and y == 0:
+                self.story("Your current Pool mana is : " + str(self.pool_mana))
+                return
+
             the_tile = self.tiles[y][x]
+
+            if the_tile.triangle_types == ALL_WATER:
+                if self.pool_mana < MANA_COST_SPIN:
+                    self.story("You do not have enough mana to use the spin power.")
+                else:
+                    self.pool_mana -= MANA_COST_SPIN
+                    the_tile.spin()
+                return
+
             potential_vines = []
             for idx_tri_1, idx_tri_2, idx_vine in VINES_INTER_TRI:
                 if the_tile.triangle_types[idx_tri_1] == "m" and the_tile.triangle_types[idx_tri_2] == "m" and not the_tile.vine_types[idx_vine]:
                     potential_vines.append(idx_vine)
 
             if not potential_vines:
-                self.story("You can not use your special power only on")
+                self.story("You can use your special power only on")
                 self.story("a tile where there is not enough vines,")
                 self.story("or on a tile fully covered with water.")
                 return
 
+            if self.pool_mana < MANA_COST_ADD_VINE:
+                self.story("You do not have enough mana to use the add-vine power.")
+                return
+
+            self.pool_mana -= MANA_COST_ADD_VINE
             selected_vine_idx_idx = randrange(len(potential_vines))
             selected_vine_idx = potential_vines[selected_vine_idx_idx]
             the_tile.vine_types[selected_vine_idx] = 1
             self.clean_tri_tmp_data()
             self.tmp_datas_inside = []
             self.tmp_datas_out = []
-            self.remove_inside_mud(self.cursor_coords)
-            return
+            if self.remove_inside_mud(self.cursor_coords):
+                return """{ "delayed_actions": [ {"name": "propagate_some_water", "delay_ms": 400} ] }"""
+            else:
+                return
 
         move_offset = board_model.MOVE_FROM_DIR.get(event_name)
         if move_offset is not None:
+
+            # weird bug that happened only once...
+            if self.coord_tile_to_exchange is not None:
+                x, y = self.coord_tile_to_exchange
+                if self.tiles[y][x].triangle_types != ALL_MUD and self.tiles[y][x].triangle_types != ALL_WATER:
+                    self.coord_tile_to_exchange = None
+                    print("WEIRD BUG !!")
+
             self.cursor_coords = [
                 self.cursor_coords[0] + move_offset[0],
                 self.cursor_coords[1] + move_offset[1]
@@ -520,22 +671,3 @@ class BoardModel():
             self.cursor_coords[0] = max((self.cursor_coords[0], 0))
             self.cursor_coords[1] = min((self.cursor_coords[1], self.h - 1))
             self.cursor_coords[1] = max((self.cursor_coords[1], 0))
-
-
-
-"""
-
-algo détection de loop.
-(à partir d'un seul point de départ)
-
-un putain d'arbre n-aire, avec :
-clé : la vine en question.
-valeur : tuple de 2 elems :
- - le précédent (peut être None pour l'elem qu'on commence)
- - liste avec les suivants.
-
-on avance comme ça. dès qu'on veut ajouter une clé qui existe déjà, on remonte tout via les précédents, et ça fait la boucle.
-
-quand on ajoute une clé, on ajoute en même temps les valeurs : le précédent et la liste. on checke pas les doublons dans la liste. Ça se fera juste après.
-
-"""

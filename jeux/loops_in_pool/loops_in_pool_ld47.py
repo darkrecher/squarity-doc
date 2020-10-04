@@ -36,68 +36,9 @@ Good luck, magigardener !
 
 # The text below is the game source code, you are not obliged to read it.
 
-# https://raw.githubusercontent.com/darkrecher/squarity-doc/master/jeux/loops_in_pool/loops_in_pool_ld47.png
-
-# Attention, l'hébergeur imgbb s'amuse à changer la taille des images.
-# Il faut lui dire explicitement de pas le faire.
-# https://i.ibb.co/Scr4ymr/loops-in-pools-ld47.png
-# https://i.ibb.co/bKYLQ0F/loops-in-pools-ld47.png
-# https://i.ibb.co/PMbKkk1/loops-in-pools-ld47.png
-# https://i.ibb.co/g6wW1vG/loops-in-pools-ld47.png
-# https://i.ibb.co/687v3CM/loops-in-pools-ld47.png
-# https://i.ibb.co/n3v36pk/loops-in-pools-ld47.png
-# https://i.ibb.co/n3v36pk/loops-in-pools-ld47.png
-# https://raw.githubusercontent.com/darkrecher/squarity-doc/master/jeux/loops_in_pool/loops_in_pool_ld47.png
-# https://i.ibb.co/FJYCn5n/loops-in-pool-ld47.png
-# https://i.ibb.co/Fgn9PsQ/loops-in-pool-ld47.png
+# https://raw.githubusercontent.com/darkrecher/squarity-doc/master/jeux/loops_in_pool
 
 # v = Vine. m = Mud.
-
-CONF_JSON = """
-  {
-    "tile_size": 32,
-    "tile_coords": {
-      "ground": [0, 0],
-      "cursor": [32, 0],
-      "selection": [64, 0],
-      "fountain": [96, 0],
-      "darkfountain": [128, 0],
-      "goal": [160, 0],
-      "v0": [0, 32],
-      "v1": [32, 32],
-      "v2": [64, 32],
-      "v3": [96, 32],
-      "v4": [128, 32],
-      "v5": [160, 32],
-      "v6": [192, 32],
-      "v7": [224, 32],
-      "v0_lit": [0, 64],
-      "v1_lit": [32, 64],
-      "v2_lit": [64, 64],
-      "v3_lit": [96, 64],
-      "v4_lit": [128, 64],
-      "v5_lit": [160, 64],
-      "v6_lit": [192, 64],
-      "v7_lit": [224, 64],
-      "m0": [0, 96],
-      "m1": [32, 96],
-      "m2": [64, 96],
-      "m3": [96, 96],
-      "m4": [128, 96],
-      "m5": [160, 96],
-      "m6": [192, 96],
-      "m7": [224, 96],
-      "l0": [0, 128],
-      "l1": [32, 128],
-      "l2": [64, 128],
-      "l3": [96, 128],
-      "l4": [128, 128],
-      "l5": [160, 128],
-      "l6": [192, 128],
-      "l7": [224, 128]
-    }
-  }
-"""
 
 # Ouais, désolé. On peut pas encore importer la standard lib de python dans Squarity.
 # Du coup on est obligé d'avoir un recours dégueulasse au javascript pour faire du random.
@@ -438,77 +379,6 @@ class BoardModel():
         self.pool_mana += len(triangles_next_to_water)
         return """{ "delayed_actions": [ {"name": "propagate_some_water", "delay_ms": 400} ] }"""
 
-    def get_vines(self, x, y):
-        return list(VINES_SET.intersection(set(self.get_tile_gamobjs(x, y))))
-
-    def get_inside_triangles(self, connected_vines):
-        xs = [ vine[0] for vine in connected_vines ]
-        ys = [ vine[1] for vine in connected_vines ]
-        bounding_x1 = min(xs)
-        bounding_x2 = max(xs)
-        bounding_y1 = min(ys)
-        bounding_y2 = max(ys)
-        out_x1 = bounding_x1 - 1
-        out_x2 = bounding_x2 + 1
-        out_y1 = bounding_y1 - 1
-        out_y2 = bounding_y2 + 1
-        # print("bounds", bounding_x1, bounding_y1, ";", bounding_x2, bounding_y2)
-        insides = []
-        out_triangles = set()
-
-        for vine in connected_vines:
-            for tri_type_cur in TRIANGLES_FROM_VINE[vine[2]]:
-
-                localised_tri = (vine[0], vine[1], tri_type_cur)
-                already_processed = False
-                for inside_triangle_pack in insides:
-                    if localised_tri in inside_triangle_pack:
-                        already_processed = True
-                        break
-                if already_processed:
-                    continue
-
-                current_triangle_pack = [localised_tri]
-                current_triangle_pack_validated = []
-                is_pack_out = False
-                # print("start prop", localised_tri)
-
-                while current_triangle_pack:
-                    cur_tri_propagate = current_triangle_pack.pop(0)
-                    # print("cur_tri_propagate", cur_tri_propagate)
-                    if cur_tri_propagate in current_triangle_pack_validated:
-                        # print("already in")
-                        continue
-                    if cur_tri_propagate in out_triangles:
-                        is_pack_out = True
-                        # print("out because already out")
-                        break
-                    if cur_tri_propagate[0] in (out_x1, out_x2) or cur_tri_propagate[1] in (out_y1, out_y2):
-                        is_pack_out = True
-                        # print("out because limits")
-                        break
-                    # print("add in current prop")
-                    current_triangle_pack_validated.append(cur_tri_propagate)
-                    for offset_x, offset_y, tri_type_adj, blocking_vine in TRI_CONNECTIONS[cur_tri_propagate[2]]:
-                        blocked_by_vine = False
-                        if blocking_vine is not None:
-                            localised_blocking_vine = (cur_tri_propagate[0], cur_tri_propagate[1], blocking_vine)
-                            if localised_blocking_vine in connected_vines:
-                                blocked_by_vine = True
-                        if not blocked_by_vine:
-                            current_triangle_pack.append(
-                                (cur_tri_propagate[0] + offset_x, cur_tri_propagate[1] + offset_y, tri_type_adj)
-                            )
-
-                # print("tris out or not", is_pack_out, current_triangle_pack_validated)
-                if is_pack_out:
-                    out_triangles.union(current_triangle_pack_validated)
-                else:
-                    insides.append(current_triangle_pack_validated)
-
-        return insides
-
-
     def get_inside_triangles_from_tile(self, coords):
         coord_x, coord_y = coords
         out_x1 = -1
@@ -755,5 +625,3 @@ class BoardModel():
             self.cursor_coords[0] = max((self.cursor_coords[0], 0))
             self.cursor_coords[1] = min((self.cursor_coords[1], self.h - 1))
             self.cursor_coords[1] = max((self.cursor_coords[1], 0))
-
-
