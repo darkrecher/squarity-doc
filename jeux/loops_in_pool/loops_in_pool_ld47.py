@@ -1,4 +1,4 @@
-# https://i.ibb.co/n3v36pk/loops-in-pools-ld47.png
+# https://raw.githubusercontent.com/darkrecher/squarity-doc/master/jeux/loops_in_pool/loops_in_pool_ld47.png
 
 # Attention, l'hébergeur imgbb s'amuse à changer la taille des images.
 # Il faut lui dire explicitement de pas le faire.
@@ -7,6 +7,7 @@
 # https://i.ibb.co/PMbKkk1/loops-in-pools-ld47.png
 # https://i.ibb.co/g6wW1vG/loops-in-pools-ld47.png
 # https://i.ibb.co/687v3CM/loops-in-pools-ld47.png
+# https://i.ibb.co/n3v36pk/loops-in-pools-ld47.png
 # https://i.ibb.co/n3v36pk/loops-in-pools-ld47.png
 
 # v = Vine. m = Mud.
@@ -462,31 +463,36 @@ class BoardModel():
 
             if self.coord_tile_to_exchange is None:
                 self.coord_tile_to_exchange = list(self.cursor_coords)
+                return
 
-            else:
-                cursor_x, cursor_y = self.cursor_coords
-                exch_x, exch_y = self.coord_tile_to_exchange
-                vines_tmp = self.tiles[cursor_y][cursor_x].vine_types
-                self.tiles[cursor_y][cursor_x].vine_types = list(self.tiles[exch_y][exch_x].vine_types)
-                self.tiles[exch_y][exch_x].vine_types = list(vines_tmp)
-
-                try:
-                    self.clean_tri_tmp_data()
-                    self.tmp_datas_inside = []
-                    self.tmp_datas_out = []
-                    self.remove_inside_mud(self.cursor_coords)
-                    self.clean_tri_tmp_data()
-                    self.tmp_datas_inside = []
-                    self.tmp_datas_out = []
-                    self.remove_inside_mud(self.coord_tile_to_exchange)
-                except Exception as blarg:
-                    print("The game failed. Not supposed to happen. Sorry")
-                    # print(blarg)
-                    # print(type(blarg))
-                    # print(blarg.__traceback__)
-                    # print(dir(blarg))
-
+            if self.coord_tile_to_exchange is not None and self.coord_tile_to_exchange == self.cursor_coords:
+                # print("canceling selection")
                 self.coord_tile_to_exchange = None
+                return
+
+            cursor_x, cursor_y = self.cursor_coords
+            exch_x, exch_y = self.coord_tile_to_exchange
+            vines_tmp = self.tiles[cursor_y][cursor_x].vine_types
+            self.tiles[cursor_y][cursor_x].vine_types = list(self.tiles[exch_y][exch_x].vine_types)
+            self.tiles[exch_y][exch_x].vine_types = list(vines_tmp)
+
+            try:
+                self.clean_tri_tmp_data()
+                self.tmp_datas_inside = []
+                self.tmp_datas_out = []
+                self.remove_inside_mud(self.cursor_coords)
+                self.clean_tri_tmp_data()
+                self.tmp_datas_inside = []
+                self.tmp_datas_out = []
+                self.remove_inside_mud(self.coord_tile_to_exchange)
+            except Exception as blarg:
+                print("The game failed. Not supposed to happen. Sorry")
+                # print(blarg)
+                # print(type(blarg))
+                # print(blarg.__traceback__)
+                # print(dir(blarg))
+
+            self.coord_tile_to_exchange = None
 
             return
 
@@ -519,6 +525,14 @@ class BoardModel():
 
         move_offset = board_model.MOVE_FROM_DIR.get(event_name)
         if move_offset is not None:
+
+            # weird bug that happened only once...
+            if self.coord_tile_to_exchange is not None:
+                x, y = self.coord_tile_to_exchange
+                if self.tiles[y][x].triangle_types != ALL_MUD:
+                    self.coord_tile_to_exchange = None
+                print("WEIRD BUG !!")
+
             self.cursor_coords = [
                 self.cursor_coords[0] + move_offset[0],
                 self.cursor_coords[1] + move_offset[1]
@@ -529,20 +543,3 @@ class BoardModel():
             self.cursor_coords[1] = max((self.cursor_coords[1], 0))
 
 
-
-"""
-
-algo détection de loop.
-(à partir d'un seul point de départ)
-
-un putain d'arbre n-aire, avec :
-clé : la vine en question.
-valeur : tuple de 2 elems :
- - le précédent (peut être None pour l'elem qu'on commence)
- - liste avec les suivants.
-
-on avance comme ça. dès qu'on veut ajouter une clé qui existe déjà, on remonte tout via les précédents, et ça fait la boucle.
-
-quand on ajoute une clé, on ajoute en même temps les valeurs : le précédent et la liste. on checke pas les doublons dans la liste. Ça se fera juste après.
-
-"""

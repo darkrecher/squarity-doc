@@ -1,4 +1,4 @@
-https://i.ibb.co/n3v36pk/loops-in-pools-ld47.png
+https://raw.githubusercontent.com/darkrecher/squarity-doc/master/jeux/loops_in_pool/loops_in_pool_ld47.png
 --------
   {
     "tile_size": 32,
@@ -34,6 +34,9 @@ https://i.ibb.co/n3v36pk/loops-in-pools-ld47.png
   }
 --------
 # LOOPS IN POOL
+
+
+# http://squarity.fr/#fetchez_githubgist_darkrecher/948a01124b458f747baf66ffcef52d5c/raw/loops-in-pool
 
 
 # Ouais, désolé. On peut pas encore importer la standard lib de python dans Squarity.
