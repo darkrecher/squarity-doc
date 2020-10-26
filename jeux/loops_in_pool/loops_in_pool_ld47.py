@@ -235,36 +235,39 @@ class BoardModel():
     def get_tile_gamobjs(self, x, y):
         return self.tiles[y][x]
 
-    def export_tile(self, x, y):
-        the_tile = self.tiles[y][x]
-        gamobjs = ["ground"]
+    def export_all_tiles(self):
+        rendered_tiles = []
+        for y in range(self.h):
+            line = []
+            for x in range(self.w):
+                gamobjs = ["ground"]
+                the_tile = self.tiles[y][x]
+                for idx_tri in range(8):
+                    tri_type = the_tile.triangle_types[idx_tri]
+                    if tri_type:
+                        gamobjs.append(tri_type + str(idx_tri))
+                for idx_vi in range(8):
+                    vi_type = the_tile.vine_types[idx_vi]
+                    if vi_type == 1:
+                        gamobjs.append("v" + str(idx_vi))
+                    elif vi_type == 2:
+                        gamobjs.append("v" + str(idx_vi) + "_lit")
+                line.append(gamobjs)
+            rendered_tiles.append(line)
 
-        if x == self.w-1 and y == self.h-1:
-            gamobjs.append("goal")
+        rendered_tiles[self.h-1][self.w-1].insert(1, "goal")
+        if self.coord_tile_to_exchange is not None:
+            c_exch_x, c_exch_y = self.coord_tile_to_exchange
+            rendered_tiles[c_exch_y][c_exch_x].append("selection")
+        c_cursor_x, c_cursor_y = self.cursor_coords
+        rendered_tiles[c_cursor_y][c_cursor_x].append("cursor")
 
-        for idx_tri in range(8):
-            tri_type = the_tile.triangle_types[idx_tri]
-            if tri_type:
-                gamobjs.append(tri_type + str(idx_tri))
-        for idx_vi in range(8):
-            vi_type = the_tile.vine_types[idx_vi]
-            if vi_type == 1:
-                gamobjs.append("v" + str(idx_vi))
-            elif vi_type == 2:
-                gamobjs.append("v" + str(idx_vi) + "_lit")
+        rendered_tiles[0][0].append("fountain")
+        if self.pool_mana < 100:
+            nb_fountain_darking = (100 - self.pool_mana) // 5
+            rendered_tiles[0][0] += ["darkfountain"] * nb_fountain_darking
 
-        if self.coord_tile_to_exchange is not None and self.coord_tile_to_exchange == [x, y]:
-            gamobjs.append("selection")
-        if self.cursor_coords == [x, y]:
-            gamobjs.append("cursor")
-        if x == 0 and y == 0:
-            gamobjs.append("fountain")
-            if self.pool_mana < 100:
-                nb_fountain_darking = (100 - self.pool_mana) // 5
-                # print("nb_fountain_darking", nb_fountain_darking)
-                for _ in range(nb_fountain_darking):
-                    gamobjs.append("darkfountain")
-        return gamobjs
+        return rendered_tiles
 
     def clean_tri_tmp_data(self):
         for y in range(self.h):
@@ -607,7 +610,7 @@ class BoardModel():
             else:
                 return
 
-        move_offset = board_model.MOVE_FROM_DIR.get(event_name)
+        move_offset = squarity.MOVE_FROM_DIR.get(event_name)
         if move_offset is not None:
 
             # weird bug that happened only once...
