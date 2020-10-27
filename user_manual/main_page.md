@@ -84,12 +84,18 @@ class BoardModel():
     def __init__(self):
         self.w = 20 # width (largeur) : 20 cases
         self.h = 14 # height (hauteur) : 14 cases
+        self.tiles = [
+            [
+                [] for x in range(self.w)
+            ]
+            for y in range(self.h)
+        ]
 
     def get_size(self):
         return self.w, self.h
 
-    def export_tile(self, x, y):
-        return []
+    def export_all_tiles(self):
+        return self.tiles
 
     def on_game_event(self, event_name):
         pass
@@ -103,16 +109,11 @@ Vous pouvez bien entendu ajouter d'autres classes, d'autres fonctions, d'autres 
 
 Cette fonction est exécutée une seule fois, au début du jeu.
 
-Une bonne pratique est d'initialiser une variable membre `self.tiles`, constituée d'un tableau de 20*14 cases, chacune contenant une liste vide.
+Vous n'êtes pas obliger d'initialiser une variable membre `self.tiles` dans cette fonction, mais c'est une bonne pratique.
 
-    self.tiles = [
-        [
-            [] for x in range(self.w)
-        ]
-        for y in range(self.h)
-    ]
+Cete variable membre est constituée d'un tableau de 20*14 cases, chacune contenant une liste vide.
 
-Ensuite, vous pouvez remplir le contenu des cases de ce tableau, en ajoutant une ou plusieurs chaînes de caractères dans les listes, correspondants aux noms de vos objets définis dans la partie `tile_coords` de la configuration.
+Vous pouvez ensuite remplir le contenu des cases de ce tableau, en ajoutant une ou plusieurs chaînes de caractères dans les listes, correspondants aux noms de vos objets définis dans la partie `tile_coords` de la configuration.
 
 ### Fonction BoardModel.get_size(self)
 
@@ -122,17 +123,17 @@ Elle servira à définir les dimensions (largeur, hauteur) de l'aire de jeu. Pou
 
     return self.w, self.h
 
-### Fonction BoardModel.export_tile(self, x, y)
+### Fonction BoardModel.export_all_tiles(self)
 
-Cette fonction est appelée à chaque rendu de l'aire de jeu (lorsqu'on la redessine à l'écran), et pour chaque case. Les paramètres x et y indiquent les coordonnées de la case concernée.
+Cette fonction est appelée à chaque rendu de l'aire de jeu (lorsqu'elle est redessinée à l'écran).
 
-Il faut renvoyer une liste de strings, qui peut être vide. Chaque string doit correspondre à l'un des noms définis dans la partie "tile_coords" de la config json, et déclenchera le dessin de l'objet concerné, dans la case concerné.
+Il faut renvoyer une tableau 2D dont chaque case contient une liste de strings, c'est à dire : "une liste de liste de liste de strings".
 
-L'ordre des noms d'objets dans la liste définit l'ordre de dessin des objets sur la case.
+Chaque élément des listes de strings doit correspondre à l'un des noms définis dans la partie "tile_coords" de la config json, et déclenchera le dessin de l'objet concerné, dans la case concerné.
 
-Cette fonction peut effectuer des traitements spécifiques, par exemple construire le nom d'un objet complexe et le placer dans la liste à renvoyer. Mais le comportement le plus commun est de renvoyer le contenu de l'élément de `self.tiles` correspondant :
+L'ordre des noms dans la liste définit l'ordre de dessin des objets sur la case.
 
-    return self.tiles[y][x]
+Cette fonction peut effectuer des traitements spécifiques, par exemple construire le nom d'un objet complexe et le placer dans la liste à renvoyer. Mais le comportement le plus commun est de renvoyer directement `self.tiles`.
 
 ### Fonction BoardModel.on_game_event(self, event_name)
 
@@ -155,21 +156,20 @@ La fonction `on_game_event` a pour charge de modifier la situation du jeu, c'est
 
 Un rendu complet de l'aire de jeu est déclenché après chaque appel de cette fonction. Sauf si on indique explicitement qu'on n'en veut pas (fonctionnement non documenté pour l'instant).
 
-### Différences entre export_tile et get_tile_gamobjs
+### Différences entre export_all_tiles et get_tile_gamobjs
 
-`export_tile` est une fonction "externe", elle est appelée automatiquement par le système, lors des rendus. Elle ne devrait pas être appelée par votre game_code.
+`export_all_tiles(self)` est une fonction "externe", elle est appelée automatiquement par le système, lors des rendus. Elle ne devrait pas être appelée par votre game_code.
 
 Elle pourra, dans le futur, renvoyer d'autres informations sur la situation du jeu.
 
-La fonction `get_tile_gamobjs` est "interne ", elle renvoie la liste d'objets d'une case. C'est une fonction d'aide pour ajouter/enlever des éléments dans l'aire de jeu. Vous pouvez l'appeler dans votre game_code.
-
-Elle est facultative, vous pouvez la supprimer si vous ne vous en servez pas.
+La fonction `get_tile_gamobjs(self, x, y)` est "interne ", elle renvoie la liste des objets d'une seule case. C'est une fonction d'aide pour ajouter/enlever des éléments dans l'aire de jeu. Vous pouvez l'appeler dans votre game_code. Elle est facultative, si vous ne la définissez pas, le jeu pourra quand même fonctionner.
 
 ### Actions différées, actions bloquantes, annulation du rendu
 
 Non documentés pour l'instant, car pas le temps. Consultez l'exemple du jeu du magicien pour (essayer de) déterminer à quoi ça sert et comment ça fonctionne.
 
 Ce sont les strings json renvoyées par `on_game_event`, permettant de montrer le déplacement progressif des boules de feu et les étapes intermédiaires lorsque le personnage passe une porte.
+
 
 ## Démarrer le jeu
 
@@ -184,13 +184,15 @@ Il n'est pas possible de sauvegarder la partie en cours. On recommence du début
 
 Le code python écrit dans le game_code est exécuté par votre navigateur web, grâce à la librairie [Brython 3.8](https://brython.info/). À priori, cela fonctionne également sur les smartphones, le peu de tests déjà effectués est assez concluant.
 
-Lorsque votre code python comporte des erreurs, celles-ci s'écrivent dans la console du navigateur web, mais pas toujours. Ce n'est pas très pratique, ce sera amélioré au plus vite.
+Lorsque votre code python comporte des erreurs, celles-ci s'écrivent dans la zone de texte en bas à gauche de la page web.
 
-En attendant, pour débugger, il reste toujours la solution des prints. Lorsque vous appelez la fonction `print("message")`, le texte s'affiche dans la zone en bas à gauche. Vous pouvez utiliser cette fonctionnalité pour le debug et pour le jeu lui-même.
+Lorsque vous appelez la fonction `print("message")`, le texte s'affiche également dans cette zone de texte. Vous pouvez utiliser cette fonctionnalité pour le debug et pour le jeu lui-même.
 
 Évitez de déclencher des prints trop fréquents et sur chaque action. Les temps de réactions seront un peu diminués, car chaque print modifie le DOM (la structure interne de la page web), ce qui nécessite d'effectuer diverses opérations par le navigateur web.
 
 Une bonne pratique serait d'avoir une fonction `debug(message)`, exécutant un print uniquement si un booléen global `debug_mode` est mis à True. Avant la distribution de votre jeu, mettez ce booléen à False.
+
+Dans un futur indéterminé, il sera possible de configurer où vont les prints et les messages d'erreurs : dans la console javascript ou bien dans la zone de texte.
 
 
 ## Partager un jeu

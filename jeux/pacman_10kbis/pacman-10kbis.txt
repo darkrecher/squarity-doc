@@ -1,0 +1,323 @@
+https://gitlab.com/10kbis/pacman_squarity/-/raw/master/tileset.png
+--------
+{
+    "tile_size": 16,
+    "tile_coords": {
+
+        "=": [16, 0],
+        ".": [32, 0],
+        "O": [48, 0],
+
+        "P": [64, 48],
+        "P_right": [64, 48],
+        "P_down": [80, 48],
+        "P_left": [96, 48],
+        "P_up": [112, 48],
+        "Z": [64, 0],
+        "A": [80, 0],
+        "B": [96, 0],
+        "C": [112, 0],
+        "D": [0, 16],
+
+        "wall": [96, 32],
+        "wall_down": [80, 32],
+        "wall_up": [32, 32],
+        "wall_right": [48, 32],
+        "wall_left": [64, 32],
+
+        "wall_right_left": [64, 16],
+        "wall_up_down": [80, 16],
+        "wall_right_up": [96, 16],
+        "wall_left_up": [112, 16],
+        "wall_right_down": [0, 32],
+        "wall_left_down": [16, 32],
+
+        "wall_right_left_up": [112, 32],
+        "wall_right_left_down": [32, 48],
+        "wall_right_up_down": [0, 48],
+        "wall_left_up_down": [16, 48],
+
+        "wall_right_left_up_down": [48, 48]
+    }
+}
+--------
+
+DATA_TILES = [
+    '+++++++++++++++++++',
+    '+........+........+',
+    '+O++.+++.+.+++.++O+',
+    '+........P........+',
+    '+.+.++ ++=++ ++.+.+',
+    '+.+..+ +ABC+ +..+.+',
+    '+.++.+ +++++ +.++.+',
+    '+..+..... .....+..+',
+    '++.+.+.+++++.+.+.++',
+    '+O...+...+...+...O+',
+    '+.++++++.+.++++++.+',
+    '+.................+',
+    '+++++++++++++++++++',
+]
+
+from javascript import Math
+
+
+def randint(a, b=None):
+    if b is None:
+        low = 0
+        high = a
+    else:
+        low = a
+        high = b
+
+    return Math.floor(Math.random() * (high - low)) + low
+
+
+def choice(seq):
+    return seq[randint(len(seq))]
+
+
+def distance(p1, p2):
+    return abs(p1[0] - p2[0]) + abs(p1[1] - p2[1])
+
+
+class BoardModel():
+
+    INVUL_TIMER = 20
+
+    def __init__(self, width=200, height=20):
+        self.init_level()
+
+    def init_level(self):
+        print("Jeu créé par 10kbis.")
+        print("Lien d'origine : https://gitlab.com/10kbis/pacman_squarity")
+
+        self.pacman = (0, 0)
+        self.ghosts = []
+        self.score = 0
+        self.moves = 0
+        self.eat_timer = 0
+        self.gate = (0, 0)
+        self.food_left = 0
+        self.gameover = False
+        self.h = len(DATA_TILES)
+        self.w = len(DATA_TILES[0])
+        self.tiles = self._data_to_tiles(DATA_TILES)
+
+    def _data_to_tiles(self, data):
+        h = len(data)
+        w = len(data[0])
+        tiles = [
+            [
+                [] for x in range(w)
+            ]
+            for y in range(h)
+        ]
+
+        for y in range(h):
+            for x in range(w):
+                tile_data = []
+                tile = data[y][x]
+                if tile == '+':
+                    tile_wall = 'wall'
+                    if x < w - 1 and data[y][x+1] == '+':
+                        tile_wall += '_right'
+                    if x > 0 and data[y][x-1] == '+':
+                        tile_wall += '_left'
+                    if y > 0 and data[y-1][x] == '+':
+                        tile_wall += '_up'
+                    if y < h - 1 and data[y+1][x] == '+':
+                        tile_wall += '_down'
+                    tile_data.append(tile_wall)
+                else:
+                    if tile == 'P':
+                        self.pacman = (x, y)
+                    elif tile in 'ABCD':
+                        self.ghosts.append((tile, x, y))
+                    elif tile == '=':
+                        self.gate = (x, y)
+                    elif tile in '.O':
+                        self.food_left += 1
+
+                    if tile != ' ':
+                        tile_data.append(tile)
+
+                tiles[y][x] = tile_data
+        return tiles
+
+    def get_size(self):
+        return self.w, self.h
+
+    def export_all_tiles(self):
+        return self.tiles
+
+    def on_game_event(self, event_name):
+        if self.gameover:
+            self.init_level()
+            return
+
+        move_coord = squarity.MOVE_FROM_DIR.get(event_name)
+        if move_coord is None:
+            print("Les boutons d'action ne servent à rien dans ce jeu")
+            return
+
+        new_x = self.pacman[0] + move_coord[0]
+        new_y = self.pacman[1] + move_coord[1]
+
+        if new_x < 0 or new_x >= self.w:
+            return
+        if new_y < 0 or new_y >= self.h:
+            return
+
+        if not ('=' in self.tiles[new_y][new_x] or DATA_TILES[new_y][new_x] == '+'):
+            self._move_pacman(new_x, new_y)
+
+            if '.' in self.tiles[new_y][new_x]:
+                self.score += 10
+                self.tiles[new_y][new_x].remove('.')
+                self.food_left -= 1
+            elif 'O' in self.tiles[new_y][new_x]:
+                self.score += 100
+                self.tiles[new_y][new_x].remove('O')
+                # gate_x, gate_y = self.gate
+                # if '=' not in self.tiles[gate_y][gate_x]:
+                #     self.tiles[gate_y][gate_x].append('=')
+                self.eat_timer = max(self.eat_timer, 0) + self.INVUL_TIMER
+                self.food_left -= 1
+
+        if self.food_left == 0:
+            self.show_win_screen()
+            return
+
+        ghosts_new_pos = []
+        for ghost_type, ghost_x, ghost_y in self.ghosts:
+            if (ghost_x, ghost_y) == self.pacman and self.eat_timer >= 0:
+                self.score += 1000
+                self.tiles[ghost_y][ghost_x].remove('Z')
+                continue
+
+            dirs = [(1, 0), (-1, 0), (0, 1), (0, -1)]
+            valid_pos = []
+            for dx, dy in dirs:
+                x = ghost_x + dx
+                y = ghost_y + dy
+
+                # Check still in map
+                if x < 0 or x >= self.w:
+                    continue
+                if y < 0 or y >= self.h:
+                    continue
+
+                # Check if no wall
+                if DATA_TILES[y][x] == '+':
+                    continue
+
+                # Check if no other ghost or door
+                if set('ABCD=').intersection(self.tiles[y][x]):
+                    continue
+
+                valid_pos.append((x, y))
+
+            if valid_pos:
+                if ghost_type == 'A':
+                    new_x, new_y = self._new_pos_greedy_ghost(valid_pos)
+                elif ghost_type == 'B':
+                    new_x, new_y = self._new_pos_random_ghost(valid_pos)
+                else:
+                    new_x, new_y = self._new_pos_partial_random_ghost(valid_pos)
+
+                to_remove = ''
+                if self.eat_timer >= 0 and self.eat_timer != self.INVUL_TIMER:
+                    to_remove = 'Z'
+                else:
+                    to_remove = ghost_type
+                self.tiles[ghost_y][ghost_x].remove(to_remove)
+
+                to_add = ''
+                if self.eat_timer > 0:
+                    to_add = 'Z'
+                else:
+                    to_add = ghost_type
+                self.tiles[new_y][new_x].append(to_add)
+
+                ghosts_new_pos.append((ghost_type, new_x, new_y))
+            else:
+                ghosts_new_pos.append((ghost_type, ghost_x, ghost_y))
+        self.ghosts = ghosts_new_pos
+
+        for ghost_type, x, y in self.ghosts:
+            if (x, y) == self.pacman and self.eat_timer < 0:
+                self.show_gameover()
+                return
+
+        self.moves += 1
+        self.eat_timer -= 1
+        if self.moves == 5 or self.eat_timer == 0:
+            x, y = self.gate
+            if '=' in self.tiles[y][x]:
+                self.tiles[y][x].remove('=')
+
+    def _move_pacman(self, new_x, new_y):
+        pacman_tiles = ['P', 'P_left', 'P_right', 'P_up', 'P_down']
+        old_x, old_y = self.pacman
+        tile_data = [tile for tile in self.tiles[old_y][old_x] if tile not in pacman_tiles]
+        self.tiles[old_y][old_x] = tile_data
+
+        direction = ''
+        if new_x > old_x:
+            direction = '_right'
+        elif new_x < old_x:
+            direction = '_left'
+        elif new_y > old_y:
+            direction = '_down'
+        elif new_y < old_y:
+            direction = '_up'
+
+        self.tiles[new_y][new_x].append('P' + direction)
+        self.pacman = (new_x, new_y)
+
+    def _new_pos_greedy_ghost(self, positions):
+        best_pos = sorted(positions, key=lambda pos: distance(self.pacman, pos), reverse=self.eat_timer > 0)[0]
+        return best_pos
+
+    def _new_pos_random_ghost(self, positions):
+        return choice(positions)
+
+    def _new_pos_partial_random_ghost(self, positions):
+        rand = randint(4)
+        if rand < 3:
+            return self._new_pos_greedy_ghost(positions)
+        else:
+            return self._new_pos_random_ghost(positions)
+
+    def _display_ascii_art(self, ascii_art):
+        self.h = len(ascii_art)
+        self.w = len(ascii_art[0])
+        self.tiles = self._data_to_tiles(ascii_art)
+
+    def show_win_screen(self):
+        self.gameover = True
+        ascii_art = [
+            '                 ',
+            '                 ',
+            '                 ',
+            '+     + + ++    +',
+            '+     + + +++   +',
+            '+  +  + + + ++  +',
+            '+ +++ + + +  ++ +',
+            '+++ +++ + +   +++',
+        ]
+        self._display_ascii_art(ascii_art)
+
+    def show_gameover(self):
+        self.gameover = True
+        ascii_art = [
+            '                   ',
+            '                   ',
+            '                   ',
+            '+    ++++ ++++ ++++',
+            '+    +  + +    +    ',
+            '+    +  + ++++ ++++',
+            '+    +  +    + +    ',
+            '++++ ++++ ++++ ++++',
+        ]
+        self._display_ascii_art(ascii_art)
