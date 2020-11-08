@@ -182,7 +182,7 @@ Il n'est pas possible de sauvegarder la partie en cours. On recommence du début
 
 ## Quelques détails techniques
 
-Le code python écrit dans le game_code est exécuté par votre navigateur web, grâce à la librairie [Brython 3.8](https://brython.info/). À priori, cela fonctionne également sur les smartphones, le peu de tests déjà effectués est assez concluant.
+Le code python écrit dans le game_code est en version 3.8, il est exécuté par votre navigateur web, grâce à [Pyodide](https://github.com/iodide-project/pyodide). Ça fonctionne également sur les smartphones, le peu de tests déjà effectués est assez concluant.
 
 Lorsque votre code python comporte des erreurs, celles-ci s'écrivent dans la zone de texte en bas à gauche de la page web.
 

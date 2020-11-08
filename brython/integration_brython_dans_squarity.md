@@ -1,6 +1,5 @@
-# Particularités de Brython et intégration dans Squarity
+# Particularités de Brython
 
-TODO : décrire tout ça. (l'intégration de Brython dans Squarity, et la manière dont j'ai dû my prendre pour exécuter le user-code).
 
 ## Conservation des variables
 
@@ -62,4 +61,17 @@ Le reste fonctionne :
 À chaque fois les valeurs des variables membres, dans la classe, sont conservées. Donc tout va bien, ouf !
 
 Il faudra donner comme consigne aux utilisateurs de mettre les variables qu'ils veulent conserver dans self. Mais c'est déjà plus ou moins le cas en temps normal, avec les tiles et les gamobj. Donc tout va bien.
+
+
+## Passage à Pyodide
+
+L'exécution de code python par Brython est vraiment trop lente. TODO : ajouter dans ce repository le résultat de mon benchmark brython/pyodide.
+
+De plus, avec pyodide, le lancement d'un code python via le javascript est beaucoup plus simple. Et la librairie standard est disponible immédiatement.
+
+Inconvénient : Pyodide est très lent à démarrer au début. Il faut télécharger 20 Mo de js et de wasm, ça peut prendre plusieurs dizaines de secondes (mais ça se met en cache) Ensuite, il faut initialiser la VM-wasm python. Ça prend quelques secondes, et ça doit être refait à chaque rechargement de la page web.
+
+**Architecture Decision Record** : on vire Brython et on met Pyodide à la place.
+
+TODO : décrire les liens entre pyodide et le reste de on code.
 
