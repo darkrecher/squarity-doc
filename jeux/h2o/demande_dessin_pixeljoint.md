@@ -21,14 +21,19 @@ But that's obviously not pixel art.
 
 ## Demande
 
+http://pixeljoint.com/forum/forum_posts.asp?TID=27035
+
+Title = [UNPAID]Could you improve this tileset? (34 tiles)
+
 Hi everyone.
 
-I am currently making a grid-2D game engine. You draw a tileset, code the game logic in python, to make a game directly playable in your browser.
+I am currently making a grid-2D game engine. You draw a tileset and code the game logic in python, to have a game directly playable in your browser.
 
 I made some example games, one of them is called "h2o". Here is a screenshot.
 
+[IMG]https://raw.githubusercontent.com/darkrecher/squarity-doc/master/jeux/h2o/h2o_screenshot.png[/IMG]
 
-You can play it right now : http://squarity.fr/#fetchez_example_h2o (initial loading takes a few dozen seconds).
+You can play it right now : [URL=http://squarity.fr/#fetchez_example_h2o]http://squarity.fr/#fetchez_example_h2o[/URL] (initial loading takes a few dozen seconds).
 
 I am not very satisfied with the tileset, it looks too simplistic. It needs some polish, details, shadow/light effects, etc. but I am not good enough to do that.
 
@@ -42,12 +47,15 @@ Here are the only constraints :
 
 Here is the complete tileset :
 
+[IMG]https://raw.githubusercontent.com/darkrecher/squarity-doc/master/jeux/h2o/h2o_tileset.png[/IMG]
 
 And here are the detailed explanations of each tile :
 
+[IMG]https://raw.githubusercontent.com/darkrecher/squarity-doc/master/jeux/h2o/h2o_tileset_explanations.png[/IMG]
 
 If you are motivated enough, you may draw different wall tiles, to make it border-wise :
 
+[IMG]https://raw.githubusercontent.com/darkrecher/squarity-doc/master/jeux/h2o/h2o_tileset_border_wising.png[/IMG]
 
 But that would mean drawing 16 wall tiles instead of just one, so do as you prefer.
 
@@ -60,6 +68,4 @@ It is not paid. I'm really sorry about that, I know it is not very polite to jus
 The only counterpart I may propose to you for the moment is to create a little game for you, by using some arts and tilesets you made.
 
 If it is in accordance with PixelJoint terms, I may propose jobs of the same type in the future, and in a distant and undetermined future, jobs that would be paid.
-
-
 
