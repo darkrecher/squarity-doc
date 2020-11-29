@@ -1,6 +1,7 @@
 # https://i.ibb.co/JCY3vsN/H2-Otileset2.png
 # https://i.ibb.co/DfwsNbY/H2-Otileset2.png
 # https://i.ibb.co/HXSkXQf/H2-Otileset2.png
+# https://i.ibb.co/1bhGZnv/H2-Otileset2.png
 
 
 
@@ -52,7 +53,7 @@
     "X": [160, 64],
 
     "|": [224, 256],
-    "-": [160, 224],
+
 
     "pattern_*.*.XX*.*": [128, 0],
     "pattern_*.*XXX*.*": [160, 0],
@@ -69,15 +70,22 @@
     "pattern_*X*XXX*.*": [160, 96],
     "pattern_*X*XX.*.*": [192, 96],
     "pattern_*.*.X.*.*": [224, 96],
-    "pattern_*X*XXX.XX": [128, 128],
-    "pattern_*X*XXXXX.": [160, 128],
+    "pattern_***XXX.XX": [128, 128],
+    "pattern_***XXXXX.": [160, 128],
     "pattern_*X*XX..X*": [192, 128],
     "pattern_*X*.XX*X.": [224, 128],
     "pattern_*.*XX..X*": [192, 160],
     "pattern_*.*.XX*X.": [224, 160],
     "pattern_***XXX.X.": [160, 256],
 
-    "pattern_XXX.-X.XX": [224, 192], "pattern_....-X.XX": [224, 192]
+    "pattern_***.-*.X*": [224, 192],
+    "pattern_*X*.-*.X*": [128, 224],
+    "-": [160, 224],
+    "pattern_*X**-.*X.": [192, 224],
+    "pattern_****-.*X.": [224, 224]
+    "pattern_*X*.-..X.": [192, 288],
+    "pattern_*X*.-.***": [160, 288],
+
 
   }
 }
@@ -90,9 +98,9 @@
 
 LEVELS = (
     (
-        "XXXXX...XXXXXXXXXXXX",
-        "X.-X..--...........X",
-        "X.XX..XX...........X",
+        "XXXXXX..XXXXXXXXXXXX",
+        "X.-X..--.X-..-..-..X",
+        "X.XX..XX.XX.XXX.X..X",
         "X..................X",
         "X.X................X",
         "XXXX...............X",
@@ -281,19 +289,21 @@ class BoardModel():
                         main_pattern += "."
 
         if gamobj_mid == "X":
-            main_pattern = self.apply_replacement_patterns(main_pattern, self.patterns_tunnels_passing_by_replacement)
-            main_pattern = main_pattern.replace("-", ".")
-            main_pattern = main_pattern.replace("|", ".")
+            main_pattern = self.apply_replacement_patterns(main_pattern, self.patterns_replacement_tunnels_too_far)
+            main_pattern = main_pattern.replace("-", "X")
+            main_pattern = main_pattern.replace("|", "X")
             matched_pattern = self.match_with_patterns(main_pattern, self.patterns_wall_simple)
             if matched_pattern is not None:
                 return "pattern_" + matched_pattern
             return None
 
         if gamobj_mid == "-":
-            main_pattern = self.apply_replacement_patterns(main_pattern, self.patterns_tunnels_passing_by_replacement)
-            main_pattern = self.apply_replacement_patterns(main_pattern, self.patterns_replacement_tunnel_continuity)
-            # TODO : pattern de suppression des tunnels en diagonale qui sont raccorché à rien.
-            # ou alors, bourrin. on supprime tous les tunnels, sauf celui du milieu.
+            main_pattern = self.apply_replacement_patterns(main_pattern, self.patterns_replacement_tunnels_too_far)
+            # TODO crap main_pattern = self.apply_replacement_patterns(main_pattern, self.patterns_replacement_tunnel_continuity)
+            main_pattern = main_pattern.replace("-", "X")
+            main_pattern = main_pattern.replace("|", "X")
+            # On remet le gamobj_mid comme il faut.
+            main_pattern = main_pattern[:4] + gamobj_mid + main_pattern[5:]
             matched_pattern = self.match_with_patterns(main_pattern, self.patterns_tunnel_simple)
             if matched_pattern is not None:
                 return "pattern_" + matched_pattern
@@ -305,92 +315,48 @@ class BoardModel():
 
     def init_level(self):
 
-        PATTERNS_TUNNELS_PASSING_BY_REPLACEMENT = """
+        # TODO : pattern de suppression des tunnels en diagonale qui sont raccorché à rien.
+        PATTERNS_REPLACEMENT_TUNNELS_TOO_FAR = """
+
+            -.*
+            .**
+            ***
+            =>0:.
+
+            |.*
+            .**
+            ***
+            =>0:.
+
+            *.-
+            **.
+            ***
+            =>2:.
+
+            *.|
+            **.
+            ***
+            =>2:.
 
             ***
-            ***
-            *--
-            =>8:X
+            .**
+            -.*
+            =>6:.
 
             ***
-            ***
-            --*
-            =>6:X
+            .**
+            |.*
+            =>6:.
 
             ***
-            ***
-            *-*
-            =>7:X
-
-            --*
-            ***
-            ***
-            =>0:X
-
-            *--
-            ***
-            ***
-            =>2:X
-
-            *-*
-            ***
-            ***
-            =>1:X
-
-            |**
-            |**
-            ***
-            =>0:X
+            **.
+            *.-
+            =>8:.
 
             ***
-            |**
-            |**
-            =>6:X
-
-            ***
-            |**
-            ***
-            =>3:X
-
-            **|
-            **|
-            ***
-            =>2:X
-
-            ***
-            **|
-            **|
-            =>8:X
-
-            ***
-            **|
-            ***
-            =>5:X
-
-
-        """
-
-        PATTERNS_REPLACEMENT_TUNNEL_CONTINUITY = """
-
-            *|*
-            *|*
-            ***
-            =>2:X
-
-            ***
-            *--
-            ***
-            =>5:X
-
-            ***
-            *|*
-            *|*
-            =>7:X
-
-            ***
-            --*
-            ***
-            =>3:X
+            **.
+            *.|
+            =>8:.
 
         """
 
@@ -398,14 +364,6 @@ class BoardModel():
         PATTERNS_WALL_SIMPLE = """
 
             *X*
-            XXX
-            .XX
-
-            *X*
-            XXX
-            XX.
-
-            *X*
             XX.
             .X*
 
@@ -420,6 +378,14 @@ class BoardModel():
             *.*
             .XX
             *X.
+
+            ***
+            XXX
+            .XX
+
+            ***
+            XXX
+            XX.
 
             ***
             XXX
@@ -489,19 +455,70 @@ class BoardModel():
 
         PATTERNS_TUNNEL_SIMPLE = """
 
+            *X*
+            .-.
+            .X.
+
+            *X*
+            .-.
+            ***
+
+            *X*
+            .-*
+            .X*
+
+            *X*
+            *-.
+            *X.
+
+            ***
+            .-*
+            .X*
+
+            ***
+            *-.
+            *X.
+
+        """
+
+        # TODO crap.
+        OSEF = """
+
+
+
             XXX
             .-X
             .XX
 
-            ...
+            *..
             .-X
             .XX
 
+            XXX
+            X-.
+            XX.
+
+            ..*
+            X-.
+            XX.
+
+            XXX
+            .-.
+            X*X
+
+            XXX
+            .-.
+            ...
+
+            XXX
+            .-.
+            .X.
+
+
         """
 
-        # TODO : rename var.
-        self.patterns_tunnels_passing_by_replacement = self.compile_replace_patterns(PATTERNS_TUNNELS_PASSING_BY_REPLACEMENT)
-        self.patterns_replacement_tunnel_continuity = self.compile_replace_patterns(PATTERNS_REPLACEMENT_TUNNEL_CONTINUITY)
+        # TODO : compiler ça une seule fois au début.
+        self.patterns_replacement_tunnels_too_far = self.compile_replace_patterns(PATTERNS_REPLACEMENT_TUNNELS_TOO_FAR)
         self.patterns_wall_simple = self.compile_match_patterns(PATTERNS_WALL_SIMPLE)
         self.patterns_tunnel_simple = self.compile_match_patterns(PATTERNS_TUNNEL_SIMPLE)
 
@@ -533,8 +550,6 @@ class BoardModel():
                     gamobjs.append(styled_wall)
                 self.tiles[y][x][:] = gamobjs
 
-        # Juste pour libérer la mémoire.
-        self.patterns_wall_simple = None
 
     def get_size(self):
         return self.w, self.h
