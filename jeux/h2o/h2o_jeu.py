@@ -52,9 +52,6 @@
 
     "X": [160, 64],
 
-    "|": [224, 256],
-
-
     "pattern_*.*.XX*.*": [128, 0],
     "pattern_*.*XXX*.*": [160, 0],
     "pattern_*.*XX.*.*": [192, 0],
@@ -78,14 +75,20 @@
     "pattern_*.*.XX*X.": [224, 160],
     "pattern_***XXX.X.": [160, 256],
 
+    "pattern_*X*.-X***": [128, 192],
+    "pattern_*X*X-.***": [160, 192],
     "pattern_***.-*.X*": [224, 192],
     "pattern_*X*.-*.X*": [128, 224],
     "-": [160, 224],
     "pattern_*X**-.*X.": [192, 224],
-    "pattern_****-.*X.": [224, 224]
-    "pattern_*X*.-..X.": [192, 288],
+    "pattern_****-.*X.": [224, 224],
     "pattern_*X*.-.***": [160, 288],
+    "pattern_*X*.-..X.": [192, 288],
 
+    "pattern_*.**|**X*": [128, 256],
+    "|": [224, 256],
+    "pattern_*X**|**.*": [128, 288],
+    "pattern_*.**|**.*": [224, 288]
 
   }
 }
@@ -104,12 +107,12 @@ LEVELS = (
         "X..................X",
         "X.X................X",
         "XXXX...............X",
-        "X.-................X",
+        "X.-........|.......X",
         "S..................X",
-        "X..................X",
-        "X..................X",
-        "X..................X",
-        "X..................X",
+        "X..........|X......X",
+        "X.........X|X......X",
+        "X..H.C....X|.......X",
+        "X.........X|X......X",
         "X.................OX",
         "XXXXXXXXXXXXXXXXXXXX",
     ),
@@ -131,11 +134,11 @@ LEVELS = (
     ),
     (
         "X.H.XXX.C.XXX.H.XXXX",
-        "S...-.E...=.E.....XX",
+        "S....-E...=.E.....XX",
         "X.C.XXX.H.XXX.C.X|XX",
         "XXXXXXXXXXXXXXXXX.XX",
         "X.H.XXX.C.XXX.H.XIXX",
-        "XC..=.H...-.C.....XX",
+        "XC..=.H....-C.....XX",
         "X...XXX.H.XXX.C.XXXX",
         "XX.XX.XXXXX.XXXXX...",
         "XXCX.X.X...XXXXXXX..",
@@ -268,7 +271,7 @@ class BoardModel():
     def stylify_tile(self, x, y):
 
         gamobj_mid = self.cur_level[y][x]
-        if gamobj_mid not in ("X", "-"):
+        if gamobj_mid not in "X-|":
             return None
 
         main_pattern = ""
@@ -299,16 +302,26 @@ class BoardModel():
 
         if gamobj_mid == "-":
             main_pattern = self.apply_replacement_patterns(main_pattern, self.patterns_replacement_tunnels_too_far)
-            # TODO crap main_pattern = self.apply_replacement_patterns(main_pattern, self.patterns_replacement_tunnel_continuity)
             main_pattern = main_pattern.replace("-", "X")
             main_pattern = main_pattern.replace("|", "X")
             # On remet le gamobj_mid comme il faut.
             main_pattern = main_pattern[:4] + gamobj_mid + main_pattern[5:]
-            matched_pattern = self.match_with_patterns(main_pattern, self.patterns_tunnel_simple)
+            matched_pattern = self.match_with_patterns(main_pattern, self.patterns_tunnel_horiz_simple)
             if matched_pattern is not None:
                 return "pattern_" + matched_pattern
             return None
 
+        if gamobj_mid == "|":
+            # Pas besoin d'appliquer patterns_replacement_tunnels_too_far, car ça ne concerne que des cases
+            # sur les diagonales. Or, le tunnel vertical s'en fiche de ce qu'il peut y avoir sur les cases diagonales.
+            main_pattern = main_pattern.replace("-", "X")
+            main_pattern = main_pattern.replace("|", "X")
+            # On remet le gamobj_mid comme il faut.
+            main_pattern = main_pattern[:4] + gamobj_mid + main_pattern[5:]
+            matched_pattern = self.match_with_patterns(main_pattern, self.patterns_tunnel_vertic)
+            if matched_pattern is not None:
+                return "pattern_" + matched_pattern
+            return None
 
         return None
 
@@ -453,7 +466,7 @@ class BoardModel():
 
         """
 
-        PATTERNS_TUNNEL_SIMPLE = """
+        PATTERNS_TUNNEL_HORIZ_SIMPLE = """
 
             *X*
             .-.
@@ -470,6 +483,14 @@ class BoardModel():
             *X*
             *-.
             *X.
+
+            *X*
+            .-X
+            ***
+
+            *X*
+            X-.
+            ***
 
             ***
             .-*
@@ -481,46 +502,27 @@ class BoardModel():
 
         """
 
-        # TODO crap.
-        OSEF = """
+        PATTERNS_TUNNEL_VERTIC = """
 
+            *.*
+            *|*
+            *X*
 
+            *X*
+            *|*
+            *.*
 
-            XXX
-            .-X
-            .XX
-
-            *..
-            .-X
-            .XX
-
-            XXX
-            X-.
-            XX.
-
-            ..*
-            X-.
-            XX.
-
-            XXX
-            .-.
-            X*X
-
-            XXX
-            .-.
-            ...
-
-            XXX
-            .-.
-            .X.
-
+            *.*
+            *|*
+            *.*
 
         """
 
         # TODO : compiler ça une seule fois au début.
         self.patterns_replacement_tunnels_too_far = self.compile_replace_patterns(PATTERNS_REPLACEMENT_TUNNELS_TOO_FAR)
         self.patterns_wall_simple = self.compile_match_patterns(PATTERNS_WALL_SIMPLE)
-        self.patterns_tunnel_simple = self.compile_match_patterns(PATTERNS_TUNNEL_SIMPLE)
+        self.patterns_tunnel_horiz_simple = self.compile_match_patterns(PATTERNS_TUNNEL_HORIZ_SIMPLE)
+        self.patterns_tunnel_vertic = self.compile_match_patterns(PATTERNS_TUNNEL_VERTIC)
 
         self.hero_alive = False
         self.tiles = tuple([
