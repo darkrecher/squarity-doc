@@ -2,7 +2,7 @@
 # https://i.ibb.co/DfwsNbY/H2-Otileset2.png
 # https://i.ibb.co/HXSkXQf/H2-Otileset2.png
 # https://i.ibb.co/1bhGZnv/H2-Otileset2.png
-
+# https://i.ibb.co/mcqSnbT/H2-Otileset2.png
 
 
 """
@@ -40,11 +40,10 @@
     "O": [64, 192],
     "wet_grid": [96, 192],
 
-    "=": [0, 224],
     "S": [64, 224],
     "C": [96, 224],
 
-    "I": [32, 256],
+    "=": [32, 256],
     "H": [96, 256],
 
     "gas_dead": [0, 288],
@@ -88,7 +87,16 @@
     "pattern_*.**|**X*": [128, 256],
     "|": [224, 256],
     "pattern_*X**|**.*": [128, 288],
-    "pattern_*.**|**.*": [224, 288]
+    "pattern_*.**|**.*": [224, 288],
+
+    "I_wall_up": [0, 224],
+    "I": [128, 320],
+    "electroball_D": [0, 384],
+    "electroball_U": [32, 384],
+    "electroball_R": [64, 384],
+    "electroball_L": [96, 384],
+
+    "pattern_***XXX.I.": [0, 192]
 
   }
 }
@@ -104,12 +112,12 @@ LEVELS = (
         "XXXXXX..XXXXXXXXXXXX",
         "X.-X..--.X-..-..-..X",
         "X.XX..XX.XX.XXX.X..X",
-        "X..................X",
-        "X.X................X",
+        "X............I.....X",
+        "X.X..........X.....X",
         "XXXX...............X",
         "X.-........|.......X",
-        "S..................X",
-        "X..........|X......X",
+        "S....I.............X",
+        "X....I.==..|X......X",
         "X.........X|X......X",
         "X..H.C....X|.......X",
         "X.........X|X......X",
@@ -118,27 +126,27 @@ LEVELS = (
     ),
     (
         "XXXXXXXXXXXXXXXXXXXX",
-        "X...-...X.X...=....X",
+        "X...-...X.X...I....X",
         "X..XXX..XXX..XXX...X",
         "S...E....H....-....X",
         "X..XXX..XXX..XXX.X.X",
-        "X...=...X.X...E..X.X",
+        "X...I...X.X...E..X.X",
         "XXXXXXXXX.XXXXXXXX.X",
         "XXXXXXXXX.XXXXXXXXCX",
         "X.H.H...X.X...E..X.X",
         "X..CCC..XXX..XXX.XCX",
-        "X.HCO.........=....X",
+        "X.HCO.........I....X",
         "X..CCC..XXX..XXX.XXX",
         "X.H.H...XXX...-..XXX",
         "XXXXXXXXXXXXXXXXXXXX",
     ),
     (
         "X.H.XXX.C.XXX.H.XXXX",
-        "S....-E...=.E.....XX",
+        "S....-E...I.E.....XX",
         "X.C.XXX.H.XXX.C.X|XX",
         "XXXXXXXXXXXXXXXXX.XX",
-        "X.H.XXX.C.XXX.H.XIXX",
-        "XC..=.H....-C.....XX",
+        "X.H.XXX.C.XXX.H.X=XX",
+        "XC..I.H....-C.....XX",
         "X...XXX.H.XXX.C.XXXX",
         "XX.XX.XXXXX.XXXXX...",
         "XXCX.X.X...XXXXXXX..",
@@ -165,14 +173,14 @@ LEVELS = (
         "XXXXXXXXXXXXXXXXXXXX",
     ),
     (
-        "EIEXIIIXIIIXIIIIIIII",
-        "ECE=...=...=...===O=",
-        "EEE=.=.=.=.=.=.===I=",
-        "X=.=.=.=.=.=.=.=...=",
-        "X=...=...=...=...=.=",
-        "XXIIIXIIIXIIIXIII=H=",
+        "E=EX===X===X========",
+        "ECEI...I...I...IIIOI",
+        "EEEI.I.I.I.I.I.III=I",
+        "XI.I.I.I.I.I.I.I...I",
+        "XI...I...I...I...I.I",
+        "XX===X===X===X===IHI",
         "XXXXXXXXXXXXXXXXXEHE",
-        "XEHEEEEEEEEEEEEEEXIX",
+        "XEHEEEEEEEEEEEEEEX=X",
         "XE......EE.....EEEEE",
         "XEEEEEE....EEE.....E",
         "XEEEEEEEEEEEEEEEEE.E",
@@ -205,8 +213,8 @@ class BoardModel():
         self.h = height
         self.current_level_idx = 0
         self.init_level()
-        print("Ce jeu est inspiré de \"H2O\", sur la mini-console Storio.")
-        print("https://www.vtechda.com/Store/ITMax/ContentDetail/FR_fre_1838_58-126805-000-289_False.html")
+        print("Le tileset a été dessiné par Tacheul.")
+        print("http://pixeljoint.com/p/121104.htm")
         print()
 
     def in_bound(self, x, y):
@@ -286,12 +294,23 @@ class BoardModel():
                     lvl_map_char = self.cur_level[y_check][x_check]
                     if lvl_map_char in ("X", "S"):
                         main_pattern += "X"
-                    elif lvl_map_char in ("-", "|"):
+                    elif lvl_map_char in ("-", "|", "=", "I"):
                         main_pattern += lvl_map_char
                     else:
                         main_pattern += "."
 
+
+        # Dans la suite de cette fonction, on fait tout un tas de replace. C'est moche et pas optimisé.
+        # Je n'ai pas de meilleure méthode pour le moment. Pouet pouet.
+
         if gamobj_mid == "X":
+
+            matched_pattern = self.match_with_patterns(main_pattern, self.patterns_wall_with_laser)
+            if matched_pattern is not None:
+                return "pattern_" + matched_pattern
+
+            main_pattern = main_pattern.replace("I", ".")
+            main_pattern = main_pattern.replace("=", ".")
             main_pattern = self.apply_replacement_patterns(main_pattern, self.patterns_replacement_tunnels_too_far)
             main_pattern = main_pattern.replace("-", "X")
             main_pattern = main_pattern.replace("|", "X")
@@ -301,6 +320,8 @@ class BoardModel():
             return None
 
         if gamobj_mid == "-":
+            main_pattern = main_pattern.replace("I", ".")
+            main_pattern = main_pattern.replace("=", ".")
             main_pattern = self.apply_replacement_patterns(main_pattern, self.patterns_replacement_tunnels_too_far)
             main_pattern = main_pattern.replace("-", "X")
             main_pattern = main_pattern.replace("|", "X")
@@ -312,6 +333,8 @@ class BoardModel():
             return None
 
         if gamobj_mid == "|":
+            main_pattern = main_pattern.replace("I", ".")
+            main_pattern = main_pattern.replace("=", ".")
             # Pas besoin d'appliquer patterns_replacement_tunnels_too_far, car ça ne concerne que des cases
             # sur les diagonales. Or, le tunnel vertical s'en fiche de ce qu'il peut y avoir sur les cases diagonales.
             main_pattern = main_pattern.replace("-", "X")
@@ -324,6 +347,34 @@ class BoardModel():
             return None
 
         return None
+
+    def stylify_laser(self, x, y, lvl_map_char):
+        len_str_prefix = len("pattern_")
+        gamobjs_final = []
+
+        if lvl_map_char == "I":
+            # up
+            electroball_U = True
+            gamobjs_up = self.tiles[y-1][x] if self.in_bound(x, y-1) else ["X"]
+            for gamobj in gamobjs_up:
+                if gamobj in ["I", "+"]:
+                    electroball_U = False
+                elif gamobj.startswith("pattern_"):
+                    # Exemple de pattern qui fonctionne : "pattern_***XXX.I."
+                    if gamobj[len_str_prefix + 7] == "I":
+                        electroball_U = False
+                        gamobjs_final.append("I_wall_up")
+            if electroball_U:
+                gamobjs_final.append("electroball_U")
+
+            # down
+            gamobjs_final.append("electroball_D")
+
+        elif lvl_map_char == "=":
+            gamobjs_final.append("electroball_R")
+            gamobjs_final.append("electroball_L")
+
+        return gamobjs_final
 
 
     def init_level(self):
@@ -370,6 +421,14 @@ class BoardModel():
             **.
             *.|
             =>8:.
+
+        """
+
+        PATTERNS_WALL_WITH_LASER = """
+
+            ***
+            XXX
+            .I.
 
         """
 
@@ -520,6 +579,7 @@ class BoardModel():
 
         # TODO : compiler ça une seule fois au début.
         self.patterns_replacement_tunnels_too_far = self.compile_replace_patterns(PATTERNS_REPLACEMENT_TUNNELS_TOO_FAR)
+        self.patterns_wall_with_laser = self.compile_match_patterns(PATTERNS_WALL_WITH_LASER)
         self.patterns_wall_simple = self.compile_match_patterns(PATTERNS_WALL_SIMPLE)
         self.patterns_tunnel_horiz_simple = self.compile_match_patterns(PATTERNS_TUNNEL_HORIZ_SIMPLE)
         self.patterns_tunnel_vertic = self.compile_match_patterns(PATTERNS_TUNNEL_VERTIC)
@@ -552,6 +612,11 @@ class BoardModel():
                     gamobjs.append(styled_wall)
                 self.tiles[y][x][:] = gamobjs
 
+        for y in range(self.h):
+            for x in range(self.w):
+                lvl_map_char = self.cur_level[y][x]
+                if lvl_map_char in "I=+":
+                    self.tiles[y][x].extend(self.stylify_laser(x, y, lvl_map_char))
 
     def get_size(self):
         return self.w, self.h
@@ -584,9 +649,9 @@ class BoardModel():
     def can_move(self, start_tile_objs, dest_tile_objs, move_dir):
         if "X" in dest_tile_objs or "S" in dest_tile_objs:
             return False
-        if {"-", "="}.intersection(set(start_tile_objs + dest_tile_objs)) and move_dir in ("U", "D"):
+        if "-" in (start_tile_objs + dest_tile_objs) and move_dir in ("U", "D"):
             return False
-        if {"|", "I"}.intersection(set(start_tile_objs + dest_tile_objs)) and move_dir in ("L", "R"):
+        if "|" in (start_tile_objs + dest_tile_objs) and move_dir in ("L", "R"):
             return False
         if self.hero_state == "ice" and ("-" in dest_tile_objs or "|" in dest_tile_objs):
             return False
