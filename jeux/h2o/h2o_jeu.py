@@ -50,6 +50,7 @@
     ".": [96, 288],
 
     "X": [160, 64],
+    "+": [0, 416],
 
     "pattern_*.*.XX*.*": [128, 0],
     "pattern_*.*XXX*.*": [160, 0],
@@ -96,7 +97,32 @@
     "electroball_R": [64, 384],
     "electroball_L": [96, 384],
 
-    "pattern_***XXX.I.": [0, 192]
+    "pattern_*X*.X=*.*": [0, 160],
+    "pattern_*X*=X.*.*": [32, 160],
+    "pattern_***XXX*I*": [0, 192],
+    "pattern_*X*.X.*I*": [32, 192],
+    "pattern_*X*XX=XX*": [0, 256],
+    "pattern_*X*=XX*XX": [64, 256],
+
+    "pattern_*X*.XX*I*": [32, 288],
+    "pattern_*X*XX.*I*": [64, 288],
+
+    "pattern_*.*.X=*.*": [0, 320],
+    "pattern_*.*=X.*.*": [32, 320],
+    "pattern_*.*XX=*.*": [64, 320],
+    "pattern_*.*=XX*.*": [96, 320],
+
+    "pattern_*X*.X=*I*": [160, 320],
+    "pattern_*X*=X.*I*": [192, 320],
+    "pattern_*X*=X=*I*": [224, 320],
+
+    "pattern_*.*XX=XX*": [0, 352],
+    "pattern_*.*=XX*XX": [32, 352],
+    "pattern_*.*=X=*X*": [64, 352],
+    "pattern_*.*=X.*X*": [96, 352],
+    "pattern_*.*.X=*X*": [128, 352],
+
+    "pattern_*I*=+=*.*": [32, 416]
 
   }
 }
@@ -109,19 +135,35 @@
 
 LEVELS = (
     (
+        "XXXXXXXXXXXXXXXXXXXX",
+        "X..................X",
+        "X....=..I..........X",
+        "X....++++..........X",
+        "X....I=.+=.........X",
+        "X...+++++..........X",
+        "X......X...........X",
+        "S.....H.C..........X",
+        "X..................X",
+        "X...==...I.........X",
+        "X........I.........X",
+        "X..................X",
+        "X.................OX",
+        "XXXXXXXXXXXXXXXXXXXX",
+    ),
+    (
         "XXXXXX..XXXXXXXXXXXX",
         "X.-X..--.X-..-..-..X",
         "X.XX..XX.XX.XXX.X..X",
-        "X............I.....X",
-        "X.X..........X.....X",
-        "XXXX...............X",
-        "X.-........|.......X",
-        "S....I.............X",
-        "X....I.==..|X......X",
-        "X.........X|X......X",
-        "X..H.C....X|.......X",
-        "X.........X|X......X",
-        "X.................OX",
+        "X..................X",
+        "X.X..XX=X=XX.....X.X",
+        "XXX..XX.X.XX....XX=X",
+        "X.-.............XX.X",
+        "S....I....X=X=X....X",
+        "X....I.==.X.X.X....X",
+        "X..H.C....X|X=XX=X.X",
+        "X..X.X.X..X|.......X",
+        "X..X=X=X..X|X..|...X",
+        "X..I.I.I..........OX",
         "XXXXXXXXXXXXXXXXXXXX",
     ),
     (
@@ -279,7 +321,7 @@ class BoardModel():
     def stylify_tile(self, x, y):
 
         gamobj_mid = self.cur_level[y][x]
-        if gamobj_mid not in "X-|":
+        if gamobj_mid not in ("X", "-", "|", "+"):
             return None
 
         main_pattern = ""
@@ -294,7 +336,7 @@ class BoardModel():
                     lvl_map_char = self.cur_level[y_check][x_check]
                     if lvl_map_char in ("X", "S"):
                         main_pattern += "X"
-                    elif lvl_map_char in ("-", "|", "=", "I"):
+                    elif lvl_map_char in ("-", "|", "=", "I", "+"):
                         main_pattern += lvl_map_char
                     else:
                         main_pattern += "."
@@ -305,15 +347,19 @@ class BoardModel():
 
         if gamobj_mid == "X":
 
+            main_pattern = self.apply_replacement_patterns(main_pattern, self.patterns_replacement_tunnels_too_far)
+            main_pattern = main_pattern.replace("-", "X")
+            main_pattern = main_pattern.replace("|", "X")
             matched_pattern = self.match_with_patterns(main_pattern, self.patterns_wall_with_laser)
             if matched_pattern is not None:
                 return "pattern_" + matched_pattern
 
             main_pattern = main_pattern.replace("I", ".")
             main_pattern = main_pattern.replace("=", ".")
+            main_pattern = main_pattern.replace("+", ".")
+            # Il faut retenter les patterns de remplacment, car on vient de supprimer les lasers,
+            # et ça a peut-être changé des choses.
             main_pattern = self.apply_replacement_patterns(main_pattern, self.patterns_replacement_tunnels_too_far)
-            main_pattern = main_pattern.replace("-", "X")
-            main_pattern = main_pattern.replace("|", "X")
             matched_pattern = self.match_with_patterns(main_pattern, self.patterns_wall_simple)
             if matched_pattern is not None:
                 return "pattern_" + matched_pattern
@@ -322,6 +368,7 @@ class BoardModel():
         if gamobj_mid == "-":
             main_pattern = main_pattern.replace("I", ".")
             main_pattern = main_pattern.replace("=", ".")
+            main_pattern = main_pattern.replace("+", ".")
             main_pattern = self.apply_replacement_patterns(main_pattern, self.patterns_replacement_tunnels_too_far)
             main_pattern = main_pattern.replace("-", "X")
             main_pattern = main_pattern.replace("|", "X")
@@ -335,6 +382,7 @@ class BoardModel():
         if gamobj_mid == "|":
             main_pattern = main_pattern.replace("I", ".")
             main_pattern = main_pattern.replace("=", ".")
+            main_pattern = main_pattern.replace("+", ".")
             # Pas besoin d'appliquer patterns_replacement_tunnels_too_far, car ça ne concerne que des cases
             # sur les diagonales. Or, le tunnel vertical s'en fiche de ce qu'il peut y avoir sur les cases diagonales.
             main_pattern = main_pattern.replace("-", "X")
@@ -346,40 +394,110 @@ class BoardModel():
                 return "pattern_" + matched_pattern
             return None
 
+        if gamobj_mid == "+":
+            main_pattern = main_pattern.replace("-", ".")
+            main_pattern = main_pattern.replace("|", ".")
+            main_pattern = main_pattern.replace("X", ".")
+            main_pattern = self.apply_replacement_patterns(main_pattern, self.patterns_replacement_cross_lasers)
+            matched_pattern = self.match_with_patterns(main_pattern, self.patterns_cross_lasers)
+            if matched_pattern is not None:
+                return "pattern_" + matched_pattern
+            return None
+
         return None
 
     def stylify_laser(self, x, y, lvl_map_char):
         len_str_prefix = len("pattern_")
         gamobjs_final = []
 
-        if lvl_map_char == "I":
-            # up
+        # C'est un peu moche, parce qu'il y a du duplicate code, mais pas complètement.
+        # Je préfère pas factoriser un truc comme ça.
+        # Ça risque d'ajouter plus de complexité que ce qu'il y a déjà.
+
+        if lvl_map_char == "I" or lvl_map_char == "+":
+
             electroball_U = True
+            electroball_D = True
+
+            # up
             gamobjs_up = self.tiles[y-1][x] if self.in_bound(x, y-1) else ["X"]
             for gamobj in gamobjs_up:
-                if gamobj in ["I", "+"]:
+                if gamobj in ("I", "+"):
                     electroball_U = False
                 elif gamobj.startswith("pattern_"):
                     # Exemple de pattern qui fonctionne : "pattern_***XXX.I."
                     if gamobj[len_str_prefix + 7] == "I":
                         electroball_U = False
                         gamobjs_final.append("I_wall_up")
+
+            # down
+            gamobjs_down = self.tiles[y+1][x] if self.in_bound(x, y+1) else ["X"]
+            for gamobj in gamobjs_down:
+                if gamobj in ("I", "+", "X"):
+                    electroball_D = False
+
+            # cross
+            if lvl_map_char == "+":
+                gamobjs_cur = self.tiles[y][x]
+                for gamobj in gamobjs_cur:
+                    if gamobj.startswith("pattern_"):
+                        if gamobj[len_str_prefix + 7] == ".":
+                            electroball_D = False
+                        if gamobj[len_str_prefix + 1] == ".":
+                            electroball_U = False
+
+            if electroball_D:
+                gamobjs_final.append("electroball_D")
             if electroball_U:
                 gamobjs_final.append("electroball_U")
 
-            # down
-            gamobjs_final.append("electroball_D")
 
-        elif lvl_map_char == "=":
-            gamobjs_final.append("electroball_R")
-            gamobjs_final.append("electroball_L")
+        if lvl_map_char == "=" or lvl_map_char == "+":
+
+            electroball_L = True
+            electroball_R = True
+
+            # left
+            gamobjs_adj = self.tiles[y][x-1] if self.in_bound(x-1, y) else ["X"]
+            for gamobj in gamobjs_adj:
+                if gamobj in ("=", "+"):
+                    electroball_L = False
+                elif gamobj.startswith("pattern_"):
+                    # Exemple de pattern qui fonctionne : "pattern_*X*XX=XX*"
+                    if gamobj[len_str_prefix + 5] == "=":
+                        electroball_L = False
+
+            # right
+            gamobjs_adj = self.tiles[y][x+1] if self.in_bound(x+1, y) else ["X"]
+            for gamobj in gamobjs_adj:
+                if gamobj in ("=", "+"):
+                    electroball_R = False
+                elif gamobj.startswith("pattern_"):
+                    # Exemple de pattern qui fonctionne : "pattern_*X*=XX*XX"
+                    if gamobj[len_str_prefix + 3] == "=":
+                        electroball_R = False
+
+            # cross
+            if lvl_map_char == "+":
+                gamobjs_cur = self.tiles[y][x]
+                for gamobj in gamobjs_cur:
+                    if gamobj.startswith("pattern_"):
+                        if gamobj[len_str_prefix + 3] == ".":
+                            electroball_R = False
+                        if gamobj[len_str_prefix + 5] == ".":
+                            electroball_L = False
+
+            if electroball_R:
+                gamobjs_final.append("electroball_R")
+            if electroball_L:
+                gamobjs_final.append("electroball_L")
 
         return gamobjs_final
 
 
     def init_level(self):
 
-        # TODO : pattern de suppression des tunnels en diagonale qui sont raccorché à rien.
+        # Ce sont les patterns de suppression des tunnels en diagonale qui sont raccrochés à rien.
         PATTERNS_REPLACEMENT_TUNNELS_TOO_FAR = """
 
             -.*
@@ -424,11 +542,111 @@ class BoardModel():
 
         """
 
+        PATTERNS_REPLACEMENT_CROSS_LASERS = """
+
+            *+*
+            ***
+            ***
+            =>1:I
+
+            ***
+            +**
+            ***
+            =>3:=
+
+            ***
+            **+
+            ***
+            =>5:=
+
+            ***
+            ***
+            *+*
+            =>7:I
+
+        """
+
         PATTERNS_WALL_WITH_LASER = """
 
             ***
             XXX
-            .I.
+            *I*
+
+            *X*
+            .X.
+            *I*
+
+            *X*
+            XX=
+            XX*
+
+            *X*
+            =XX
+            *XX
+
+            *X*
+            .X=
+            *.*
+
+            *X*
+            =X.
+            *.*
+
+            *X*
+            .XX
+            *I*
+
+            *X*
+            XX.
+            *I*
+
+            *.*
+            .X=
+            *.*
+
+            *.*
+            =X.
+            *.*
+
+            *.*
+            XX=
+            *.*
+
+            *.*
+            =XX
+            *.*
+
+            *X*
+            .X=
+            *I*
+
+            *X*
+            =X.
+            *I*
+
+            *X*
+            =X=
+            *I*
+
+            *.*
+            XX=
+            XX*
+
+            *.*
+            =XX
+            *XX
+
+            *.*
+            =X=
+            *X*
+
+            *.*
+            =X.
+            *X*
+
+            *.*
+            .X=
+            *X*
 
         """
 
@@ -577,12 +795,22 @@ class BoardModel():
 
         """
 
+        PATTERNS_CROSS_LASERS = """
+
+            *I*
+            =+=
+            *.*
+
+        """
+
         # TODO : compiler ça une seule fois au début.
         self.patterns_replacement_tunnels_too_far = self.compile_replace_patterns(PATTERNS_REPLACEMENT_TUNNELS_TOO_FAR)
+        self.patterns_replacement_cross_lasers = self.compile_replace_patterns(PATTERNS_REPLACEMENT_CROSS_LASERS)
         self.patterns_wall_with_laser = self.compile_match_patterns(PATTERNS_WALL_WITH_LASER)
         self.patterns_wall_simple = self.compile_match_patterns(PATTERNS_WALL_SIMPLE)
         self.patterns_tunnel_horiz_simple = self.compile_match_patterns(PATTERNS_TUNNEL_HORIZ_SIMPLE)
         self.patterns_tunnel_vertic = self.compile_match_patterns(PATTERNS_TUNNEL_VERTIC)
+        self.patterns_cross_lasers = self.compile_match_patterns(PATTERNS_CROSS_LASERS)
 
         self.hero_alive = False
         self.tiles = tuple([
@@ -615,7 +843,7 @@ class BoardModel():
         for y in range(self.h):
             for x in range(self.w):
                 lvl_map_char = self.cur_level[y][x]
-                if lvl_map_char in "I=+":
+                if lvl_map_char in ("I", "=", "+"):
                     self.tiles[y][x].extend(self.stylify_laser(x, y, lvl_map_char))
 
     def get_size(self):
@@ -711,7 +939,8 @@ class BoardModel():
             elif self.current_level_idx == 0:
                 print("Il faut être en état liquide.")
 
-        if ("=" in tile_data_new_pos or "I" in tile_data_new_pos) and self.hero_state == "gas":
+        #if ("=" in tile_data_new_pos or "I" in tile_data_new_pos) and self.hero_state == "gas":
+        if set("=I+").intersection(set(tile_data_new_pos)) and self.hero_state == "gas":
             self.hero_alive = False
             tile_data_new_pos.append("gas_dead")
             print("Blarg ! Appuyez sur un bouton pour ressusciter")
