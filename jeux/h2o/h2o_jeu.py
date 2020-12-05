@@ -122,7 +122,16 @@
     "pattern_*.*=X.*X*": [96, 352],
     "pattern_*.*.X=*X*": [128, 352],
 
-    "pattern_*I*=+=*.*": [32, 416]
+    "pattern_*I*=+.*.*": [192, 384],
+    "pattern_*I*.+=*.*": [224, 384],
+
+    "pattern_*I*=+=*.*": [32, 416],
+    "pattern_*I*.+=*I*": [64, 416],
+    "pattern_*I*=+.*I*": [96, 416],
+    "pattern_*.*=+=*I*": [128, 416],
+    "pattern_*.*=+.*I*": [160, 416],
+    "pattern_*.*.+=*I*": [192, 416]
+
 
   }
 }
@@ -139,13 +148,13 @@ LEVELS = (
         "X..................X",
         "X....=..I..........X",
         "X....++++..........X",
-        "X....I=.+=.........X",
+        "X....I=.+=....X+...X",
         "X...+++++..........X",
-        "X......X...........X",
-        "S.....H.C..........X",
-        "X..................X",
-        "X...==...I.........X",
-        "X........I.........X",
+        "X......X...+=+=+...X",
+        "S.....H.C..I.I.I...X",
+        "X..........+=+=+...X",
+        "X...==...I.I.I.I...X",
+        "X........I.+=+=+...X",
         "X..................X",
         "X.................OX",
         "XXXXXXXXXXXXXXXXXXXX",
@@ -168,21 +177,22 @@ LEVELS = (
     ),
     (
         "XXXXXXXXXXXXXXXXXXXX",
-        "X...-...X.X...I....X",
-        "X..XXX..XXX..XXX...X",
-        "S...E....H....-....X",
+        "X...-...XXX...E..XXX",
+        "X..XXX..XXX..XXX.XXX",
+        "S...E....H....I....X",
         "X..XXX..XXX..XXX.X.X",
-        "X...I...X.X...E..X.X",
-        "XXXXXXXXX.XXXXXXXX.X",
-        "XXXXXXXXX.XXXXXXXXCX",
-        "X.H.H...X.X...E..X.X",
-        "X..CCC..XXX..XXX.XCX",
-        "X.HCO.........I....X",
+        "X...I...X.X...-..X.X",
+        "X..XXX..X.XXXXXXXXCX",
+        "XXXXXXXXX.X..XXX.X.X",
+        "X.H.H...X.X...E..XCX",
+        "X..CCC..XXX..XXX.X.X",
+        "X.HCO.........-....X",
         "X..CCC..XXX..XXX.XXX",
-        "X.H.H...XXX...-..XXX",
+        "X.H.H...XXX...I..XXX",
         "XXXXXXXXXXXXXXXXXXXX",
     ),
     (
+        "XXXXXXXXXXXXXXXXXXXX",
         "X.H.XXX.C.XXX.H.XXXX",
         "S....-E...I.E.....XX",
         "X.C.XXX.H.XXX.C.X|XX",
@@ -190,28 +200,27 @@ LEVELS = (
         "X.H.XXX.C.XXX.H.X=XX",
         "XC..I.H....-C.....XX",
         "X...XXX.H.XXX.C.XXXX",
-        "XX.XX.XXXXX.XXXXX...",
-        "XXCX.X.X...XXXXXXX..",
-        "XXHXXXXX..XX.....X..",
-        "XXEX.H.XXXXX..O..X..",
-        "XX......HCE......X..",
-        "XXXX.C.XXXXXH...CX..",
-        "XXXXXXXXXXXXXXXXXX..",
+        "XXCXX.XXXXXXXXXXXXXX",
+        "XXHXXXXX.X.X.X....HX",
+        "XXEX.H.XXXXXXX.....X",
+        "XX......H.C.E...O..X",
+        "XXXX.C.XXXXXXX....CX",
+        "XXXXXXXXXXXXXXXXXXXX",
     ),
     (
         "XXXXXXXXXXXXXXXXXXXX",
-        "XXXXXXXX.....XXXXXXX",
-        "XXXXXXXX.XXXHXXXXXXX",
-        "XXXXXXXX.XXXHXXXXXXX",
-        "X.H.XXXX.XXXCXXXXXXX",
-        "S....E-..CCHE.....XX",
-        "X.C.XXXX.XXXCXXX..XX",
-        "XXXXX..X.XXXHX.....X",
-        "X.--.||X.XXXCX.XXX.X",
-        "X|XX..|X.....X..CH.X",
-        "X|X.--.XXXXXXXXXHCXX",
-        "X|XOXXXXXXX.----CHXX",
-        "X.---------.XXXXXXXX",
+        "X.H.XXXX.....XX.I.HX",
+        "S...EE-..XXXHXX=+==X",
+        "X.C.XXXX.XXXHXX====X",
+        "XXXXX..X.XXXCXX.XXXX",
+        "X.---.|X.CCHE...-..X",
+        "X|XXXX|X.XXXCXXXXX.X",
+        "X|.--.|X.XXXHX.....X",
+        "X||XX||X.XXXCX.X.X.X",
+        "X||XX..X.....X.HCHCX",
+        "X|..XXXXXXXXXXXXHCHX",
+        "X|X.-.-.-OX.----CHCX",
+        "X.---------.XXXXHCHX",
         "XXXXXXXXXXXXXXXXXXXX",
     ),
     (
@@ -350,6 +359,7 @@ class BoardModel():
             main_pattern = self.apply_replacement_patterns(main_pattern, self.patterns_replacement_tunnels_too_far)
             main_pattern = main_pattern.replace("-", "X")
             main_pattern = main_pattern.replace("|", "X")
+            main_pattern = self.apply_replacement_patterns(main_pattern, self.patterns_replacement_cross_lasers)
             matched_pattern = self.match_with_patterns(main_pattern, self.patterns_wall_with_laser)
             if matched_pattern is not None:
                 return "pattern_" + matched_pattern
@@ -428,7 +438,8 @@ class BoardModel():
                     # Exemple de pattern qui fonctionne : "pattern_***XXX.I."
                     if gamobj[len_str_prefix + 7] == "I":
                         electroball_U = False
-                        gamobjs_final.append("I_wall_up")
+                        if lvl_map_char == "I" and gamobj[len_str_prefix + 4] == "X":
+                            gamobjs_final.append("I_wall_up")
 
             # down
             gamobjs_down = self.tiles[y+1][x] if self.in_bound(x, y+1) else ["X"]
@@ -482,10 +493,15 @@ class BoardModel():
                 gamobjs_cur = self.tiles[y][x]
                 for gamobj in gamobjs_cur:
                     if gamobj.startswith("pattern_"):
-                        if gamobj[len_str_prefix + 3] == ".":
-                            electroball_R = False
+                        if gamobj[len_str_prefix + 1] == ".":
+                            electroball_U = False
                         if gamobj[len_str_prefix + 5] == ".":
+                            electroball_R = False
+                        if gamobj[len_str_prefix + 7] == ".":
+                            electroball_D = False
+                        if gamobj[len_str_prefix + 3] == ".":
                             electroball_L = False
+
 
             if electroball_R:
                 gamobjs_final.append("electroball_R")
@@ -797,9 +813,37 @@ class BoardModel():
 
         PATTERNS_CROSS_LASERS = """
 
-            *I*
-            =+=
-            *.*
+           *I*
+           =+.
+           *.*
+
+           *I*
+           .+=
+           *.*
+
+           *I*
+           =+=
+           *.*
+
+           *I*
+           .+=
+           *I*
+
+           *I*
+           =+.
+           *I*
+
+           *.*
+           =+=
+           *I*
+
+           *.*
+           =+.
+           *I*
+
+           *.*
+           .+=
+           *I*
 
         """
 
