@@ -3,7 +3,8 @@
 # https://i.ibb.co/HXSkXQf/H2-Otileset2.png
 # https://i.ibb.co/1bhGZnv/H2-Otileset2.png
 # https://i.ibb.co/mcqSnbT/H2-Otileset2.png
-
+# https://i.ibb.co/LzFNTHh/h2o-tileset2.png
+# https://i.ibb.co/cLZrHgW/h2o-tileset2.png
 
 """
 
@@ -51,6 +52,8 @@
 
     "X": [160, 64],
     "+": [0, 416],
+
+    "K": [160, 352],
 
     "pattern_*.*.XX*.*": [128, 0],
     "pattern_*.*XXX*.*": [160, 0],
@@ -146,16 +149,16 @@ LEVELS = (
     (
         "XXXXXXXXXXXXXXXXXXXX",
         "X..................X",
-        "X....=..I..........X",
+        "X....=..I....K.....X",
         "X....++++..........X",
         "X....I=.+=....X+...X",
         "X...+++++..........X",
         "X......X...+=+=+...X",
         "S.....H.C..I.I.I...X",
-        "X..........+=+=+...X",
+        "X.K........+=+=+...X",
         "X...==...I.I.I.I...X",
         "X........I.+=+=+...X",
-        "X..................X",
+        "X..K...............X",
         "X.................OX",
         "XXXXXXXXXXXXXXXXXXXX",
     ),
@@ -200,8 +203,8 @@ LEVELS = (
         "X.H.XXX.C.XXX.H.X=XX",
         "XC..I.H....-C.....XX",
         "X...XXX.H.XXX.C.XXXX",
-        "XXCXX.XXXXXXXXXXXXXX",
-        "XXHXXXXX.X.X.X....HX",
+        "XXCX...XXXXXXXXXXXXX",
+        "XXHXXXXXXX...X....HX",
         "XXEX.H.XXXXXXX.....X",
         "XX......H.C.E...O..X",
         "XXXX.C.XXXXXXX....CX",
@@ -214,7 +217,7 @@ LEVELS = (
         "X.C.XXXX.XXXHXX====X",
         "XXXXX..X.XXXCXX.XXXX",
         "X.---.|X.CCHE...-..X",
-        "X|XXXX|X.XXXCXXXXX.X",
+        "X|XXXX|X.XXXCXXXXXCX",
         "X|.--.|X.XXXHX.....X",
         "X||XX||X.XXXCX.X.X.X",
         "X||XX..X.....X.HCHCX",
@@ -240,20 +243,20 @@ LEVELS = (
         "XEEEEEEEEEEEEE-CEEEE",
     ),
     (
-        "XXXXXXXXXXXXXXXXXXXX",
-        "X.HHHH..H..H..H..H.X",
-        "X.H.....H..HH.H..H.X",
-        "X.HH....H..H.HH..H.X",
-        "X.H.....H..H..H....X",
-        "X.H.....H..H..H..H.X",
-        "S..................X",
-        "X.....CC.....CC....X",
-        "X.....CC.....CC....X",
-        "X..................X",
-        "X...C...........C..X",
-        "X....C.........C...X",
-        "X.....CCCCCCCCC....X",
-        "XXXXXXXXXXXXXXXXXXXX",
+        "....................",
+        "XXXX..X.X...........",
+        "S.K...XKX..XXX......",
+        "XXXX..XXX..XKX......",
+        "...........X.X......",
+        "....................",
+        "...........XXXXX....",
+        "...XXX......KXK.....",
+        "....KX....XXXXXXX...",
+        "...XXX....-EEEEE-...",
+        "...XK...C.-E+=+E-...",
+        "...XXX....-EIKIE-...",
+        "........H.-E+=+E-...",
+        "..........-EEEEE-...",
     ),
 )
 
@@ -350,7 +353,6 @@ class BoardModel():
                     else:
                         main_pattern += "."
 
-
         # Dans la suite de cette fonction, on fait tout un tas de replace. C'est moche et pas optimisé.
         # Je n'ai pas de meilleure méthode pour le moment. Pouet pouet.
 
@@ -360,6 +362,7 @@ class BoardModel():
             main_pattern = main_pattern.replace("-", "X")
             main_pattern = main_pattern.replace("|", "X")
             main_pattern = self.apply_replacement_patterns(main_pattern, self.patterns_replacement_cross_lasers)
+            main_pattern = self.apply_replacement_patterns(main_pattern, self.patterns_replacement_perspective_wall_lasers)
             matched_pattern = self.match_with_patterns(main_pattern, self.patterns_wall_with_laser)
             if matched_pattern is not None:
                 return "pattern_" + matched_pattern
@@ -420,14 +423,14 @@ class BoardModel():
         len_str_prefix = len("pattern_")
         gamobjs_final = []
 
+        electroball_U = electroball_D = lvl_map_char in ("I", "+")
+        electroball_R = electroball_L = lvl_map_char in ("=", "+")
+
         # C'est un peu moche, parce qu'il y a du duplicate code, mais pas complètement.
         # Je préfère pas factoriser un truc comme ça.
         # Ça risque d'ajouter plus de complexité que ce qu'il y a déjà.
 
         if lvl_map_char == "I" or lvl_map_char == "+":
-
-            electroball_U = True
-            electroball_D = True
 
             # up
             gamobjs_up = self.tiles[y-1][x] if self.in_bound(x, y-1) else ["X"]
@@ -457,16 +460,7 @@ class BoardModel():
                         if gamobj[len_str_prefix + 1] == ".":
                             electroball_U = False
 
-            if electroball_D:
-                gamobjs_final.append("electroball_D")
-            if electroball_U:
-                gamobjs_final.append("electroball_U")
-
-
         if lvl_map_char == "=" or lvl_map_char == "+":
-
-            electroball_L = True
-            electroball_R = True
 
             # left
             gamobjs_adj = self.tiles[y][x-1] if self.in_bound(x-1, y) else ["X"]
@@ -502,14 +496,17 @@ class BoardModel():
                         if gamobj[len_str_prefix + 3] == ".":
                             electroball_L = False
 
-
-            if electroball_R:
-                gamobjs_final.append("electroball_R")
-            if electroball_L:
-                gamobjs_final.append("electroball_L")
+        electrob_correspondance = (
+            (electroball_D, "electroball_D"),
+            (electroball_U, "electroball_U"),
+            (electroball_R, "electroball_R"),
+            (electroball_L, "electroball_L"),
+        )
+        for has_electrob, gamobj_name in electrob_correspondance:
+            if has_electrob:
+                gamobjs_final.append(gamobj_name)
 
         return gamobjs_final
-
 
     def init_level(self):
 
@@ -579,6 +576,36 @@ class BoardModel():
             ***
             *+*
             =>7:I
+
+            *=*
+            ***
+            ***
+            =>1:.
+
+            ***
+            I**
+            ***
+            =>3:.
+
+            ***
+            **I
+            ***
+            =>5:.
+
+            ***
+            ***
+            *=*
+            =>7:.
+
+
+        """
+
+        PATTERNS_REPLACEMENT_PERSPECTIVE_WALL_LASERS = """
+
+            *I*
+            ***
+            ***
+            =>1:.
 
         """
 
@@ -850,6 +877,7 @@ class BoardModel():
         # TODO : compiler ça une seule fois au début.
         self.patterns_replacement_tunnels_too_far = self.compile_replace_patterns(PATTERNS_REPLACEMENT_TUNNELS_TOO_FAR)
         self.patterns_replacement_cross_lasers = self.compile_replace_patterns(PATTERNS_REPLACEMENT_CROSS_LASERS)
+        self.patterns_replacement_perspective_wall_lasers = self.compile_replace_patterns(PATTERNS_REPLACEMENT_PERSPECTIVE_WALL_LASERS)
         self.patterns_wall_with_laser = self.compile_match_patterns(PATTERNS_WALL_WITH_LASER)
         self.patterns_wall_simple = self.compile_match_patterns(PATTERNS_WALL_SIMPLE)
         self.patterns_tunnel_horiz_simple = self.compile_match_patterns(PATTERNS_TUNNEL_HORIZ_SIMPLE)
@@ -864,6 +892,8 @@ class BoardModel():
             for y in range(self.h)
         ])
         self.cur_level = LEVELS[self.current_level_idx]
+        self.knowledge_positions = {}
+        knowledge_index = 0
 
         for y in range(self.h):
             for x in range(self.w):
@@ -877,6 +907,9 @@ class BoardModel():
                     self.hero_alive = True
                     self.hero_dir = "D"
                     self.hero_state = "water"
+                if lvl_map_char == "K":
+                    self.knowledge_positions[(x, y)] = knowledge_index
+                    knowledge_index += 1
                 if lvl_map_char != " ":
                     gamobjs.append(lvl_map_char)
                 styled_wall = self.stylify_tile(x, y)
@@ -973,6 +1006,26 @@ class BoardModel():
             }
             self.hero_state = to_hot[self.hero_state]
 
+        if "K" in tile_data_new_pos:
+            KNOWLEDGE = (
+                "Vous mélangez votre eau à celle du bassin de sapience... Essayez les autres bassins pour vous imprégner de tout le savoir de H2O",
+                "Pour jouer à la version originale du jeu : http://squarity.fr#fetchez_githubgist_darkrecher/ca7386545255db3244d571ec997e715b/raw/h2o-original",
+                "H2O est inspiré du jeu éponyme de la console Storio. https://www.vtechda.com/Store/ITMax/ContentDetail/FR_fre_1838_58-126805-000-289_False.html",
+                "DaLk, une personne classe, a commencé un autre tileset : http://squarity.fr#fetchez_githubgist_darkrecher/a0e7f7a5da6dbf1838060290e4e2e157/raw/h2o-daLk",
+                "Le niveau précédent ne servait à rien. C'était juste un test pour vérifier l'arrangement des tiles. L'eau li l'eau l' !!",
+                "Sous l'écume il y a l'eau claire (Luke).",
+                "Pour accéder au dernier bassin de sapience, vous allez devoir tricher.",
+                "Bravo, vous avez compris comment modifier les niveaux. Et si vous faisiez les vôtres et que vous les partagiez ? C'est pas la mer à boire !",
+            )
+            knowledge_index = self.knowledge_positions.get((self.hero_x, self.hero_y))
+            if knowledge_index is not None:
+                if knowledge_index < len(KNOWLEDGE):
+                    print(KNOWLEDGE[knowledge_index])
+                else:
+                    really = "vraiment " * (knowledge_index-len(KNOWLEDGE))
+                    print("Je n'ai " + really + "plus rien à vous dire.")
+                print()
+
         if "O" in tile_data_new_pos:
             if self.hero_state == "water":
                 self.hero_alive = False
@@ -983,7 +1036,6 @@ class BoardModel():
             elif self.current_level_idx == 0:
                 print("Il faut être en état liquide.")
 
-        #if ("=" in tile_data_new_pos or "I" in tile_data_new_pos) and self.hero_state == "gas":
         if set("=I+").intersection(set(tile_data_new_pos)) and self.hero_state == "gas":
             self.hero_alive = False
             tile_data_new_pos.append("gas_dead")
