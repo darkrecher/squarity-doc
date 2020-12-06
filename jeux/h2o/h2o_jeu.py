@@ -147,22 +147,6 @@
 
 LEVELS = (
     (
-        "XXXXXXXXXXXXXXXXXXXX",
-        "X..................X",
-        "X....=..I....K.....X",
-        "X....++++..........X",
-        "X....I=.+=....X+...X",
-        "X...+++++..........X",
-        "X......X...+=+=+...X",
-        "S.....H.C..I.I.I...X",
-        "X.K........+=+=+...X",
-        "X...==...I.I.I.I...X",
-        "X........I.+=+=+...X",
-        "X..K...............X",
-        "X.................OX",
-        "XXXXXXXXXXXXXXXXXXXX",
-    ),
-    (
         "XXXXXX..XXXXXXXXXXXX",
         "X.-X..--.X-..-..-..X",
         "X.XX..XX.XX.XXX.X..X",
@@ -227,20 +211,36 @@ LEVELS = (
         "XXXXXXXXXXXXXXXXXXXX",
     ),
     (
-        "E=EX===X===X========",
+        "===+===+===+===+++=+",
         "ECEI...I...I...IIIOI",
-        "EEEI.I.I.I.I.I.III=I",
+        "EEEI.I.I.I.I.I.I++=+",
         "XI.I.I.I.I.I.I.I...I",
         "XI...I...I...I...I.I",
-        "XX===X===X===X===IHI",
+        "XX===X===X===X===+HI",
         "XXXXXXXXXXXXXXXXXEHE",
-        "XEHEEEEEEEEEEEEEEX=X",
+        "XEHEEEEEEEEEEEEEXX=X",
         "XE......EE.....EEEEE",
         "XEEEEEE....EEE.....E",
         "XEEEEEEEEEEEEEEEEE.E",
         "XE...E...E...E...E.E",
         "S..E...E...E...E...E",
         "XEEEEEEEEEEEEE-CEEEE",
+    ),
+    (
+        "XXXXXXXXXXXXXXXXXXXX",
+        "X.XIX.X.I.---.-....X",
+        "X.X+X.I.X.XXX.-....X",
+        "X..+==XX=XX.XXXX|XXX",
+        "X.C...--...........X",
+        "S....XXXX=X.X=+.|..X",
+        "X.H...........I.|..X",
+        "X.....--.....++.|..X",
+        "X..+..XX.....I.....X",
+        "X.....II..X=X+X....X",
+        "X==++=++..X=X+X..X=X",
+        "X..++.....I.III....X",
+        "X..++.....+=+++...OX",
+        "XXXXXXXXXXXXXXXXXXXX",
     ),
     (
         "....................",
@@ -260,12 +260,223 @@ LEVELS = (
     ),
 )
 
+
+# Les patterns de suppression des tunnels en diagonale qui sont raccrochés à rien.
+PATTERNS_REPLACEMENT_TUNNELS_TOO_FAR = """
+
+    -.*     |.*     *.-     *.|
+    .**     .**     **.     **.
+    ***     ***     ***     ***
+    =>0:.   =>0:.   =>2:.   =>2:.
+
+    ***     ***     ***     ***
+    .**     .**     **.     **.
+    -.*     |.*     *.-     *.|
+    =>6:.   =>6:.   =>8:.   =>8:.
+"""
+
+# Les 4 premiers patterns :
+# remplacement des lasers "cross" par des lasers lines, sur les 4 tiles adjacentes à la middle tile.
+# Comme ça, la stylisation fonctionne aussi bien avec des crosses qu'avec des lines.
+# Les 4 patterns suivants :
+# remplacement des lasers lines sur les 4 tiles adjacentes, mais qui sont pas dans le bon sens
+# et ne sont donc pas accrochés à la middle tile.
+# Par exemple : un laser horizontal qui passe au-dessus de la middle tile.
+PATTERNS_REPLACEMENT_CROSS_LASERS = """
+    *+*     ***     ***     ***
+    ***     **+     ***     +**
+    ***     ***     *+*     ***
+    =>1:I   =>5:=   =>7:I   =>3:=
+
+    *=*     ***     ***     ***
+    ***     **I     ***     I**
+    ***     ***     *=*     ***
+    =>1:.   =>5:.   =>7:.   =>3:.
+"""
+
+# Quand il y a un laser au-dessus de la middle tile, on s'en fiche complètement.
+# La perpective cache le bas du laser, et on n'a rien à styliser dans ce cas.
+PATTERNS_REPLACEMENT_PERSPECTIVE_WALL_LASERS = """
+    *I*
+    ***
+    ***
+    =>1:.
+"""
+
+# Stylisation des lasers cross.
+PATTERNS_CROSS_LASERS = """
+    *.*   *I*   *I*   *.*
+    =+.   =+.   .+=   .+=
+    *I*   *.*   *.*   *I*
+
+    *I*   *I*   *.*   *I*
+    =+=   .+=   =+=   =+.
+    *.*   *I*   *I*   *I*
+"""
+
+# Stylisation des murs comportant un générateur de laser sur une ou plusieurs de ses parois
+PATTERNS_WALL_WITH_LASER = """
+    ***   *X*   *X*   *X*
+    XXX   .X.   XX=   =XX
+    *I*   *I*   XX*   *XX
+
+    *X*   *X*   *X*   *X*
+    .X=   =X.   .XX   XX.
+    *.*   *.*   *I*   *I*
+
+    *.*   *.*   *.*   *.*
+    .X=   =X.   XX=   =XX
+    *.*   *.*   *.*   *.*
+
+    *X*   *X*   *X*
+    .X=   =X.   =X=
+    *I*   *I*   *I*
+
+    *.*   *.*
+    XX=   =XX
+    XX*   *XX
+
+    *.*   *.*   *.*
+    =X=   =X.   .X=
+    *X*   *X*   *X*
+"""
+
+# Stylisation des murs tout simple.
+PATTERNS_WALL_SIMPLE = """
+    ***   ***   ***
+    XXX   XXX   XXX
+    .XX   XX.   .X.
+
+    *X*   *X*
+    XX.   .XX
+    .X*   *X.
+
+    *.*   *.*
+    XX.   .XX
+    .X*   *X.
+
+    *.*   *X*   *X*   *X*
+    XXX   XX.   XXX   .XX
+    *X*   *X*   *.*   *X*
+
+    *.*   *X*   *X*   *.*   *.*   *X*
+    XXX   .X.   .XX   .XX   XX.   XX.
+    *.*   *X*   *.*   *X*   *X*   *.*
+
+    *.*   *X*   *.*   *.*   *.*
+    .X.   .X.   .XX   .X.   XX.
+    *.*   *.*   *.*   *X*   *.*
+"""
+
+# Sylisation des tunnels horizontaux.
+# Il y a tout un tas de bazar, pour gérer les bords de tunnels
+# qui sont parfois rognés en diagonale, et parfois droit.
+PATTERNS_TUNNEL_HORIZ = """
+
+    *X*   *X*   *X*   *X*
+    .-.   .-.   .-*   *-.
+    .X.   ***   .X*   *X.
+
+    *X*   *X*   ***   ***
+    .-X   X-.   .-*   *-.
+    ***   ***   .X*   *X.
+"""
+
+# Stylisation des tunnels verticaux. Là c'est beaucoup plus simple.
+PATTERNS_TUNNEL_VERTIC = """
+    *.*   *X*   *.*
+    *|*   *|*   *|*
+    *X*   *.*   *.*
+"""
+
+def iter_line_chunks(str_lines, lines_per_chunk):
+    current_chunks = []
+    current_nb_lines = 0
+    for line in str_lines.split("\n"):
+        if line:
+            if not current_chunks:
+                current_chunks = [[line_elem] for line_elem in line.split()]
+            else:
+                for current_chunk, line_elem in zip(current_chunks, line.split()):
+                    current_chunk.append(line_elem)
+            current_nb_lines += 1
+        if current_nb_lines == lines_per_chunk:
+            for chunk in current_chunks:
+                yield chunk
+            current_chunks = []
+            current_nb_lines = 0
+
+def compile_match_patterns(str_patterns):
+    patterns = [
+        "".join(chunk_lines)
+        for chunk_lines
+        in iter_line_chunks(str_patterns, 3)
+    ]
+    return tuple(patterns)
+
+def compile_replace_patterns(str_patterns):
+    patterns = []
+    for chunk in iter_line_chunks(str_patterns, 4):
+        pat = "".join(chunk[:3])
+        l_rep = chunk[-1]
+        l_rep = l_rep[2:]
+        l_rep = l_rep.split(",")
+        l_rep = tuple([
+            (int(index), char_rep)
+            for index, semicolon, char_rep in
+            l_rep
+        ])
+        patterns.append((pat, l_rep))
+    return tuple(patterns)
+
+def match_with_patterns(main_pattern, test_patterns):
+    for test_pattern in test_patterns:
+        correct = True
+        for char_test, char_main in zip(test_pattern, main_pattern):
+            if char_test != "*" and char_test != char_main:
+                correct = False
+                break
+        if correct:
+            return test_pattern
+    return None
+
+def apply_replacement_patterns(main_pattern, replacement_patterns):
+    applied_replacement = False
+    for test_pat, repl_actions in replacement_patterns:
+        correct = True
+        for char_test, char_main in zip(test_pat, main_pattern):
+            if char_test != "*" and char_test != char_main:
+                correct = False
+                break
+        if correct:
+            if not applied_replacement:
+                applied_replacement = True
+                main_pattern = list(main_pattern)
+            for index, char_rep in repl_actions:
+                main_pattern[index] = char_rep
+
+    if applied_replacement:
+        return "".join(main_pattern)
+    else:
+        return main_pattern
+
+
 class BoardModel():
 
     def __init__(self, width=20, height=14):
         self.w = width
         self.h = height
         self.current_level_idx = 0
+
+        self.patterns_wall_with_laser = compile_match_patterns(PATTERNS_WALL_WITH_LASER)
+        self.patterns_wall_simple = compile_match_patterns(PATTERNS_WALL_SIMPLE)
+        self.patterns_tunnel_horiz = compile_match_patterns(PATTERNS_TUNNEL_HORIZ)
+        self.patterns_tunnel_vertic = compile_match_patterns(PATTERNS_TUNNEL_VERTIC)
+        self.patterns_cross_lasers = compile_match_patterns(PATTERNS_CROSS_LASERS)
+        self.patterns_replacement_tunnels_too_far = compile_replace_patterns(PATTERNS_REPLACEMENT_TUNNELS_TOO_FAR)
+        self.patterns_replacement_cross_lasers = compile_replace_patterns(PATTERNS_REPLACEMENT_CROSS_LASERS)
+        self.patterns_replacement_perspective_wall_lasers = compile_replace_patterns(PATTERNS_REPLACEMENT_PERSPECTIVE_WALL_LASERS)
+
         self.init_level()
         print("Le tileset a été dessiné par Tacheul.")
         print("http://pixeljoint.com/p/121104.htm")
@@ -274,63 +485,15 @@ class BoardModel():
     def in_bound(self, x, y):
         return (0 <= x < self.w) and (0 <= y < self.h)
 
-    def compile_match_patterns(self, str_patterns):
-        patterns = []
-        line_patterns = str_patterns.split()
-        while line_patterns:
-            l_1, l_2, l_3, *line_patterns = line_patterns
-            pat = l_1 + l_2 + l_3
-            patterns.append(pat)
-        return tuple(patterns)
-
-    def compile_replace_patterns(self, str_patterns):
-        patterns = []
-        line_patterns = str_patterns.split()
-        while line_patterns:
-            l_1, l_2, l_3, l_rep, *line_patterns = line_patterns
-            pat = l_1 + l_2 + l_3
-            l_rep = l_rep[2:]
-            l_rep = l_rep.split(",")
-            l_rep = tuple([
-                (int(index), char_rep)
-                for index, semicolon, char_rep in
-                l_rep
-            ])
-            patterns.append((pat, l_rep))
-        return tuple(patterns)
-
-    def match_with_patterns(self, main_pattern, test_patterns):
-        for test_pattern in test_patterns:
-            correct = True
-            for char_test, char_main in zip(test_pattern, main_pattern):
-                if char_test != "*" and char_test != char_main:
-                    correct = False
-                    break
-            if correct:
-                return test_pattern
-        return None
-
-    def apply_replacement_patterns(self, main_pattern, replacement_patterns):
-        applied_replacement = False
-        for test_pat, repl_actions in replacement_patterns:
-            correct = True
-            for char_test, char_main in zip(test_pat, main_pattern):
-                if char_test != "*" and char_test != char_main:
-                    correct = False
-                    break
-            if correct:
-                if not applied_replacement:
-                    applied_replacement = True
-                    main_pattern = list(main_pattern)
-                for index, char_rep in repl_actions:
-                    main_pattern[index] = char_rep
-
-        if applied_replacement:
-            return "".join(main_pattern)
-        else:
-            return main_pattern
-
     def stylify_tile(self, x, y):
+        """
+        Stylisation des murs et des tunnels.
+        La fonction renvoie None si pas de style possible, ou bien une string.
+        La string correspond à un gamobj, à afficher par-dessus le gamobj initial,
+        afin d'avoir des niveaux plus joli.
+        (Dans tous les cas, on garde le gamobj initial, car toute la logique du jeu se base uniquement
+        sur les gamobj de base, ceux que l'on utilise pour créer les niveaux).
+        """
 
         gamobj_mid = self.cur_level[y][x]
         if gamobj_mid not in ("X", "-", "|", "+"):
@@ -358,12 +521,12 @@ class BoardModel():
 
         if gamobj_mid == "X":
 
-            main_pattern = self.apply_replacement_patterns(main_pattern, self.patterns_replacement_tunnels_too_far)
+            main_pattern = apply_replacement_patterns(main_pattern, self.patterns_replacement_tunnels_too_far)
             main_pattern = main_pattern.replace("-", "X")
             main_pattern = main_pattern.replace("|", "X")
-            main_pattern = self.apply_replacement_patterns(main_pattern, self.patterns_replacement_cross_lasers)
-            main_pattern = self.apply_replacement_patterns(main_pattern, self.patterns_replacement_perspective_wall_lasers)
-            matched_pattern = self.match_with_patterns(main_pattern, self.patterns_wall_with_laser)
+            main_pattern = apply_replacement_patterns(main_pattern, self.patterns_replacement_cross_lasers)
+            main_pattern = apply_replacement_patterns(main_pattern, self.patterns_replacement_perspective_wall_lasers)
+            matched_pattern = match_with_patterns(main_pattern, self.patterns_wall_with_laser)
             if matched_pattern is not None:
                 return "pattern_" + matched_pattern
 
@@ -372,8 +535,8 @@ class BoardModel():
             main_pattern = main_pattern.replace("+", ".")
             # Il faut retenter les patterns de remplacment, car on vient de supprimer les lasers,
             # et ça a peut-être changé des choses.
-            main_pattern = self.apply_replacement_patterns(main_pattern, self.patterns_replacement_tunnels_too_far)
-            matched_pattern = self.match_with_patterns(main_pattern, self.patterns_wall_simple)
+            main_pattern = apply_replacement_patterns(main_pattern, self.patterns_replacement_tunnels_too_far)
+            matched_pattern = match_with_patterns(main_pattern, self.patterns_wall_simple)
             if matched_pattern is not None:
                 return "pattern_" + matched_pattern
             return None
@@ -382,12 +545,12 @@ class BoardModel():
             main_pattern = main_pattern.replace("I", ".")
             main_pattern = main_pattern.replace("=", ".")
             main_pattern = main_pattern.replace("+", ".")
-            main_pattern = self.apply_replacement_patterns(main_pattern, self.patterns_replacement_tunnels_too_far)
+            main_pattern = apply_replacement_patterns(main_pattern, self.patterns_replacement_tunnels_too_far)
             main_pattern = main_pattern.replace("-", "X")
             main_pattern = main_pattern.replace("|", "X")
             # On remet le gamobj_mid comme il faut.
             main_pattern = main_pattern[:4] + gamobj_mid + main_pattern[5:]
-            matched_pattern = self.match_with_patterns(main_pattern, self.patterns_tunnel_horiz_simple)
+            matched_pattern = match_with_patterns(main_pattern, self.patterns_tunnel_horiz)
             if matched_pattern is not None:
                 return "pattern_" + matched_pattern
             return None
@@ -402,7 +565,7 @@ class BoardModel():
             main_pattern = main_pattern.replace("|", "X")
             # On remet le gamobj_mid comme il faut.
             main_pattern = main_pattern[:4] + gamobj_mid + main_pattern[5:]
-            matched_pattern = self.match_with_patterns(main_pattern, self.patterns_tunnel_vertic)
+            matched_pattern = match_with_patterns(main_pattern, self.patterns_tunnel_vertic)
             if matched_pattern is not None:
                 return "pattern_" + matched_pattern
             return None
@@ -411,8 +574,8 @@ class BoardModel():
             main_pattern = main_pattern.replace("-", ".")
             main_pattern = main_pattern.replace("|", ".")
             main_pattern = main_pattern.replace("X", ".")
-            main_pattern = self.apply_replacement_patterns(main_pattern, self.patterns_replacement_cross_lasers)
-            matched_pattern = self.match_with_patterns(main_pattern, self.patterns_cross_lasers)
+            main_pattern = apply_replacement_patterns(main_pattern, self.patterns_replacement_cross_lasers)
+            matched_pattern = match_with_patterns(main_pattern, self.patterns_cross_lasers)
             if matched_pattern is not None:
                 return "pattern_" + matched_pattern
             return None
@@ -420,9 +583,13 @@ class BoardModel():
         return None
 
     def stylify_laser(self, x, y, lvl_map_char):
+        """
+        Détermine les endroits où il faut placer les petites boules grises de lasers.
+        Modifie l'apparence du laser, dans le cas où c'est un "laser cross",
+        et dans le cas où on a pu placer un mur générateur de laser juste au-dessus.
+        """
         len_str_prefix = len("pattern_")
         gamobjs_final = []
-
         electroball_U = electroball_D = lvl_map_char in ("I", "+")
         electroball_R = electroball_L = lvl_map_char in ("=", "+")
 
@@ -430,7 +597,7 @@ class BoardModel():
         # Je préfère pas factoriser un truc comme ça.
         # Ça risque d'ajouter plus de complexité que ce qu'il y a déjà.
 
-        if lvl_map_char == "I" or lvl_map_char == "+":
+        if lvl_map_char in ("I", "+"):
 
             # up
             gamobjs_up = self.tiles[y-1][x] if self.in_bound(x, y-1) else ["X"]
@@ -460,7 +627,7 @@ class BoardModel():
                         if gamobj[len_str_prefix + 1] == ".":
                             electroball_U = False
 
-        if lvl_map_char == "=" or lvl_map_char == "+":
+        if lvl_map_char in ("=", "+"):
 
             # left
             gamobjs_adj = self.tiles[y][x-1] if self.in_bound(x-1, y) else ["X"]
@@ -510,380 +677,6 @@ class BoardModel():
 
     def init_level(self):
 
-        # Ce sont les patterns de suppression des tunnels en diagonale qui sont raccrochés à rien.
-        PATTERNS_REPLACEMENT_TUNNELS_TOO_FAR = """
-
-            -.*
-            .**
-            ***
-            =>0:.
-
-            |.*
-            .**
-            ***
-            =>0:.
-
-            *.-
-            **.
-            ***
-            =>2:.
-
-            *.|
-            **.
-            ***
-            =>2:.
-
-            ***
-            .**
-            -.*
-            =>6:.
-
-            ***
-            .**
-            |.*
-            =>6:.
-
-            ***
-            **.
-            *.-
-            =>8:.
-
-            ***
-            **.
-            *.|
-            =>8:.
-
-        """
-
-        PATTERNS_REPLACEMENT_CROSS_LASERS = """
-
-            *+*
-            ***
-            ***
-            =>1:I
-
-            ***
-            +**
-            ***
-            =>3:=
-
-            ***
-            **+
-            ***
-            =>5:=
-
-            ***
-            ***
-            *+*
-            =>7:I
-
-            *=*
-            ***
-            ***
-            =>1:.
-
-            ***
-            I**
-            ***
-            =>3:.
-
-            ***
-            **I
-            ***
-            =>5:.
-
-            ***
-            ***
-            *=*
-            =>7:.
-
-
-        """
-
-        PATTERNS_REPLACEMENT_PERSPECTIVE_WALL_LASERS = """
-
-            *I*
-            ***
-            ***
-            =>1:.
-
-        """
-
-        PATTERNS_WALL_WITH_LASER = """
-
-            ***
-            XXX
-            *I*
-
-            *X*
-            .X.
-            *I*
-
-            *X*
-            XX=
-            XX*
-
-            *X*
-            =XX
-            *XX
-
-            *X*
-            .X=
-            *.*
-
-            *X*
-            =X.
-            *.*
-
-            *X*
-            .XX
-            *I*
-
-            *X*
-            XX.
-            *I*
-
-            *.*
-            .X=
-            *.*
-
-            *.*
-            =X.
-            *.*
-
-            *.*
-            XX=
-            *.*
-
-            *.*
-            =XX
-            *.*
-
-            *X*
-            .X=
-            *I*
-
-            *X*
-            =X.
-            *I*
-
-            *X*
-            =X=
-            *I*
-
-            *.*
-            XX=
-            XX*
-
-            *.*
-            =XX
-            *XX
-
-            *.*
-            =X=
-            *X*
-
-            *.*
-            =X.
-            *X*
-
-            *.*
-            .X=
-            *X*
-
-        """
-
-        # TODO : faut pouvoir en mettre plusieurs sur la même ligne.
-        PATTERNS_WALL_SIMPLE = """
-
-            *X*
-            XX.
-            .X*
-
-            *X*
-            .XX
-            *X.
-
-            *.*
-            XX.
-            .X*
-
-            *.*
-            .XX
-            *X.
-
-            ***
-            XXX
-            .XX
-
-            ***
-            XXX
-            XX.
-
-            ***
-            XXX
-            .X.
-
-            *.*
-            .XX
-            *.*
-
-            *.*
-            XXX
-            *.*
-
-            *.*
-            XX.
-            *.*
-
-            *.*
-            .X.
-            *X*
-
-            *.*
-            .XX
-            *X*
-
-            *.*
-            XXX
-            *X*
-
-            *.*
-            XX.
-            *X*
-
-            *X*
-            .X.
-            *X*
-
-            *X*
-            .XX
-            *X*
-
-            *X*
-            XX.
-            *X*
-
-            *X*
-            .X.
-            *.*
-
-            *X*
-            XXX
-            *.*
-
-            *X*
-            .XX
-            *.*
-
-            *X*
-            XX.
-            *.*
-
-            *.*
-            .X.
-            *.*
-
-        """
-
-        PATTERNS_TUNNEL_HORIZ_SIMPLE = """
-
-            *X*
-            .-.
-            .X.
-
-            *X*
-            .-.
-            ***
-
-            *X*
-            .-*
-            .X*
-
-            *X*
-            *-.
-            *X.
-
-            *X*
-            .-X
-            ***
-
-            *X*
-            X-.
-            ***
-
-            ***
-            .-*
-            .X*
-
-            ***
-            *-.
-            *X.
-
-        """
-
-        PATTERNS_TUNNEL_VERTIC = """
-
-            *.*
-            *|*
-            *X*
-
-            *X*
-            *|*
-            *.*
-
-            *.*
-            *|*
-            *.*
-
-        """
-
-        PATTERNS_CROSS_LASERS = """
-
-           *I*
-           =+.
-           *.*
-
-           *I*
-           .+=
-           *.*
-
-           *I*
-           =+=
-           *.*
-
-           *I*
-           .+=
-           *I*
-
-           *I*
-           =+.
-           *I*
-
-           *.*
-           =+=
-           *I*
-
-           *.*
-           =+.
-           *I*
-
-           *.*
-           .+=
-           *I*
-
-        """
-
-        # TODO : compiler ça une seule fois au début.
-        self.patterns_replacement_tunnels_too_far = self.compile_replace_patterns(PATTERNS_REPLACEMENT_TUNNELS_TOO_FAR)
-        self.patterns_replacement_cross_lasers = self.compile_replace_patterns(PATTERNS_REPLACEMENT_CROSS_LASERS)
-        self.patterns_replacement_perspective_wall_lasers = self.compile_replace_patterns(PATTERNS_REPLACEMENT_PERSPECTIVE_WALL_LASERS)
-        self.patterns_wall_with_laser = self.compile_match_patterns(PATTERNS_WALL_WITH_LASER)
-        self.patterns_wall_simple = self.compile_match_patterns(PATTERNS_WALL_SIMPLE)
-        self.patterns_tunnel_horiz_simple = self.compile_match_patterns(PATTERNS_TUNNEL_HORIZ_SIMPLE)
-        self.patterns_tunnel_vertic = self.compile_match_patterns(PATTERNS_TUNNEL_VERTIC)
-        self.patterns_cross_lasers = self.compile_match_patterns(PATTERNS_CROSS_LASERS)
-
         self.hero_alive = False
         self.tiles = tuple([
             tuple([
@@ -931,9 +724,7 @@ class BoardModel():
 
     def export_all_tiles(self):
         rendered_tiles = [
-            [
-                list(self.tiles[y][x]) for x in range(self.w)
-            ]
+            [ list(self.tiles[y][x]) for x in range(self.w) ]
             for y in range(self.h)
         ]
         hero_dir_names = {
@@ -952,12 +743,15 @@ class BoardModel():
         return rendered_tiles
 
     def can_move(self, start_tile_objs, dest_tile_objs, move_dir):
+        # On ne peut pas bouger dans un mur (y compris le mur contenant le tuyau d'arrivée)
         if "X" in dest_tile_objs or "S" in dest_tile_objs:
             return False
+        # On ne peut pas traverser horizontalement un tunnel vertical, et vice-versa.
         if "-" in (start_tile_objs + dest_tile_objs) and move_dir in ("U", "D"):
             return False
         if "|" in (start_tile_objs + dest_tile_objs) and move_dir in ("L", "R"):
             return False
+        # On ne peut pas du tout aller dans un tunnel si on est en glace.
         if self.hero_state == "ice" and ("-" in dest_tile_objs or "|" in dest_tile_objs):
             return False
         return True
@@ -968,8 +762,10 @@ class BoardModel():
             self.init_level()
             return
 
-        if event_name.startswith("action") and self.current_level_idx == 0:
-            print("Les boutons d'actions ne servent à rien dans ce jeu.")
+        if event_name.startswith("action"):
+            if self.current_level_idx == 0:
+                print("Les boutons d'actions ne servent à rien dans ce jeu.")
+            return
 
         must_move = False
         move_coord = squarity.MOVE_FROM_DIR.get(event_name)
@@ -991,6 +787,7 @@ class BoardModel():
             self.hero_y = new_hero_y
 
         tile_data_new_pos = self.get_tile_gamobjs(self.hero_x, self.hero_y)
+        # Refroidissement du héros.
         if must_move and "C" in tile_data_new_pos:
             to_cold = {
                 "ice": "ice",
@@ -998,6 +795,7 @@ class BoardModel():
                 "gas": "water",
             }
             self.hero_state = to_cold[self.hero_state]
+        # Réchauffage du héros.
         if must_move and "H" in tile_data_new_pos:
             to_hot = {
                 "ice": "water",
@@ -1006,6 +804,7 @@ class BoardModel():
             }
             self.hero_state = to_hot[self.hero_state]
 
+        # Affichage des connaissances (dans le dernier niveau).
         if "K" in tile_data_new_pos:
             KNOWLEDGE = (
                 "Vous mélangez votre eau à celle du bassin de sapience... Essayez les autres bassins pour vous imprégner de tout le savoir de H2O",
@@ -1026,6 +825,7 @@ class BoardModel():
                     print("Je n'ai " + really + "plus rien à vous dire.")
                 print()
 
+        # Passage au niveau suivant si le héros a atteint la grille de fin de niveau.
         if "O" in tile_data_new_pos:
             if self.hero_state == "water":
                 self.hero_alive = False
@@ -1033,14 +833,17 @@ class BoardModel():
                 tile_data_new_pos.append("wet_grid")
                 self.current_level_idx += 1
                 print("Bravo, vous passez au niveau %s" % (self.current_level_idx + 1))
+                print()
             elif self.current_level_idx == 0:
                 print("Il faut être en état liquide.")
 
+        # Mort du héros si il est en gaz et qu'il va dans des lasers.
         if set("=I+").intersection(set(tile_data_new_pos)) and self.hero_state == "gas":
             self.hero_alive = False
             tile_data_new_pos.append("gas_dead")
             print("Blarg ! Appuyez sur un bouton pour ressusciter")
 
+        # Mort du héros si il est en liquide et qu'il va dans une éponge .
         if "E" in tile_data_new_pos and self.hero_state == "water":
             self.hero_alive = False
             tile_data_new_pos.remove("E")
