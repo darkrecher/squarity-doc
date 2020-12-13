@@ -11,21 +11,6 @@ Voici un lien vers une explication qui tient la route : https://openclassrooms.c
 Merci !!
 
 
-## Tilesets sympa
-
-Pour un peu tout et n'importe quoi
-
-https://opengameart.org/content/2d-sci-fi-platformer-tileset-16x16
-https://opengameart.org/content/classic-rpg-tileset
-https://opengameart.org/content/wang-3-edge-walkways-tileset
-https://opengameart.org/content/tiny16-tileset
-https://opengameart.org/content/top-sci-fi-cga-tileset
-https://opengameart.org/content/steampunk-brick-new-connecting-tileset-16x16
-https://opengameart.org/content/dungeon-tileset
-
-https://opengameart.org/users/buch
-
-
 ## ESLint
 
 C'est un Linter javascript, qui permet de garantir les conventions d'écriture de code. Et que donc, on ne code pas comme un porcassou.
@@ -204,6 +189,10 @@ Du coup, je me permet :
 **Architectural Decision Record** : Toutes les variables membres sont en snake case, parce que c'est ça que je suis habitué à écrire, et c'est ce qui est le plus lisible. Et si les conventions et les linters l'autorisent, y'a pas de raison de s'en priver.
 
 Et si c'est pas une bonne pratique, y'avait qu'à qu'ils configurent leurs linters pour signaler explicitement que c'est pas une bonne pratique !!
+
+**Architectural Decision Record** : Le même qu'avant, mais en plus prononcé : tous les attribut "ref=quelque_chose", les noms de fonctions, et les variables membres sont en snake_case. C'est contraire aux conventions du javascript, mais le linter me l'autorise. Et je suis désolé, mais j'ai beaucoup trop l'habitude d'écrire des choses en snake case, et je trouve ça tellement plus lisible. Je décide donc de vraiment aller contre les conventions du javascript. C'est très vilain, mais c'est comme ça. J'espère juste que j'aurais pas à le regretter quelques années plus tard, quand d'autres personnes voudront hypothétiquement m'aider à coder ce projet.
+
+Les noms des composants Vue restent en CamelCase. C'est comme si c'était des classes.
 
 
 ## Intégration de brython

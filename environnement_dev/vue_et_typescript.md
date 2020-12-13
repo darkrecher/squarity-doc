@@ -261,7 +261,7 @@ Puis j'ai arrêté-relancé VSCode.
 C'est bizarre, et l'erreur risque de revenir. On fera d'autres tests à ce moment là.
 
 
-## fonction "require"
+## Fonction "require"
 
 Vue connait cette fonction.
 
@@ -347,4 +347,35 @@ Donc on refait la technique pourrie de création d'un projet.
 Puis on copie tout dans le vrai repo existant, en remplaçant tout le bazar existant (sauf le répertoie .git, évidemment).
 
 Juste pour marquer le coup, et aussi parce que le nom de ce fichier est devenu obsolète, la suite des aventures va se passer ici : [vue_apprentissage.md](vue_apprentissage.md).
+
+
+## Désactivation d'anciennes extensions VSCode
+
+Dans le fichier `main.js`, se trouve la ligne de code : `import LoadScript from 'vue-plugin-load-script';`.
+
+J'ai besoin du plugin loadScript, pour charger Pyodide.
+
+Mais VSCode me signale un warning au sujet de cette ligne de code :
+
+> Could not find a declaration file for module 'vue-plugin-load-script'. 'node_modules/vue-plugin-load-script/index.js' implicitly has an 'any' type.
+> Try `npm i --save-dev @types/vue-plugin-load-script` if it exists or add a new declaration (.d.ts) file containing `declare module 'vue-plugin-load-script';`ts(7016).
+
+C'est un warning de TypeScript. Voir : https://blog.atomist.com/declaration-file-fix/
+
+J'ai viré TypeScript, pour les raisons expliquées plus haut. C'est pas pour me retrouver avec des warnings TypeScript !!
+
+Ça provient peut-être de plugins VSCode que j'ai installé, pour ce projet, ou pour d'autres choses inavouables dont je ne parlerai pas ici.
+
+J'ai donc désactivé les plugins :
+
+ - TypeScript Hero
+ - TSLint
+ - Angular Extension Pack (qui a désactivé plein d'autres plugins en cascade)
+ - Quelques autres plugins dont le nom commence par "Angular" (avant la désactivation de Angular Extension Pack, mais peut-être qu'ils allaient avec).
+
+Le warning au sujet de loadScript s'affiche toujours dans VSCode, même après un redémarrage de l'application.
+
+**Environment Decision Record** : on s'en countrefout de ce warning TypeScript.
+
+Mais quand même, c'est une joyeuse cochonnerie TypeScript. On s'en débarrasse pas comme ça. C'est un langage qui partait d'une bonne intention : dépourrifiez le javascript. Mais ça a échoué. Faut croire que je javascript a envie de rester pourri.
 
