@@ -1,11 +1,48 @@
 # La road map de Squarity
 
+## Fonctionnement de la road map
+
 Ce sera des road squares.
 
+Square map :
 
-## IDE, dev
+7:effets_spéciaux 0:moteur 1:IDE
+6:tutos -1:(le milieu) 2:level_design
+5:contenu_promotion 4:social 3:meta
 
-debug, tracking, replay, variables watch, profiling.
+le milieu : document "fondateur" expliquant pourquoi je fais ce jeu. Et un autre mini-document expliquant comment je vais fonctionner avec cette road map
+
+Toute la description doit être en json, avec les niveaux suivants :
+
+ - zones : 8 zones + le milieu
+   - sous-zones : des petites zones ayant une taille de quelques cases
+     - tâches : un objet ponctuel, avec une descrip. On peut en avoir plusieurs sur une même case. Certaines peuvent contenir un lien vers une tâche Trello.
+
+Avec ce json, on construit (automatiquement via un petit script) :
+ - un document markdown, versionné dans github-doc.
+ - un jeu Squarity, versionné dans github-doc aussi, et le code va le chercher via une url.
+ - le json en lui-même, dans github-doc. Et dans le code, on a une page web qui va le chercher pour construire la roadmap sous forme de grosse page statique
+ - si possible, une image, qu'on pourra poster un peu où on veut.
+
+Ça fait une dépendance de Squarity à github-doc, mais c'est pas grave. Si ça pète, tout le reste fonctionnera quand même. Et comme ça je met à jour plus facilement. C'est un simple commit vers github-doc.
+
+Le document fondateur contiendra en bas tous les liens vers tous les trucs :
+ - les githubs
+ - discord, mastodon
+ - la roadmap en page statique, la roadmap en jeu Squarity
+ - comment je vais fonctionner avec la roadmap, et que il y a les annonces dans Discord.
+ - les trellos
+
+
+## Environnement de développement
+
+Affichage des erreurs dans le json, en indiquant la ligne et le caractère en rouge.
+
+Barre horizontale entre la fenêtre json et le game code, pour agrandir l'une des deux fenêtre au max.
+
+Au lieu de répéter les coordonnées des sprites, on donne un point (x, y) de départ, une suite de nom, et ça crée tous les sprites à la suite.
+
+Mode debug : debug, tracking, replay, variables watch, profiling.
 
 truc à la jupyter. coloration syntaxique. tests unitaires.
 
@@ -67,12 +104,16 @@ Jeux à deux sur un même poste.
 
 Jeux à deux à distance (turn-based).
 
+Sauvegarder les jeux.
+
 
 ## "Effets spéciaux"
 
 Du son, de la musique. Où est-ce qu'on va stocker ces trucs ? Ça prend toujours plein de place.
 
 Animation de transition (déplacements, shake, disparition/apparition, fade)
+
+Objets animés. Par exemple un personnage qui marche.
 
 Shaders, webGL. Mais pour l'instant j'y connais rien.
 
@@ -90,8 +131,6 @@ Snippets de code python pour faire une chose ou une autre.
 Des articles sur des sujets de jeux vidéo (la perspective, la narration, les autres éditeurs de jeu)
 
 CMS pour mettre tout ce bazar là-dedans. Tester SocialHome.
-
-Document décrivant pourquoi je fais ce jeu. Le "document fondateur".
 
 
 ## Contenu et promotion
