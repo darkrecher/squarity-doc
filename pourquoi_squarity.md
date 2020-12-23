@@ -54,27 +54,15 @@ C'est très tendance d'utiliser des outils "no-code", aussi bien pour les jeux v
 
 Ces outils nourrissent le cliché que la programmation est réservée à une élite de sorciers barbus enfermés dans des grottes et psalmodiant des incantations plein de "if" et de "while".
 
-Squarity est un outil "yes-code". Plus précisément : un outil "yes-code-mais-vous-inquiétez-pas-on-va-vous-aider-et-vous-arriverez-à-faire-quelque-chose".
+Squarity est un outil "yes-code". Plus précisément : "yes-code-mais-vous-inquiétez-pas-on-va-vous-aider-et-vous-arriverez-à-faire-quelque-chose".
 
 Si vous avez réussi à apprendre à lire et à écrire, vous parviendrez à programmer.
 
 Peut-être que vous avez un peu de mal, que vous ne comprenez pas tout ce que vous lisez et que vous écrivez comme un pied. Dans ce cas, vous coderez comme un pied. Ce n'est pas un obstacle à la création ou au détournement de vos premiers jeux. Ces jeux seront de mauvaise qualité et plein de bugs. Vous vous améliorerez. C'est comme pour toutes les autres activités, il faut s'entraîner. L'avantage, c'est que vous aurez déjà des choses à montrer (ou à garder pour vous) au fur et à mesure de votre entrainement.
 
-(brouillon)
-
-Reprendre le contrôle. Les outils informatiques.
-
-Sécurité informatique ?
-
-
-Il y a du code, mais vous ne devriez pas en avoir peur.
-
-
-Et là c'est le moment d'utiliser des expressions classes telles que : "Réduire la fracture numérique" et "démocratiser les usages numériques populaires".
+Cette atténuation de la peur du code est un moyen pour mieux appréhender l'outil informatique, en reprendre le contrôle, connaître ses principes de fonctionnement, en avoir une utilisation plus éclairée et plus sécurisée. Là c'est le moment de placer des expressions prestigieuses et à la mode, telles que : "Réduire la fracture numérique", "démocratiser les usages numériques auprès de la masse populaire", etc.
 
 Terminer la réalisation d'un jeu, quel que soit sa qualité, est déjà une victoire en soi. Est-ce que vous y arriverez ?
 
-(fin brouillon)
-
-Vous avez aussi le droit de ne rien programmer, et de dessiner des éléments de jeux pour d'autres personnes, ou des histoires et des dialogues, ou des niveaux de jeux existants. Vous avez aussi le droit de ne rien créer et de simplement jouer aux jeux.
+Peut-être pas en fait. Vous avez aussi le droit de ne rien programmer, et de dessiner des éléments de jeux pour d'autres personnes, ou des histoires et des dialogues, ou des niveaux de jeux existants. Vous avez aussi le droit de ne rien créer et de simplement jouer aux jeux.
 
