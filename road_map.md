@@ -38,9 +38,9 @@ Le document fondateur contiendra en bas tous les liens vers tous les trucs :
 
 Affichage des erreurs dans le json, en indiquant la ligne et le caractère en rouge.
 
-Barre horizontale entre la fenêtre json et le game code, pour agrandir l'une des deux fenêtre au max.
+Essayer de corriger le json en ajoutant un ou deux caractères (une virgule, un guillemet, ...). Si je json corrigé est valide, proposer la correction.
 
-Au lieu de répéter les coordonnées des sprites, on donne un point (x, y) de départ, une suite de nom, et ça crée tous les sprites à la suite.
+Barre horizontale entre la fenêtre json et le game code, pour agrandir l'une des deux fenêtre au max.
 
 Mode debug : debug, tracking, replay, variables watch, profiling.
 
@@ -75,6 +75,8 @@ Utilisation d'éditeur 2D (LDtk, mapeditor) dans le cadre de Squarity. Convertis
 
 
 ## Moteur du jeu
+
+Au lieu de répéter les coordonnées des sprites, on donne un point (x, y) de départ, une suite de nom, et ça crée tous les sprites à la suite.
 
 Gamobj qui dépassent de leur tile.
 
