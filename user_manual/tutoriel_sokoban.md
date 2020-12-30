@@ -88,7 +88,7 @@ Vous devriez voir un petit morceau d'herbe apparaître dans l'aire de jeu. Oh co
 
 Votre écran devrait ressembler à ceci (certains boutons ont été supprimés pour simplifier l'image) :
 
-![https://raw.githubusercontent.com/darkrecher/squarity-doc/master/user_manual/sokoban_tileset.png](https://raw.githubusercontent.com/darkrecher/squarity-doc/master/user_manual/sokoban_tileset.png)
+![https://raw.githubusercontent.com/darkrecher/squarity-doc/master/user_manual/tuto_screenshot_01.png](https://raw.githubusercontent.com/darkrecher/squarity-doc/master/user_manual/tuto_screenshot_01.png)
 
 
 ## Bidouillons un peu
