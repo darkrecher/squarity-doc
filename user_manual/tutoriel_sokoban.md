@@ -39,6 +39,7 @@ Pour ce tutoriel, le tileset est déjà publié, son url est : https://raw.githu
 Nous allons créer un premier programme qui fonctionne dans Squarity, même s'il ne constitue pas un vrai jeu.
 
 Dans le champ "Url de l'image tileset", copier-collez l'url de notre tileset :
+
 `https://raw.githubusercontent.com/darkrecher/squarity-doc/master/user_manual/sokoban_tileset.png`
 
 Dans le champ en-dessous "Config du jeu (en JSON)", copier-collez la configuration suivante :
@@ -77,9 +78,6 @@ class BoardModel():
 
     def export_all_tiles(self):
         return self.tiles
-
-    def on_game_event(self, event_name):
-        pass
 ```
 
 Puis cliquez sur le bouton tout en bas "<<< Exécutez le jeu"
@@ -112,6 +110,29 @@ Vous pouvez re-dupliquer la ligne plusieurs fois si vous le souhaitez.
 Ne vous embêtez pas à la dupliquer des dizaines de fois pour remplir d'herbe tout l'aire de jeu. Il y a une méthode plus simple que nous verrons juste après.
 
 Pour finir, appuyez sur les boutons du jeu : les flèches, ou les actions 1 et 2. Votre jeu va planter et affichera un message d'erreur. C'est normal, nous réglerons ça dans une étape ultérieure.
+
+
+## Qu'est-ce donc que tout ce code ?
+
+Le champ "config du jeu (en JSON)" ne contient pas votre programme, mais des informations structurées.
+
+La ligne avec le mot `tile_size` définit la taille des images dans le tileset. On gardera 32, cela correspond aux tailles (en pixels) de chaque élément dans l'image de tileset.
+
+Les informations dans `tile_coords` définissent tous les types d'objets que vous utilisez dans votre jeu. Pour l'instant, il n'y en a qu'un seul, qui s'appelle "herbe". Les deux valeurs indiquées entre crochets correspondent aux coordonnées, dans le tileset, de la portion d'image de ce type d'objet. Il s'agit des coordonnées du coin supérieur gauche. On rajoutera très vite les autres types d'objets.
+
+Le champ "code du jeu (en python)" contient votre programme. Ce programme doit définir une classe intitulée `BoardModel`.
+
+Tout le code écrit après définit trois fonctions dans cette classe :
+
+ - la fonction `__init__`, c'est la plus longue.
+ - la fonction `get_size`, elle ne contient qu'une seule ligne de code.
+ - la fonction `export_all_tiles`, qui ne contient elle aussi qu'une seule ligne de code.
+
+Dans un environnement python plus classique, vous devez "instancier votre classe" pour l'utiliser après. Vous n'avez pas besoin de faire ça avec la classe `BoardModel`. Le système de Squarity s'occupe de l'instancier, et d'appeler les bonnes fonctions aux bons moments. Cependant, rien ne vous empêche de créer vos propres classes et de les instancier quand vous en avez besoin.
+
+Dans le code, les noms de variables commençant par `self.` signifient qu'ils appartiennent à la classe. Elles sont accessible en lecture et en écriture depuis toutes les fonctions de la classe. Leur valeur est conservée entre deux "tours" de jeu.
+
+Les variables `self.w` et `self.h` définissent la taille de l'aire de jeu, en nombre de case (w = width = largeur) (h = height = hauteur).
 
 
 ## Brouillon
