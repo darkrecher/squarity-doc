@@ -42,7 +42,7 @@ Dans le champ "Url de l'image tileset", copier-collez l'url de notre tileset :
 
 `https://raw.githubusercontent.com/darkrecher/squarity-doc/master/user_manual/sokoban_tileset.png`
 
-Dans le champ en-dessous "Config du jeu (en JSON)", copier-collez la configuration suivante :
+Dans le champ en-dessous *"Config du jeu (en JSON)"*, copier-collez la configuration suivante :
 
 ```
 {
@@ -53,15 +53,15 @@ Dans le champ en-dessous "Config du jeu (en JSON)", copier-collez la configurati
 }
 ```
 
-Et dans le dernier champ : "Le code du jeu (en python)", copier-collez le code suivant :
+Et dans le dernier champ : *"Le code du jeu (en python)"*, copier-collez le code suivant :
 
 ```
 class BoardModel():
 
     def __init__(self):
 
-        self.w = 20 # width (largeur) : 20 cases
-        self.h = 14 # height (hauteur) : 14 cases
+        self.w = 20
+        self.h = 14
         self.tiles = []
 
         for y in range(self.h):
@@ -112,15 +112,17 @@ Ne vous embêtez pas à la dupliquer des dizaines de fois pour remplir d'herbe t
 Pour finir, appuyez sur les boutons du jeu : les flèches, ou les actions 1 et 2. Votre jeu va planter et affichera un message d'erreur. C'est normal, nous réglerons ça dans une étape ultérieure.
 
 
-## Qu'est-ce donc que tout ce code ?
+## Quelques explications concernant tout ce code
 
-Le champ "config du jeu (en JSON)" ne contient pas votre programme, mais des informations structurées.
+Le champ *"config du jeu (en JSON)"* ne contient pas votre programme, mais des informations structurées.
 
-La ligne avec le mot `tile_size` définit la taille des images dans le tileset. On gardera 32, cela correspond aux tailles (en pixels) de chaque élément dans l'image de tileset.
+La ligne avec le mot `tile_size` définit la taille des images (en pixels) dans le tileset. On gardera 32 pour ce tileset, sinon ça fait n'importe quoi.
 
-Les informations dans `tile_coords` définissent tous les types d'objets que vous utilisez dans votre jeu. Pour l'instant, il n'y en a qu'un seul, qui s'appelle "herbe". Les deux valeurs indiquées entre crochets correspondent aux coordonnées, dans le tileset, de la portion d'image de ce type d'objet. Il s'agit des coordonnées du coin supérieur gauche. On rajoutera très vite les autres types d'objets.
+Les informations dans `tile_coords` définissent tous les types d'objets que vous utilisez dans votre jeu. Pour l'instant, il n'y en a qu'un seul, qui s'appelle "herbe".
 
-Le champ "code du jeu (en python)" contient votre programme. Ce programme doit définir une classe intitulée `BoardModel`.
+Les deux valeurs entre crochets correspondent aux coordonnées, dans le tileset, de la portion d'image de ce type d'objet. Il s'agit des coordonnées du coin supérieur gauche. On rajoutera très vite les autres types d'objets.
+
+Le champ *"code du jeu (en python)"* contient votre programme. Ce programme doit définir une classe intitulée `BoardModel`.
 
 Tout le code écrit après définit trois fonctions dans cette classe :
 
@@ -128,16 +130,88 @@ Tout le code écrit après définit trois fonctions dans cette classe :
  - la fonction `get_size`, elle ne contient qu'une seule ligne de code.
  - la fonction `export_all_tiles`, qui ne contient elle aussi qu'une seule ligne de code.
 
-Dans un environnement python plus classique, vous devez "instancier votre classe" pour l'utiliser après. Vous n'avez pas besoin de faire ça avec la classe `BoardModel`. Le système de Squarity s'occupe de l'instancier, et d'appeler les bonnes fonctions aux bons moments. Cependant, rien ne vous empêche de créer vos propres classes et de les instancier quand vous en avez besoin.
+Dans un environnement python plus classique, vous devez "instancier votre classe" pour l'utiliser après. Mais vous n'avez pas besoin de faire ça avec la classe `BoardModel`. Le système de Squarity s'occupe de l'instancier et d'appeler les bonnes fonctions aux bons moments.
 
-Dans le code, les noms de variables commençant par `self.` signifient qu'ils appartiennent à la classe. Elles sont accessible en lecture et en écriture depuis toutes les fonctions de la classe. Leur valeur est conservée entre deux "tours" de jeu.
+Cependant, rien ne vous empêche de créer vos propres classes et de les instancier quand vous en avez besoin.
 
-Les variables `self.w` et `self.h` définissent la taille de l'aire de jeu, en nombre de case (w = width = largeur) (h = height = hauteur).
+Dans le code, les noms de variables commençant par `self.` signifient qu'elles appartiennent à la classe. Elles sont accessible en lecture et en écriture depuis toutes les fonctions de la classe. Leur valeur est conservée entre deux "tours" de jeu.
+
+Les variables ne commençant pas par `self.`, par exemple `line` ou `game_objects` ne sont pas conservées. Vous les définissez et les utilisez dans une fonction, ensuite elles sont effacées.
+
+Les variables `self.w` et `self.h` définissent la taille de l'aire de jeu, en nombre de case. w = width = largeur, h = height = hauteur.
+
+La variable `self.tiles` est importante. Elle contient tous les objets à afficher dans le jeu. C'est un tableau en deux dimensions. Chaque case de ce tableau peut contenir plusieurs objets. Un objet est identifié par une chaîne de caractère, correspondant à son nom.
+
+Dans notre programme, nous avons ajouté un seul objet dans une seule case de ce tableau. Cet objet a pour nom : "herbe".
+
+Selon ce que vous avez bidouillé dans le chapitre précédent, vous avez peut-être ajouté un objet dans plusieurs cases du tableau.
+
+(TODO : re screenshot en indiquant où sont tous les trucs dont je viens de parler).
 
 
-## Brouillon
+## Plein d'herbe
 
-Indentation du code :
+Dans le code du jeu, remplacez la ligne
 
-https://python.developpez.com/cours/DiveIntoPython/php/frdiveintopython/getting_to_know_python/indenting_code.php
+`game_objects = []`
+
+par
+
+`game_objects = ["herbe"]`
+
+Exécutez votre jeu. Vous devriez voir de l'herbe partout.
+
+La ligne que vous venez de modifier se trouve dans une boucle (pour être exact : dans une boucle de boucle). Elle est exécutée pour chaque case de l'aire de jeu, ce qui ajoute de l'herbe partout.
+
+La ligne `self.tiles[3][5].append("herbe")` n'est plus utile, mais on va la laisser pour l'instant.
+
+
+## Attention à l'indentation
+
+Vous avez peut-être un peu de mal à comprendre entièrement le code du jeu. Ne vous inquiétez pas, ça n'empêche pas de terminer ce tutoriel, et vous pouvez aussi lire un cours sur le python après.
+
+Il y a cependant un point très important à prendre en compte avec ce langage de programmation : l'indentation est significative. Autrement dit : faites attention aux espaces qui se trouvent au début de chaque ligne, ils servent à indiquer la manière dont les blocs de code sont imbriquées.
+
+Pour une explication plus détaillée, consultez [cette page](https://python.developpez.com/cours/DiveIntoPython/php/frdiveintopython/getting_to_know_python/indenting_code.php)
+
+
+## Un deuxième type d'objet
+
+L'herbe c'est bien, mais un peu monotone. Nous allons ajouter un nouveau type.
+
+Remplacez la configuration du jeu par ceci :
+
+```
+{
+    "tile_size": 32,
+    "tile_coords": {
+        "herbe": [0, 0],
+        "mur": [32, 0]
+    }
+}
+```
+
+La configuration définit maintenant deux types d'objets, l'herbe et le mur. N'oubliez pas la virgule entre les deux, sinon ça ne marchera pas.
+
+Puis, dans la ligne `self.tiles[3][5].append("herbe")`, remplacer le mot `"herbe"` par `"mur"`. Attention de bien garder les guillemets.
+
+L'aire de jeu devrait afficher de l'herbe, et un seul objet de type mur.
+
+
+## Vocabulaire spécifique au jeu
+
+image
+
+tileset
+
+tile
+
+object du jeu, game object, gobject.
+
+type de game object
+
+Et le nom `tile_coords` est incorrect. On le remplacera.
+
+
+
 
