@@ -138,7 +138,7 @@ Dans le code, les noms de variables commençant par `self.` signifient qu'elles 
 
 Les variables ne commençant pas par `self.`, par exemple `line` ou `game_objects` ne sont pas conservées. Vous les définissez et les utilisez dans une fonction, ensuite elles sont effacées.
 
-Les variables `self.w` et `self.h` définissent la taille de l'aire de jeu, en nombre de case. w = width = largeur, h = height = hauteur.
+Les variables `self.w` et `self.h` définissent la taille de l'aire de jeu, en nombre de case. w = width = largeur = 20 cases, h = height = hauteur = 14 cases.
 
 La variable `self.tiles` est importante. Elle contient tous les objets à afficher dans le jeu. C'est un tableau en deux dimensions. Chaque case de ce tableau peut contenir plusieurs objets. Un objet est identifié par une chaîne de caractère, correspondant à son nom.
 
@@ -200,17 +200,66 @@ L'aire de jeu devrait afficher de l'herbe, et un seul objet de type mur.
 
 ## Vocabulaire spécifique au jeu
 
-image
+Une image utilisée pour afficher un élément dans l'aire de jeu s'appellent **image de tile**. Autres appellations : **image de tuile**, **tile_image**, ou tout simplement **image**.
 
-tileset
+La grande image contenant toutes les images de tile s'appelle le **tileset**. Autres appellations : **tilesheet**, **image set**, **image atlas**, **atlas**. On utilise le mot "atlas" pour représenter le fait que c'est un ensemble d'image exhaustif. Comme les atlas de cartes géographiques.
 
-tile
+Une case dans l'aire de jeu s'appelle une **tile**. Autres appellations : **tuile**, **case**. Ces tiles sont organisées sous forme d'un tableau en deux dimensions, appellé **tiles** (au pluriel). Dans notre programme, ce tableau est enregistré dans la variable `self.tiles`. Ce tableau a une largeur de 20 tiles et une hauteur de 14 tiles.
 
-object du jeu, game object, gobject.
+Pour repérer une tile dans le tableau, on utilise les coordonnées x et y.
 
-type de game object
+X augmente lorsqu'on va vers la droite. Les tiles tout à gauche ont pour coordonnée x = 0. Les tiles tout à droite ont pour coordonnée x = 19.
 
-Et le nom `tile_coords` est incorrect. On le remplacera.
+Y augmente lorsqu'on va vers le bas. Les tiles tout en haut ont pour coordonnée y = 0. Les tiles tout en bas ont pour coordonnée y = 13.
+
+Les graphiques que l'on dessine en cours de maths ont la coordonnée Y dans l'autre sens (Y augmente lorsqu'on va vers le haut). En programmation, on préfère avoir un Y qui augmente lorsqu'on va vers le bas. C'est plus logique car ça correspond au sens de lecture, au sens des pixels sur l'écran, etc.
+
+Les coordonnées sont comptées à partir de zéro, et non pas à partir de un, parce que c'est comme ça qu'on fait en informatique, et c'est plus logique ainsi.
+
+Un élément placé dans une tile s'appelle un **objet de jeu**. Autres appellations : **game object**, **gamobj**, **gobject**, **gobj**. Il peut y avoir plusieurs game object sur une même tile. Ils seront dessinés les uns par-dessus des autres, au même endroit.
+
+Chaque game object possède un **type de game object**. Autre appellation : **game object type**. Dans notre programme, les mots "herbe" et "mur" sont des types de game object.
+
+Dans la documentation de Squarity, et dans les noms de variables des programmes, il faut essayer au maximum d'utiliser ce vocabulaire, pour qu'il devienne commun à toutes les personnes utilisant Squarity.
+
+On évitera d'utiliser les noms "objet" et "type" tout seul, car ce sont des termes trop génériques, et qui sont déjà beaucoup utilisés en programmation.
+
+On peut se permettre d'utiliser les noms anglais ("game object", "tile", ...) dans un texte français, puisque la langue française possède déjà des anglicismes. Vous pouvez aussi faire le contraire, puisque la langue française possède des francicismes.
+
+Dans notre programme, nous avons commencé par placer dans toutes les tiles un seul game object, de type "herbe". Puis, pour une tile spécifique, celle qui est aux coordonnées x=5, y=3, nous avons ajouté un second game object, de type "mur".
+
+(TODO : schéma avec le tableau des tiles)
+
+Dans la tile x=5, y=3, on ne voit pas le game object "herbe", car le game object "mur" est dessiné par dessus, et la recouvre entièrement. Mais cette tile possède bien deux game objects.
+
+
+## Quelques règles du fonctionnement de Squarity
+
+ - On peut créer, supprimer, déplacer les game objects dans les tiles, et d'une tile vers une autre.
+ - Une tile peut contenir autant de game objects que l'on veut.
+ - Une tile peut posséder plusieurs game objects de même type.
+ - L'ordre des game object dans une tile est important, car il définit l'ordre dans lequel ils seront affichés.
+ - On ne peut pas déplacer, ajouter ou supprimer des tiles. Ce sont les cases du tableau, et le tableau ne change pas.
+ - Pour l'instant, on ne peut pas changer la largeur ou la hauteur du tableau. C'est forcément largeur = 20, hauteur = 14. Mais ce sera amélioré dans des versions futures de Squarity.
+ - On ne peut pas placer un game object sur plusieurs tiles en même temps. (Mais on peut créer plusieurs game object de même type et les placer chacun sur une tile)
+ - **On ne peut pas placer un game object à cheval sur plusieurs tiles**. Les coordonnées sont forcément des nombres entiers. Vous ne pourrez donc jamais avoir un personnage qui se déplace légèrement et se retrouve entre deux tiles, comme dans le premier Zelda ou comme dans les jeux Bomberman. C'est un choix de conception dans Squarity, qui permet de simplifier la création des jeux.
+
+Dans la configuration du jeu, la donnée `tile_coords` permet de lister tous les types de game object de votre jeu, et de faire la correspondance avec leurs images respectives.
+
+Au passage, le nom `tile_coords` est un peu illogique, et je le renommerais en `img_coords` dès que possible.
+
+
+## Une liste de liste de liste
+
+La notion de "tableau" n'existe pas vraiment en python, on ne peut créer que des listes.
+
+Mais on peut créer une liste, dont chaque élément est une sous-liste.
+
+ - La variable `self.tiles` est une liste de 14 éléments, représentant les 14 lignes de l'aire de jeu,
+   - chacun de ces éléments est une sous-liste de 20 éléments, représentant les 20 cases d'une ligne de l'aire de jeu,
+     - chacun de ces éléments est une sous-sous-liste ayant un nombre variable d'éléments, représentant les game objects de la case de l'aire de jeu,
+       - chacun de ces éléments est un nom, correspondant à un type de game object.
+
 
 
 
