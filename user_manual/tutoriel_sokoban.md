@@ -146,7 +146,7 @@ Dans notre programme, nous avons ajouté un seul objet dans une seule case de ce
 
 Selon ce que vous avez bidouillé dans le chapitre précédent, vous avez peut-être ajouté un objet dans plusieurs cases du tableau.
 
-(TODO : re screenshot en indiquant où sont tous les trucs dont je viens de parler).
+![https://raw.githubusercontent.com/darkrecher/squarity-doc/master/user_manual/annotations_code.png](https://raw.githubusercontent.com/darkrecher/squarity-doc/master/user_manual/annotations_code.png)
 
 
 ## Plein d'herbe
@@ -204,6 +204,8 @@ Une image utilisée pour afficher un élément dans l'aire de jeu s'appellent **
 
 La grande image contenant toutes les images de tile s'appelle le **tileset**. Autres appellations : **tilesheet**, **image set**, **image atlas**, **atlas**. On utilise le mot "atlas" pour représenter le fait que c'est un ensemble d'image exhaustif. Comme les atlas de cartes géographiques.
 
+Ce qui est affichée dans la partie gauche de l'écran s'appelle **l'aire de jeu**. C'est là où tout se déroule votre jeu : les personnages se déplacent, ramassent des objets, discutent entre eux, etc.
+
 Une case dans l'aire de jeu s'appelle une **tile**. Autres appellations : **tuile**, **case**. Ces tiles sont organisées sous forme d'un tableau en deux dimensions, appellé **tiles** (au pluriel). Dans notre programme, ce tableau est enregistré dans la variable `self.tiles`. Ce tableau a une largeur de 20 tiles et une hauteur de 14 tiles.
 
 Pour repérer une tile dans le tableau, on utilise les coordonnées x et y.
@@ -228,11 +230,9 @@ On peut se permettre d'utiliser les noms anglais ("game object", "tile", ...) da
 
 Dans notre programme, nous avons commencé par placer dans toutes les tiles un seul game object, de type "herbe". Puis, pour une tile spécifique, celle qui est aux coordonnées x=5, y=3, nous avons ajouté un second game object, de type "mur".
 
-(TODO : schéma avec le tableau des tiles)
+![https://raw.githubusercontent.com/darkrecher/squarity-doc/master/user_manual/schema_self_tiles.png](https://raw.githubusercontent.com/darkrecher/squarity-doc/master/user_manual/schema_self_tiles.png)
 
 Dans la tile x=5, y=3, on ne voit pas le game object "herbe", car le game object "mur" est dessiné par dessus, et la recouvre entièrement. Mais cette tile possède bien deux game objects.
-
-TODO : self.tiles = aire de jeu
 
 
 ## Quelques règles du fonctionnement de Squarity
@@ -335,7 +335,7 @@ Pour cette étape, vous allez essayer de vous débrouiller un peu tout seul.
 
 Vous devez faire les modifications nécessaires pour afficher une caisse à côté du mur :
 
-(TODO img)
+![https://raw.githubusercontent.com/darkrecher/squarity-doc/master/user_manual/tuto_screenshot_mur_et_caisse.png](https://raw.githubusercontent.com/darkrecher/squarity-doc/master/user_manual/tuto_screenshot_mur_et_caisse.png)
 
 Dans la configuration du jeu, ajoutez un type de game object appelé "caisse". Définissez ses coordonnnées d'image à `[64, 0]`. N'oubliez pas les virgules entre chaque définition de type de game object.
 
@@ -358,7 +358,7 @@ Dans le champ *"Config du jeu"*, copier-collez la configuration suivante :
         "mur": [32, 0],
         "caisse": [64, 0],
         "personnage": [96, 0],
-        "cible": [0, 32],
+        "cible": [0, 32]
     }
 }
 ```
@@ -418,7 +418,7 @@ class BoardModel():
 
 Exécutez le jeu. Vous devriez voir ceci :
 
-(TODO img)
+![https://raw.githubusercontent.com/darkrecher/squarity-doc/master/user_manual/tuto_screenshot_level_map.png](https://raw.githubusercontent.com/darkrecher/squarity-doc/master/user_manual/tuto_screenshot_level_map.png)
 
 Que constate-t-on ? C'est très moche !
 
@@ -429,7 +429,7 @@ Dans le programme que vous avez copié-collé, où est définie la disposition d
 
 Essayez de trouver pourquoi c'est moche. Quel est le problème avec les tiles contenant une cible, une caisse ou un personnage ? Qu'est-ce qu'il manque dans ces tiles ? Que faudrait-il faire pour que ces tiles soient moins moches ?
 
-Le plan du niveau est un ensemble de textes, contenant uniquement les caractères `"#", " ", "@", "$", "."`. Pourtant, les noms de vos types d'objets sont : "herbe",
+Le plan du niveau est un ensemble de textes, contenant uniquement les caractères `#   @ $ .`. Pourtant, les noms de vos types d'objets sont : "herbe",
  "mur", "caisse", "personnage", "cible". À quel caractère correspond quel type d'objet ?
 
 Dans le programme, où est définie cette correspondance entre les caractères du plan du niveau et le nom des game objects ?
@@ -446,5 +446,5 @@ Cette valeur peut également s'écrire avec des guillemets double : `["herbe", "
 
 Cette valeur signifie : une liste avec deux game objects dedans. Le premier est de type "herbe", le deuxième est de type "mur".
 
-Et si vous mettiez, dans la correspondance ente caractères et game objects, des listes de plusieurs game objects, plutôt que des listes de un seul game object ?
+Et si vous mettiez des listes de plusieurs game objects dans la correspondance ente caractères et game objects ? Au lieu d'avoir des listes de un seul game object.
 
