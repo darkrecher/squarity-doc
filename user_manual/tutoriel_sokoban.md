@@ -6,7 +6,7 @@ Il ne vous est pas nécessaire de connaître le langage python, mais ça peut ai
 
 Certaines notions seront utilisées sans être expliquées en détail, par exemple : le format JSON, la programmation objet, les itérations, etc. À vous d'approfondir ces sujets par vous-mêmes, si vous le souhaitez. Il y a plein de cours de python sur internet.
 
-Ce tutoriel est un peu long, mais rassurez-vous, il est décomposé en plusieurs étapes, et vous êtes récomponsé·e par un résultat à chaque fois.
+Ce tutoriel est un peu long, mais rassurez-vous, il est décomposé en plusieurs étapes, et vous êtes récompensé·e par un résultat à chaque fois.
 
 À la fin (TODO : quand j'aurais fini de l'écrire), vous devriez avoir un petit jeu simple qui fonctionne sur Squarity.
 
@@ -16,6 +16,8 @@ Ce tutoriel est un peu long, mais rassurez-vous, il est décomposé en plusieurs
 Pour commencer, il faudrait dessiner un "tileset", c'est à dire une image contenant tous les éléments qui s'affichent dans votre jeu.
 
 En voici un déjà prêt :
+
+TODO : ça va pas, faut déplacer le bonhomme dans la deuxième ligne. Ça donne plus de chances d'avoir des trucs quand on joue avec les coordonnées.
 
 ![https://raw.githubusercontent.com/darkrecher/squarity-doc/master/user_manual/sokoban_tileset.png](https://raw.githubusercontent.com/darkrecher/squarity-doc/master/user_manual/sokoban_tileset.png)
 
@@ -36,9 +38,9 @@ Le tileset de ce tutoriel est déjà publié, son url est : https://raw.githubus
 
 ## Un peu d'herbe
 
-Nous allons créer un premier programme qui fonctionne, mais ne constitue pas un vrai jeu. Commencez par vous rendre sur le site http://squarity.fr .
+Nous allons créer un premier programme qui fonctionne, mais qui ne constitue pas un vrai jeu. Commencez par vous rendre sur le site http://squarity.fr .
 
-Dans le champ "Url de l'image tileset", copier-collez l'url de notre tileset :
+Dans le champ *"Url de l'image tileset"*, copier-collez l'url de notre tileset :
 
 `https://raw.githubusercontent.com/darkrecher/squarity-doc/master/user_manual/sokoban_tileset.png`
 
@@ -80,7 +82,7 @@ class BoardModel():
         return self.tiles
 ```
 
-Puis cliquez sur le bouton tout en bas "<<< Exécutez le jeu"
+Puis cliquez sur le bouton tout en bas "Exécutez le jeu"
 
 Vous devriez voir un petit morceau d'herbe apparaître. Oh comme c'est impressionnant !
 
@@ -93,11 +95,11 @@ Votre écran devrait ressembler à ceci (certains boutons ont été supprimés p
 
 Nous allons effectuer des modifications dans le code, pour essayer de comprendre ce que font certaines parties.
 
-À chaque modification, vous devez recliquer sur le bouton "<<< Exécutez le jeu". Pour aller plus vite, vous pouvez utiliser le raccourci clavier Ctrl+Entrée.
+À chaque modification, vous devez recliquer sur le bouton "Exécutez le jeu". Pour aller plus vite, vous pouvez utiliser le raccourci clavier Ctrl+Entrée.
 
 Si vous faites une modification incorrecte, un message d'erreur apparaîtra en bas à gauche, que vous ne comprendrez pas forcément. Le plus simple est alors de revenir à une version du jeu qui fonctionne : faite des Ctrl-Z, ou au pire refaites les copié-collés du chapitre précédent.
 
-Dans la configuration du jeu, sur la ligne `"herbe": [0, 0]`, remplacez l'un des deux zéros par un nombre entre 1 et 50, et regardez le résultat. Modifiez l'autre nombre. Essayez de comprendre ce qu'ils représentent. Pour vous aidez, vous pouvez réafficher dans un autre onglet l'image du tileset que nous avons vu dans le premier chapitre.
+Dans la configuration du jeu, sur la ligne `"herbe": [0, 0]`, remplacez l'un des deux zéros par un nombre entre 1 et 64, et regardez le résultat. Modifiez l'autre nombre. Essayez de comprendre ce qu'ils représentent. Pour vous aidez, vous pouvez réafficher dans un autre onglet l'image du tileset que nous avons vu dans le premier chapitre.
 
 Toujours dans la configuration du jeu, sur la ligne `"tile_size": 32,`, remplacez le "32" par un autre nombre, entre 1 et 100. Essayez de comprendre ce que ce nombre représente.
 
@@ -177,7 +179,7 @@ La ligne `self.tiles[3][5].append("herbe")` n'est plus utile, mais on va la lais
 
 Vous avez peut-être un peu de mal à comprendre entièrement le code du jeu. Ne vous inquiétez pas, ça n'empêche pas de terminer ce tutoriel.
 
-Il y a cependant un point très important à prendre en compte avec le langage de programmation python : l'indentation est significative. Autrement dit : faites attention aux espaces qui se trouvent au début de chaque ligne, ils servent à indiquer la manière dont les blocs de code sont imbriquées.
+Il y a cependant un point très important à prendre en compte avec le langage de programmation python : l'indentation est significative. Autrement dit : faites attention aux espaces qui se trouvent au début de chaque ligne, ils servent à indiquer la manière dont les blocs de code sont imbriqués.
 
 Pour une explication plus détaillée, consultez [cette page](https://python.developpez.com/cours/DiveIntoPython/php/frdiveintopython/getting_to_know_python/indenting_code.php)
 
@@ -207,13 +209,13 @@ L'aire de jeu devrait afficher de l'herbe, et un seul objet de type mur.
 
 ## Vocabulaire spécifique au jeu
 
-Une image utilisée pour afficher un élément dans l'aire de jeu s'appellent **image de tile**. Autres appellations : **image de tuile**, **tile_image**, ou tout simplement **image**.
+Une image utilisée pour afficher un élément dans l'aire de jeu s'appelle **image de tile**. Autres appellations : **image de tuile**, **tile image**, ou tout simplement **image**.
 
 La grande image contenant toutes les images de tile s'appelle le **tileset**. Autres appellations : **tilesheet**, **image set**, **image atlas**, **atlas**. On utilise le mot "atlas" pour représenter le fait que c'est un ensemble d'image exhaustif. Comme les atlas de cartes géographiques.
 
-Ce qui est affichée dans la partie gauche de l'écran s'appelle **l'aire de jeu**. C'est là où tout se déroule votre jeu : les personnages se déplacent, ramassent des objets, discutent entre eux, etc.
+Ce qui est affichée dans la partie gauche de l'écran s'appelle **l'aire de jeu**. C'est là où se déroule tout votre jeu : les personnages se déplacent, ramassent des objets, discutent entre eux, etc.
 
-Une case dans l'aire de jeu s'appelle une **tile**. Autres appellations : **tuile**, **case**. Ces tiles sont organisées sous forme d'un tableau en deux dimensions, appellé **tiles** (au pluriel). Dans notre programme, ce tableau est enregistré dans la variable `self.tiles`. Ce tableau a une largeur de 20 tiles et une hauteur de 14 tiles.
+Une case dans l'aire de jeu s'appelle une **tile**. Autres appellations : **tuile**, **case**. Ces tiles sont organisées sous forme d'un tableau en deux dimensions, appelé **tiles** (au pluriel). Dans notre programme, ce tableau est enregistré dans la variable `self.tiles`. Il a une largeur de 20 tiles et une hauteur de 14 tiles.
 
 Pour repérer une tile dans le tableau, on utilise les coordonnées x et y.
 
@@ -221,19 +223,19 @@ X augmente lorsqu'on va vers la droite. Les tiles tout à gauche ont pour coordo
 
 Y augmente lorsqu'on va vers le bas. Les tiles tout en haut ont pour coordonnée y = 0. Les tiles tout en bas ont pour coordonnée y = 13.
 
-Les graphiques que l'on dessine en cours de maths ont la coordonnée Y dans l'autre sens (Y augmente lorsqu'on va vers le haut). En programmation, on préfère avoir un Y qui augmente lorsqu'on va vers le bas. C'est plus logique car ça correspond au sens de lecture, au sens des pixels sur l'écran, etc.
+Les graphiques que l'on dessine en cours de maths ont la coordonnée Y dans l'autre sens (Y augmente lorsqu'on va vers le haut). En programmation, on préfère avoir un Y qui augmente lorsqu'on va vers le bas. C'est plus logique car ça correspond au sens de lecture, à l'ordre des pixels sur l'écran, etc.
 
-Les coordonnées sont comptées à partir de zéro, et non pas à partir de un, parce que c'est comme ça qu'on fait en informatique, et c'est plus logique ainsi.
+Les coordonnées sont comptées à partir de zéro, et non pas à partir de un, parce que c'est comme ça qu'on fait en informatique. Il y a une justification, mais ce serait un peu long de l'expliquer ici.
 
-Un élément placé dans une tile s'appelle un **objet de jeu**. Autres appellations : **game object**, **gamobj**, **gobject**, **gobj**. Il peut y avoir plusieurs game object sur une même tile. Ils seront dessinés les uns par-dessus des autres, au même endroit.
+Un élément placé dans une tile s'appelle un **objet de jeu**. Autres appellations : **game object**, **gamobj**, **gobject**, **gobj**. Il peut y avoir plusieurs game object sur une même tile. Ils seront dessinés les uns par-dessus les autres.
 
 Chaque game object possède un **type de game object**. Autre appellation : **game object type**. Dans notre programme, les mots "herbe" et "mur" sont des types de game object.
 
-Dans la documentation de Squarity, et dans les noms de variables des programmes, il faut essayer au maximum d'utiliser ce vocabulaire, pour qu'il devienne commun à toutes les personnes utilisant Squarity.
+Dans les noms de variables des programmes et dans les documentations, il faut essayer d'utiliser ce vocabulaire au maximum, pour qu'il devienne commun aux personnes utilisant Squarity.
 
-On évitera d'utiliser les noms "objet" et "type" tout seul, car ce sont des termes trop génériques, et qui sont déjà beaucoup utilisés en programmation.
+On évitera d'utiliser les noms "objet" et "type" tout seul, car ce sont des termes trop génériques, qui sont déjà beaucoup utilisés en programmation.
 
-On peut se permettre d'utiliser les noms anglais ("game object", "tile", ...) dans un texte français, puisque la langue française possède déjà des anglicismes. Vous pouvez aussi faire le contraire, puisque la langue française possède des francicismes.
+On peut se permettre d'utiliser les noms anglais ("game object", "tile", ...) dans un texte français, puisque la langue française possède déjà des anglicismes. Vous pouvez aussi faire le contraire, puisque la langue anglaise possède des francicismes. Ha ha ha.
 
 Dans notre programme, nous avons commencé par placer dans toutes les tiles un seul game object, de type "herbe". Puis, pour une tile spécifique, celle qui est aux coordonnées x=5, y=3, nous avons ajouté un second game object, de type "mur".
 
