@@ -40,7 +40,7 @@ Le tileset de ce tutoriel est déjà publié, son url est : https://raw.githubus
 
 Nous allons créer un premier programme qui fonctionne, mais qui ne constitue pas un vrai jeu. Commencez par vous rendre sur le site http://squarity.fr .
 
-Dans le champ *"Url de l'image tileset"*, copier-collez l'url de notre tileset :
+Dans le champ *"Url de l'image tileset"*, supprimez le texte existant, puis copier-collez l'url de notre tileset :
 
 `https://raw.githubusercontent.com/darkrecher/squarity-doc/master/user_manual/sokoban_tileset.png`
 
@@ -211,11 +211,11 @@ L'aire de jeu devrait afficher de l'herbe, et un seul objet de type mur.
 
 Une image utilisée pour afficher un élément dans l'aire de jeu s'appelle **image de tile**. Autres appellations : **image de tuile**, **tile image**, ou tout simplement **image**.
 
-La grande image contenant toutes les images de tile s'appelle le **tileset**. Autres appellations : **tilesheet**, **image set**, **image atlas**, **atlas**. On utilise le mot "atlas" pour représenter le fait que c'est un ensemble d'image exhaustif. Comme les atlas de cartes géographiques.
+La grande image contenant toutes les images de tile s'appelle le **tileset**. Autres appellations : **tilesheet**, **image set**, **image atlas**, **atlas**. On utilise le mot "atlas" pour représenter le fait que c'est un ensemble d'images exhaustif. Comme les atlas de cartes géographiques.
 
-Ce qui est affichée dans la partie gauche de l'écran s'appelle **l'aire de jeu**. C'est là où se déroule tout votre jeu : les personnages se déplacent, ramassent des objets, discutent entre eux, etc.
+Ce qui est affichée dans la partie gauche de l'écran s'appelle **l'aire de jeu**. C'est là où se tout déroule : les personnages se déplacent, ramassent des objets, discutent entre eux, etc.
 
-Une case dans l'aire de jeu s'appelle une **tile**. Autres appellations : **tuile**, **case**. Ces tiles sont organisées sous forme d'un tableau en deux dimensions, appelé **tiles** (au pluriel). Dans notre programme, ce tableau est enregistré dans la variable `self.tiles`. Il a une largeur de 20 tiles et une hauteur de 14 tiles.
+Une case dans l'aire de jeu s'appelle une **tile**. Autres appellations : **tuile**, **case**. Ces tiles sont organisées sous forme d'un tableau en deux dimensions. Dans notre programme, ce tableau est enregistré dans la variable `self.tiles`. Il a une largeur de 20 tiles et une hauteur de 14 tiles.
 
 Pour repérer une tile dans le tableau, on utilise les coordonnées x et y.
 
@@ -223,21 +223,21 @@ X augmente lorsqu'on va vers la droite. Les tiles tout à gauche ont pour coordo
 
 Y augmente lorsqu'on va vers le bas. Les tiles tout en haut ont pour coordonnée y = 0. Les tiles tout en bas ont pour coordonnée y = 13.
 
-Les graphiques que l'on dessine en cours de maths ont la coordonnée Y dans l'autre sens (Y augmente lorsqu'on va vers le haut). En programmation, on préfère avoir un Y qui augmente lorsqu'on va vers le bas. C'est plus logique car ça correspond au sens de lecture, à l'ordre des pixels sur l'écran, etc.
+Les graphiques que l'on dessine en cours de maths ont la coordonnée Y dans l'autre sens : Y augmente lorsqu'on va vers le haut. En programmation, on préfère que l'axe des Y soit dans la direction du bas. C'est plus logique car ça correspond au sens de lecture, à l'ordre des pixels sur l'écran, etc.
 
 Les coordonnées sont comptées à partir de zéro, et non pas à partir de un, parce que c'est comme ça qu'on fait en informatique. Il y a une justification, mais ce serait un peu long de l'expliquer ici.
 
-Un élément placé dans une tile s'appelle un **objet de jeu**. Autres appellations : **game object**, **gamobj**, **gobject**, **gobj**. Il peut y avoir plusieurs game object sur une même tile. Ils seront dessinés les uns par-dessus les autres.
+Un élément placé dans une tile s'appelle un **objet de jeu**. Autres appellations : **game object**, **gamobj**, **gobject**, **gobj**. Il peut y avoir plusieurs game objects sur une même tile. Ils seront dessinés les uns par-dessus les autres.
 
 Chaque game object possède un **type de game object**. Autre appellation : **game object type**. Dans notre programme, les mots "herbe" et "mur" sont des types de game object.
 
 Dans les noms de variables des programmes et dans les documentations, il faut essayer d'utiliser ce vocabulaire au maximum, pour qu'il devienne commun aux personnes utilisant Squarity.
 
-On évitera d'utiliser les noms "objet" et "type" tout seul, car ce sont des termes trop génériques, qui sont déjà beaucoup utilisés en programmation.
+On évitera d'utiliser les mots "objet" et "type" tout seul, car ce sont des termes trop génériques, qui sont déjà beaucoup utilisés en programmation.
 
 On peut se permettre d'utiliser les noms anglais ("game object", "tile", ...) dans un texte français, puisque la langue française possède déjà des anglicismes. Vous pouvez aussi faire le contraire, puisque la langue anglaise possède des francicismes. Ha ha ha.
 
-Dans notre programme, nous avons commencé par placer dans toutes les tiles un seul game object, de type "herbe". Puis, pour une tile spécifique, celle qui est aux coordonnées x=5, y=3, nous avons ajouté un second game object, de type "mur".
+Dans notre programme, nous avons commencé par placer dans toutes les tiles un seul game object, de type "herbe". Puis, pour la tile qui est aux coordonnées (x=5, y=3), nous avons ajouté un second game object, de type "mur".
 
 ![https://raw.githubusercontent.com/darkrecher/squarity-doc/master/user_manual/schema_self_tiles.png](https://raw.githubusercontent.com/darkrecher/squarity-doc/master/user_manual/schema_self_tiles.png)
 
@@ -246,14 +246,14 @@ Dans la tile x=5, y=3, on ne voit pas le game object "herbe", car le game object
 
 ## Quelques règles du fonctionnement de Squarity
 
- - On peut créer, supprimer, déplacer les game objects dans les tiles, et d'une tile vers une autre.
+ - On peut créer et supprimer les game objects dans les tiles, et les déplacer d'une tile vers une autre.
  - Une tile peut contenir autant de game objects que l'on veut.
  - Une tile peut posséder plusieurs game objects de même type.
- - L'ordre des game object dans une tile est important, car il définit l'ordre dans lequel ils seront affichés.
+ - L'ordre des game objects dans une tile est important, car il définit l'ordre dans lequel ils seront affichés.
  - On ne peut pas déplacer, ajouter ou supprimer des tiles. Ce sont les cases du tableau, et le tableau ne change pas.
  - Pour l'instant, on ne peut pas changer la largeur ou la hauteur du tableau. C'est forcément largeur = 20, hauteur = 14. Mais ce sera amélioré dans des versions futures de Squarity.
  - On ne peut pas placer un game object sur plusieurs tiles en même temps. (Mais on peut créer plusieurs game object de même type et les placer chacun sur une tile)
- - **On ne peut pas placer un game object à cheval sur plusieurs tiles**. Les coordonnées sont forcément des nombres entiers. Vous ne pourrez donc jamais avoir un personnage qui se déplace légèrement et se retrouve entre deux tiles, comme dans le premier Zelda ou comme dans les jeux Bomberman. C'est un choix de conception dans Squarity, qui permet de simplifier la création des jeux.
+ - **On ne peut pas placer un game object à cheval sur plusieurs tiles**. Les coordonnées sont forcément des nombres entiers. Vous ne pourrez donc jamais avoir un personnage qui se déplace légèrement et se retrouve entre deux tiles, comme dans le premier Zelda ou les jeux Bombermans. C'est un choix de conception dans Squarity, pour simplifier la création des jeux.
 
 Dans la configuration du jeu, la donnée `tile_coords` permet de lister tous les types de game object de votre jeu, et de faire la correspondance avec leurs images respectives.
 
@@ -268,10 +268,10 @@ Mais on peut créer une liste contenant des liste.
 
  - La variable `self.tiles` est une liste de 14 éléments, représentant les 14 lignes de l'aire de jeu,
    - chacun de ces éléments est une sous-liste de 20 éléments, représentant les 20 cases d'une ligne de l'aire de jeu,
-     - chacun de ces éléments est une sous-sous-liste ayant un nombre variable d'éléments, représentant les game objects de la case de l'aire de jeu,
+     - chacun de ces éléments est une sous-sous-liste ayant un nombre variable d'éléments, représentant les game objects de la case,
        - chacun de ces éléments est un nom, correspondant à un type de game object.
 
-Lorsqu'on accède à des listes imbriqués, on donne les index dans le même ordre d'imbrication.
+Lorsqu'on accède à des listes imbriquées, on donne les index dans le même ordre d'imbrication.
 
 Le code `self.tiles[3][5]` signifie : "la ligne numéro 3, et dans cette ligne, la case numéro 5". On indique d'abord l'ordonnée (le y), et ensuite l'abscisse (le x).
 
@@ -298,9 +298,9 @@ par la ligne :
 
 `        self.get_tile(5, 3).append("mur")`
 
-(Pensez à bien garder le même nombre d'espace au début de la ligne).
+Pensez à bien garder le même nombre d'espace au début de la ligne.
 
-Exécutez le jeu. Vous verrez la même chose qu'avant. Mais maintenant nous avons une fonction pour accéder à une tile.
+Exécutez le jeu. Vous verrez la même chose qu'avant. Mais maintenant nous avons une fonction qui rend le code plus cohérent.
 
 La fonction `append("game_object_type")` permet d'ajouter un game object dans une tile. La fonction `remove("game_object_type")` permet d'en supprimer un. Vous pouvez utiliser ces deux fonctions juste après un appel à la fonction `self.get_tile(x, y)`.
 
@@ -311,31 +311,31 @@ Attention à la fonction `remove`. Si vous indiquez un type de game object qui n
 
 ## Des prints, des prouts, et du python pur
 
-Au tout début de votre programme, ajouter la ligne `print("prout")`
+Au tout début de votre programme, ajoutez la ligne `print("prout")`
 
 Exécutez le jeu. Vous devriez voir apparaître, dans la fenêtre en bas à gauche, le texte "prout".
 
-Juste après la ligne
+Juste après la ligne :
 
 `        self.get_tile(5, 3).append("mur")`
 
-Ajoutez la ligne
+ajoutez la ligne :
 
 `        print(self.tiles)`
 
-Exécutez le jeu. Vous devriez voir apparaître un grand texte avec écrit plein de fois le mot "herbe". Il s'agit du contenu complet de self.tiles. Tout est écrit sur une seule ligne, c'est un peu difficile à lire. Essayez de repérer les double crochets ouvrants `[[` et fermants `]]`, ils marquent la coupure entre deux lignes de tiles. Vous devriez aussi trouver le mot "mur" écrit une seule fois.
+Exécutez le jeu. Vous devriez voir apparaître un grand texte avec écrit plein de fois le mot "herbe". Il s'agit du contenu complet de self.tiles.
 
-La fonction `print` écrit ce que vous lui indiquez en paramètre. Du texte simple, si vous le mettez entre guillemets, ou une variable, si vous écrivez directement son nom.
+Tout est écrit sur une seule ligne, c'est un peu difficile à lire. Essayez de repérer les double crochets ouvrants `[[` et fermants `]]`, ils marquent la coupure entre deux lignes de tiles. Vous devriez aussi trouver le mot "mur" écrit une seule fois.
 
-Cette fonction est très utile pour le déboguage d'un programme, c'est à dire lorsque ce programme fait des messages d'erreur ou qu'il n'exécute pas ce que vous aviez prévu. Vous placez des `print` dans différents endroits du programme pour essayer de comprendre ce qu'il se passe, le chemin d'exécution, le contenu des variables, etc.
+La fonction `print` écrit ce que vous lui indiquez en paramètre. Du texte simple (entre guillemets), ou bien le contenu d'une variable.
 
-Si vous n'êtes pas très à l'aise en python, vous pouvez vous entrainer sur le langage en lui-même. Le mieux est d'installer un interpréteur python sur votre ordinateur, mais vous n'avez peut-être pas l'envie ou les connaissances pour le faire. Dans ce cas, vous pouvez aller directement sur ce site : https://trinket.io/python3 .
+Cette fonction est très utile pour le déboguage, c'est à dire lorsque votre programme fait des messages d'erreur ou qu'il n'exécute pas ce que vous aviez prévu. Vous placez des `print` à différents endroits pour essayer de comprendre ce qu'il se passe, le chemin d'exécution, le contenu des variables, etc.
 
-Il s'agit d'un interpréteur python dans votre navigateur. Vous écrivez du code dans la partie gauche, vous cliquez sur le bouton "Play" (le triangle au-dessus) et le résultat s'affiche dans la partie droite.
+Si vous n'êtes pas très à l'aise en python, vous pouvez vous entrainer sur le langage en lui-même. Le mieux est d'installer un interpréteur sur votre ordinateur. Si vous n'avez pas l'envie ou les connaissances pour le faire, vous pouvez aller directement sur ce site : https://trinket.io/python3 .
 
-C'est du "pur python", vous pouvez donc écrire le code directement. Vous n'avez pas besoin de créer une classe `BoardModel`. En revanche, vous n'avez rien de Squarity : pas de tiles, pas d'images qui se dessinent toutes seules, pas de gestion des touches.
+Il s'agit d'un interpréteur python dans votre navigateur. Vous écrivez du code dans la partie gauche, vous cliquez sur le bouton "Play" (le triangle orienté vers la droite) et le résultat s'affiche dans la partie droite.
 
-La seule chose que vous pouvez faire sur le site Trinket, ce sont des `print`. Mais c'est déjà suffisant pour s'entrainer et faire des tutoriels sur le python.
+C'est du "pur python", vous pouvez donc écrire le code directement. Vous n'avez pas besoin de créer une classe `BoardModel`. La seule chose que vous pouvez faire, ce sont des `print`. Mais c'est déjà suffisant pour s'entrainer et faire des tutoriels de python.
 
 
 ## On en fait des caisses
@@ -350,7 +350,9 @@ Dans la configuration du jeu, ajoutez un type de game object appelé "caisse". D
 
 Dans le code du jeu, copiez la ligne `self.get_tile(5, 3).append("mur")` et collez-la juste en dessous (attention aux espaces en début de ligne !).
 
-Dans cette nouvelle ligne de code, modifiez les coordonnées (la tile choisie doit être un peu plus à droite) et modifiez le type d'objet ajouté (il faut que ce soit le type "caisse").
+Dans cette nouvelle ligne de code, modifiez les coordonnées : la tile choisie doit être un peu plus à droite.
+
+Ensuite, modifiez le type d'objet : il faut que ce soit le type "caisse".
 
 Si vous n'y arrivez pas, ce n'est pas trop grave, vous pouvez quand même passer au chapitre suivant.
 
@@ -366,13 +368,13 @@ Dans le champ *"Config du jeu"*, copier-collez la configuration suivante :
         "herbe": [0, 0],
         "mur": [32, 0],
         "caisse": [64, 0],
-        "personnage": [96, 0],
-        "cible": [0, 32]
+        "personnage": [0, 32],
+        "cible": [0, 64]
     }
 }
 ```
 
-Et dans le dernier champ : *"Le code du jeu (en python)"*, copier-collez le code suivant :
+Dans le champ : *"Le code du jeu"*, copier-collez le code suivant :
 
 ```
 PLAN_DU_NIVEAU = (
@@ -392,7 +394,7 @@ PLAN_DU_NIVEAU = (
     "                    ",
 )
 
-corresp_game_objects_a_partir_de_caractere = {
+corresp_game_objects_a_partir_char = {
     " ": ["herbe"],
     "#": ["mur"],
     "@": ["personnage"],
@@ -413,7 +415,7 @@ class BoardModel():
             line = []
             for x in range(self.w):
                 char_carte = ligne_plan_du_niveau[x]
-                game_objects = corresp_game_objects_a_partir_de_caractere[char_carte]
+                game_objects = corresp_game_objects_a_partir_char[char_carte]
                 game_objects = list(game_objects)
                 line.append(game_objects)
             self.tiles.append(line)
@@ -436,16 +438,14 @@ Que constate-t-on ? C'est très moche !
 
 Dans le programme que vous avez copié-collé, où est définie la disposition des game objects dans l'aire de jeu ? Essayez de changer cette disposition, par exemple en ajoutant ou en supprimant des caisses et des murs.
 
-Essayez de trouver pourquoi c'est moche. Quel est le problème avec les tiles contenant une cible, une caisse ou un personnage ? Qu'est-ce qu'il manque dans ces tiles ? Que faudrait-il faire pour que ces tiles soient moins moches ?
+Essayez de trouver pourquoi c'est moche. Quel est le problème avec les tiles contenant une cible, une caisse ou un personnage ? Qu'est-ce qu'il manque dans ces tiles ? Que faudrait-il faire pour qu'elles s'affichent en moins moche ?
 
 Le plan du niveau est un ensemble de textes, contenant uniquement les caractères `#   @ $ .`. Pourtant, les noms de vos types d'objets sont : "herbe",
  "mur", "caisse", "personnage", "cible". À quel caractère correspond quel type d'objet ?
 
 Dans le programme, où est définie cette correspondance entre les caractères du plan du niveau et le nom des game objects ?
 
-Pour que l'affichage soit moins moche, vous avez uniquement besoin de modifier cette correspondance. Pas besoin de changer le reste du code.
-
-Essayez de modifier cette correspondance.
+Pour que l'affichage soit moins moche, vous avez uniquement besoin de modifier cette correspondance. Pas besoin de changer le reste du code. Essayez de la modifier.
 
 Petit indice : si on prend le caractère "$". Celui-ci correspond à `["caisse"]`, c'est à dire : une liste avec un seul game object dedans, qui est de type "caisse".
 
@@ -453,7 +453,66 @@ Dans un chapitre précédent, lorsqu'on avait fait un print de la variable self.
 
 Cette valeur peut également s'écrire avec des guillemets double : `["herbe", "mur"]`.
 
-Cette valeur signifie : une liste avec deux game objects dedans. Le premier est de type "herbe", le deuxième est de type "mur".
+Cette valeur signifie : une liste avec deux game objects dedans. Le premier est de type "herbe", le second de type "mur".
 
-Et si vous mettiez des listes de plusieurs game objects dans la correspondance ente caractères et game objects ? Au lieu d'avoir des listes de un seul game object.
+Et si vous mettiez des listes de plusieurs game objects dans la correspondance ente caractères et game objects ? Ce sera peut-être mieux que d'avoir des listes de un seul game object.
+
+
+## La réponse pour que ce soit plus beau
+
+Dans le code du jeu, remplacez la correspondance :
+
+```
+corresp_game_objects_a_partir_char = {
+    " ": ["herbe"],
+    "#": ["mur"],
+    "@": ["personnage"],
+    "$": ["caisse"],
+    ".": ["cible"]
+}
+```
+
+Par celle-ci :
+
+```
+corresp_game_objects_a_partir_char = {
+    " ": ["herbe"],
+    "#": ["herbe", "mur"],
+    "@": ["herbe", "personnage"],
+    "$": ["herbe", "caisse"],
+    ".": ["herbe", "cible"],
+}
+```
+
+On a ajouté le type de game object "herbe" à toutes les correspondances, sauf la première.
+
+Exécutez le jeu, ça devrait être plus beau. C'est à dire que chaque objet n'est plus sur un fond noir moche.
+
+Un dernier petit détail, si vous vous y connaissez un peu en python. Cette ligne : `game_objects = list(game_objects)` est importante. La fonction list permet de créer une nouvelle copie de la liste, pour chaque tile. Si vous ne le faites pas, vous aurez plusieurs références à la même liste. Et lorsque vous changerez le contenu de l'une des tiles (en ajoutant ou supprimant un game object), cela modifiera également toutes les autres. On ne va pas rentrer plus loin dans les explications, tout ce que vous avez à savoir pour l'instant, c'est qu'il faut laisser cette ligne.
+
+
+## Petite pause
+
+Si vous avez lu et effectué ce qui est demandé jusqu'ici, bravo ! Vous avez bien mérité une petite pause ! Mangez un morceau, jouez à un jeu qui vous plaît et nourrissez votre poisson rouge. Pour la suite, on s'attaquera à un gros morceau : l'interactivité, les boutons d'actions.
+
+
+## On écrit (pas sur les murs)
+
+Dans le code du jeu, tout à la fin, ajoutez la fonction suivante :
+
+```
+    def on_game_event(self, event_name):
+        print(event_name)
+```
+
+Exécutez le jeu, puis cliquez sur les boutons. Le programme ne plante plus, et du texte s'affiche en bas à gauche à chaque appui de boutons.
+
+Le texte dépend du bouton appuyé :
+
+ - "U" (up) : le bouton "haut"
+ - "D" (down) : bouton "bas"
+ - "L" (left) : bouton "gauche"
+ - "R" (right) : bouton "droit"
+ - "action_1" : bouton "1"
+ - "action_2" : bouton "2"
 
