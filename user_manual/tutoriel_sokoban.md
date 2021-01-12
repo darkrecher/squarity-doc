@@ -170,6 +170,8 @@ par
                 game_objects = ["herbe"]
 ```
 
+TODO : markdown stupide de github qui met pas les espaces au début, sauf avec les triples inverted quotes.
+
 Exécutez votre jeu. Vous devriez voir de l'herbe partout.
 
 La ligne que vous venez de modifier se trouve dans une boucle (pour être exact : dans une boucle de boucle). Elle est exécutée pour chaque case de l'aire de jeu, ce qui ajoute de l'herbe partout.
@@ -427,6 +429,10 @@ class BoardModel():
 
     def export_all_tiles(self):
         return self.tiles
+
+    def get_tile(self, x, y):
+        return self.tiles[y][x]
+
 ```
 
 Exécutez le jeu. Vous devriez voir ceci :
@@ -501,6 +507,7 @@ Si vous avez lu et effectué ce qui est demandé jusqu'ici, bravo ! Vous avez bi
 
 (TODO : un poisson rouge)
 
+
 ## On écrit (pas sur les murs)
 
 Dans le code du jeu, tout à la fin, ajoutez la fonction suivante :
@@ -521,3 +528,91 @@ Le texte dépend du bouton appuyé :
  - "action_1" : bouton "1"
  - "action_2" : bouton "2"
 
+La fonction `on_game_event` de la classe `BoardModel` est spéciale (on appelle ça une "callback"). Elle est exécutée lorsque on appuie sur un bouton du jeu. Le paramètre `event_name` permet de savoir quel bouton a été appuyé.
+
+Vous pouvez ensuite écrire le code que vous voulez dans la fonction, ce qui vous permettra de déplacer des personnages, de répandre de la lave, de téléporter des monstres, ...
+
+
+## Ça bouge !
+
+Pour commencer, il faut que le personnage se déplace. C'est l'élément principal du jeu, il mérite bien quelques variables que pour lui.
+
+Au début de la fonction d'initialisation, c'est à dire juste après la ligne `def __init__(self):`, ajoutez les deux lignes suivantes :
+
+```
+        self.personnage_x = 13
+        self.personnage_y = 6
+```
+
+Puis, dans la fonction `on_game_event` (c'est à dire à la fin du code du jeu), ajoutez le code suivant :
+
+```
+        tile_avec_perso = self.get_tile(self.personnage_x, self.personnage_y)
+        if "personnage" in tile_avec_perso:
+            tile_avec_perso.remove("personnage")
+
+        self.personnage_x += 1
+
+        tile_avec_perso = self.get_tile(self.personnage_x, self.personnage_y)
+        tile_avec_perso.append("personnage")
+```
+
+Exécutez le jeu.
+
+Appuyez sur un bouton, n'importe lequel. À chaque fois, le personnage se déplacera vers la droite.
+
+C'est bien. Le problème c'est qu'il se déplace vers la droite quel que soit le bouton sur lequel vous appuyez. En plus, lorsque le personnage va trop vers la droite, ça plante.
+
+Bon, c'est juste un début.
+
+
+## Bidouillons un peu
+
+Dans la fonction `on_game_event`, nous avons ajouté trois morceaux de code, séparés par une ligne vide. Le premier supprime le personnage de l'aire de jeu, le deuxième modifie les coordonnées du personnage, et le troisième le rajoute sur l'aire de jeu, à sa nouvelle position.
+
+Le deuxième bloc de code ne contient qu'une seule ligne : `self.personnage_x += 1`. L'opérateur `+=` permet d'ajouter une valeur à une variable. L'opérateur `-=` permet de soustraire.
+
+Essayez de faire en sorte que le personnage se déplace vers la gauche lorsqu'on appuie sur un bouton, puis vers le haut et vers le bas.
+
+Ces bidouilles ne vous permettront pas d'avoir un personnage qui se déplace dans une direction différente selon le bouton appuyé. On verra ça dans le chapitre suivant.
+
+Mettez une autre valeur que "1" dans cette ligne de code et essayez de comprendre ce que ça fait.
+
+Au début du code, modifiez la variable `PLAN_DU_NIVEAU`, mettez le personnage à un autre endroit (il est représenté par le caractère `@`). Est-ce que ça fonctionne comme il faut. Manifestement non. On réglera ça très bientôt.
+
+
+## Ça bouge dans les 4 directions
+
+Remplacez la ligne que l'on a bidouillé :
+
+```
+        self.personnage_x += 1
+```
+
+Par ces lignes :
+
+```
+        if event_name == "R":
+            self.personnage_x += 1
+        elif event_name == "L":
+            self.personnage_x -= 1
+        if event_name == "D":
+            self.personnage_y += 1
+        if event_name == "U":
+            self.personnage_y -= 1
+```
+
+Exécutez le jeu.
+
+Cette fois-ci, le personnage devrait pouvoir se déplacer dans les 4 directions.
+
+Essayez de sortir des bords de l'aire de jeu. Sur les bords droite et bas, ça fera une erreur et vous devrez re-exécutez le jeu.
+
+Sur les bords haut et gauche, le personnage réapparaîtra de l'autre côté. Mais si vous tentez de ressortir par le même bord, cette-fois ci ça fera une erreur.
+
+Il y a une explication à cela, qui est liée à la façon dont on peut indexer les éléments d'une liste en python. Mais on ne va pas rentrer dans ces détails. Juste comme ça rapidement : `["a", "b", "c", "d"][0] == "a"` et `["a", "b", "c", "d"][-1] == "d"`.
+
+
+## Pas plus haut que le bord
+
+TODO : pas fini.
