@@ -17,8 +17,6 @@ Pour commencer, il faudrait dessiner un "tileset", c'est à dire une image conte
 
 En voici un déjà prêt :
 
-TODO : ça va pas, faut déplacer le bonhomme dans la deuxième ligne. Ça donne plus de chances d'avoir des trucs quand on joue avec les coordonnées.
-
 ![https://raw.githubusercontent.com/darkrecher/squarity-doc/master/user_manual/sokoban_tileset.png](https://raw.githubusercontent.com/darkrecher/squarity-doc/master/user_manual/sokoban_tileset.png)
 
 Il comporte 5 images d'objets :
@@ -162,11 +160,15 @@ Selon ce que vous avez bidouillé dans le chapitre précédent, vous en avez peu
 
 Dans le code du jeu, remplacez la ligne
 
-`game_objects = []`
+```
+                game_objects = []
+```
 
 par
 
-`game_objects = ["herbe"]`
+```
+                game_objects = ["herbe"]
+```
 
 Exécutez votre jeu. Vous devriez voir de l'herbe partout.
 
@@ -369,7 +371,7 @@ Dans le champ *"Config du jeu"*, copier-collez la configuration suivante :
         "mur": [32, 0],
         "caisse": [64, 0],
         "personnage": [0, 32],
-        "cible": [0, 64]
+        "cible": [32, 32]
     }
 }
 ```
@@ -484,6 +486,8 @@ corresp_game_objects_a_partir_char = {
 }
 ```
 
+TODO : le bonhomme faut le détourer en noir. Là il ressort pas assez.
+
 On a ajouté le type de game object "herbe" à toutes les correspondances, sauf la première.
 
 Exécutez le jeu, ça devrait être plus beau. C'est à dire que chaque objet n'est plus sur un fond noir moche.
@@ -495,6 +499,7 @@ Un dernier petit détail, si vous vous y connaissez un peu en python. Cette lign
 
 Si vous avez lu et effectué ce qui est demandé jusqu'ici, bravo ! Vous avez bien mérité une petite pause ! Mangez un morceau, jouez à un jeu qui vous plaît et nourrissez votre poisson rouge. Pour la suite, on s'attaquera à un gros morceau : l'interactivité, les boutons d'actions.
 
+(TODO : un poisson rouge)
 
 ## On écrit (pas sur les murs)
 
