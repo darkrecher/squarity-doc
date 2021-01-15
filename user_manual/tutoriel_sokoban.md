@@ -528,7 +528,7 @@ Le texte dépend du bouton appuyé :
  - "action_1" : bouton "1"
  - "action_2" : bouton "2"
 
-La fonction `on_game_event` de la classe `BoardModel` est spéciale (on appelle ça une "callback"). Elle est exécutée lorsque on appuie sur un bouton du jeu. Le paramètre `event_name` permet de savoir quel bouton a été appuyé.
+La fonction que vous ajoutée se nomme `on_game_event`, elle se trouve à l'intérieur de la classe `BoardModel`. Il s'agit d'une fonction spéciale (on appelle ça une "callback"). Elle est exécutée lorsque on appuie sur un bouton du jeu. Le paramètre `event_name` permet de savoir quel bouton a été appuyé.
 
 Vous pouvez ensuite écrire le code que vous voulez dans la fonction, ce qui vous permettra de déplacer des personnages, de répandre de la lave, de téléporter des monstres, ...
 
@@ -566,7 +566,7 @@ C'est bien. Le problème c'est qu'il se déplace vers la droite quel que soit le
 Bon, c'est juste un début.
 
 
-## Bidouillons un peu
+## Rebidouillons un peu
 
 Dans la fonction `on_game_event`, nous avons ajouté trois morceaux de code, séparés par une ligne vide. Le premier supprime le personnage de l'aire de jeu, le deuxième modifie les coordonnées du personnage, et le troisième le rajoute sur l'aire de jeu, à sa nouvelle position.
 
@@ -615,4 +615,89 @@ Il y a une explication à cela, qui est liée à la façon dont on peut indexer 
 
 ## Pas plus haut que le bord
 
-TODO : pas fini.
+Ce serait quand même bien que le personnage ne puisse pas dépasser les bords. On va avoir besoin de variables temporaires.
+
+ - D'abord on définit deux variables temporaires : `personnage_dest_x` et `personnage_dest_y`. On les initialise aux coordonnées actuelles du personnage.
+ - On modifie l'une de ces deux variables, selon le déplacement à faire, comme on a fait dans chapitre précédent.
+ - On vérifie si ces deux variables sont sorties par un bord.
+ - Si elles sont toujours dans l'aire de jeu, on peut réellement appliquer le mouvement.
+ - Comme précédemment, on enlève le game object, on modifie les coordonnées réelles du personnage, et on rajoute le game object à sa nouvelle position.
+
+Dans le code du jeu, remplacez toute la fonction `on_game_event` par ce code :
+
+```
+    def on_game_event(self, event_name):
+
+        personnage_dest_x = self.personnage_x
+        personnage_dest_y = self.personnage_y
+
+        if event_name == "R":
+            personnage_dest_x += 1
+        elif event_name == "L":
+            personnage_dest_x -= 1
+        if event_name == "D":
+            personnage_dest_y += 1
+        if event_name == "U":
+            personnage_dest_y -= 1
+
+        if not (0 <= personnage_dest_x < self.w and 0 <= personnage_dest_y < self.h):
+            return
+
+        tile_avec_perso = self.get_tile(self.personnage_x, self.personnage_y)
+        if "personnage" in tile_avec_perso:
+            tile_avec_perso.remove("personnage")
+
+        self.personnage_x = personnage_dest_x
+        self.personnage_y = personnage_dest_y
+
+        tile_avec_perso = self.get_tile(self.personnage_x, self.personnage_y)
+        tile_avec_perso.append("personnage")
+```
+
+Le personnage ne peut plus sortir de l'aire de jeu.
+
+
+## Faut bien commencer quelque part
+
+Comme nous avons vu dans le bidouillage précédent, le personnage doit obligatoirement commencer aux coordonnées (x=13, y=6), sinon ça ne marche pas bien. Nous allons régler ce problème.
+
+Lors de l'initialisation du jeu, la valeur des variables `self.personnage_x` et `self.personnage_y` doit dépendre du niveau, et de l'endroit où on a placé le caractère "@" dedans.
+
+Il faudrait parcourir tout le niveau, repérer le caractère "@", prendre ses coordonnées, et les placer dans ces deux variables.
+
+On parcourt déjà tout le niveau au moment de placer les game objects dans self.tiles, on va donc en profiter.
+
+Dans la fonction `def __init__(self)`, juste après la ligne de code `line.append(game_objects)`, ajoutez le code suivant (sans oublier les espaces au début, comme d'habitude).
+
+```
+                if char_carte == "@":
+                    self.personnage_x = x
+                    self.personnage_y = y
+```
+
+Exécutez le jeu. Il devrait fonctionner comme avant.
+
+Dans la variable `PLAN_DU_NIVEAU`, déplacez le caractère "@", mettez-le n'importe où dans le plan.
+
+Exécutez le jeu. Essayez de déplacer le personnage. Ça devrait fonctionner comme il faut dès le début. C'est à dire que le personnage ne fera pas de téléportation bizarre.
+
+Les deux variables sont initialisées dans la boucle de boucle, donc maintenant, vous n'avez plus besoin de ces deux lignes qui se trouvent au début de la fonction :
+
+```
+        self.personnage_x = 13
+        self.personnage_y = 6
+```
+
+Vous pouvez les supprimer.
+
+Vous pouvez tester une mini-bidouille : remodifiez le `PLAN_DU_NIVEAU` en ajoutant plusieurs caractère "@". Exécutez le jeu. On voit plusieurs personnages, mais il n'y en a qu'un seul qui se déplace.
+
+Ajoutez ou déplacez les caractères "@" comme vous le souhaitez, et essayez de repérer à chaque fois quel est le personnage qui sera déplaçable. (Il n'est pas choisi au hasard).
+
+Dans la suite de ce tutoriel, on gardera des niveaux avec un seul caractère "@" à chaque fois. On ne gère pas le cas où il y a plusieurs personnages. Mais rien ne vous empêche de créer une autre version du jeu dans laquelle on en dirigerait plusieurs en même temps.
+
+
+## On se cogne sur les murs
+
+Un personnage qui passe à travers tout, c'est génial, comme super pouvoir. Mais ça ne fait pas un jeu très intéressant.
+
