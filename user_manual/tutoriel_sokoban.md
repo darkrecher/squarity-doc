@@ -612,6 +612,7 @@ Sur les bords haut et gauche, le personnage réapparaîtra de l'autre côté. Ma
 
 Il y a une explication à cela, qui est liée à la façon dont on peut indexer les éléments d'une liste en python. Mais on ne va pas rentrer dans ces détails. Juste comme ça rapidement : `["a", "b", "c", "d"][0] == "a"` et `["a", "b", "c", "d"][-1] == "d"`.
 
+![https://raw.githubusercontent.com/darkrecher/squarity-doc/master/user_manual/tuto_move_border.png](https://raw.githubusercontent.com/darkrecher/squarity-doc/master/user_manual/tuto_move_border.png)
 
 ## Pas plus haut que le bord
 
@@ -620,7 +621,8 @@ Ce serait quand même bien que le personnage ne puisse pas dépasser les bords. 
  - D'abord on définit deux variables temporaires : `personnage_dest_x` et `personnage_dest_y`. On les initialise aux coordonnées actuelles du personnage.
  - On modifie l'une de ces deux variables, selon le déplacement à faire, comme on a fait dans chapitre précédent.
  - On vérifie si ces deux variables sont sorties par un bord.
- - Si elles sont toujours dans l'aire de jeu, on peut réellement appliquer le mouvement.
+ - Si ça sort, on ne doit pas faire de mouvement. On peut quitter directement la fonction. On utilise pour cela l'instruction python `return`.
+ - Si les variables sont toujours dans l'aire de jeu, on peut réellement appliquer le mouvement.
  - Comme précédemment, on enlève le game object, on modifie les coordonnées réelles du personnage, et on rajoute le game object à sa nouvelle position.
 
 Dans le code du jeu, remplacez toute la fonction `on_game_event` par ce code :
@@ -700,4 +702,242 @@ Dans la suite de ce tutoriel, on gardera des niveaux avec un seul caractère "@"
 ## On se cogne sur les murs
 
 Un personnage qui passe à travers tout, c'est génial, comme super pouvoir. Mais ça ne fait pas un jeu très intéressant.
+
+Il faut que le personnage soit bloqué par les murs. Après avoir déterminé les coordonnées du personnage après le mouvement, mais avant d'effectuer le mouvement en lui-même, il faut vérifier le contenu de la case de destination du mouvement. Si cette case contient un game object de type "mur", il faut annuler le mouvement.
+
+Il est possible que vous soyez un peu dans les choux après toutes ces modifs dans le code, à des endroits différents à chaque fois. Je vais vous aider, voici une mise à jour complète de tout le code du jeu, avec la gestion des murs.
+
+Effacez tout le code de votre jeu, copier-collez à la place ce gigantesque texte :
+
+```
+PLAN_DU_NIVEAU = (
+    "                    ",
+    "                $   ",
+    "                    ",
+    "    ######          ",
+    "    #.              ",
+    "    ####            ",
+    "         $   @      ",
+    "                    ",
+    "           #    #   ",
+    "           #    #   ",
+    "           # .$ #   ",
+    "           #  . #   ",
+    "           ######   ",
+    "                    ",
+)
+
+corresp_game_objects_a_partir_char = {
+    " ": ["herbe"],
+    "#": ["herbe", "mur"],
+    "@": ["herbe", "personnage"],
+    "$": ["herbe", "caisse"],
+    ".": ["herbe", "cible"],
+}
+
+class BoardModel():
+
+    def __init__(self):
+
+        self.w = 20
+        self.h = 14
+        self.tiles = []
+
+        for y in range(self.h):
+            ligne_plan_du_niveau = PLAN_DU_NIVEAU[y]
+            line = []
+            for x in range(self.w):
+                char_carte = ligne_plan_du_niveau[x]
+                game_objects = corresp_game_objects_a_partir_char[char_carte]
+                game_objects = list(game_objects)
+                if char_carte  == "@":
+                    self.personnage_x = x
+                    self.personnage_y = y
+                line.append(game_objects)
+            self.tiles.append(line)
+
+    def get_size(self):
+        return self.w, self.h
+
+    def export_all_tiles(self):
+        return self.tiles
+
+    def get_tile(self, x, y):
+        return self.tiles[y][x]
+
+    def on_game_event(self, event_name):
+
+        personnage_dest_x = self.personnage_x
+        personnage_dest_y = self.personnage_y
+
+        if event_name == "R":
+            personnage_dest_x += 1
+        elif event_name == "L":
+            personnage_dest_x -= 1
+        if event_name == "D":
+            personnage_dest_y += 1
+        if event_name == "U":
+            personnage_dest_y -= 1
+
+        if not (0 <= personnage_dest_x < self.w and 0 <= personnage_dest_y < self.h):
+            return
+
+        tile_dest = self.get_tile(personnage_dest_x, personnage_dest_y)
+        if "mur" in tile_dest:
+            return
+
+        tile_avec_perso = self.get_tile(self.personnage_x, self.personnage_y)
+        if "personnage" in tile_avec_perso:
+            tile_avec_perso.remove("personnage")
+
+        self.personnage_x = personnage_dest_x
+        self.personnage_y = personnage_dest_y
+
+        tile_avec_perso = self.get_tile(self.personnage_x, self.personnage_y)
+        tile_avec_perso.append("personnage")
+```
+
+Exécutez le jeu. Ça devrait fonctionner. Le personnage se déplace, mais ne peut pas aller sur les murs.
+
+
+## On en fait des caisses
+
+On approche de la fin, vous allez bientôt avoir un jeu jouable. Il faudrait maintenant que le personnage puisse pousser les caisses.
+
+Dans le chapitre précédent, on a fait une vérification sur le contenu de la tile de destination. S'il y a un mur, on quitte la fonction.
+
+Il faut maintenant faire une vérification supplémentaire. Si la tile de destination contient une caisse, il faut appliquer le même mouvement sur la caisse et sur le personnage. C'est à dire qu'on enlève la caisse de la case où elle se trouve, et on la remet sur une case à côté.
+
+On doit utiliser trois variables :
+
+ - `tile_depart_perso` : la tile où se trouve le personnage au départ.
+ - `tile_dest_perso` : la tile de destination du personnage.
+ - `tile_dest_caisse` : la tile de destination de la caisse, si on pousse une caisse.
+
+On n'a pas besoin d'une variable `tile_depart_caisse`, car c'est la même que `tile_dest_perso`.
+
+Ça fait beaucoup de modifications, mais uniquement dans la fonction `on_game_event`. Je vous remet cette fonction en entier ci-dessous. Supprimez celle qui est dans le code du jeu, et copier-collez celle-ci à la place.
+
+```
+    def on_game_event(self, event_name):
+
+        tile_depart_perso = self.get_tile(self.personnage_x, self.personnage_y)
+        personnage_dest_x = self.personnage_x
+        personnage_dest_y = self.personnage_y
+
+        if event_name == "R":
+            personnage_dest_x += 1
+        elif event_name == "L":
+            personnage_dest_x -= 1
+        if event_name == "D":
+            personnage_dest_y += 1
+        if event_name == "U":
+            personnage_dest_y -= 1
+
+        if not (0 <= personnage_dest_x < self.w and 0 <= personnage_dest_y < self.h):
+            return
+
+        tile_dest_perso = self.get_tile(personnage_dest_x, personnage_dest_y)
+
+        if "mur" in tile_dest_perso:
+            return
+
+        if "caisse" in tile_dest_perso:
+            caisse_dest_x = personnage_dest_x
+            caisse_dest_y = personnage_dest_y
+            if event_name == "R":
+                caisse_dest_x += 1
+            elif event_name == "L":
+                caisse_dest_x -= 1
+            if event_name == "D":
+                caisse_dest_y += 1
+            if event_name == "U":
+                caisse_dest_y -= 1
+
+            tile_dest_caisse = self.get_tile(caisse_dest_x, caisse_dest_y)
+            tile_dest_perso.remove("caisse")
+            tile_dest_caisse.append("caisse")
+
+        if "personnage" in tile_avec_perso:
+            tile_avec_perso.remove("personnage")
+
+        tile_avec_perso = self.get_tile(self.personnage_x, self.personnage_y)
+        tile_avec_perso.append("personnage")
+        self.personnage_x = personnage_dest_x
+        self.personnage_y = personnage_dest_y
+```
+
+Exécutez le jeu, et essayez de pousser une caisse.
+
+
+## Qu'est-ce ? Une caisse !
+
+Essayez ensuite de pousser une caisse vers le bord de l'écran, ou vers un mur, ou vers une autre caisse. Woups ! ça fait n'importe quoi. La caisse sort de l'écran, se téléporte éventuellement de l'autre côté, elle rentre dans un murs, etc.
+
+Lors d'un mouvement, que ce soit un personnage ou une caisse, il faut faire les mêmes vérifications. Sinon, il faut annuler tout le mouvement (du personnage et de la caisse).
+
+On pourrait copier-coller des morceaux de code dans la fonction `on_game_event` pour appliquer ces deux vérifications. Mais ça ferait un code moche et plus difficile à comprendre.
+
+On a déjà une portion de code qui se répète : celle où on applique un mouvement sur des coordonnées. Le bloc de code avec tous les `if event_name == blabla` est répété deux fois.
+
+Dans ces cas là, il faut essayer de ranger le code, de placer les morceaux qui se répètent dans des fonctions, et d'utiliser ces fonctions à tous les endroits où c'est nécessaire. On appelle ça une "factorisation".
+
+Allez, c'est parti. Resupprimez toute la fonction `on_game_event` et remplacez-là par tout le bazar qui suit :
+
+```
+    def coord_mouvement(self, x, y, direction):
+        if direction == "R":
+            x += 1
+        elif direction == "L":
+            x -= 1
+        if direction == "D":
+            y += 1
+        if direction == "U":
+            y -= 1
+        return (x, y)
+
+    def verifier_mouvement(self, dest_x, dest_y):
+        if not (0 <= dest_x < self.w and 0 <= dest_y < self.h):
+            return False
+        if "mur" in self.get_tile(dest_x, dest_y):
+            return False
+        return True
+
+    def on_game_event(self, event_name):
+
+        perso_dest_x, perso_dest_y = self.coord_mouvement(
+            self.personnage_x,
+            self.personnage_y,
+            event_name
+        )
+        if not self.verifier_mouvement(perso_dest_x, perso_dest_y):
+            return
+
+        tile_depart_perso = self.get_tile(self.personnage_x, self.personnage_y)
+        tile_dest_perso = self.get_tile(perso_dest_x, perso_dest_y)
+
+        if "caisse" in tile_dest_perso:
+            caisse_dest_x, caisse_dest_y = self.coord_mouvement(
+                perso_dest_x,
+                perso_dest_y,
+                event_name
+            )
+            if not self.verifier_mouvement(caisse_dest_x, caisse_dest_y):
+                return
+            tile_dest_caisse = self.get_tile(caisse_dest_x, caisse_dest_y)
+            tile_dest_perso.remove("caisse")
+            tile_dest_caisse.append("caisse")
+
+        tile_depart_perso.remove("personnage")
+        tile_dest_perso.append("personnage")
+        self.personnage_x = perso_dest_x
+        self.personnage_y = perso_dest_y
+```
+
+Exécutez le jeu. Essayez de pousser les caisses. Elles ne peuvent plus sortir de l'aire de jeu, et elles ne peuvent plus aller dans les murs.
+
+
+## Une caisse qui encaisse
+
+TODO : y'a des noms avec "perso" et d'autres avec "personnage". Faudrait essayer d'homogénéiser tout ça.
 
