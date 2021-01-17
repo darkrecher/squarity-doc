@@ -2,13 +2,13 @@
 
 Ce tutoriel vous montrera comment créer un petit jeu simple avec Squarity. Il s'agit d'un jeu de type [soko-ban](https://fr.wikipedia.org/wiki/Sokoban), dans lequel un personnage doit pousser des caisses pour les ranger dans des emplacements spécifiques.
 
-Il ne vous est pas nécessaire de connaître le langage python, mais ça peut aider.
+Il n'est pas nécessaire de connaître le langage python, mais ça peut aider.
 
 Certaines notions seront utilisées sans être expliquées en détail, par exemple : le format JSON, la programmation objet, les itérations, etc. À vous d'approfondir ces sujets par vous-mêmes, si vous le souhaitez. Il y a plein de cours de python sur internet.
 
 Ce tutoriel est un peu long, mais rassurez-vous, il est décomposé en plusieurs étapes, et vous êtes récompensé·e par un résultat à chaque fois.
 
-À la fin (TODO : quand j'aurais fini de l'écrire), vous devriez avoir un petit jeu simple qui fonctionne sur Squarity.
+À la fin, vous devriez avoir un petit jeu simple qui fonctionne dans Squarity.
 
 
 ## Le tileset
@@ -27,7 +27,7 @@ Il comporte 5 images d'objets :
  - le personnage
  - une cible, représentant un endroit où il faut placer une caisse.
 
-Ce tileset comporte des pixels transparents. Si vous créez les vôtres, vous aurez peut-être besoin d'un logiciel de dessin capable de gérer la transparence (donc, quelque chose de mieux que Paint).
+Ce tileset comporte des pixels transparents. Si vous créez le vôtre, vous aurez peut-être besoin d'un logiciel de dessin capable de gérer la transparence (donc, quelque chose de mieux que Paint).
 
 Pour pouvoir être utilisé dans un jeu, le tileset doit être publié sur internet, et vous devez connaître son url. Vous pouvez utiliser pour cela des sites d'hébergement d'images, comme https://imgbb.com/ .
 
@@ -37,6 +37,8 @@ Le tileset de ce tutoriel est déjà publié, son url est : https://raw.githubus
 ## Un peu d'herbe
 
 Nous allons créer un premier programme qui fonctionne, mais qui ne constitue pas un vrai jeu. Commencez par vous rendre sur le site http://squarity.fr .
+
+Il y a déjà un jeu de démonstration. Nous allons le remplacer par notre programme.
 
 Dans le champ *"Url de l'image tileset"*, supprimez le texte existant, puis copier-collez l'url de notre tileset :
 
@@ -93,7 +95,7 @@ Votre écran devrait ressembler à ceci (certains boutons ont été supprimés p
 
 Nous allons effectuer des modifications dans le code, pour essayer de comprendre ce que font certaines parties.
 
-À chaque modification, vous devez recliquer sur le bouton "Exécutez le jeu". Pour aller plus vite, vous pouvez utiliser le raccourci clavier Ctrl+Entrée.
+À chaque modification, vous devez recliquer sur le bouton "Exécutez le jeu". Pour aller plus vite, vous pouvez utiliser le raccourci clavier Ctrl-Entrée.
 
 Si vous faites une modification incorrecte, un message d'erreur apparaîtra en bas à gauche, que vous ne comprendrez pas forcément. Le plus simple est alors de revenir à une version du jeu qui fonctionne : faite des Ctrl-Z, ou au pire refaites les copié-collés du chapitre précédent.
 
@@ -105,7 +107,12 @@ Dans le code du jeu, sur la ligne `self.tiles[3][5].append("herbe")`, remplacez 
 
 Lequel définit l'abscisse (X) du carré d'herbe ? Lequel définit son ordonnée (Y) ? Est-ce que l'un des deux nombres pourrait être plus grand que 13 ? Modifiez-le pour vérifier. Quelle est la valeur maximale pour X et la valeur maximale pour Y ?
 
-Dupliquez la ligne `self.tiles[3][5].append("herbe")` (attention à l'indentation, il faut garder les espaces au début). Dans cette deuxième ligne, modifiez le 3 et le 5. Que voyez-vous dans l'aire de jeu ?
+Dupliquez la ligne :
+```
+        self.tiles[3][5].append("herbe")
+```
+
+Attention à l'indentation, il faut garder les espaces au début. Dans la ligne dupliquée, modifiez le 3 et le 5. Que voyez-vous dans l'aire de jeu ?
 
 Vous pouvez re-dupliquer la ligne plusieurs fois si vous le souhaitez.
 
@@ -905,33 +912,34 @@ Allez, c'est parti. Resupprimez toute la fonction `on_game_event` et remplacez-l
 
     def on_game_event(self, event_name):
 
-        perso_dest_x, perso_dest_y = self.coord_mouvement(
+        personnage_dest_x, personnage_dest_y = self.coord_mouvement(
             self.personnage_x,
             self.personnage_y,
             event_name
         )
-        if not self.verifier_mouvement(perso_dest_x, perso_dest_y):
+        if not self.verifier_mouvement(personnage_dest_x, personnage_dest_y):
             return
 
         tile_depart_perso = self.get_tile(self.personnage_x, self.personnage_y)
-        tile_dest_perso = self.get_tile(perso_dest_x, perso_dest_y)
+        tile_dest_perso = self.get_tile(personnage_dest_x, personnage_dest_y)
 
         if "caisse" in tile_dest_perso:
             caisse_dest_x, caisse_dest_y = self.coord_mouvement(
-                perso_dest_x,
-                perso_dest_y,
+                personnage_dest_x,
+                personnage_dest_y,
                 event_name
             )
             if not self.verifier_mouvement(caisse_dest_x, caisse_dest_y):
                 return
             tile_dest_caisse = self.get_tile(caisse_dest_x, caisse_dest_y)
+
             tile_dest_perso.remove("caisse")
             tile_dest_caisse.append("caisse")
 
         tile_depart_perso.remove("personnage")
         tile_dest_perso.append("personnage")
-        self.personnage_x = perso_dest_x
-        self.personnage_y = perso_dest_y
+        self.personnage_x = personnage_dest_x
+        self.personnage_y = personnage_dest_y
 ```
 
 Exécutez le jeu. Essayez de pousser les caisses. Elles ne peuvent plus sortir de l'aire de jeu, et elles ne peuvent plus aller dans les murs.
@@ -939,5 +947,89 @@ Exécutez le jeu. Essayez de pousser les caisses. Elles ne peuvent plus sortir d
 
 ## Une caisse qui encaisse
 
-TODO : y'a des noms avec "perso" et d'autres avec "personnage". Faudrait essayer d'homogénéiser tout ça.
+Essayez de pousser une caisse sur une autre caisse.
 
+Oups, ça fait un bug ! Les deux caisses se retrouvent sur la même tile. Si vous poussez encore une fois, l'une des deux caisses se déplace.
+
+Il est donc possible de déplacer les caisses un peu n'importe comment, mais elles se passent au travers entre elles. C'est amusant mais ce n'est pas du tout ce qu'on veut pour le jeu.
+
+Il faut rajouter une dernière vérification : une caisse ne peut pas être poussée sur une autre caisse.
+
+Cette vérification ne peut pas être ajoutée dans la fonction générique `verifier_mouvement`, car on s'en sert pour vérifier à la fois les mouvements des caisses et du personnage. Or, le personnage peut pousser une caisse. On ne peut pas tout factoriser.
+
+Il faut donc ajouter cette vérification dans la fonction `on_game_event`.
+
+Après cette ligne :
+
+`tile_dest_caisse = self.get_tile(caisse_dest_x, caisse_dest_y)`
+
+Ajouter ce morceau de code :
+
+```
+            if "caisse" in tile_dest_caisse:
+                return
+```
+
+Exécutez le jeu. Essayez de pousser une caisse sur une autre caisse. Ça ne devrait plus être possible.
+
+
+## On y va pour gagner
+
+On peut maintenant considérer que votre jeu est jouable. Mais il n'est pas très fun.
+
+Le but du jeu est d'amener chaque caisse sur une cible. Mais si vous parvenez à le faire, il ne se passera rien de spécial. Le minimum, ce serait d'afficher un petit message de récompense.
+
+Il faudrait parcourir toute l'aire de jeu. Si on trouve une caisse qui n'est pas sur une cible, on considère que le jeu n'est pas gagné, et on ne fait rien. Si chaque caisse est placée sur une cible, alors le jeu est gagné, il faut afficher le message.
+
+Ce traitement est indépendant de tous les traitement qu'on a déjà ajouté dans le code. On va donc le placer dans une fonction, même elle ne sera utilisée qu'une seule fois.
+
+Ajoutez cette fonction à la fin du code :
+
+```
+    def verifier_caisses_sur_cible(self):
+        for y in range(self.h):
+            for x in range(self.w):
+                current_tile = self.get_tile(x, y)
+                if "caisse" in current_tile and "cible" not in current_tile:
+                    return False
+        return True
+```
+
+On n'a besoin de faire cette vérification uniquement lorsqu'une caisse a été déplacée.
+
+Dans la fonction `on_game_event`, après cette ligne :
+
+`tile_dest_caisse.append("caisse")`
+
+Ajoutez ce morceau de code
+
+```
+            if self.verifier_caisses_sur_cible():
+                print("Bravo, vous avez gagné !")
+```
+
+Exécutez le jeu, placez chaque caisse sur une cible. Vous verrez votre superbe message de félicitations s'afficher en bas à gauche.
+
+
+## Le grand final
+
+Voilà, votre jeu est jouable, et il récompense la personne qui joue lorsqu'elle gagne. C'est fun (et si c'est pas aussi fun que Minecraft, osef !).
+
+On va rajouter quelques derniers détails :
+
+ - d'autres caractères dans le plan du niveau, pour représenter une tile avec à la fois une caisse et une cible, et à la fois une cible et le personnage.
+ - la possibilité de définir autant de niveau que l'on veut. On passe automatiquement au niveau suivant lorsqu'on place toutes les caisses sur des cibles.
+
+Comme ce tutoriel est déjà assez long comme ça, et que ces détails ajoutent des morceaux de code un peu partout, je vais vous donner tout le code final.
+
+Les niveaux sont définis au début du code, sous forme d'une liste de variables structurées de la même manière que l'ancienne variable `PLAN_DU_NIVEAU`. Je vous ais mis quelques niveaux assez connus, plus ou moins difficiles, que l'on retrouve dans la plupart des jeux soko-ban. Vous pouvez en ajouter, modifier, ou supprimer comme bon vous semble.
+
+Voici tous les caractères utilisés pour définir les niveaux :
+
+(TODO)
+
+Effacez tout le code du jeu actuel, et copier-collez tout le texte ci-dessous. Comme ça, même si vous êtes dans les choux et que vous n'avez pas entièrement compris les étapes précédentes, vous avez votre jeu complet :
+
+(TODO)
+
+N'hésitez pas à bidouiller ce code autant que vous le pouvez, pour essayer de comprendre un peu mieux comment il fonctionne. Consultez des tutoriels et des cours spécifiques sur le python. Créez d'autres jeux, ou modifiez celui-là. Bref : amusez-vous bien !
