@@ -498,14 +498,14 @@ On a ajouté le type de game object "herbe" dans toutes les listes, sauf les deu
 
 Exécutez le jeu, ça devrait être plus beau, chaque objet devrait s'afficher sur l'herbe, au lieu d'avoir un fond noir moche.
 
-Un dernier petit détail, pour les gens qui s'y connaissent un peu en python. La ligne `game_objects = list(game_objects)` est importante. La fonction `list` permet de créer une nouvelle copie de la liste, pour chaque tile. Si vous ne le faites pas, vous aurez plusieurs références à la même liste. Lorsque vous changerez le contenu de l'une des tiles (en ajoutant ou supprimant un game object), cela modifiera également toutes les autres. On ne va pas rentrer plus loin dans les explications, tout ce que vous avez à savoir pour ce tutoriel, c'est qu'il faut laisser cette ligne de code.
+Un dernier petit détail, pour les gens qui s'y connaissent un peu en python. La ligne `game_objects = list(game_objects)` est importante. La fonction `list` permet de créer une copie pour chaque tile. Si vous ne le faites pas, vous aurez plusieurs références à la même liste. Lorsque vous changerez le contenu de l'une des tiles (en ajoutant ou supprimant un game object), cela modifiera également toutes les autres. On ne va pas rentrer plus loin dans les explications, tout ce que vous avez à savoir pour ce tutoriel, c'est qu'il faut laisser cette ligne de code.
 
 
 ## Petite pause
 
 Si vous avez lu et effectué ce qui est demandé jusqu'ici, bravo ! Vous avez bien mérité une petite pause ! Mangez un morceau, jouez à un jeu qui vous plaît et nourrissez votre poisson rouge. Pour la suite, on s'attaquera à un gros morceau : l'interactivité et le mouvement du personnage.
 
-(TODO : un poisson rouge)
+![https://raw.githubusercontent.com/darkrecher/squarity-doc/master/user_manual/goldfish.png](https://www.clipartmax.com/middle/m2H7i8m2Z5N4K9K9_goldfish-fish-pixel-pixels-pixelart-aesthetic-localcupc-goldfish-pixel-art/)
 
 
 ## On écrit (pas sur les murs)
@@ -517,9 +517,7 @@ Dans le code du jeu, tout à la fin, ajoutez la fonction suivante :
         print(event_name)
 ```
 
-Exécutez le jeu, puis cliquez sur les boutons. Le programme ne plante plus, et du texte s'affiche en bas à gauche à chaque appui de boutons.
-
-Le texte dépend du bouton appuyé :
+Exécutez le jeu, puis cliquez sur les boutons. Le programme ne plante plus, et du texte s'affiche en bas à gauche, selon le bouton appuyé :
 
  - "U" (up) : le bouton "haut"
  - "D" (down) : bouton "bas"
@@ -528,69 +526,65 @@ Le texte dépend du bouton appuyé :
  - "action_1" : bouton "1"
  - "action_2" : bouton "2"
 
-La fonction que vous ajoutée se nomme `on_game_event`, elle se trouve à l'intérieur de la classe `BoardModel`. Il s'agit d'une fonction spéciale (on appelle ça une "callback"). Elle est exécutée lorsque on appuie sur un bouton du jeu. Le paramètre `event_name` permet de savoir quel bouton a été appuyé.
+La fonction que vous avez ajoutée se nomme `on_game_event`, elle se trouve à l'intérieur de la classe `BoardModel`. Elle est spéciale (on appelle ça une "callback"), car elle est exécutée lorsqu'on appuie sur un bouton du jeu. Le paramètre `event_name` permet de savoir quel bouton a été appuyé.
 
-Vous pouvez ensuite écrire le code que vous voulez dans la fonction, ce qui vous permettra de déplacer des personnages, de répandre de la lave, de téléporter des monstres, ...
+Vous pouvez ensuite écrire du code dans la fonction, pour déclencher ce que vous voulez : ouvrir des portes, répandre de la lave, téléporter des monstres, ...
 
 
 ## Ça bouge !
 
 Pour commencer, il faut que le personnage se déplace. C'est l'élément principal du jeu, il mérite bien quelques variables que pour lui.
 
-Au début de la fonction d'initialisation, c'est à dire juste après la ligne `def __init__(self):`, ajoutez les deux lignes suivantes :
-
+Au début de la fonction d'initialisation, c'est à dire juste après la ligne `def __init__(self):`, ajoutez ces deux lignes :
 ```
         self.personnage_x = 13
         self.personnage_y = 6
 ```
 
-Puis, dans la fonction `on_game_event` (c'est à dire à la fin du code du jeu), ajoutez le code suivant :
-
+Puis, dans la fonction `on_game_event` (c'est à dire à la fin du code du jeu), ajoutez ce code :
 ```
-        tile_avec_perso = self.get_tile(self.personnage_x, self.personnage_y)
-        if "personnage" in tile_avec_perso:
-            tile_avec_perso.remove("personnage")
+        tile_personnage = self.get_tile(self.personnage_x, self.personnage_y)
+        if "personnage" in tile_personnage:
+            tile_personnage.remove("personnage")
 
         self.personnage_x += 1
 
-        tile_avec_perso = self.get_tile(self.personnage_x, self.personnage_y)
-        tile_avec_perso.append("personnage")
+        tile_personnage = self.get_tile(self.personnage_x, self.personnage_y)
+        tile_personnage.append("personnage")
 ```
 
 Exécutez le jeu.
 
 Appuyez sur un bouton, n'importe lequel. À chaque fois, le personnage se déplacera vers la droite.
 
-C'est bien. Le problème c'est qu'il se déplace vers la droite quel que soit le bouton sur lequel vous appuyez. En plus, lorsque le personnage va trop vers la droite, ça plante.
+C'est bien. Le problème c'est qu'il se déplace tout le temps vers la droite. Et au bout d'un moment, ça plante.
 
 Bon, c'est juste un début.
 
 
 ## Rebidouillons un peu
 
-Dans la fonction `on_game_event`, nous avons ajouté trois morceaux de code, séparés par une ligne vide. Le premier supprime le personnage de l'aire de jeu, le deuxième modifie les coordonnées du personnage, et le troisième le rajoute sur l'aire de jeu, à sa nouvelle position.
+Dans la fonction `on_game_event`, nous avons ajouté trois morceaux de code, séparés par une ligne vide. Le premier supprime le personnage de l'aire de jeu, le deuxième modifie les coordonnées du personnage, et le troisième le replace à sa nouvelle position.
 
 Le deuxième bloc de code ne contient qu'une seule ligne : `self.personnage_x += 1`. L'opérateur `+=` permet d'ajouter une valeur à une variable. L'opérateur `-=` permet de soustraire.
 
-Essayez de faire en sorte que le personnage se déplace vers la gauche lorsqu'on appuie sur un bouton, puis vers le haut et vers le bas.
-
-Ces bidouilles ne vous permettront pas d'avoir un personnage qui se déplace dans une direction différente selon le bouton appuyé. On verra ça dans le chapitre suivant.
-
 Mettez une autre valeur que "1" dans cette ligne de code et essayez de comprendre ce que ça fait.
 
-Au début du code, modifiez la variable `PLAN_DU_NIVEAU`, mettez le personnage à un autre endroit (il est représenté par le caractère `@`). Est-ce que ça fonctionne comme il faut. Manifestement non. On réglera ça très bientôt.
+Remettez la valeur "1". Essayez de faire en sorte que le personnage se déplace vers la gauche lorsqu'on appuie sur un bouton, puis vers le haut, puis vers le bas.
+
+Ces bidouilles ne vous permettront pas d'avoir un personnage qui se déplace dans la bonne direction selon le bouton appuyé. On verra ça dans le chapitre suivant.
+
+Au début du code, modifiez la variable `PLAN_DU_NIVEAU`, mettez le personnage à un autre endroit (il est représenté par le caractère `@`). Est-ce que ça fonctionne comme il faut ? Manifestement non. On réglera ça très bientôt.
 
 
 ## Ça bouge dans les 4 directions
 
 Remplacez la ligne que l'on a bidouillé :
-
 ```
         self.personnage_x += 1
 ```
 
-Par ces lignes :
-
+Par tout ce bloc :
 ```
         if event_name == "R":
             self.personnage_x += 1
@@ -606,25 +600,25 @@ Exécutez le jeu.
 
 Cette fois-ci, le personnage devrait pouvoir se déplacer dans les 4 directions.
 
-Essayez de sortir des bords de l'aire de jeu. Sur les bords droite et bas, ça fera une erreur et vous devrez re-exécutez le jeu.
+Essayez de sortir des bords de l'aire de jeu. À droite et en bas, ça fera une erreur et vous devrez re-exécutez le jeu.
 
-Sur les bords haut et gauche, le personnage réapparaîtra de l'autre côté. Mais si vous tentez de ressortir par le même bord, cette-fois ci ça fera une erreur.
+En haut et à gauche, le personnage réapparaîtra de l'autre côté. Mais si vous traversez l'aire de jeu et ressortez par le même bord, ça fera une erreur.
 
-Il y a une explication à cela, qui est liée à la façon dont on peut indexer les éléments d'une liste en python. Mais on ne va pas rentrer dans ces détails. Juste comme ça rapidement : `["a", "b", "c", "d"][0] == "a"` et `["a", "b", "c", "d"][-1] == "d"`.
+Il y a une explication à cela, qui est liée à la manière d'indexer les éléments d'une liste en python. On ne va pas rentrer dans ces détails. Juste comme ça rapidement : `["a", "b", "c", "d"][0] == "a"` et `["a", "b", "c", "d"][-1] == "d"`.
 
 ![https://raw.githubusercontent.com/darkrecher/squarity-doc/master/user_manual/tuto_move_border.png](https://raw.githubusercontent.com/darkrecher/squarity-doc/master/user_manual/tuto_move_border.png)
 
 
-## Empêcher le dépassement des bords
+## Empêcher le personnage de dépasser les bords
 
-Ce serait quand même bien que le personnage ne puisse pas dépasser les bords. On va avoir besoin de variables temporaires.
+On va avoir besoin de variables temporaires.
 
- - D'abord on définit deux variables temporaires : `personnage_dest_x` et `personnage_dest_y`. On les initialise aux coordonnées actuelles du personnage.
- - On modifie l'une de ces deux variables, selon le déplacement à faire, comme on a fait dans chapitre précédent.
- - On vérifie si ces deux variables sont sorties par un bord.
- - Si ça sort, on ne doit pas faire de mouvement. On peut quitter directement la fonction. On utilise pour cela l'instruction python `return`.
- - Si les variables sont toujours dans l'aire de jeu, on peut réellement appliquer le mouvement.
- - Comme précédemment, on enlève le game object, on modifie les coordonnées réelles du personnage, et on rajoute le game object à sa nouvelle position.
+ - D'abord on définit `personnage_dest_x` et `personnage_dest_y`. On initialise ces variables aux coordonnées actuelles du personnage.
+ - On modifie l'une de ces deux variables, selon le déplacement à faire, comme on a fait dans le chapitre précédent.
+ - On vérifie si ça fait sortir par un bord.
+ - Si ça sort, on ne doit pas faire de mouvement. On quitte directement la fonction, en utilisant l'instruction python `return`.
+ - Si non, on peut appliquer le mouvement.
+ - Comme précédemment, on enlève le game object, on modifie les coordonnées réelles du personnage, et on rajoute le game object à la nouvelle position.
 
 Dans le code du jeu, remplacez toute la fonction `on_game_event` par ce code :
 
@@ -646,15 +640,15 @@ Dans le code du jeu, remplacez toute la fonction `on_game_event` par ce code :
         if not (0 <= personnage_dest_x < self.w and 0 <= personnage_dest_y < self.h):
             return
 
-        tile_avec_perso = self.get_tile(self.personnage_x, self.personnage_y)
-        if "personnage" in tile_avec_perso:
-            tile_avec_perso.remove("personnage")
+        tile_personnage = self.get_tile(self.personnage_x, self.personnage_y)
+        if "personnage" in tile_personnage:
+            tile_personnage.remove("personnage")
 
         self.personnage_x = personnage_dest_x
         self.personnage_y = personnage_dest_y
 
-        tile_avec_perso = self.get_tile(self.personnage_x, self.personnage_y)
-        tile_avec_perso.append("personnage")
+        tile_personnage = self.get_tile(self.personnage_x, self.personnage_y)
+        tile_personnage.append("personnage")
 ```
 
 Le personnage ne peut plus sortir de l'aire de jeu.
@@ -664,51 +658,50 @@ Le personnage ne peut plus sortir de l'aire de jeu.
 
 Comme nous avons vu dans le bidouillage précédent, le personnage doit obligatoirement commencer aux coordonnées (x=13, y=6), sinon ça ne marche pas bien. Nous allons régler ce problème.
 
-Lors de l'initialisation du jeu, la valeur des variables `self.personnage_x` et `self.personnage_y` doit dépendre du niveau, et de l'endroit où on a placé le caractère "@" dedans.
+Lors de l'initialisation du jeu, la valeur des variables `self.personnage_x` et `self.personnage_y` doit dépendre du plan du niveau, et plus précisément de l'endroit où se trouve le caractère "@".
 
-Il faudrait parcourir tout le niveau, repérer le caractère "@", prendre ses coordonnées, et les placer dans ces deux variables.
+Il faudrait parcourir tout le plan du niveau, repérer le caractère "@", prendre ses coordonnées, et les placer dans ces deux variables.
 
-On parcourt déjà tout le niveau au moment de placer les game objects dans self.tiles, on va donc en profiter.
+On fait déjà un parcours du plan au début du jeu, on va en profiter.
 
-Dans la fonction `def __init__(self)`, juste après la ligne de code `ligne.append(game_objects)`, ajoutez le code suivant (sans oublier les espaces au début, comme d'habitude).
-
+Dans la fonction `def __init__(self)`, dans la boucle de boucle, juste après la ligne de code `ligne.append(game_objects)`, ajoutez le code suivant :
 ```
                 if char_carte == "@":
                     self.personnage_x = x
                     self.personnage_y = y
 ```
 
+Comme d'habitude, attention aux espaces au début de chaque ligne.
 Exécutez le jeu. Il devrait fonctionner comme avant.
 
-Dans la variable `PLAN_DU_NIVEAU`, déplacez le caractère "@", mettez-le n'importe où dans le plan.
+Dans la variable `PLAN_DU_NIVEAU`, déplacez le caractère "@".
 
 Exécutez le jeu. Essayez de déplacer le personnage. Ça devrait fonctionner comme il faut dès le début. C'est à dire que le personnage ne fera pas de téléportation bizarre.
 
-Les deux variables sont initialisées dans la boucle de boucle, donc maintenant, vous n'avez plus besoin de ces deux lignes qui se trouvent au début de la fonction :
-
+Les deux variables sont initialisées dans la boucle de boucle, vous n'avez donc plus besoin de ces deux lignes qui sont restés au début de la fonction :
 ```
         self.personnage_x = 13
         self.personnage_y = 6
 ```
 
-Vous pouvez les supprimer.
+Vous pouvez tester une mini-bidouille : remodifiez le `PLAN_DU_NIVEAU` en ajoutant plusieurs caractères "@". Exécutez le jeu. On voit plusieurs personnages, mais il n'y en a qu'un seul qui se déplace.
 
-Vous pouvez tester une mini-bidouille : remodifiez le `PLAN_DU_NIVEAU` en ajoutant plusieurs caractère "@". Exécutez le jeu. On voit plusieurs personnages, mais il n'y en a qu'un seul qui se déplace.
+Ajoutez ou déplacez des caractères "@" comme vous le souhaitez, et essayez de repérer à chaque fois quel est le personnage qui sera déplaçable. Il n'est pas choisi au hasard.
 
-Ajoutez ou déplacez les caractères "@" comme vous le souhaitez, et essayez de repérer à chaque fois quel est le personnage qui sera déplaçable. (Il n'est pas choisi au hasard).
-
-Dans la suite de ce tutoriel, on gardera des niveaux avec un seul caractère "@" à chaque fois. On ne gère pas le cas où il y a plusieurs personnages. Mais rien ne vous empêche de créer une autre version du jeu dans laquelle on en dirigerait plusieurs en même temps.
+Dans la suite de ce tutoriel, on gardera des niveaux avec un seul caractère "@". On ne gère pas le cas où il y a plusieurs personnages. Mais rien ne vous empêche de créer une autre version du jeu où ce serait géré.
 
 
 ## On se cogne sur les murs
 
-Un personnage qui passe à travers tout, c'est génial, comme super pouvoir. Mais ça ne fait pas un jeu très intéressant.
+Un personnage qui passe à travers tout, c'est un super-pouvoir génial. Mais ça ne fait pas un jeu très intéressant.
 
-Il faut que le personnage soit bloqué par les murs. Après avoir déterminé les coordonnées du personnage après le mouvement, mais avant d'effectuer le mouvement en lui-même, il faut vérifier le contenu de la case de destination du mouvement. Si cette case contient un game object de type "mur", il faut annuler le mouvement.
+Après avoir déterminé les coordonnées du personnage après mouvement, mais avant d'effectuer le mouvement en lui-même, il faut vérifier le contenu de la case de destination. Si cette case contient un game object de type "mur", il faut annuler le mouvement.
 
-Il est possible que vous soyez un peu dans les choux après toutes ces modifs dans le code, à des endroits différents à chaque fois. Je vais vous aider, voici une mise à jour complète de tout le code du jeu, avec la gestion des murs.
+Il est possible que vous soyez un peu dans les choux après ces nombreuses modifs dans le code. C'est comme ça que fonctionne la programmaton. On rajoute des petits morceaux au fur et à mesure. Tout n'est pas écrit d'une traite du début à la fin.
 
-Effacez tout le code de votre jeu, copier-collez à la place ce gigantesque texte :
+Je vais quand même vous aider, voici un récapitutif complet du code, avec la gestion des murs.
+
+Effacez tout le code de votre jeu, et copier-collez à la place ce gigantesque texte :
 
 ```
 PLAN_DU_NIVEAU = (
@@ -787,15 +780,15 @@ class BoardModel():
         if "mur" in tile_dest:
             return
 
-        tile_avec_perso = self.get_tile(self.personnage_x, self.personnage_y)
-        if "personnage" in tile_avec_perso:
-            tile_avec_perso.remove("personnage")
+        tile_personnage = self.get_tile(self.personnage_x, self.personnage_y)
+        if "personnage" in tile_personnage:
+            tile_personnage.remove("personnage")
 
         self.personnage_x = personnage_dest_x
         self.personnage_y = personnage_dest_y
 
-        tile_avec_perso = self.get_tile(self.personnage_x, self.personnage_y)
-        tile_avec_perso.append("personnage")
+        tile_personnage = self.get_tile(self.personnage_x, self.personnage_y)
+        tile_personnage.append("personnage")
 ```
 
 Exécutez le jeu. Ça devrait fonctionner. Le personnage se déplace, mais ne peut pas aller sur les murs.
@@ -803,9 +796,9 @@ Exécutez le jeu. Ça devrait fonctionner. Le personnage se déplace, mais ne pe
 
 ## Seconde petite pause
 
-Re-nourrissez votre poisson rouge.
+Re-nourrissez votre poisson rouge, il en a besoin.
 
-(TODO : autre image de poisson rouge)
+![https://raw.githubusercontent.com/darkrecher/squarity-doc/master/user_manual/fish2.png](http://pixelartmaker.com/art/c9d0a98ae70ec58)
 
 
 ## On pousse des caisses (mais on n'en largue pas !)
@@ -816,7 +809,7 @@ Dans le chapitre précédent, on a fait une vérification sur le contenu de la t
 
 Il faut maintenant faire une vérification supplémentaire. Si la tile de destination contient une caisse, il faut appliquer le même mouvement sur la caisse et sur le personnage. C'est à dire qu'on enlève la caisse de la case où elle se trouve, et on la remet sur une case à côté.
 
-On doit utiliser trois variables :
+On définira trois variables :
 
  - `tile_depart_perso` : la tile où se trouve le personnage au départ.
  - `tile_dest_perso` : la tile de destination du personnage.
@@ -866,11 +859,10 @@ On n'a pas besoin d'une variable `tile_depart_caisse`, car c'est la même que `t
             tile_dest_perso.remove("caisse")
             tile_dest_caisse.append("caisse")
 
-        if "personnage" in tile_avec_perso:
-            tile_avec_perso.remove("personnage")
+        if "personnage" in tile_depart_perso:
+            tile_depart_perso.remove("personnage")
 
-        tile_avec_perso = self.get_tile(self.personnage_x, self.personnage_y)
-        tile_avec_perso.append("personnage")
+        tile_dest_perso.append("personnage")
         self.personnage_x = personnage_dest_x
         self.personnage_y = personnage_dest_y
 ```
@@ -880,13 +872,13 @@ Exécutez le jeu, et essayez de pousser une caisse.
 
 ## Empêcher les caisses d'aller n'importe où
 
-Essayez ensuite de pousser une caisse vers le bord de l'écran, ou vers un mur, ou vers une autre caisse. Woups ! ça fait n'importe quoi. La caisse sort de l'écran, se téléporte éventuellement de l'autre côté, elle rentre dans un murs, etc.
+Essayez de pousser des caisses un peu partout. Woups ! ça fait n'importe quoi. La caisse sort de l'écran, se téléporte éventuellement de l'autre côté, rentre dans un mur, etc.
 
 Lors d'un mouvement, que ce soit un personnage ou une caisse, il faut faire les mêmes vérifications. Sinon, il faut annuler tout le mouvement (du personnage et de la caisse).
 
-On pourrait copier-coller des morceaux de code dans la fonction `on_game_event` pour appliquer ces deux vérifications. Mais ça ferait un code moche et plus difficile à comprendre.
+On pourrait copier-coller des morceaux de code dans la fonction `on_game_event`. Mais ça ferait un code moche et plus difficile à comprendre.
 
-On a déjà une portion de code qui se répète : celle où on applique un mouvement sur des coordonnées. Le bloc de code avec tous les `if event_name == blabla` est répété deux fois.
+On a déjà une portion de code qui se répète : celle où on applique un mouvement sur des coordonnées.
 
 Dans ces cas là, il faut essayer de ranger le code, de placer les morceaux qui se répètent dans des fonctions, et d'utiliser ces fonctions à tous les endroits où c'est nécessaire. On appelle ça une "factorisation".
 
@@ -950,21 +942,20 @@ Exécutez le jeu. Essayez de pousser les caisses. Elles ne peuvent plus sortir d
 
 Essayez de pousser une caisse sur une autre caisse.
 
-Oups, ça fait un bug ! Les deux caisses se retrouvent sur la même tile. Si vous poussez encore une fois, l'une des deux caisses se déplace.
-
-Il est donc possible de déplacer les caisses un peu n'importe comment, mais elles se passent au travers entre elles. C'est amusant mais ce n'est pas du tout ce qu'on veut pour le jeu.
+Oups, ça fait toujours un bug ! Les deux caisses se retrouvent sur la même tile. Si vous poussez encore une fois, l'une des deux caisses se déplace. C'est amusant mais ce n'est pas du tout ce qu'on veut pour le jeu.
 
 Il faut rajouter une dernière vérification : une caisse ne peut pas être poussée sur une autre caisse.
 
 Cette vérification ne peut pas être ajoutée dans la fonction générique `verifier_mouvement`, car on s'en sert pour vérifier à la fois les mouvements des caisses et du personnage. Or, le personnage peut pousser une caisse. On ne peut pas tout factoriser.
 
-Il faut donc ajouter cette vérification dans la fonction `on_game_event`.
+Il faut donc ajouter la dernière vérification dans la fonction `on_game_event`.
 
 Après cette ligne :
+```
+            tile_dest_caisse = self.get_tile(caisse_dest_x, caisse_dest_y)
+```
 
-`tile_dest_caisse = self.get_tile(caisse_dest_x, caisse_dest_y)`
-
-Ajouter ce morceau de code :
+Ajouter ce code :
 
 ```
             if "caisse" in tile_dest_caisse:
@@ -978,13 +969,13 @@ Exécutez le jeu. Essayez de pousser une caisse sur une autre caisse. Ça ne dev
 
 On peut maintenant considérer que votre jeu est jouable. Mais il n'est pas très fun.
 
-Le but du jeu est d'amener chaque caisse sur une cible. Mais si vous parvenez à le faire, il ne se passera rien de spécial. Le minimum, ce serait d'afficher un petit message de récompense.
+Le but du jeu est d'amener chaque caisse sur une cible. Mais si vous y parvenez, il ne se passera rien de spécial. Le minimum, ce serait d'afficher un petit message de récompense.
 
-Il faudrait parcourir toute l'aire de jeu. Si on trouve une caisse qui n'est pas sur une cible, on considère que le jeu n'est pas gagné, et on ne fait rien. Si chaque caisse est placée sur une cible, alors le jeu est gagné, il faut afficher le message.
+Il faudrait parcourir toute l'aire de jeu. Si on trouve une caisse qui n'est pas sur une cible, on considère que le jeu n'est pas gagné, et on ne fait rien. Mais si chaque caisse est sur une cible, alors le jeu est gagné, on peut afficher un message.
 
-Ce traitement est indépendant de tous les traitement qu'on a déjà ajouté dans le code. On va donc le placer dans une fonction, même elle ne sera utilisée qu'une seule fois.
+Ce traitement est indépendant de tous les traitement qu'on a déjà ajouté dans le code. On va donc le placer dans une fonction, même si elle ne sera utilisée qu'une seule fois.
 
-Ajoutez cette fonction à la fin du code :
+Ajoutez ceci à la fin du code :
 
 ```
     def verifier_caisses_sur_cible(self):
@@ -996,20 +987,20 @@ Ajoutez cette fonction à la fin du code :
         return True
 ```
 
-On n'a besoin de faire cette vérification uniquement lorsqu'une caisse a été déplacée.
+On n'a besoin de faire cette vérification que lorsqu'une caisse a été déplacée.
 
 Dans la fonction `on_game_event`, après cette ligne :
+```
+            tile_dest_caisse.append("caisse")
+```
 
-`tile_dest_caisse.append("caisse")`
-
-Ajoutez ce morceau de code
-
+Ajoutez ce morceau de code :
 ```
             if self.verifier_caisses_sur_cible():
                 print("Bravo, vous avez gagné !")
 ```
 
-Exécutez le jeu, placez chaque caisse sur une cible. Vous verrez votre superbe message de félicitations s'afficher en bas à gauche.
+Exécutez le jeu. Placez chaque caisse sur une cible. Vous verrez votre superbe message de félicitations s'afficher en bas à gauche.
 
 
 ## Le grand final
@@ -1019,11 +1010,11 @@ Voilà, votre jeu est jouable, et il récompense la personne qui joue lorsqu'ell
 On va rajouter quelques derniers détails :
 
  - d'autres caractères dans le plan du niveau, pour représenter une tile avec à la fois une caisse et une cible, et à la fois une cible et le personnage.
- - la possibilité de définir autant de niveau que l'on veut. On passe automatiquement au niveau suivant lorsqu'on place toutes les caisses sur des cibles.
+ - la possibilité de définir autant de niveau que l'on veut. On passe automatiquement au niveau suivant lorsqu'on gagne.
 
-Comme ce tutoriel est déjà assez long comme ça, et que ces détails ajoutent des morceaux de code un peu partout, je vais vous donner tout le code final.
+Comme ce tutoriel est déjà assez long comme ça, et que ces détails ajoutent des morceaux de code un peu partout, je vais directement vous donner tout le code final.
 
-Les niveaux sont définis au début du code, sous forme d'une liste de variables structurées de la même manière que l'ancienne variable `PLAN_DU_NIVEAU`. Je vous ais mis quelques niveaux assez connus, plus ou moins difficiles, que l'on retrouve dans la plupart des jeux soko-ban. Vous pouvez en ajouter, modifier, ou supprimer comme bon vous semble.
+Les niveaux sont définis au début du code, sous forme d'une liste de variables structurées de la même manière que l'ancienne variable `PLAN_DU_NIVEAU`. Vous pouvez en ajouter, modifier, ou supprimer comme bon vous semble.
 
 Voici tous les caractères utilisés pour définir les niveaux :
 
@@ -1033,6 +1024,6 @@ Effacez tout le code du jeu actuel, et copier-collez tout le texte ci-dessous. C
 
 (TODO)
 
-N'hésitez pas à bidouiller ce code autant que vous le pouvez, pour essayer de comprendre un peu mieux comment il fonctionne. Consultez des tutoriels et des cours spécifiques sur le python. Créez d'autres jeux, ou modifiez celui-là. Bref : amusez-vous bien !
+Si vous êtes arrivés jusqu'ici, bravo ! N'hésitez pas à bidouiller ce code autant que vous le pouvez, pour mieux comprendre comment il fonctionne. Consultez des tutoriels et des cours spécifiques sur le python. Créez d'autres jeux, ou modifiez celui-là. Bref : amusez-vous bien !
 
 TODO : plein de screenshots à refaire. La cible doit être plus grande pour être visible sous la caisse.
