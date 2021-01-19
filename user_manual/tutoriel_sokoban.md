@@ -505,7 +505,7 @@ Un dernier petit détail, pour les gens qui s'y connaissent un peu en python. La
 
 Si vous avez lu et effectué ce qui est demandé jusqu'ici, bravo ! Vous avez bien mérité une petite pause ! Mangez un morceau, jouez à un jeu qui vous plaît et nourrissez votre poisson rouge. Pour la suite, on s'attaquera à un gros morceau : l'interactivité et le mouvement du personnage.
 
-![https://raw.githubusercontent.com/darkrecher/squarity-doc/master/user_manual/goldfish.png](https://www.clipartmax.com/middle/m2H7i8m2Z5N4K9K9_goldfish-fish-pixel-pixels-pixelart-aesthetic-localcupc-goldfish-pixel-art/)
+![https://www.clipartmax.com/middle/m2H7i8m2Z5N4K9K9_goldfish-fish-pixel-pixels-pixelart-aesthetic-localcupc-goldfish-pixel-art/](https://raw.githubusercontent.com/darkrecher/squarity-doc/master/user_manual/goldfish.png)
 
 
 ## On écrit (pas sur les murs)
@@ -798,7 +798,7 @@ Exécutez le jeu. Ça devrait fonctionner. Le personnage se déplace, mais ne pe
 
 Re-nourrissez votre poisson rouge, il en a besoin.
 
-![https://raw.githubusercontent.com/darkrecher/squarity-doc/master/user_manual/fish2.png](http://pixelartmaker.com/art/c9d0a98ae70ec58)
+![http://pixelartmaker.com/art/c9d0a98ae70ec58](https://raw.githubusercontent.com/darkrecher/squarity-doc/master/user_manual/fish2.png)
 
 
 ## On pousse des caisses (mais on n'en largue pas !)
