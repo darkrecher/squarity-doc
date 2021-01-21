@@ -177,8 +177,6 @@ par
                 game_objects = ["herbe"]
 ```
 
-TODO : markdown stupide de github qui met pas les espaces au début, sauf avec les triples inverted quotes.
-
 Exécutez votre jeu. Vous devriez voir de l'herbe partout.
 
 La ligne que vous venez de modifier se trouve dans une boucle (pour être exact : dans une boucle de boucle). Elle est exécutée pour chaque case de l'aire de jeu, ce qui ajoute de l'herbe partout.
@@ -1009,8 +1007,9 @@ Voilà, votre jeu est jouable, et il récompense la personne qui joue lorsqu'ell
 
 On va rajouter quelques derniers détails :
 
- - d'autres caractères dans le plan du niveau, pour représenter une tile avec à la fois une caisse et une cible, et à la fois une cible et le personnage.
- - la possibilité de définir autant de niveau que l'on veut. On passe automatiquement au niveau suivant lorsqu'on gagne.
+ - D'autres caractères dans le plan du niveau, pour représenter une tile avec à la fois une caisse et une cible, et à la fois une cible et le personnage.
+ - La possibilité de définir autant de niveau que l'on veut. On passe automatiquement au niveau suivant lorsqu'on gagne.
+ - Lorsqu'on appuie deux fois de suite sur le bouton d'action numéro 1, le niveau en cours est réinitialisée.
 
 Comme ce tutoriel est déjà assez long comme ça, et que ces détails ajoutent des morceaux de code un peu partout, je vais directement vous donner tout le code final.
 
@@ -1018,12 +1017,246 @@ Les niveaux sont définis au début du code, sous forme d'une liste de variables
 
 Voici tous les caractères utilisés pour définir les niveaux :
 
-(TODO)
+ - `#` : mur
+ - `@` : personnage
+ - `+` : le personnage sur une cible
+ - `$` : caisse
+ - `*` : une caisse sur une cible
+ - `.` : cible
+ - " " (un espace) : rien
 
 Effacez tout le code du jeu actuel, et copier-collez tout le texte ci-dessous. Comme ça, même si vous êtes dans les choux et que vous n'avez pas entièrement compris les étapes précédentes, vous avez votre jeu complet :
 
-(TODO)
+```
+PLANS_DES_NIVEAUX_ET_DESCRIPTIONS = (
+    (
+        "Origine de ce niveau : http://www.sokobano.de/wiki/index.php?title=Optimizer",
+        (
+            "                    ",
+            "          ####      ",
+            "         ##. ##     ",
+            "     ##### .  #     ",
+            "     #   #  # #     ",
+            "     # $ #  # #     ",
+            "     # $      #     ",
+            "     ######  ##     ",
+            "          # ##      ",
+            "          # #       ",
+            "          # #       ",
+            "         ## ##      ",
+            "         # @ #      ",
+            "         #   #      ",
+        )
+    ),
+    (
+        "Origine : https://www.mathsisfun.com/games/sokoban.html (un peu transformé)",
+        (
+            "    #####           ",
+            "    #   #      ###  ",
+            "    #$  #      #.#  ",
+            "  ###  $###    # #  ",
+            "  #  $  $ #   ## ###",
+            "### # ### #   #   .#",
+            "#   # ### #####  ###",
+            "# $  $           ..#",
+            "########### ###  ###",
+            "          # # #   .#",
+            "          # # ## ###",
+            "          # #  # #  ",
+            "          # #  #.#  ",
+            "          #@#  ###  ",
+        )
+    ),
+    (
+        "Origine : https://www.mathsisfun.com/games/sokoban.html",
+        (
+            "                    ",
+            "                    ",
+            "                    ",
+            "         #####      ",
+            "##########   #      ",
+            " @      . $  #      ",
+            "########## $.#      ",
+            "       #.##$ #      ",
+            "       # # . ##     ",
+            "       #$ *$$.#     ",
+            "       #   .  #     ",
+            "       ## #####     ",
+            "        # #         ",
+            "        # #         ",
+        )
+    ),
+    (
+        "Origine : https://alonso-delarte.medium.com/the-basics-of-sokoban-level-formats-for-designing-your-own-sokoban-levels-51882a7a36f0",
+        (
+            "       #####        ",
+            "   #####   #####    ",
+            "   #           #    ",
+            "   #  ### ###  #    ",
+            " #### #     # ####  ",
+            "##    #  *  #    #  ",
+            "   $  # *+*      #  ",
+            "##    #  *  #    #  ",
+            " #### #     # ####  ",
+            "   #  ### ###  #    ",
+            "   #           #    ",
+            "   #####   #####    ",
+            "       #####        ",
+            "                    ",
+        ),
+    ),
+    (
+        "Bravo, vous avez réussi tous les niveaux. Pourquoi ne pas en profiter pour créer les vôtres ?",
+        (
+            "         @          ",
+            "#  #  ### #   #  #  ",
+            "#  #  #    # #   #  ",
+            "####  ##    #    #  ",
+            "#  #  #     #       ",
+            "#  #  ###   #    #  ",
+            "                    ",
+            "        ####        ",
+            "       #    #       ",
+            "      # .  . #      ",
+            "      #      #      ",
+            "      #  ..  #      ",
+            "       #    #       ",
+            "        ####        ",
+        ),
+    ),
+)
 
-Si vous êtes arrivés jusqu'ici, bravo ! N'hésitez pas à bidouiller ce code autant que vous le pouvez, pour mieux comprendre comment il fonctionne. Consultez des tutoriels et des cours spécifiques sur le python. Créez d'autres jeux, ou modifiez celui-là. Bref : amusez-vous bien !
+corresp_game_objects_a_partir_char = {
+    " ": ["herbe"],
+    "#": ["herbe", "mur"],
+    "@": ["herbe", "personnage"],
+    "$": ["herbe", "caisse"],
+    ".": ["herbe", "cible"],
+    "+": ["herbe", "cible", "personnage"],
+    "*": ["herbe", "cible", "caisse"],
+}
 
-TODO : plein de screenshots à refaire. La cible doit être plus grande pour être visible sous la caisse.
+class BoardModel():
+
+    def debuter_niveau(self):
+
+        description, plan_du_niveau = PLANS_DES_NIVEAUX_ET_DESCRIPTIONS[self.numero_niveau]
+        print(description)
+        print()
+        self.tiles = []
+        self.confirm_reset_level = False
+
+        for y in range(self.h):
+            ligne_plan_du_niveau = plan_du_niveau[y]
+            ligne = []
+            for x in range(self.w):
+                char_carte = ligne_plan_du_niveau[x]
+                game_objects = corresp_game_objects_a_partir_char[char_carte]
+                game_objects = list(game_objects)
+                if "personnage" in game_objects:
+                    self.personnage_x = x
+                    self.personnage_y = y
+                ligne.append(game_objects)
+            self.tiles.append(ligne)
+
+    def __init__(self):
+        self.w = 20
+        self.h = 14
+        self.numero_niveau = 0
+        self.debuter_niveau()
+        self.niveau_reussi = False
+
+    def get_size(self):
+        return self.w, self.h
+
+    def export_all_tiles(self):
+        return self.tiles
+
+    def get_tile(self, x, y):
+        return self.tiles[y][x]
+
+    def coord_mouvement(self, x, y, direction):
+        if direction == "R":
+            x += 1
+        elif direction == "L":
+            x -= 1
+        if direction == "D":
+            y += 1
+        if direction == "U":
+            y -= 1
+        return (x, y)
+
+    def verifier_mouvement(self, dest_x, dest_y):
+        if not (0 <= dest_x < self.w and 0 <= dest_y < self.h):
+            return False
+        if "mur" in self.get_tile(dest_x, dest_y):
+            return False
+        return True
+
+    def on_game_event(self, event_name):
+
+        if event_name == "action_1":
+            if self.confirm_reset_level:
+                self.debuter_niveau()
+                self.confirm_reset_level = False
+                print("réinitialisation niveau")
+            else:
+                self.confirm_reset_level = True
+                print("Appuyez à nouveau sur le bouton '1'")
+                print("pour confirmer la réinitialisation du niveau.")
+            return
+
+        self.confirm_reset_level = False
+
+        if self.niveau_reussi:
+            self.numero_niveau += 1
+            self.debuter_niveau()
+            self.niveau_reussi = False
+            return
+
+        personnage_dest_x, personnage_dest_y = self.coord_mouvement(
+            self.personnage_x,
+            self.personnage_y,
+            event_name
+        )
+        if not self.verifier_mouvement(personnage_dest_x, personnage_dest_y):
+            return
+
+        tile_depart_perso = self.get_tile(self.personnage_x, self.personnage_y)
+        tile_dest_perso = self.get_tile(personnage_dest_x, personnage_dest_y)
+
+        if "caisse" in tile_dest_perso:
+            caisse_dest_x, caisse_dest_y = self.coord_mouvement(
+                personnage_dest_x,
+                personnage_dest_y,
+                event_name
+            )
+            if not self.verifier_mouvement(caisse_dest_x, caisse_dest_y):
+                return
+            tile_dest_caisse = self.get_tile(caisse_dest_x, caisse_dest_y)
+            if "caisse" in tile_dest_caisse:
+                return
+
+            tile_dest_perso.remove("caisse")
+            tile_dest_caisse.append("caisse")
+            if self.verifier_caisses_sur_cible():
+                print("Bravo, vous avez gagné !")
+                print("Appuyez sur un bouton pour passer au niveau suivant")
+                print("")
+                self.niveau_reussi = True
+
+        tile_depart_perso.remove("personnage")
+        tile_dest_perso.append("personnage")
+        self.personnage_x = personnage_dest_x
+        self.personnage_y = personnage_dest_y
+
+    def verifier_caisses_sur_cible(self):
+        for y in range(self.h):
+            for x in range(self.w):
+                current_tile = self.get_tile(x, y)
+                if "caisse" in current_tile and "cible" not in current_tile:
+                    return False
+        return True
+```
+
+Si vous êtes arrivés jusqu'ici, bravo ! N'hésitez pas à bidouiller ce code autant que vous le pouvez, pour mieux comprendre comment il fonctionne. Consultez des tutoriels et des cours spécifiques sur le python. Créez d'autres jeux, ou modifiez celui-là. Bref : amusez-vous !
