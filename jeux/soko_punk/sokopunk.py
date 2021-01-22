@@ -38,9 +38,8 @@ class Ball():
 
 class BoardModel():
 
-    def __init__(self):
-        self.w = 20 # width (largeur) : 20 cases
-        self.h = 14 # height (hauteur) : 14 cases
+    def start_level(self):
+        self.must_start_level = False
         self.balls = []
         self.tiles = []
         for y in range(self.h):
@@ -67,6 +66,11 @@ class BoardModel():
         self.warn_about_arcs = True
         self.electrify_all_balls()
 
+    def __init__(self):
+        self.w = 20 # width (largeur) : 20 cases
+        self.h = 14 # height (hauteur) : 14 cases
+        self.start_level()
+
     def get_size(self):
         return self.w, self.h
 
@@ -76,16 +80,19 @@ class BoardModel():
     def export_all_tiles(self):
         exported_tiles = [
             [
-                self.tiles[y][x] + self.arcs[y][x]
+                list(self.tiles[y][x])
                 for x
                 in range(self.w)
             ]
             for y in range(self.h)
         ]
-        for ball in self.balls:
-            exported_tiles[ball.y][ball.x].append(ball.char)
         x, y = self.lady_coord
         exported_tiles[y][x].append("lady")
+        for y in range(self.h):
+            for x in range(self.w):
+                exported_tiles[y][x].extend(self.arcs[y][x])
+        for ball in self.balls:
+            exported_tiles[ball.y][ball.x].append(ball.char)
         return exported_tiles
 
     def check_push_ball(self, ball_to_push, move_coord):
@@ -180,12 +187,21 @@ class BoardModel():
                 if elec_dir == "horiz":
                     for x in range(ball_1.x+1, ball_2.x):
                         self.arcs[ball_1.y][x].append("l_horiz")
+                    self.arcs[ball_1.y][ball_1.x].append("l_R")
+                    self.arcs[ball_1.y][ball_2.x].append("l_L")
                 else:
                     for y in range(ball_1.y+1, ball_2.y):
                         self.arcs[y][ball_1.x].append("l_vertic")
+                    self.arcs[ball_1.y][ball_1.x].append("l_D")
+                    self.arcs[ball_2.y][ball_1.x].append("l_U")
 
 
     def on_game_event(self, event_name):
+
+        if self.must_start_level:
+            self.start_level()
+            return
+
         # print("on_game_event", event_name)
         if event_name in ("action_1", "action_2"):
             print("Les boutons d'actions ne servent à rien dans ce jeu")
@@ -205,7 +221,8 @@ class BoardModel():
         dest_gamobjs = self.get_tile_gamobjs(*lady_new_coord)
         if {"#", "+"}.intersection(set(dest_gamobjs)):
             return
-        if self.arcs[y][x]:
+        arcs_in_lady = self.arcs[y][x]
+        if "l_horiz" in arcs_in_lady or "l_vertic" in arcs_in_lady:
             if self.warn_about_arcs:
                 print("Vous ne pouvez pas vous déplacer dans les arcs électriques")
                 self.warn_about_arcs = False
@@ -229,5 +246,19 @@ class BoardModel():
             ball_to_push.x += move_coord[0]
             ball_to_push.y += move_coord[1]
             self.electrify_all_balls()
+
+        if self.arcs[self.lady_coord[1]][self.lady_coord[0]]:
+            print("Blarg ! Vous êtes électrocutée !")
+            print("Appuyez sur une touche pour recommencer")
+            self.must_start_level = True
+        elif can_push_ball:
+            # Si la lady n'est pas morte, mais qu'elle a déplacé une balle,
+            # il faut vérifier si toutes les boules sont électrisées.
+            # Si oui, c'est gagné !!
+            won = all([ball.electrified for ball in self.balls])
+            if won:
+                print("Bravo, vous avez gagné ce niveau !")
+
+
 
 
