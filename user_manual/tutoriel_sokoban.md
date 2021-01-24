@@ -222,7 +222,7 @@ Une image utilisée pour afficher un élément dans l'aire de jeu s'appelle **im
 
 La grande image contenant toutes les images de tile s'appelle le **tileset**. Autres appellations : **tilesheet**, **image set**, **image atlas**, **atlas**. On utilise le mot "atlas" pour représenter le fait que c'est un ensemble d'images exhaustif. Comme les atlas de cartes géographiques.
 
-Ce qui est affichée dans la partie gauche de l'écran s'appelle **l'aire de jeu**. C'est là où se tout déroule : les personnages se déplacent, ramassent des objets, discutent entre eux, etc.
+Ce qui est affichée dans la partie gauche de l'écran s'appelle **l'aire de jeu**. C'est là où tout se déroule : les personnages se déplacent, ramassent des objets, discutent entre eux, etc.
 
 Une case dans l'aire de jeu s'appelle une **tile**. Autres appellations : **tuile**, **case**. Ces tiles sont organisées sous forme d'un tableau en deux dimensions. Dans notre programme, ce tableau est enregistré dans la variable `self.tiles`. Il a une largeur de 20 tiles et une hauteur de 14 tiles.
 
@@ -319,7 +319,9 @@ if "mur" in self.get_tile(5, 3):
 
 ## Des prints, des prouts, et du python pur
 
-Au tout début de votre programme, ajoutez la ligne `print("prout")`
+Au tout début du code du jeu, avant `class BoardModel()`, ajoutez une ligne, et écrivez :
+
+`print("prout")`
 
 Exécutez le jeu. Vous devriez voir apparaître, dans la fenêtre en bas à gauche, le texte "prout".
 
@@ -1013,9 +1015,9 @@ On va rajouter quelques derniers détails :
 
 Comme ce tutoriel est déjà assez long comme ça, et que ces détails ajoutent des morceaux de code un peu partout, je vais directement vous donner tout le code final.
 
-Les niveaux sont définis au début du code, sous forme d'une liste de variables structurées de la même manière que l'ancienne variable `PLAN_DU_NIVEAU`. Vous pouvez en ajouter, modifier, ou supprimer comme bon vous semble.
+Les niveaux sont définis au début du code, sous forme d'une liste de variables structurées de la même manière que l'ancienne variable `PLAN_DU_NIVEAU`. Vous pouvez ajouter, modifier, ou supprimer des niveaux comme bon vous semble.
 
-Voici tous les caractères utilisés pour définir les niveaux :
+Voici tous les caractères utilisés :
 
  - `#` : mur
  - `@` : personnage
@@ -1024,6 +1026,10 @@ Voici tous les caractères utilisés pour définir les niveaux :
  - `*` : une caisse sur une cible
  - `.` : cible
  - " " (un espace) : rien
+
+Au final, votre jeu ressemblera à ceci :
+
+![https://raw.githubusercontent.com/darkrecher/squarity-doc/master/user_manual/tuto_screenshot_final.png](https://raw.githubusercontent.com/darkrecher/squarity-doc/master/user_manual/tuto_screenshot_final.png)
 
 Effacez tout le code du jeu actuel, et copier-collez tout le texte ci-dessous. Comme ça, même si vous êtes dans les choux et que vous n'avez pas entièrement compris les étapes précédentes, vous avez votre jeu complet :
 
@@ -1087,7 +1093,8 @@ PLANS_DES_NIVEAUX_ET_DESCRIPTIONS = (
         )
     ),
     (
-        "Origine : https://alonso-delarte.medium.com/the-basics-of-sokoban-level-formats-for-designing-your-own-sokoban-levels-51882a7a36f0",
+        "Origine : https://alonso-delarte.medium.com/the-basics-of-sokoban-level-formats-"
+        "for-designing-your-own-sokoban-levels-51882a7a36f0",
         (
             "       #####        ",
             "   #####   #####    ",
@@ -1144,7 +1151,6 @@ class BoardModel():
         print(description)
         print()
         self.tiles = []
-        self.confirm_reset_level = False
 
         for y in range(self.h):
             ligne_plan_du_niveau = plan_du_niveau[y]
@@ -1165,6 +1171,7 @@ class BoardModel():
         self.numero_niveau = 0
         self.debuter_niveau()
         self.niveau_reussi = False
+        self.confirm_reset_level = False
 
     def get_size(self):
         return self.w, self.h
