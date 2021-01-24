@@ -1200,7 +1200,21 @@ class BoardModel():
             return False
         return True
 
+    def verifier_caisses_sur_cible(self):
+        for y in range(self.h):
+            for x in range(self.w):
+                current_tile = self.get_tile(x, y)
+                if "caisse" in current_tile and "cible" not in current_tile:
+                    return False
+        return True
+
     def on_game_event(self, event_name):
+
+        if self.niveau_reussi:
+            self.numero_niveau += 1
+            self.debuter_niveau()
+            self.niveau_reussi = False
+            return
 
         if event_name == "action_1":
             if self.confirm_reset_level:
@@ -1214,12 +1228,6 @@ class BoardModel():
             return
 
         self.confirm_reset_level = False
-
-        if self.niveau_reussi:
-            self.numero_niveau += 1
-            self.debuter_niveau()
-            self.niveau_reussi = False
-            return
 
         personnage_dest_x, personnage_dest_y = self.coord_mouvement(
             self.personnage_x,
@@ -1256,14 +1264,6 @@ class BoardModel():
         tile_dest_perso.append("personnage")
         self.personnage_x = personnage_dest_x
         self.personnage_y = personnage_dest_y
-
-    def verifier_caisses_sur_cible(self):
-        for y in range(self.h):
-            for x in range(self.w):
-                current_tile = self.get_tile(x, y)
-                if "caisse" in current_tile and "cible" not in current_tile:
-                    return False
-        return True
 ```
 
 Si vous êtes arrivés jusqu'ici, bravo ! N'hésitez pas à bidouiller ce code autant que vous le pouvez, pour mieux comprendre comment il fonctionne. Consultez des tutoriels et des cours spécifiques sur le python. Créez d'autres jeux, ou modifiez celui-là. Bref : amusez-vous !
