@@ -12,6 +12,20 @@ https://github.com/darkrecher/squarity-doc/blob/master/user_manual/tutoriel_soko
 Il y a des commentaires un peu partout dans le code, pour expliquer tout un tas de choses.
 """
 
+# url : https://raw.githubusercontent.com/darkrecher/squarity-doc/master/user_manual/sokoban_tileset.png
+TILESET = """
+{
+    "tile_size": 32,
+    "tile_coords": {
+        "herbe": [0, 0],
+        "mur": [32, 0],
+        "caisse": [64, 0],
+        "personnage": [0, 32],
+        "cible": [32, 32]
+    }
+}
+"""
+
 # Cette variable contient la définition de tous les niveaux.
 # Il s'agit d'un tuple, contenant autant d'éléments que vous voulez.
 # Chaque élément correspond à un niveau.

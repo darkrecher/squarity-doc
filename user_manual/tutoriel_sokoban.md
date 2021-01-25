@@ -1266,4 +1266,8 @@ class BoardModel():
         self.personnage_y = personnage_dest_y
 ```
 
+Et si vous en avez assez de faire des copié-collés, vous pouvez directement jouer à la version finale de ce sokoban, ici : http://squarity.fr/#fetchez_githubgist_darkrecher/aa3e1338998cc2a20a030011fbca9ce2/raw/sokoban-tuto.txt .
+
+J'ai ajouté plein de commentaires dans le code, pour le re-expliquer plus en détail. Ça peut vous aider à comprendre comment fonctionnne certaines parties.
+
 Si vous êtes arrivés jusqu'ici, bravo ! N'hésitez pas à bidouiller ce code autant que vous le pouvez, pour mieux comprendre comment il fonctionne. Consultez des tutoriels et des cours spécifiques sur le python. Créez d'autres jeux, ou modifiez celui-là. Bref : amusez-vous !
