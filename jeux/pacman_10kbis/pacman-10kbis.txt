@@ -1,8 +1,9 @@
-https://gitlab.com/10kbis/pacman_squarity/-/raw/master/tileset.png
---------
+# https://gitlab.com/10kbis/pacman_squarity/-/raw/master/tileset.png
+
+"""
 {
     "tile_size": 16,
-    "tile_coords": {
+    "img_coords": {
 
         "=": [16, 0],
         ".": [32, 0],
@@ -40,7 +41,7 @@ https://gitlab.com/10kbis/pacman_squarity/-/raw/master/tileset.png
         "wall_right_left_up_down": [48, 48]
     }
 }
---------
+"""
 
 DATA_TILES = [
     '+++++++++++++++++++',
@@ -58,18 +59,15 @@ DATA_TILES = [
     '+++++++++++++++++++',
 ]
 
-from javascript import Math
+import random
 
-
+# C'est pas comme le vrai randint du python, mais c'est pas grave.
+# On rendra ça plus clair une prochaine fois.
 def randint(a, b=None):
     if b is None:
-        low = 0
-        high = a
+        return random.randrange(0, a)
     else:
-        low = a
-        high = b
-
-    return Math.floor(Math.random() * (high - low)) + low
+        return random.randrange(a, b)
 
 
 def choice(seq):
@@ -80,7 +78,7 @@ def distance(p1, p2):
     return abs(p1[0] - p2[0]) + abs(p1[1] - p2[1])
 
 
-class BoardModel():
+class GameModel():
 
     INVUL_TIMER = 20
 
@@ -104,6 +102,15 @@ class BoardModel():
         self.tiles = self._data_to_tiles(DATA_TILES)
 
     def _data_to_tiles(self, data):
+
+        # Correction de Réchèr (1).
+        # Comme dans le code initial, on utilise self.ghosts pour savoir où se trouvent les fantômes.
+        # Mais on ne place pas les gameobjects A, B, C, Z dans self.tiles.
+        # Ça ne marchait pas bien entre les "remove", les "append", le moment où ils devenaient vulnérables,
+        # le moment où ils redevenaient normaux, etc.
+        # Toute la game logic utilise uniquement la variable self.ghosts, et non pas la présence des
+        # gameobjects A, B, C, D, Z dans self.tiles.
+
         h = len(data)
         w = len(data[0])
         tiles = [
@@ -138,17 +145,48 @@ class BoardModel():
                     elif tile in '.O':
                         self.food_left += 1
 
-                    if tile != ' ':
+                    if tile not in ' ABCD':
                         tile_data.append(tile)
 
                 tiles[y][x] = tile_data
         return tiles
 
-    def get_size(self):
-        return self.w, self.h
-
     def export_all_tiles(self):
-        return self.tiles
+        # Correction de Réchèr (2). Si le tableau renvoyé n'a pas les bonnes dimensions,
+        # ça plante dans la console javascript, avec un message pas explicite.
+        # Il faut obligatoirement width = 20, height = 14.
+        # On fera des messages d'erreur plus clair la prochaine fois.
+        result_tiles = []
+        for orig_line in self.tiles:
+            # On met des fonctions "list", pour créer un clone de l'aire de jeu.
+            # On ne doit pas modifier le contenu de self.tiles durant l'export.
+            # Mais on peut créer un clone modifié.
+            current_line = [
+                list(game_objects) for game_objects in orig_line
+            ]
+            # Pour chaque ligne, on rajoute un elem tout à droite,
+            # parce que l'aire de jeu initiale n'a qu'une taille de 19.
+            while len(current_line) < 20:
+                current_line.append([])
+            result_tiles.append(current_line)
+
+        # Et à la fin, on rajoute une ligne tout en bas,
+        # parce que l'aire de jeu initiale n'a qu'une hauteur de 13.
+        empty_line = [ [] for x in range(20) ]
+        while len(result_tiles) < 14:
+            result_tiles.append(list(empty_line))
+
+        # Correction Réchèr : c'est ici qu'on ajoute les ghosts dans
+        # la grille de game_objects que l'on va renvoyer pour affichage.
+        if not self.gameover:
+            for ghost_type, ghost_x, ghost_y in self.ghosts:
+                if self.eat_timer > 0:
+                    final_ghost_type = "Z"
+                else:
+                    final_ghost_type = ghost_type
+                result_tiles[ghost_y][ghost_x].append(final_ghost_type)
+
+        return result_tiles
 
     def on_game_event(self, event_name):
         if self.gameover:
@@ -189,11 +227,20 @@ class BoardModel():
             return
 
         ghosts_new_pos = []
-        for ghost_type, ghost_x, ghost_y in self.ghosts:
-            if (ghost_x, ghost_y) == self.pacman and self.eat_timer >= 0:
-                self.score += 1000
-                self.tiles[ghost_y][ghost_x].remove('Z')
-                continue
+        while self.ghosts:
+            ghost_type, ghost_x, ghost_y = self.ghosts.pop(0)
+            if (ghost_x, ghost_y) == self.pacman:
+                if self.eat_timer >= 0:
+                    # The ghost is eaten. We do not put it back in ghosts_new_pos.
+                    self.score += 1000
+                    continue
+                else:
+                    # The ghost is on the same tile as pacman, and pacman already moved.
+                    # The ghost will not move, in order to kill pacman.
+                    # If we do not have this check, pacman and the ghost could exchange
+                    # their positions, which would look weird.
+                    ghosts_new_pos.append((ghost_type, ghost_x, ghost_y))
+                    continue
 
             dirs = [(1, 0), (-1, 0), (0, 1), (0, -1)]
             valid_pos = []
@@ -211,8 +258,25 @@ class BoardModel():
                 if DATA_TILES[y][x] == '+':
                     continue
 
-                # Check if no other ghost or door
-                if set('ABCD=').intersection(self.tiles[y][x]):
+                # Check if no door
+                if "=" in self.tiles[y][x]:
+                    continue
+
+                # Check that ghosts do not overlap. So, two ghosts should not have
+                # the same positions.
+                # We check the new positions, and we also check the previous positions
+                # of the ghost that are still not processed, so that we prevent them
+                # to exchange their positions.
+                other_ghosts = self.ghosts + ghosts_new_pos
+                pos_ok = True
+                for other_type, other_x, other_y in other_ghosts:
+                    if (other_x, other_y) == (x, y):
+                        pos_ok = False
+                if not pos_ok:
+                    continue
+
+                # If ghost are vulnerable, they should not go to the player.
+                if (x, y) == self.pacman and self.eat_timer >= 0:
                     continue
 
                 valid_pos.append((x, y))
@@ -224,21 +288,9 @@ class BoardModel():
                     new_x, new_y = self._new_pos_random_ghost(valid_pos)
                 else:
                     new_x, new_y = self._new_pos_partial_random_ghost(valid_pos)
-
-                to_remove = ''
-                if self.eat_timer >= 0 and self.eat_timer != self.INVUL_TIMER:
-                    to_remove = 'Z'
-                else:
-                    to_remove = ghost_type
-                self.tiles[ghost_y][ghost_x].remove(to_remove)
-
-                to_add = ''
-                if self.eat_timer > 0:
-                    to_add = 'Z'
-                else:
-                    to_add = ghost_type
-                self.tiles[new_y][new_x].append(to_add)
-
+                # Correction Réchèr. Ici, on ne gère pas les ajouts/suppressions de fantômes
+                # dans l'aire de jeu. L'affichage des ghosts aux bons endroits se fait
+                # dans la fonction export_all_tiles.
                 ghosts_new_pos.append((ghost_type, new_x, new_y))
             else:
                 ghosts_new_pos.append((ghost_type, ghost_x, ghost_y))
