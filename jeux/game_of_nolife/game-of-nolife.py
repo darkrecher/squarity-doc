@@ -1,4 +1,5 @@
-# https://i.ibb.co/mczrkx2/game-of-nolife-tileset.png
+# https://i.ibb.co/mczrkx2/game-of-nolife-tileset.png (old)
+# https://i.ibb.co/qgVyDdR/game-of-nolife-tileset.png
 
 """
 {
@@ -24,6 +25,8 @@
     "red_14": [52, 0],
     "red_15": [56, 0],
     "red_16": [60, 0],
+    "red_town_1x1": [68, 0],
+    "red_controls": [64, 0],
 
     "blu_01": [0, 4],
     "blu_02": [4, 4],
@@ -40,7 +43,11 @@
     "blu_13": [48, 4],
     "blu_14": [52, 4],
     "blu_15": [56, 4],
-    "blu_16": [60, 4]
+    "blu_16": [60, 4],
+    "blu_town_1x1": [68, 4],
+    "blu_controls": [64, 4],
+
+    "bla": [0, 0]
 
   }
 }
@@ -78,12 +85,15 @@ MODE_TRAVEL_HORIZONTALLY = 2
 
 class Player():
 
-    def __init__(self, w, h, color, rightward, downward):
+    def __init__(self, player_id, w, h, color, tiles_control, rightward, downward):
+        self.player_id = player_id
         self.w = w
         self.h = h
         self.color = color
+        self.tiles_control = tiles_control
         self.rightward = rightward
         self.downward = downward
+        self.bounding_rect_exists = False
         self.mode = MODE_GROW
         self.other_players = None
         self.array_units = []
@@ -129,12 +139,8 @@ class Player():
             self.array_units[y][x] = 2
         # Quand c'est une ville, on met -1.
         self.array_units[y_town][x_town] = -1
-        # TODO : faire des vraies sprites de towns.
-        self.array_town_names[y_town][x_town] = self.color + "_16"
-
-        self.update_bounding_rects()
-        print("bounding rect", self.color)
-        print(self.bounding_rect_x_min, self.bounding_rect_y_min, self.bounding_rect_x_max, self.bounding_rect_y_max)
+        # TODO : faire des sprites de towns 2x2 tiles, 4x4 tiles, etc.
+        self.array_town_names[y_town][x_town] = self.color + "_town_1x1"
 
     def set_other_players(self, other_players):
         self.other_players = other_players
@@ -151,32 +157,36 @@ class Player():
                 else:
                     yield None
 
-    def update_bounding_rects(self):
-        x_with_unit = []
-        y_with_unit = []
-        for y in range(self.h):
-            for x in range(self.w):
-                if self.array_units[y][x]:
-                    x_with_unit.append(x)
-                    y_with_unit.append(y)
+    def update_bounding_rects(self, xs_with_unit, ys_with_unit, nb_controlled_tiles):
+        self.nb_controlled_tiles = nb_controlled_tiles
+        if not xs_with_unit or not ys_with_unit:
+            self.bounding_rect_exists = False
+            self.bounding_rect_x_min = None
+            self.bounding_rect_x_max = None
+            self.bounding_rect_y_min = None
+            self.bounding_rect_y_max = None
+            return
 
-        # Ça planterait dans le cas où le player n'a plus aucune unité.
-        # On calculerait des min et des max de listes vide.
-        # Mais y'a forcément toujours une unité, vu que dès le départ on a une ville
-        # TODO : ouais mais le joueur vert, il va se passer quoi pour lui ?
+        self.bounding_rect_exists = True
+
         if self.rightward:
             self.bounding_rect_x_min = 0
-            self.bounding_rect_x_max = max(x_with_unit) + 1
+            # On met des +1 pour faire dépasser le bounding rect à droite et en bas.
+            # Pour rester homogène avec le principe du range(a, b) qui va que jusqu'à b-1.
+            self.bounding_rect_x_max = max(xs_with_unit) + 1
         else:
-            self.bounding_rect_x_min = min(x_with_unit)
+            self.bounding_rect_x_min = min(xs_with_unit)
             self.bounding_rect_x_max = self.w
 
         if self.downward:
             self.bounding_rect_y_min = 0
-            self.bounding_rect_y_max = max(y_with_unit) + 1
+            self.bounding_rect_y_max = max(ys_with_unit) + 1
         else:
-            self.bounding_rect_y_min = min(y_with_unit)
+            self.bounding_rect_y_min = min(ys_with_unit)
             self.bounding_rect_y_max = self.h
+
+        print("bounding rect", self.color)
+        print(self.bounding_rect_x_min, self.bounding_rect_y_min, self.bounding_rect_x_max, self.bounding_rect_y_max)
 
     def iter_vertical_expansion_column(self, x_column):
         if self.downward:
@@ -226,65 +236,60 @@ class Player():
                     yield (x_source, x_dest)
                 x_dest = x_source
 
-    def travel_one_tile(self, source_x, source_y, dest_x, dest_y):
-        unit_source = self.array_units[source_y][source_x]
+    def travel_one_tile(self, x_source, y_source, x_dest, y_dest):
+        unit_source = self.array_units[y_source][x_source]
         if unit_source in (0, 1, -1):
             return
-        unit_dest = self.array_units[dest_y][dest_x]
+        unit_dest = self.array_units[y_dest][x_dest]
         if unit_dest in (16, -1):
             return
         if unit_source <= unit_dest + 1:
             return
-        # TODO : dans une fonction, ce truc là.
-        has_other_unit_dest = all(
-            (
-                player.array_units[dest_y][dest_x] != 0
-                for player in self.other_players
-            )
-        )
-        # Pas de déplacement à plus de 8 unités sur une tile qui a des unités ennemies.
-        if has_other_unit_dest and unit_dest >= 8:
+        # Si personne ne contrôle la tile de destination,
+        # ça veut dire qu'il y a plusieurs players dessus
+        has_other_unit_dest = self.tiles_control[y_dest][x_dest] is None
+        # Pas de déplacement à plus de 12 unités sur une tile qui a des unités ennemies.
+        DEST_CAP_ON_UNCONTROLLED_TILES = 12
+        if has_other_unit_dest and unit_dest >= DEST_CAP_ON_UNCONTROLLED_TILES:
             return
         transfer_qty = int((unit_source - unit_dest) / 1.5)
         if transfer_qty == 0:
             transfer_qty = 1
-        dest_cap = 8 if has_other_unit_dest else 16
+        dest_cap = DEST_CAP_ON_UNCONTROLLED_TILES if has_other_unit_dest else 16
         if unit_dest + transfer_qty > dest_cap:
             transfer_qty = dest_cap - unit_dest
 
-        self.array_units[source_y][source_x] -= transfer_qty
-        self.array_units[dest_y][dest_x] += transfer_qty
+        if transfer_qty:
+            self.array_units[y_source][x_source] -= transfer_qty
+            self.array_units[y_dest][x_dest] += transfer_qty
 
     def mode_travel_vertically(self):
-        # TODO général. Ça y est j'ai commencé à foutre la merde entre source_y et y_source. Va falloir homogénéiser ça.
-        self.update_bounding_rects()
+        if not self.bounding_rect_exists:
+            return
         for x in range(self.bounding_rect_x_min, self.bounding_rect_x_max):
             for y_source, y_dest in self.iter_vertical_expansion_column(x):
                 self.travel_one_tile(x, y_source, x, y_dest)
 
     def mode_travel_horizontally(self):
-        self.update_bounding_rects()
+        if not self.bounding_rect_exists:
+            return
         for y in range(self.bounding_rect_y_min, self.bounding_rect_y_max):
             for x_source, x_dest in self.iter_horizontal_expansion_line(y):
                 self.travel_one_tile(x_source, y, x_dest, y)
 
-
     def mode_grow(self):
-        # TODO : pas besoin de faire ça à chaque tour. Que au premier "grow".
-        self.update_bounding_rects()
+        if not self.bounding_rect_exists:
+            return
         coords_receive_growing = []
         nb_grow = 0
         for y in range(self.bounding_rect_y_min, self.bounding_rect_y_max):
             for x in range(self.bounding_rect_x_min, self.bounding_rect_x_max):
                 unit_val = self.array_units[y][x]
                 if unit_val:
-                    has_other_unit = all(
-                        (
-                            player.array_units[y][x] != 0
-                            for player in self.other_players
-                        )
-                    )
-                    if has_other_unit:
+                    if self.tiles_control[y][x] is None:
+                        # Personne ne contrôle cette tile (donc pas moi)
+                        # Ça veut dire qu'il y a des unités ennemies dessus.
+                        # On peut pas grower sur cette tile.
                         continue
                     nb_grow += 1
                     if unit_val < 16 and unit_val != -1:
@@ -296,6 +301,9 @@ class Player():
         )
         for x, y in coords_to_grow:
             self.array_units[y][x] += 1
+
+    def mode_fight(self):
+        pass
 
     def process_turn(self):
         if self.mode == MODE_GROW:
@@ -311,46 +319,113 @@ class GameModel():
     def __init__(self):
         self.w = 50
         self.h = 40
+
         self.tiles_to_export = []
+        self.tiles_control = []
+        for y in range(self.h):
+            line_to_export = []
+            line_control = []
+            for x in range(self.w):
+                line_to_export.append([])
+                line_control.append(None)
+            self.tiles_to_export.append(tuple(line_to_export))
+            self.tiles_control.append(line_control)
+        self.tiles_to_export = tuple(self.tiles_to_export)
+        self.tiles_control = tuple(self.tiles_control)
+
         self.players = (
-            Player(self.w, self.h, "red", rightward=True, downward=False),
-            Player(self.w, self.h, "blu", rightward=False, downward=True),
+            Player(0, self.w, self.h, "red", self.tiles_control, rightward=True, downward=False),
+            Player(1, self.w, self.h, "blu", self.tiles_control, rightward=False, downward=True),
         )
         self.players[0].set_other_players((self.players[1], ))
         self.players[1].set_other_players((self.players[0], ))
+        self.nb_players = len(self.players)
+
+        self.update_indexations()
+        self.update_tile_to_export()
         self.must_start = True
 
-        for y in range(self.h):
-            line_to_export = []
-            for x in range(self.w):
-                line_to_export.append([])
-            self.tiles_to_export.append(tuple(line_to_export))
-        self.tiles_to_export = tuple(self.tiles_to_export)
-
         # TODO test.
-        for val in self.players[0].iter_horizontal_expansion_line(39):
-            print(val)
+        #for val in self.players[0].iter_horizontal_expansion_line(39):
+        #    print(val)
 
-    def iter_on_tile_to_exports(self):
+    def iter_on_tiles_to_export(self):
         for line_to_export in self.tiles_to_export:
             for cell_to_export in line_to_export:
                 yield cell_to_export
 
+    def iter_on_tiles_control(self):
+        for line_control in self.tiles_control:
+            for cell_control in line_control:
+                yield cell_control
+
+    def update_indexations(self):
+        """
+        Met à jour le tableau indiquant quel joueur contrôle quelle tile.
+        (On contrôle si on est le seul dessus).
+        Compte le nombre de tile contrôlée pour chaque joueur.
+
+        Met à jour les bounding rects.
+        Les villes ne rentrent pas dans les bounding rects.
+        Mais elles sont quand même comptées dans les cases contrôlées.
+        On fera une indexation à part de tout ce qui concerne les villes.
+        """
+        xs_by_player = {}
+        ys_by_player = {}
+        nb_controlled_tiles_by_player = {}
+        for player in self.players:
+            xs_by_player[player.player_id] = []
+            ys_by_player[player.player_id] = []
+            nb_controlled_tiles_by_player[player.player_id] = 0
+
+        for y in range(self.h):
+            for x in range(self.w):
+                controlled_by = []
+                for player in self.players:
+                    unit_val = player.array_units[y][x]
+                    if unit_val:
+                        controlled_by.append(player.player_id)
+                    if unit_val != -1:
+                        xs_by_player[player.player_id].append(x)
+                        ys_by_player[player.player_id].append(y)
+                if len(controlled_by) == 1:
+                    controller_player_id = controlled_by[0]
+                    self.tiles_control[y][x] = controller_player_id
+                    nb_controlled_tiles_by_player[controller_player_id] += 1
+                else:
+                    self.tiles_control[y][x] = None
+
+        # On envoie les xs et ys à chaque player pour qu'ils fassent leur bounding rects.
+        # on envoie aussi le nombre de tiles contrôlées.
+        for player in self.players:
+            player.update_bounding_rects(
+                xs_by_player[player.player_id],
+                ys_by_player[player.player_id],
+                nb_controlled_tiles_by_player[player.player_id],
+            )
+
     def update_tile_to_export(self):
-        player_iterators = [player.iter_on_gamobjs() for player in  self.players]
-        all_iterators = [self.iter_on_tile_to_exports()] + player_iterators
+        general_iterators = [self.iter_on_tiles_to_export(), self.iter_on_tiles_control()]
+        player_iterators = [player.iter_on_gamobjs() for player in self.players]
+        all_iterators = general_iterators + player_iterators
         for iterated_elems in zip(*all_iterators):
-            cell, *player_units = iterated_elems
-            cell[:] = [player_unit for player_unit in player_units if player_unit is not None]
+            cell, controller_id, *player_units = iterated_elems
+            if controller_id is not None:
+                # C'est vilain parce qu'on utilise un id de player comme index dans une liste.
+                # Mais bon, pouet, ça passe.
+                cell[:] = [self.players[controller_id].color + "_controls"]
+            else:
+                cell[:] = []
+            cell.extend([player_unit for player_unit in player_units if player_unit is not None])
 
     def export_all_tiles(self):
-        self.update_tile_to_export()
-        # print(self.tiles_to_export) # TODO : crap
         return self.tiles_to_export
 
     def on_process_turn(self):
+        self.update_indexations()
         self.players[0].process_turn()
         self.players[1].process_turn()
+        self.update_tile_to_export()
         # TODO : calculer approximativement un délai plus ou moins long selon la quantité de trucs à gérer.
         return """ { "delayed_actions": [ {"name": "process_turn", "delay_ms": 200} ] } """
 
@@ -359,7 +434,7 @@ class GameModel():
             return self.on_process_turn()
         if self.must_start:
             self.must_start = False
-            return """ { "delayed_actions": [ {"name": "process_turn", "delay_ms": 200} ] } """
+            return """ { "delayed_actions": [ {"name": "process_turn", "delay_ms": 10} ] } """
         else:
             for player in self.players:
                 player.mode += 1
