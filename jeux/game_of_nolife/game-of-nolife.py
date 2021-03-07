@@ -3,7 +3,7 @@
 """
 {
   "game_area": {
-    "nb_tile_width": 40,
+    "nb_tile_width": 50,
     "nb_tile_height": 40
   },
   "tile_size": 4,
@@ -72,6 +72,9 @@ def coord_move(x, y, direction):
     return (x, y)
 
 
+MODE_GROW = 0
+MODE_TRAVEL_VERTICALLY = 1
+MODE_TRAVEL_HORIZONTALLY = 2
 
 class Player():
 
@@ -81,15 +84,22 @@ class Player():
         self.color = color
         self.rightward = rightward
         self.downward = downward
+        self.mode = MODE_GROW
         self.other_players = None
         self.array_units = []
+        self.array_town_names = []
         for y in range(self.h):
-            line = []
+            unit_line = []
+            town_line = []
             for x in range(self.w):
                 unit_val = 0
-                line.append(unit_val)
-            self.array_units.append(line)
+                town_name = None
+                unit_line.append(unit_val)
+                town_line.append(town_name)
+            self.array_units.append(unit_line)
+            self.array_town_names.append(town_line)
         self.array_units = tuple(self.array_units)
+        self.array_town_names = tuple(self.array_town_names)
 
         x_around_2 = (1, 2, 3, 1, 3, 1, 2, 3)
         x_around_1 = (0, 1, 2, 3, 4, 0, 4, 0, 4, 0, 4, 0, 1, 2, 3, 4)
@@ -117,7 +127,10 @@ class Player():
             self.array_units[y][x] = 1
         for x, y in zip(x_with_2, y_with_2):
             self.array_units[y][x] = 2
-        self.array_units[y_town][x_town] = 16
+        # Quand c'est une ville, on met -1.
+        self.array_units[y_town][x_town] = -1
+        # TODO : faire des vraies sprites de towns.
+        self.array_town_names[y_town][x_town] = self.color + "_16"
 
         self.update_bounding_rects()
         print("bounding rect", self.color)
@@ -127,9 +140,11 @@ class Player():
         self.other_players = other_players
 
     def iter_on_gamobjs(self):
-        for line in self.array_units:
-            for unit_val in line:
-                if unit_val:
+        for unit_line, town_line in zip(self.array_units, self.array_town_names):
+            for unit_val, town_name in zip(unit_line, town_line):
+                if town_name:
+                    yield town_name
+                elif unit_val:
                     if unit_val > 16:
                         unit_val = 16
                     yield self.color + "_" + GAMOBJ_NAME_TO_NB_UNIT[unit_val]
@@ -163,7 +178,100 @@ class Player():
             self.bounding_rect_y_min = min(y_with_unit)
             self.bounding_rect_y_max = self.h
 
+    def iter_vertical_expansion_column(self, x_column):
+        if self.downward:
+            y_dest = self.bounding_rect_y_max
+            if y_dest >= self.h:
+                y_dest = self.h - 1
+            while y_dest > 0:
+                y_source = y_dest - 1
+                while y_source >= 0 and self.array_town_names[y_source][x_column]:
+                    y_source = y_source - 1
+                if y_source >= 0:
+                    yield (y_source, y_dest)
+                y_dest = y_source
+        else:
+            y_dest = self.bounding_rect_y_min - 1
+            if y_dest < 0:
+                y_dest = 0
+            while y_dest < self.h - 1:
+                y_source = y_dest + 1
+                while y_source <= self.h - 1 and self.array_town_names[y_source][x_column]:
+                    y_source = y_source + 1
+                if y_source <= self.h - 1:
+                    yield (y_source, y_dest)
+                y_dest = y_source
+
+    def iter_horizontal_expansion_line(self, y_line):
+        if self.rightward:
+            x_dest = self.bounding_rect_x_max
+            if x_dest >= self.w:
+                x_dest = self.w - 1
+            while x_dest > 0:
+                x_source = x_dest - 1
+                while x_source >= 0 and self.array_town_names[y_line][x_source]:
+                    x_source = x_source - 1
+                if x_source >= 0:
+                    yield (x_source, x_dest)
+                x_dest = x_source
+        else:
+            x_dest = self.bounding_rect_x_min - 1
+            if x_dest < 0:
+                x_dest = 0
+            while x_dest < self.w - 1:
+                x_source = x_dest + 1
+                while x_source <= self.w - 1 and self.array_town_names[y_line][x_source]:
+                    x_source = x_source + 1
+                if x_source <= self.w - 1:
+                    yield (x_source, x_dest)
+                x_dest = x_source
+
+    def travel_one_tile(self, source_x, source_y, dest_x, dest_y):
+        unit_source = self.array_units[source_y][source_x]
+        if unit_source in (0, 1, -1):
+            return
+        unit_dest = self.array_units[dest_y][dest_x]
+        if unit_dest in (16, -1):
+            return
+        if unit_source <= unit_dest + 1:
+            return
+        # TODO : dans une fonction, ce truc là.
+        has_other_unit_dest = all(
+            (
+                player.array_units[dest_y][dest_x] != 0
+                for player in self.other_players
+            )
+        )
+        # Pas de déplacement à plus de 8 unités sur une tile qui a des unités ennemies.
+        if has_other_unit_dest and unit_dest >= 8:
+            return
+        transfer_qty = int((unit_source - unit_dest) / 1.5)
+        if transfer_qty == 0:
+            transfer_qty = 1
+        dest_cap = 8 if has_other_unit_dest else 16
+        if unit_dest + transfer_qty > dest_cap:
+            transfer_qty = dest_cap - unit_dest
+
+        self.array_units[source_y][source_x] -= transfer_qty
+        self.array_units[dest_y][dest_x] += transfer_qty
+
+    def mode_travel_vertically(self):
+        # TODO général. Ça y est j'ai commencé à foutre la merde entre source_y et y_source. Va falloir homogénéiser ça.
+        self.update_bounding_rects()
+        for x in range(self.bounding_rect_x_min, self.bounding_rect_x_max):
+            for y_source, y_dest in self.iter_vertical_expansion_column(x):
+                self.travel_one_tile(x, y_source, x, y_dest)
+
+    def mode_travel_horizontally(self):
+        self.update_bounding_rects()
+        for y in range(self.bounding_rect_y_min, self.bounding_rect_y_max):
+            for x_source, x_dest in self.iter_horizontal_expansion_line(y):
+                self.travel_one_tile(x_source, y, x_dest, y)
+
+
     def mode_grow(self):
+        # TODO : pas besoin de faire ça à chaque tour. Que au premier "grow".
+        self.update_bounding_rects()
         coords_receive_growing = []
         nb_grow = 0
         for y in range(self.bounding_rect_y_min, self.bounding_rect_y_max):
@@ -179,9 +287,9 @@ class Player():
                     if has_other_unit:
                         continue
                     nb_grow += 1
-                    if unit_val < 16:
+                    if unit_val < 16 and unit_val != -1:
                         coords_receive_growing.append((x, y))
-        nb_grow //= 4
+        nb_grow //= 8
         coords_to_grow = random.sample(
             coords_receive_growing,
             min(nb_grow, len(coords_receive_growing))
@@ -189,11 +297,19 @@ class Player():
         for x, y in coords_to_grow:
             self.array_units[y][x] += 1
 
+    def process_turn(self):
+        if self.mode == MODE_GROW:
+            self.mode_grow()
+        elif self.mode == MODE_TRAVEL_VERTICALLY:
+            self.mode_travel_vertically()
+        else:
+            self.mode_travel_horizontally()
+
 
 class GameModel():
 
     def __init__(self):
-        self.w = 40
+        self.w = 50
         self.h = 40
         self.tiles_to_export = []
         self.players = (
@@ -210,6 +326,10 @@ class GameModel():
                 line_to_export.append([])
             self.tiles_to_export.append(tuple(line_to_export))
         self.tiles_to_export = tuple(self.tiles_to_export)
+
+        # TODO test.
+        for val in self.players[0].iter_horizontal_expansion_line(39):
+            print(val)
 
     def iter_on_tile_to_exports(self):
         for line_to_export in self.tiles_to_export:
@@ -229,16 +349,21 @@ class GameModel():
         return self.tiles_to_export
 
     def on_process_turn(self):
-        self.players[0].update_bounding_rects()
-        self.players[0].mode_grow()
-        self.players[1].update_bounding_rects()
-        self.players[1].mode_grow()
+        self.players[0].process_turn()
+        self.players[1].process_turn()
         # TODO : calculer approximativement un délai plus ou moins long selon la quantité de trucs à gérer.
-        return """ { "delayed_actions": [ {"name": "process_turn", "delay_ms": 300} ] } """
+        return """ { "delayed_actions": [ {"name": "process_turn", "delay_ms": 200} ] } """
 
     def on_game_event(self, event_name):
         if event_name == "process_turn":
             return self.on_process_turn()
         if self.must_start:
             self.must_start = False
-            return """ { "delayed_actions": [ {"name": "process_turn", "delay_ms": 300} ] } """
+            return """ { "delayed_actions": [ {"name": "process_turn", "delay_ms": 200} ] } """
+        else:
+            for player in self.players:
+                player.mode += 1
+                # TODO : ça c'est crade.
+                if player.mode > 2:
+                    player.mode = 0
+                print("player.mode", player.mode, player.color)
