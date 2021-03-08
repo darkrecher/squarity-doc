@@ -62,6 +62,11 @@ GAMOBJ_NAME_TO_NB_UNIT = (
     "09", "10", "11", "12", "13", "14", "15", "16",
 )
 
+# Gros TODO global : est-ce que ça aurait pas été mieux avec un seul array,
+# dans chaque case il y a une classe, avec tous le bordel dedans.
+# les unités des players, les villes, les adjacences pour les déplacements, ...
+# Bordel de merde. N'aurait-je pas tout foutu à l'envers ?
+
 # TODO crap
 #                if x < 10 and y >= self.h-15:
 #                    unit_val = 1 # min((x*(self.h-y)) // 5, 16)
@@ -82,15 +87,17 @@ def coord_move(x, y, direction):
 MODE_GROW = 0
 MODE_TRAVEL_VERTICALLY = 1
 MODE_TRAVEL_HORIZONTALLY = 2
+MODE_FIGHT = 3
 
 class Player():
 
-    def __init__(self, player_id, w, h, color, tiles_control, rightward, downward):
+    def __init__(self, player_id, w, h, color, tiles_control, tiles_town, rightward, downward):
         self.player_id = player_id
         self.w = w
         self.h = h
         self.color = color
         self.tiles_control = tiles_control
+        self.tiles_town = tiles_town
         self.rightward = rightward
         self.downward = downward
         self.bounding_rect_exists = False
@@ -185,8 +192,9 @@ class Player():
             self.bounding_rect_y_min = min(ys_with_unit)
             self.bounding_rect_y_max = self.h
 
-        print("bounding rect", self.color)
-        print(self.bounding_rect_x_min, self.bounding_rect_y_min, self.bounding_rect_x_max, self.bounding_rect_y_max)
+        # todo crap.
+        # print("bounding rect", self.color)
+        # print(self.bounding_rect_x_min, self.bounding_rect_y_min, self.bounding_rect_x_max, self.bounding_rect_y_max)
 
     def iter_vertical_expansion_column(self, x_column):
         if self.downward:
@@ -245,6 +253,8 @@ class Player():
             return
         if unit_source <= unit_dest + 1:
             return
+        if self.tiles_town[y_dest][x_dest]:
+            return
         # Si personne ne contrôle la tile de destination,
         # ça veut dire qu'il y a plusieurs players dessus
         has_other_unit_dest = self.tiles_control[y_dest][x_dest] is None
@@ -281,20 +291,18 @@ class Player():
         if not self.bounding_rect_exists:
             return
         coords_receive_growing = []
-        nb_grow = 0
         for y in range(self.bounding_rect_y_min, self.bounding_rect_y_max):
             for x in range(self.bounding_rect_x_min, self.bounding_rect_x_max):
+                if self.tiles_control[y][x] != self.player_id:
+                    # Personne ne contrôle cette tile (donc pas moi)
+                    # Ça veut dire qu'il y a des unités ennemies dessus.
+                    # On peut pas grower sur cette tile.
+                    continue
                 unit_val = self.array_units[y][x]
-                if unit_val:
-                    if self.tiles_control[y][x] is None:
-                        # Personne ne contrôle cette tile (donc pas moi)
-                        # Ça veut dire qu'il y a des unités ennemies dessus.
-                        # On peut pas grower sur cette tile.
-                        continue
-                    nb_grow += 1
-                    if unit_val < 16 and unit_val != -1:
-                        coords_receive_growing.append((x, y))
-        nb_grow //= 8
+                if unit_val < 16 and unit_val != -1:
+                    coords_receive_growing.append((x, y))
+
+        nb_grow = self.nb_controlled_tiles // 8
         coords_to_grow = random.sample(
             coords_receive_growing,
             min(nb_grow, len(coords_receive_growing))
@@ -302,16 +310,51 @@ class Player():
         for x, y in coords_to_grow:
             self.array_units[y][x] += 1
 
+    def fight_one_tile(self, x, y):
+        if self.tiles_control[y][x] is not None:
+            # Quelqu'un contrôle cette tile (moi ou un autre)
+            # Pas de combat dessus
+            return
+        unit_val = self.array_units[y][x]
+        if not unit_val:
+            # Pas de combat car pas d'unité à moi sur cette tile.
+            return
+        for player_opponent in self.other_players:
+            unit_opponent = player_opponent.array_units[y][x]
+            if unit_opponent:
+                break
+        if not unit_opponent:
+            # Not supposed to happen, mais on sait jamais.
+            return
+        # On enlève une unité dans chaque camp.
+        unit_val -= 1
+        unit_opponent -= 1
+        # Suppression gratuite d'une unité de l'opponent (avantage à la personne qui attaque)
+        if unit_opponent:
+            unit_opponent -= 1
+        # Et pour finir, on enlève encore une unité dans chaque camp, si c'est possible.
+        if unit_val and unit_opponent:
+            unit_val -= 1
+            unit_opponent -= 1
+        self.array_units[y][x] = unit_val
+        player_opponent.array_units[y][x] = unit_opponent
+
     def mode_fight(self):
-        pass
+        if not self.bounding_rect_exists:
+            return
+        for y in range(self.bounding_rect_y_min, self.bounding_rect_y_max):
+            for x in range(self.bounding_rect_x_min, self.bounding_rect_x_max):
+                self.fight_one_tile(x, y)
 
     def process_turn(self):
         if self.mode == MODE_GROW:
             self.mode_grow()
         elif self.mode == MODE_TRAVEL_VERTICALLY:
             self.mode_travel_vertically()
-        else:
+        elif self.mode == MODE_TRAVEL_HORIZONTALLY:
             self.mode_travel_horizontally()
+        else:
+            self.mode_fight()
 
 
 class GameModel():
@@ -322,26 +365,50 @@ class GameModel():
 
         self.tiles_to_export = []
         self.tiles_control = []
+        self.tiles_town = []
         for y in range(self.h):
             line_to_export = []
             line_control = []
+            line_town = []
             for x in range(self.w):
                 line_to_export.append([])
                 line_control.append(None)
+                line_town.append(False)
             self.tiles_to_export.append(tuple(line_to_export))
             self.tiles_control.append(line_control)
+            self.tiles_town.append(line_town)
         self.tiles_to_export = tuple(self.tiles_to_export)
         self.tiles_control = tuple(self.tiles_control)
+        self.tiles_town = tuple(self.tiles_town)
 
         self.players = (
-            Player(0, self.w, self.h, "red", self.tiles_control, rightward=True, downward=False),
-            Player(1, self.w, self.h, "blu", self.tiles_control, rightward=False, downward=True),
+            Player(
+                0,
+                self.w,
+                self.h,
+                "red",
+                self.tiles_control,
+                self.tiles_town,
+                rightward=True,
+                downward=False,
+            ),
+            Player(
+                1,
+                self.w,
+                self.h,
+                "blu",
+                self.tiles_control,
+                self.tiles_town,
+                rightward=False,
+                downward=True,
+            ),
         )
         self.players[0].set_other_players((self.players[1], ))
         self.players[1].set_other_players((self.players[0], ))
         self.nb_players = len(self.players)
 
         self.update_indexations()
+        self.update_towns()
         self.update_tile_to_export()
         self.must_start = True
 
@@ -404,6 +471,21 @@ class GameModel():
                 nb_controlled_tiles_by_player[player.player_id],
             )
 
+    def update_towns(self):
+        """
+        Met à jour uniquement le tableau des towns.
+        """
+        for y in range(self.h):
+            for x in range(self.w):
+                is_town = any(
+                    (
+                        player.array_units[y][x] == -1
+                        for player
+                        in self.players
+                    )
+                )
+                self.tiles_town[y][x] = is_town
+
     def update_tile_to_export(self):
         general_iterators = [self.iter_on_tiles_to_export(), self.iter_on_tiles_control()]
         player_iterators = [player.iter_on_gamobjs() for player in self.players]
@@ -424,10 +506,10 @@ class GameModel():
     def on_process_turn(self):
         self.update_indexations()
         self.players[0].process_turn()
-        self.players[1].process_turn()
+        # self.players[1].process_turn()
         self.update_tile_to_export()
         # TODO : calculer approximativement un délai plus ou moins long selon la quantité de trucs à gérer.
-        return """ { "delayed_actions": [ {"name": "process_turn", "delay_ms": 200} ] } """
+        return """ { "delayed_actions": [ {"name": "process_turn", "delay_ms": 20} ] } """
 
     def on_game_event(self, event_name):
         if event_name == "process_turn":
@@ -439,6 +521,6 @@ class GameModel():
             for player in self.players:
                 player.mode += 1
                 # TODO : ça c'est crade.
-                if player.mode > 2:
+                if player.mode > 3:
                     player.mode = 0
                 print("player.mode", player.mode, player.color)
