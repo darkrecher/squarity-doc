@@ -5,8 +5,8 @@
 """
 {
   "game_area": {
-    "nb_tile_width": 50,
-    "nb_tile_height": 40
+    "nb_tile_width": 20,
+    "nb_tile_height": 20
   },
   "tile_size": 4,
   "img_coords": {
@@ -51,10 +51,14 @@
     "blu_16": [60, 4],
     "blu_town_1x1": [68, 4],
     "blu_controls": [64, 4],
-    "blu_road_horiz": [72, 8],
-    "blu_road_vertic": [76, 8],
-    "blu_road_both": [80, 8],
+    "blu_road_horiz": [72, 4],
+    "blu_road_vertic": [76, 4],
+    "blu_road_both": [80, 4],
     "blu_cursor": [12, 8],
+
+    "neutral_road_horiz": [72, 8],
+    "neutral_road_vertic": [76, 8],
+    "neutral_road_both": [80, 8],
 
 
     "bla": [0, 0]
@@ -136,6 +140,27 @@ class Player:
     def remove_controlled_road(self, tile):
         self._controlled_roads.remove(tile)
 
+    def move_unit_without_check(self, tile_source, tile_dest, qty=1):
+        """
+        On vérifie pas les changements d'owner.
+        À utiliser que quand on est sûr de ce qu'on fait.
+        Par exemple, pour équilibrer les unités entre deux routes adjacentes.
+        """
+        tile_source.nb_unit -= qty
+        tile_dest.nb_unit += qty
+        tile_source._update_linked_gamobjs()
+        tile_dest._update_linked_gamobjs()
+
+    def spread_units_on_roads(self):
+        for tile in self._controlled_roads:
+            nb_unit_source = tile.nb_unit
+            for adj_tile, adj_is_road in zip(tile.adjacencies, tile.road_adjacencies_same_player):
+                if adj_is_road:
+                    nb_unit_dest = adj_tile.nb_unit
+                    if nb_unit_source - nb_unit_dest > 1:
+                        self.move_unit_without_check(tile, adj_tile)
+
+
 
 class Town:
     def __init__(self, x_left, y_up, player_owner, size):
@@ -190,8 +215,14 @@ class Tile:
 
     def _update_linked_gamobjs(self):
         if self.player_owner is None:
-            # TODO : il manque le cas des routes sans owner.
-            self.linked_gamobjs[:] = []
+            if self.road_horiz or self.road_vertic:
+                gamobj_bg_suffix = Tile.GAMOBJ_BACKGROUND_FROM_ROADS[
+                    (self.road_horiz, self.road_vertic)
+                ]
+                gamobj_background = "neutral" + gamobj_bg_suffix
+                self.linked_gamobjs[:] = [gamobj_background]
+            else:
+                self.linked_gamobjs[:] = []
             return
         color = self.player_owner.color
         gamobj_bg_suffix = Tile.GAMOBJ_BACKGROUND_FROM_ROADS[
@@ -346,7 +377,11 @@ class Tile:
         self.road_vertic = self.road_vertic or vertic
         current_road_qty = self.road_horiz + self.road_vertic
         self._update_all_road_adjacencies_with_current_roads()
-        if previous_road_qty == 0 and current_road_qty > 0:
+        if (
+            previous_road_qty == 0
+            and current_road_qty > 0
+            and self.player_owner is not None
+        ):
             self.player_owner.add_controlled_road(self)
         self._update_linked_gamobjs()
 
@@ -401,15 +436,6 @@ class GameMaster:
         )
         return adjacencies
 
-    def move_unit_without_check(self, x_source, y_source, x_dest, y_dest, qty=1):
-        """
-        On vérifie pas les changements d'owner.
-        À utiliser que quand on est sûr de ce qu'on fait.
-        Par exemple, pour équilibrer les unités entre deux routes adjacentes.
-        """
-        # TODO
-        pass
-
 
 def test_add_and_remove_unit(game_master):
     game_master.game_area[2][2].add_unit(game_master.players[0])
@@ -447,7 +473,7 @@ def test_adjacencies_and_add_roads(game_master):
     for adj_tile in game_master.game_area[4][4].adjacencies:
         print(str(adj_tile))
     print("")
-    game_master.game_area[2][1].add_unit(game_master.players[0], 2)
+    game_master.game_area[2][1].add_unit(game_master.players[0], 10)
     game_master.game_area[1][1].add_unit(game_master.players[0])
     print(game_master.game_area[1][1])
     print(game_master.game_area[2][1])
@@ -458,11 +484,39 @@ def test_adjacencies_and_add_roads(game_master):
     print(game_master.game_area[2][1])
     print("")
     print(game_master.players[0]._controlled_roads)
+    player_0 = game_master.players[0]
 
+    player_0.spread_units_on_roads()
+
+    # game_master.game_area[3][3].add_unit(game_master.players[1])
+    game_master.game_area[3][3].add_road(horiz=True)
+    game_master.game_area[3][3].add_road(vertic=True)
+    # game_master.game_area[3][3].add_unit(game_master.players[1])
+    game_master.game_area[3][4].add_unit(game_master.players[1], 5)
+
+
+def test_spread_units(game_master):
+    for x in range(3, 12):
+        game_master.game_area[2][x].add_road(horiz=True)
+        game_master.game_area[5][x].add_road(horiz=True)
+        game_master.game_area[2][x].add_unit(game_master.players[0])
+        game_master.game_area[5][x].add_unit(game_master.players[0])
+
+    for y in range(2, 6):
+        game_master.game_area[y][3].add_road(vertic=True)
+        game_master.game_area[y][11].add_road(vertic=True)
+        game_master.game_area[y][3].add_unit(game_master.players[0])
+        game_master.game_area[y][11].add_unit(game_master.players[0])
+
+    game_master.game_area[2][4].add_unit(game_master.players[0], 15)
+    game_master.game_area[2][7].add_unit(game_master.players[0], 15)
+    player_0 = game_master.players[0]
+    # player_0.spread_units_on_roads()
 
 def main():
     game_master = GameMaster(5, 5)
-    test_adjacencies_and_add_roads(game_master)
+    # test_adjacencies_and_add_roads(game_master)
+    test_spread_units(game_master)
 
 
 if __name__ == "__main__":
@@ -471,11 +525,12 @@ if __name__ == "__main__":
 
 class GameModel:
     def __init__(self):
-        self.w = 50
-        self.h = 40
+        self.w = 20
+        self.h = 20
         self.game_master = GameMaster(self.w, self.h)
 
-        test_adjacencies_and_add_roads(self.game_master)
+        # test_adjacencies_and_add_roads(self.game_master)
+        test_spread_units(self.game_master)
 
         # TODO : crap.
         # self.players[0].set_other_players((self.players[1], ))
@@ -487,28 +542,22 @@ class GameModel:
         return self.game_master.gamobjs_to_export
 
     def on_process_turn(self):
-        self.update_indexations()
-        self.players[0].process_turn()
-        # self.players[1].process_turn()
-        self.update_tile_to_export()
+        self.game_master.players[0].spread_units_on_roads()
         # TODO : calculer approximativement un délai plus ou moins long selon la quantité de trucs à gérer.
         return (
-            """ { "delayed_actions": [ {"name": "process_turn", "delay_ms": 20} ] } """
+            """ { "delayed_actions": [ {"name": "process_turn", "delay_ms": 300} ] } """
         )
 
     def on_game_event(self, event_name):
-        # TODO crap.
-        return
-
         if event_name == "process_turn":
             return self.on_process_turn()
         if self.must_start:
             self.must_start = False
             return """ { "delayed_actions": [ {"name": "process_turn", "delay_ms": 10} ] } """
-        else:
-            for player in self.players:
-                player.mode += 1
-                # TODO : ça c'est crade.
-                if player.mode > 3:
-                    player.mode = 0
-                print("player.mode", player.mode, player.color)
+        # else:
+        #     for player in self.players:
+        #         player.mode += 1
+        #         # TODO : ça c'est crade.
+        #         if player.mode > 3:
+        #             player.mode = 0
+        #         print("player.mode", player.mode, player.color)
