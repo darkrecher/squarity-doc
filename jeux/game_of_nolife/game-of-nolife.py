@@ -9,6 +9,7 @@
     "nb_tile_height": 20
   },
   "tile_size": 4,
+
   "img_coords": {
     "red_01": [0, 0],
     "red_02": [4, 0],
@@ -33,6 +34,17 @@
     "red_road_both": [80, 0],
     "red_cursor": [12, 8],
 
+    "red_town_build_00": [0, 0],
+    "red_town_build_01": [20, 8],
+    "red_town_build_02": [24, 8],
+    "red_town_build_03": [28, 8],
+    "red_town_build_04": [32, 8],
+    "red_town_build_05": [36, 8],
+    "red_town_build_06": [40, 8],
+    "red_town_build_07": [44, 8],
+    "red_town_build_08": [48, 8],
+    "red_town_build_09": [52, 8],
+
     "blu_01": [0, 4],
     "blu_02": [4, 4],
     "blu_03": [8, 4],
@@ -56,10 +68,20 @@
     "blu_road_both": [80, 4],
     "blu_cursor": [12, 8],
 
+    "blu_town_build_00": [0, 0],
+    "blu_town_build_01": [20, 8],
+    "blu_town_build_02": [24, 8],
+    "blu_town_build_03": [28, 8],
+    "blu_town_build_04": [32, 8],
+    "blu_town_build_05": [36, 8],
+    "blu_town_build_06": [40, 8],
+    "blu_town_build_07": [44, 8],
+    "blu_town_build_08": [48, 8],
+    "blu_town_build_09": [52, 8],
+
     "neutral_road_horiz": [72, 8],
     "neutral_road_vertic": [76, 8],
     "neutral_road_both": [80, 8],
-
 
     "bla": [0, 0]
 
@@ -68,10 +90,8 @@
 """
 
 # Prochains trucs :
-# fonction pour répartir équitablement les units sur les routes.
-# petit code de démo, avec une grande route pleine de unit.
-# On y connecte une route plus petite, avec moins de unit.
 # Création d'une ville, gestion des suburbs.
+# Des missiles bactériologiques !!! Qui partent en diagonale depuis une ville.
 
 import random
 
@@ -80,11 +100,7 @@ GAMOBJ_NAME_TO_NB_UNIT = tuple(
     "00;01;02;03;04;05;06;07;08;09;10;11;12;13;14;15;16".split(";")
 )
 
-# TODO crap
-#                if x < 10 and y >= self.h-15:
-#                    unit_val = 1 # min((x*(self.h-y)) // 5, 16)
-#                if x >= self.w-10 and y < 15:
-#                    unit_val = 1 # min(((self.w-x)*y) // 5, 16)
+# TODO : crap ??
 def coord_move(x, y, direction):
     if direction == "R":
         x += 1
@@ -97,8 +113,8 @@ def coord_move(x, y, direction):
     return (x, y)
 
 
-MODE_TRAVEL_VERTICALLY = 1
-MODE_TRAVEL_HORIZONTALLY = 2
+NB_TURNS_TOWN_BUILDING = 9
+NB_TURNS_TOWN_BUILDING_TIMEOUT = 25
 
 
 class Player:
@@ -118,6 +134,8 @@ class Player:
         self.controlled_bare_tiles_with_many_units = []
         self.town_tiles = []
         self.total_units = 0
+        self.tile_building_town = None
+        self.building_time = 0
 
     def __str__(self):
         return "player_%s" % self.player_id
@@ -151,15 +169,64 @@ class Player:
         tile_source._update_linked_gamobjs()
         tile_dest._update_linked_gamobjs()
 
+    def conquest_road(self):
+        for tile in self._controlled_roads:
+            if tile.nb_unit > 2:
+                for adj_tile in tile.adjacencies[::2]:
+                    if (
+                        adj_tile is not None
+                        and (adj_tile.road_horiz or adj_tile.road_vertic)
+                        and adj_tile.player_owner is None
+                    ):
+                        tile.remove_unit()
+                        adj_tile.add_unit(self)
+
     def spread_units_on_roads(self):
         for tile in self._controlled_roads:
+            if tile.town_building_step:
+                # La tile qui construit une ville ne transfère pas ses unités aux autres.
+                continue
             nb_unit_source = tile.nb_unit
-            for adj_tile, adj_is_road in zip(tile.adjacencies, tile.road_adjacencies_same_player):
-                if adj_is_road:
-                    nb_unit_dest = adj_tile.nb_unit
-                    if nb_unit_source - nb_unit_dest > 1:
-                        self.move_unit_without_check(tile, adj_tile)
+            # TODO : on itère sur les 8 cases alors que y'aurait besoin que de 2.
+            for adj_tile, adj_is_road in zip(
+                tile.adjacencies, tile.road_adjacencies_same_player
+            ):
+                if (
+                    adj_is_road
+                    and nb_unit_source > 2
+                    and nb_unit_source - adj_tile.nb_unit > 1
+                ):
+                    self.move_unit_without_check(tile, adj_tile)
 
+    def process_town_building(self):
+        if self.tile_building_town is None:
+            return
+        self.building_time += 1
+        if self.building_time >= NB_TURNS_TOWN_BUILDING_TIMEOUT:
+            # La construction de la ville a pris trop de temps.
+            # Parce que les unités qui sont dessus n'ont pas arrêté de se faire éliminer.
+            # Tant pis, on arrête tout.
+            self.tile_building_town.cancel_town_building()
+            self.building_time = 0
+            self.tile_building_town = None
+            return
+
+        if self.tile_building_town.nb_unit >= 16:
+            # Pas de problème, il y a toujours 16 unités dans la ville en construction.
+            # On avance la construction de 1.
+            self.tile_building_town.advance_town_building()
+            if self.tile_building_town.town_building_step >= NB_TURNS_TOWN_BUILDING:
+                # TODO : faut créer la ville, voyez.
+                self.building_time = 0
+                self.tile_building_town = None
+            return
+
+        # On peut pas avancer la construction de la ville, car y'a des unités qui sont parties.
+        # On essaie de ramener des unités autour pour reprendre la construction.
+        for adj_tile in self.tile_building_town.adjacencies:
+            if adj_tile.player_owner == self and adj_tile.nb_unit > 1:
+                self.move_unit_without_check(adj_tile, self.tile_building_town)
+                break
 
 
 class Town:
@@ -212,6 +279,7 @@ class Tile:
         self.nb_unit = 0
         self.town = None
         self.suburb_owner = None
+        self.town_building_step = 0
 
     def _update_linked_gamobjs(self):
         if self.player_owner is None:
@@ -229,8 +297,15 @@ class Tile:
             (self.road_horiz, self.road_vertic)
         ]
         gamobj_background = color + gamobj_bg_suffix
-        gamobj_unit = color + "_" + GAMOBJ_NAME_TO_NB_UNIT[self.nb_unit]
-        self.linked_gamobjs[:] = [gamobj_background, gamobj_unit]
+        # Il ne devrait jamais y avoir plus de 16 unités sur une même tile,
+        # mais on sait jamais. Donc on met un min.
+        gamobj_unit = color + "_" + GAMOBJ_NAME_TO_NB_UNIT[min(self.nb_unit, 16)]
+        gamobjs = [gamobj_background, gamobj_unit]
+        if self.town_building_step:
+            gamobjs.append(
+                color + "_town_build_" + str(self.town_building_step).zfill(2)
+            )
+        self.linked_gamobjs[:] = gamobjs
 
     def __str__(self):
         return "".join(
@@ -308,12 +383,12 @@ class Tile:
             # Pas de check pour vérifier que ça dépasse pas 16. Faut le faire avant.
             self.nb_unit += qty
             player.total_units += qty
-
         elif self.player_owner is None:
             self.player_owner = player
             player.add_controlled_tile(self)
             if self.road_vertic or self.road_horiz:
                 player.add_controlled_road(self)
+                self.game_master.nb_uncontrolled_roads -= 1
             self.nb_unit += qty
             player.total_units += qty
         else:
@@ -360,7 +435,8 @@ class Tile:
         if self.nb_unit == 0:
             self.player_owner.remove_controlled_tile(self)
             if self.road_vertic or self.road_horiz:
-                player.remove_controlled_road(self)
+                self.player_owner.remove_controlled_road(self)
+                self.game_master.nb_uncontrolled_roads += 1
             self.player_owner = None
 
         self._update_all_road_adjacencies_with_current_roads()
@@ -377,12 +453,37 @@ class Tile:
         self.road_vertic = self.road_vertic or vertic
         current_road_qty = self.road_horiz + self.road_vertic
         self._update_all_road_adjacencies_with_current_roads()
-        if (
-            previous_road_qty == 0
-            and current_road_qty > 0
-            and self.player_owner is not None
-        ):
-            self.player_owner.add_controlled_road(self)
+        if previous_road_qty == 0 and current_road_qty > 0:
+            if self.player_owner is None:
+                self.game_master.nb_uncontrolled_roads += 1
+            else:
+                self.player_owner.add_controlled_road(self)
+        self._update_linked_gamobjs()
+
+    def remove_all_roads(self):
+        """
+        Supprime toutes les routes de la tile.
+        Il n'y a pas de fonction pour supprimer une seule des deux routes, car pas besoin.
+        Le seul moment où on supprime des routes, c'est pour mettre une ville à la place.
+        """
+        if not self.road_vertic and not self.road_horiz:
+            return
+        self.road_vertic = False
+        self.road_horiz = False
+        if self.player_owner is None:
+            self.game_master.nb_uncontrolled_roads -= 1
+        else:
+            self.player_owner.remove_controlled_road(self)
+        self._update_linked_gamobjs()
+
+    def advance_town_building(self):
+        if self.town_building_step >= NB_TURNS_TOWN_BUILDING:
+            return
+        self.town_building_step += 1
+        self._update_linked_gamobjs()
+
+    def cancel_town_building(self):
+        self.town_building_step = 0
         self._update_linked_gamobjs()
 
 
@@ -413,6 +514,13 @@ class GameMaster:
 
         self.suburbs = []
         self.towns = []
+        # J'ai besoin de ça pour savoir si il faut checker des conquêtes de roads.
+        # C'est assez rare qu'il y ait des routes inocuppées, mais quand c'est le cas,
+        # faut boucler sur toutes les routes occupées pour voir si on peut se propager.
+        # Donc c'est cool de savoir les moments où on n'a pas besoin de faire ça.
+        # TODO : faudra peut-être avoir une liste, et pas juste la quantité.
+        # On verra si le jeu devient lent quand il y a des routes incontrôlées.
+        self.nb_uncontrolled_roads = 0
 
         # TODO : Faut les créer en dehors ces trucs. Et les passer en params.
         player_0 = Player(
@@ -496,22 +604,39 @@ def test_adjacencies_and_add_roads(game_master):
 
 
 def test_spread_units(game_master):
+    player_0 = game_master.players[0]
+
+    game_master.game_area[1][5].add_road(vertic=True)
+    game_master.game_area[2][5].add_road(horiz=True)
+    game_master.game_area[2][5].add_road(vertic=True)
+    game_master.game_area[2][5].add_unit(game_master.players[1], 7)
     for x in range(3, 12):
         game_master.game_area[2][x].add_road(horiz=True)
         game_master.game_area[5][x].add_road(horiz=True)
-        game_master.game_area[2][x].add_unit(game_master.players[0])
-        game_master.game_area[5][x].add_unit(game_master.players[0])
+        game_master.game_area[2][x].add_unit(player_0)
+        game_master.game_area[5][x].add_unit(player_0)
 
     for y in range(2, 6):
         game_master.game_area[y][3].add_road(vertic=True)
         game_master.game_area[y][11].add_road(vertic=True)
-        game_master.game_area[y][3].add_unit(game_master.players[0])
-        game_master.game_area[y][11].add_unit(game_master.players[0])
+        game_master.game_area[y][3].add_unit(player_0)
+        game_master.game_area[y][11].add_unit(player_0)
 
-    game_master.game_area[2][4].add_unit(game_master.players[0], 15)
-    game_master.game_area[2][7].add_unit(game_master.players[0], 15)
+    game_master.game_area[4][13].add_unit(player_0, 7)
+    game_master.game_area[5][13].add_unit(player_0, 3)
+    for y in range(2, 6):
+        game_master.game_area[y][13].add_road(vertic=True)
+
+    game_master.game_area[2][4].add_unit(player_0, 15)
+    game_master.game_area[2][7].add_unit(player_0, 15)
+
+
+def test_build_town(game_master):
     player_0 = game_master.players[0]
-    # player_0.spread_units_on_roads()
+    test_spread_units(game_master)
+    game_master.game_area[2][8].add_unit(player_0, 10)
+    player_0.tile_building_town = game_master.game_area[2][7]
+
 
 def main():
     game_master = GameMaster(5, 5)
@@ -530,7 +655,7 @@ class GameModel:
         self.game_master = GameMaster(self.w, self.h)
 
         # test_adjacencies_and_add_roads(self.game_master)
-        test_spread_units(self.game_master)
+        test_build_town(self.game_master)
 
         # TODO : crap.
         # self.players[0].set_other_players((self.players[1], ))
@@ -538,11 +663,22 @@ class GameModel:
         # self.nb_players = len(self.players)
         self.must_start = True
 
+        self.todo_test_attack = False
+
     def export_all_tiles(self):
         return self.game_master.gamobjs_to_export
 
     def on_process_turn(self):
-        self.game_master.players[0].spread_units_on_roads()
+        if self.todo_test_attack:
+            self.game_master.game_area[2][7].add_unit(self.game_master.players[1], 2)
+            self.todo_test_attack = False
+
+        for _, player in self.game_master.players.items():
+            if self.game_master.nb_uncontrolled_roads:
+                print("Faut checker les conquêtes de routes.")
+                player.conquest_road()
+            player.process_town_building()
+            player.spread_units_on_roads()
         # TODO : calculer approximativement un délai plus ou moins long selon la quantité de trucs à gérer.
         return (
             """ { "delayed_actions": [ {"name": "process_turn", "delay_ms": 300} ] } """
@@ -554,6 +690,8 @@ class GameModel:
         if self.must_start:
             self.must_start = False
             return """ { "delayed_actions": [ {"name": "process_turn", "delay_ms": 10} ] } """
+        if event_name == "action_2":
+            self.todo_test_attack = True
         # else:
         #     for player in self.players:
         #         player.mode += 1
