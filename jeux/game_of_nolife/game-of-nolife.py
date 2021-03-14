@@ -115,6 +115,8 @@ def coord_move(x, y, direction):
 
 NB_TURNS_TOWN_BUILDING = 9
 NB_TURNS_TOWN_BUILDING_TIMEOUT = 25
+UNIT_GEN_TOWN_POINT_REQUIRED = 2  # 16
+UNIT_GEN_TOWN_POINT_MAX_CUMUL = UNIT_GEN_TOWN_POINT_REQUIRED * 2
 
 
 class Player:
@@ -132,7 +134,8 @@ class Player:
         # avec une seule unité, et pas beaucoup avec plusieurs. Donc quand faut
         # bouger les "plusieurs", c'est mieux de savoir tout de suite où elles sont.
         self.controlled_bare_tiles_with_many_units = []
-        self.town_tiles = []
+        self.towns = []
+        self.active_towns = []
         self.total_units = 0
         self.tile_building_town = None
         self.building_time = 0
@@ -166,13 +169,21 @@ class Player:
         """
         tile_source.nb_unit -= qty
         tile_dest.nb_unit += qty
-        tile_source._update_linked_gamobjs()
-        tile_dest._update_linked_gamobjs()
+        tile_source.update_linked_gamobjs()
+        tile_dest.update_linked_gamobjs()
 
     def conquest_road(self):
+        """
+        Lorsque vous contrôler une tile de road, qui est connectée à une tile de road adjacente,
+        contrôlée par personne, alors vous déplacez automatiquement une unité dessus pour
+        la conquérir.
+        """
         for tile in self._controlled_roads:
             if tile.nb_unit > 2:
                 for adj_tile in tile.adjacencies[::2]:
+                    # TODO : ce check de connexion est pourri. Faut vraiment vérifier
+                    # que c'est deux routes connectées, avec le vertic/horiz.
+                    # Et du coup, faudrait peut-être une petite fonction spéciale que pour ça.
                     if (
                         adj_tile is not None
                         and (adj_tile.road_horiz or adj_tile.road_vertic)
@@ -192,7 +203,8 @@ class Player:
                 tile.adjacencies, tile.road_adjacencies_same_player
             ):
                 if (
-                    adj_is_road
+                    adj_tile is not None
+                    and adj_is_road
                     and nb_unit_source > 2
                     and nb_unit_source - adj_tile.nb_unit > 1
                 ):
@@ -216,7 +228,7 @@ class Player:
             # On avance la construction de 1.
             self.tile_building_town.advance_town_building()
             if self.tile_building_town.town_building_step >= NB_TURNS_TOWN_BUILDING:
-                # TODO : faut créer la ville, voyez.
+                self.tile_building_town.build_town()
                 self.building_time = 0
                 self.tile_building_town = None
             return
@@ -224,18 +236,157 @@ class Player:
         # On peut pas avancer la construction de la ville, car y'a des unités qui sont parties.
         # On essaie de ramener des unités autour pour reprendre la construction.
         for adj_tile in self.tile_building_town.adjacencies:
-            if adj_tile.player_owner == self and adj_tile.nb_unit > 1:
+            if (
+                adj_tile is not None
+                and adj_tile.player_owner == self
+                and adj_tile.nb_unit > 1
+            ):
                 self.move_unit_without_check(adj_tile, self.tile_building_town)
                 break
 
+    def update_active_towns(self):
+        self.active_towns = [town for town in self.towns if town.is_active]
+
+    def process_unit_generation_town(self):
+        for town in self.active_towns:
+            town.process_unit_generation()
+
 
 class Town:
-    def __init__(self, x_left, y_up, player_owner, size):
+    def __init__(self, x_left, y_up, size, player_owner, game_master):
         self.x_left = x_left
         self.y_up = y_up
-        self.player_owner = player_owner
         self.size = size
-        self.rect = (x, y, x + size, y + size)
+        self.player_owner = player_owner
+        self.game_master = game_master
+        self.rect = (x_left, y_up, x_left + size, y_up + size)
+        self.is_active = True
+        self.unit_gen_horiz = True
+        self.unit_gen_points = 0
+        self.unit_gen_speed = size ** 2 + size // 2
+
+        self.tiles_position = []
+        for x in range(x_left, x_left + size):
+            for y in range(y_up, y_up + size):
+                self.tiles_position.append(self.game_master.game_area[y][x])
+
+        self._compute_unit_gen_tiles()
+        self.adjacent_tiles = tuple([tile for tile in self.unit_gen_tiles_horiz_first])
+        self.update_unit_gen_tiles()
+        # TODO : calculer la tile diagonale backward, qui sera la tile utilisée pour
+        # envoyer les units en backward conquest.
+        self.player_owner.towns.append(self)
+        self.player_owner.update_active_towns()
+
+    def _compute_unit_gen_tiles(self):
+        """
+        Calcule unit_gen_tiles_horiz_first et unit_gen_tiles_vertic_first.
+        C'est à dire la liste des tiles où on pose les units. Par ordre de priorité horiz/vertic,
+        et en accord avec les rightward/leftward, downward/upward du player.
+        """
+        size = self.size
+        wardnesses = (self.player_owner.rightward, self.player_owner.downward)
+        if wardnesses == (True, False):
+            unit_gen_offsets = (
+                tuple([(size, size - 1 - offset) for offset in range(size)]),
+                tuple([(offset, -1) for offset in range(size)]),
+                tuple([(-1, size - 1 - offset) for offset in range(size)]),
+                tuple([(offset, size) for offset in range(size)]),
+            )
+        elif wardnesses == (False, True):
+            unit_gen_offsets = (
+                tuple([(-1, offset) for offset in range(size)]),
+                tuple([(size - 1 - offset, size) for offset in range(size)]),
+                tuple([(size, offset) for offset in range(size)]),
+                tuple([(size - 1 - offset, -1) for offset in range(size)]),
+            )
+        elif wardnesses == (True, True):
+            unit_gen_offsets = (
+                tuple([(size, offset) for offset in range(size)]),
+                tuple([(offset, -1) for offset in range(size)]),
+                tuple([(-1, offset) for offset in range(size)]),
+                tuple([(offset, size) for offset in range(size)]),
+            )
+        elif wardnesses == (False, False):
+            unit_gen_offsets = (
+                tuple([(-1, size - 1 - offset) for offset in range(size)]),
+                tuple([(size - 1 - offset, -1) for offset in range(size)]),
+                tuple([(size, size - 1 - offset) for offset in range(size)]),
+                tuple([(size - 1 - offset, size) for offset in range(size)]),
+            )
+        else:
+            raise Exception("Bad wardnesses. Not supposed to happen.")
+        (horiz_first, vertic_first, horiz_second, vertic_second) = unit_gen_offsets
+        unit_gen_horiz_first_offsets = (
+            horiz_first + vertic_first + horiz_second + vertic_second
+        )
+        unit_gen_vertic_first_offsets = (
+            vertic_first + horiz_first + vertic_second + horiz_second
+        )
+        # On checke que ça dépasse pas les bords de l'aire de jeu.
+        self.unit_gen_tiles_horiz_first = [
+            self.game_master.game_area[self.y_up + y_offset][self.x_left + x_offset]
+            for (x_offset, y_offset) in unit_gen_horiz_first_offsets
+            if 0 <= self.x_left + x_offset < self.game_master.w
+            and 0 <= self.y_up + y_offset < self.game_master.h
+        ]
+        self.unit_gen_tiles_vertic_first = [
+            self.game_master.game_area[self.y_up + y_offset][self.x_left + x_offset]
+            for (x_offset, y_offset) in unit_gen_vertic_first_offsets
+            if 0 <= self.x_left + x_offset < self.game_master.w
+            and 0 <= self.y_up + y_offset < self.game_master.h
+        ]
+
+    def update_unit_gen_tiles(self):
+        """
+        Met à jour les variables unit_gen_tiles_horiz_first et unit_gen_tiles_vertic_first,
+        ainsi que self.is_active, en fonction des towns autour.
+        """
+        self.unit_gen_tiles_horiz_first = [
+            tile for tile in self.unit_gen_tiles_horiz_first if tile.town is None
+        ]
+        self.unit_gen_tiles_vertic_first = [
+            tile for tile in self.unit_gen_tiles_vertic_first if tile.town is None
+        ]
+        if not self.unit_gen_tiles_horiz_first:
+            self.is_active = False
+            # TODO : transférer une partie des points de génération de unit de cette town
+            # à la génération de unit par terrain.
+            print("TODO desactivation town", self.x_left, self.y_up, self.size)
+            self.player_owner.update_active_towns()
+            # Il faut updater la liste des gamobjects de chaque tile de la town,
+            # car lorsque la town est désactivée, on l'affiche en plus foncée.
+            # TODO : faut vraiment le faire car pour l'instant je le fais pas.
+            for tile in self.tiles_position:
+                tile.update_linked_gamobjs()
+
+    def process_unit_generation(self):
+        self.unit_gen_points += self.unit_gen_speed
+        self.unit_gen_points = min(self.unit_gen_points, NB_TURNS_TOWN_BUILDING_TIMEOUT)
+        if self.unit_gen_points > NB_TURNS_TOWN_BUILDING:
+
+            if self.unit_gen_horiz:
+                unit_gen_tiles = self.unit_gen_tiles_horiz_first
+            else:
+                unit_gen_tiles = self.unit_gen_tiles_vertic_first
+
+            for tile in unit_gen_tiles:
+                if tile.player_owner != self.player_owner or tile.nb_unit < 16:
+                    tile.add_unit(self.player_owner)
+                    self.unit_gen_points -= NB_TURNS_TOWN_BUILDING
+                    self.unit_gen_horiz = not self.unit_gen_horiz
+                    if (
+                        (not tile.road_horiz or not tile.road_vertic)
+                        and self.player_owner == tile.player_owner
+                        and tile.nb_unit >= 2
+                    ):
+                        tile.add_road(True, True)
+                    return
+            # Si on est arrivé là, on aurait du générer une unit, mais on n'a aucun
+            # endroit où la placer. Tant pis, on testera au prochain tour.
+            # C'est pour ça qu'on peut cumuler plus de points de génération que le coût de
+            # création d'une unit. Ça permet d'avoir un petit délai dans la génération,
+            # sans perdre de points.
 
 
 REVERSE_DIRS = (4, 5, 6, 7, 0, 1, 2, 3)
@@ -281,7 +432,8 @@ class Tile:
         self.suburb_owner = None
         self.town_building_step = 0
 
-    def _update_linked_gamobjs(self):
+    def update_linked_gamobjs(self):
+
         if self.player_owner is None:
             if self.road_horiz or self.road_vertic:
                 gamobj_bg_suffix = Tile.GAMOBJ_BACKGROUND_FROM_ROADS[
@@ -292,19 +444,27 @@ class Tile:
             else:
                 self.linked_gamobjs[:] = []
             return
+
+        gamobjs = []
         color = self.player_owner.color
-        gamobj_bg_suffix = Tile.GAMOBJ_BACKGROUND_FROM_ROADS[
-            (self.road_horiz, self.road_vertic)
-        ]
-        gamobj_background = color + gamobj_bg_suffix
-        # Il ne devrait jamais y avoir plus de 16 unités sur une même tile,
-        # mais on sait jamais. Donc on met un min.
-        gamobj_unit = color + "_" + GAMOBJ_NAME_TO_NB_UNIT[min(self.nb_unit, 16)]
-        gamobjs = [gamobj_background, gamobj_unit]
-        if self.town_building_step:
-            gamobjs.append(
-                color + "_town_build_" + str(self.town_building_step).zfill(2)
-            )
+        if self.town:
+            gamobjs.append(color + "_town_1x1")
+        else:
+            gamobj_bg_suffix = Tile.GAMOBJ_BACKGROUND_FROM_ROADS[
+                (self.road_horiz, self.road_vertic)
+            ]
+            gamobj_background = color + gamobj_bg_suffix
+            gamobjs.append(gamobj_background)
+            if self.nb_unit:
+                # Il ne devrait jamais y avoir plus de 16 unités sur une même tile,
+                # mais on sait jamais. Donc on met un min.
+                gamobjs.append(
+                    color + "_" + GAMOBJ_NAME_TO_NB_UNIT[min(self.nb_unit, 16)]
+                )
+            if self.town_building_step:
+                gamobjs.append(
+                    color + "_town_build_" + str(self.town_building_step).zfill(2)
+                )
         self.linked_gamobjs[:] = gamobjs
 
     def __str__(self):
@@ -377,6 +537,8 @@ class Tile:
     def add_unit(self, player, qty=1):
         if not qty:
             return
+        if self.town is not None:
+            raise Exception("Ajout de unit sur une ville. Not supposed to happen.")
 
         initial_nb_unit = self.nb_unit
         if self.player_owner == player:
@@ -410,7 +572,7 @@ class Tile:
             self.player_owner.controlled_bare_tiles_with_many_units.append(self)
 
         self._update_all_road_adjacencies_with_current_roads()
-        self._update_linked_gamobjs()
+        self.update_linked_gamobjs()
 
     def remove_unit(self, qty=1):
         if not qty:
@@ -438,15 +600,17 @@ class Tile:
                 self.player_owner.remove_controlled_road(self)
                 self.game_master.nb_uncontrolled_roads += 1
             self.player_owner = None
+            self._update_all_road_adjacencies_with_current_roads()
 
-        self._update_all_road_adjacencies_with_current_roads()
-        self._update_linked_gamobjs()
+        self.update_linked_gamobjs()
 
     def add_road(self, horiz=False, vertic=False):
         if not (horiz or vertic):
             return
         if horiz == self.road_horiz and vertic == self.road_vertic:
             return
+        if self.town is not None:
+            raise Exception("Ajout de road sur une town. Not supposed to happen.")
 
         previous_road_qty = self.road_horiz + self.road_vertic
         self.road_horiz = self.road_horiz or horiz
@@ -458,9 +622,9 @@ class Tile:
                 self.game_master.nb_uncontrolled_roads += 1
             else:
                 self.player_owner.add_controlled_road(self)
-        self._update_linked_gamobjs()
+        self.update_linked_gamobjs()
 
-    def remove_all_roads(self):
+    def _remove_all_roads(self):
         """
         Supprime toutes les routes de la tile.
         Il n'y a pas de fonction pour supprimer une seule des deux routes, car pas besoin.
@@ -474,17 +638,35 @@ class Tile:
             self.game_master.nb_uncontrolled_roads -= 1
         else:
             self.player_owner.remove_controlled_road(self)
-        self._update_linked_gamobjs()
+        self._update_all_road_adjacencies()
+        self.update_linked_gamobjs()
 
     def advance_town_building(self):
         if self.town_building_step >= NB_TURNS_TOWN_BUILDING:
             return
         self.town_building_step += 1
-        self._update_linked_gamobjs()
+        self.update_linked_gamobjs()
 
     def cancel_town_building(self):
         self.town_building_step = 0
-        self._update_linked_gamobjs()
+        self.update_linked_gamobjs()
+
+    # TODO : on n'aura pas besoin du param size, mais c'est juste pour tester.
+    def build_town(self, size=1):
+        if self.player_owner is None:
+            raise Exception("Town without owner. Not supposed to happen.")
+
+        if not self.road_horiz and not self.road_vertic and self.nb_unit > 1:
+            self.player_owner.controlled_bare_tiles_with_many_units.remove(self)
+        self._remove_all_roads()
+        # Pour enlever les units, on aurait dû passer par la fonction remove_units.
+        # Mais on va pas le faire, parce que ça mettrait player_owner à None.
+        self.nb_unit = 0
+        self.town = Town(self.x, self.y, size, self.player_owner, self.game_master)
+        for tile_adj in self.adjacencies[::2]:
+            if tile_adj is not None and tile_adj.town is not None:
+                tile_adj.town.update_unit_gen_tiles()
+        self.update_linked_gamobjs()
 
 
 class GameMaster:
@@ -513,7 +695,6 @@ class GameMaster:
                 self.game_area[y][x].adjacencies = adjacencies
 
         self.suburbs = []
-        self.towns = []
         # J'ai besoin de ça pour savoir si il faut checker des conquêtes de roads.
         # C'est assez rare qu'il y ait des routes inocuppées, mais quand c'est le cas,
         # faut boucler sur toutes les routes occupées pour voir si on peut se propager.
@@ -638,6 +819,55 @@ def test_build_town(game_master):
     player_0.tile_building_town = game_master.game_area[2][7]
 
 
+def test_unit_gen_town_start(game_master):
+    player_0 = game_master.players[0]
+    game_master.game_area[2][8].add_unit(player_0)
+    game_master.game_area[2][8].build_town(4)
+
+    player_1 = game_master.players[1]
+    game_master.game_area[12][6].add_unit(player_1)
+    game_master.game_area[12][6].build_town(2)
+
+
+def test_unit_gen_town_2(game_master):
+    player_0 = game_master.players[0]
+    game_master.game_area[2][8].add_unit(player_0)
+    game_master.game_area[2][8].build_town()
+    # player_0 = game_master.players[0]
+    # game_master.game_area[1][8].add_unit(player_0)
+    # game_master.game_area[1][8].build_town()
+    # player_0 = game_master.players[0]
+    # game_master.game_area[3][8].add_unit(player_0)
+    # game_master.game_area[3][8].build_town()
+    # player_0 = game_master.players[0]
+    # game_master.game_area[2][7].add_unit(player_0)
+    # game_master.game_area[2][7].build_town()
+    # player_0 = game_master.players[0]
+    # game_master.game_area[2][9].add_unit(player_0)
+    # game_master.game_area[2][9].build_town()
+
+
+test_index_unit_gen = 0
+
+
+def test_unit_gen_town_each_turn(game_master):
+    # Vilain global, mais osef.
+    global test_index_unit_gen
+    player_0 = game_master.players[0]
+    town = game_master.game_area[2][8].town
+    if test_index_unit_gen < len(town.unit_gen_tiles_horiz_first):
+        unit_gen_tile = town.unit_gen_tiles_horiz_first[test_index_unit_gen]
+        unit_gen_tile.add_unit(player_0, 10)
+
+    player_1 = game_master.players[1]
+    town = game_master.game_area[12][6].town
+    if test_index_unit_gen < len(town.unit_gen_tiles_horiz_first):
+        unit_gen_tile = town.unit_gen_tiles_horiz_first[test_index_unit_gen]
+        unit_gen_tile.add_unit(player_1, 10)
+
+    test_index_unit_gen += 1
+
+
 def main():
     game_master = GameMaster(5, 5)
     # test_adjacencies_and_add_roads(game_master)
@@ -655,14 +885,11 @@ class GameModel:
         self.game_master = GameMaster(self.w, self.h)
 
         # test_adjacencies_and_add_roads(self.game_master)
-        test_build_town(self.game_master)
+        # test_build_town(self.game_master)
+        # test_unit_gen_town_start(self.game_master)
+        test_unit_gen_town_2(self.game_master)
 
-        # TODO : crap.
-        # self.players[0].set_other_players((self.players[1], ))
-        # self.players[1].set_other_players((self.players[0], ))
-        # self.nb_players = len(self.players)
         self.must_start = True
-
         self.todo_test_attack = False
 
     def export_all_tiles(self):
@@ -673,12 +900,15 @@ class GameModel:
             self.game_master.game_area[2][7].add_unit(self.game_master.players[1], 2)
             self.todo_test_attack = False
 
+        # test_unit_gen_town_each_turn(self.game_master)
+
         for _, player in self.game_master.players.items():
             if self.game_master.nb_uncontrolled_roads:
                 print("Faut checker les conquêtes de routes.")
                 player.conquest_road()
             player.process_town_building()
             player.spread_units_on_roads()
+            player.process_unit_generation_town()
         # TODO : calculer approximativement un délai plus ou moins long selon la quantité de trucs à gérer.
         return (
             """ { "delayed_actions": [ {"name": "process_turn", "delay_ms": 300} ] } """
