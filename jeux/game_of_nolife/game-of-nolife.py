@@ -7,7 +7,7 @@
 {
   "game_area": {
     "nb_tile_width": 20,
-    "nb_tile_height": 20
+    "nb_tile_height": 25
   },
   "tile_size": 4,
 
@@ -34,6 +34,7 @@
     "red_road_vertic": [76, 0],
     "red_road_both": [80, 0],
     "red_cursor": [12, 8],
+    "red_magnet": [14, 8],
 
     "red_town_build_00": [0, 0],
     "red_town_build_01": [20, 8],
@@ -68,6 +69,7 @@
     "blu_road_vertic": [76, 4],
     "blu_road_both": [80, 4],
     "blu_cursor": [12, 8],
+    "blu_magnet": [14, 8],
 
     "blu_town_build_00": [0, 0],
     "blu_town_build_01": [20, 8],
@@ -121,6 +123,22 @@ def bounding_rect_overlaps(b_rect_1, b_rect_2):
     return True
 
 
+def directions_from_pos(tile_src, tile_dst):
+    diff_x = tile_dst.x - tile_src.x
+    diff_y = tile_dst.y - tile_src.y
+    directions = []
+    if diff_x:
+        dir_x = 6 if diff_x < 0 else 2
+        directions.append(dir_x)
+    if diff_y:
+        dir_y = 0 if diff_y < 0 else 4
+        directions.append(dir_y)
+
+    if abs(diff_x) < abs(diff_y):
+        directions = directions[::-1]
+    return directions
+
+
 class Player:
     def __init__(self, player_id, w, h, color, game_master, rightward, downward):
         self.player_id = player_id
@@ -144,6 +162,12 @@ class Player:
         self.total_units = 0
         self.tile_building_town = None
         self.building_time = 0
+        # TODO : en dur à l'arrache
+        if color == "red":
+            self.tile_magnet = game_master.game_area[8][10]
+            print("tile_magnet", self.tile_magnet)
+        else:
+            self.tile_magnet = None
 
     def __str__(self):
         return "player_%s" % self.player_id
@@ -177,27 +201,65 @@ class Player:
         tile_source.update_linked_gamobjs()
         tile_dest.update_linked_gamobjs()
 
-    def spread_units_on_roads(self):
-        for tile in self._controlled_roads:
-            if tile.town_building_step:
-                # La tile qui construit une ville ne transfère pas ses unités aux autres.
-                continue
-            nb_unit_source = tile.nb_unit
-            # TODO : on itère sur les 8 cases alors que y'aurait besoin que de 2.
-            # D'abord parce que y'a jamais les diagonales.
-            # Et ensuite parce qu'on peut ... ah non. Ah si, mais faut calculer la différence absolue.
-            # et ensuite déterminer si on bouge de la tile 1 -> 2, ou l'inverse.
-            # Mais faut le faire, parce que ça optimiserait bien.
-            for adj_tile, adj_connexion_type in zip(
-                tile.adjacencies, tile.road_adjacencies_same_player
+    def _spread_units_on_one_road(self, tile):
+        nb_unit_source = tile.nb_unit
+        # TODO : on itère sur les 8 cases alors que y'aurait besoin que de 2.
+        # D'abord parce que y'a jamais les diagonales.
+        # Et ensuite parce qu'on peut ... ah non. Ah si, mais faut calculer la différence absolue.
+        # et ensuite déterminer si on bouge de la tile 1 -> 2, ou l'inverse.
+        # Mais faut le faire, parce que ça optimiserait bien.
+        for adj_tile, adj_connexion_type in zip(
+            tile.adjacencies, tile.road_adjacencies_same_player
+        ):
+            if (
+                adj_tile is not None
+                and adj_connexion_type == 1
+                and nb_unit_source > 2
+                and nb_unit_source - adj_tile.nb_unit > 1
             ):
-                if (
-                    adj_tile is not None
-                    and adj_connexion_type == 1
-                    and nb_unit_source > 2
-                    and nb_unit_source - adj_tile.nb_unit > 1
-                ):
-                    self.move_unit_without_check(tile, adj_tile)
+                self.move_unit_without_check(tile, adj_tile)
+
+    def _move_units_to_magnet(self, tile):
+        nb_unit_source = tile.nb_unit
+        if nb_unit_source <= 2:
+            return
+        dirs = directions_from_pos(tile, self.tile_magnet)
+        # TODO : choisir au hasard une des deux directions,
+        # si les deux sont possibles.
+        # Parce que là, on fait deux mouvements d'unités si il y a les deux chemins possibles.
+        # Et c'est pas génial.
+        #  TODO : random à l'arrache, à partir d'une liste de 1000 valeurs booléennes random prédéfinies.
+        # C'est de la merde, mais on n'a pas besoin de plus. Et ça évitera de faire ralentir le jeu.
+        for direc in dirs:
+            tile_dest = tile.adjacencies[direc]
+            if tile_dest is not None:
+                if tile_dest.player_owner == self and tile_dest.nb_unit >= 16:
+                    continue
+                # TODO : peut-être sortir ça dans une fonction générique. (le check des routes).
+                if direc in (2, 6):
+                    road_ok = tile.road_horiz and tile_dest.road_horiz
+                elif direc in (0, 4):
+                    road_ok = tile.road_vertic and tile_dest.road_vertic
+                if not road_ok:
+                    continue
+                if tile_dest.player_owner == self:
+                    self.move_unit_without_check(tile, tile_dest)
+                else:
+                    tile.remove_unit()
+                    tile_dest.add_unit(self)
+
+    def move_units_on_roads(self, turn_index):
+        if self.tile_magnet is None:
+            function_move = self._spread_units_on_one_road
+        else:
+            function_move = self._move_units_to_magnet
+        select_tile = turn_index & 1
+
+        for tile in self._controlled_roads:
+            # La tile qui construit une ville ne transfère pas ses unités aux autres.
+            # Et on fait une tile sur deux, réparti dans l'arène.
+            if (tile.x + tile.y) & 1 == select_tile and not tile.town_building_step:
+                function_move(tile)
 
     def process_town_building(self):
         if self.tile_building_town is None:
@@ -945,6 +1007,11 @@ class GameMaster:
                     if (
                         adj_tile is not None
                         and adj_tile.player_owner is not None
+                        # Si le player est magnetisé, il ne conquiert pas les routes neutres.
+                        # De fait, il en conquiert. Celles qui lui permettent d'accéder
+                        # à la tile magnetisée.
+                        # Mais les autres, non.
+                        and adj_tile.player_owner.tile_magnet is None
                         and adj_tile.nb_unit > 1
                         and adj_tile.road_vertic
                     ):
@@ -955,6 +1022,7 @@ class GameMaster:
                     if (
                         adj_tile is not None
                         and adj_tile.player_owner is not None
+                        and adj_tile.player_owner.tile_magnet is None
                         and adj_tile.nb_unit > 1
                         and adj_tile.road_horiz
                     ):
@@ -1096,6 +1164,8 @@ SANDBOX_MODES = [
     "add horiz road",
     "add vertic road",
     "add town",
+    "red magnet",
+    "blu magnet",
     "describe",
 ]
 
@@ -1140,6 +1210,13 @@ class GameModel:
             gamobjs_copy.append(line)
 
         gamobjs_copy[self.y_cursor][self.x_cursor].append("red_cursor")
+        for player in self.game_master.players.values():
+            if player.tile_magnet is not None:
+                # TODO : mettre ce nom de gamobj en cache ?
+                gamobj_magnet = player.color + "_magnet"
+                gamobjs_copy[player.tile_magnet.y][player.tile_magnet.x].append(
+                    gamobj_magnet
+                )
         return gamobjs_copy
 
     def on_process_turn(self):
@@ -1169,30 +1246,31 @@ class GameModel:
                         print("Ville déjà en construction pour cette couleur.")
                     else:
                         tile_target.player_owner.tile_building_town = tile_target
+            elif sandbox_mode == "red magnet":
+                if self.game_master.players[0].tile_magnet == tile_target:
+                    self.game_master.players[0].tile_magnet = None
+                else:
+                    self.game_master.players[0].tile_magnet = tile_target
+            elif sandbox_mode == "blu magnet":
+                if self.game_master.players[1].tile_magnet == tile_target:
+                    self.game_master.players[1].tile_magnet = None
+                else:
+                    self.game_master.players[1].tile_magnet = tile_target
             elif sandbox_mode == "describe":
                 print("-----")
                 print(tile_target)
-            # TODO crap.
-            # self.game_master.game_area[2][7].add_unit(self.game_master.players[1], 2)
-            # if self.game_master.game_area[2][8].town is None:
-            #     self.game_master.game_area[2][8].add_unit(
-            #         self.game_master.players[1], 16
-            #     )
-            #     self.game_master.game_area[2][8].build_town()
-            self.sandbox_action = False
 
-        # test_unit_gen_town_each_turn(self.game_master)
-        # test_build_town_on_full_tiles_0(self.game_master)
-        # test_build_town_on_full_tiles_1(self.game_master)
+            self.sandbox_action = False
 
         self.game_master.conquest_neutral_roads()
         self.game_master.equilibrate_units_in_suburbs(self.turn_index)
-        self.turn_index += 1
 
         for _, player in self.game_master.players.items():
             player.process_town_building()
-            player.spread_units_on_roads()
+            player.move_units_on_roads(self.turn_index)
             player.process_unit_generation_town()
+
+        self.turn_index += 1
         # TODO : calculer approximativement un délai plus ou moins long selon la quantité de trucs à gérer.
         return (
             """ { "delayed_actions": [ {"name": "process_turn", "delay_ms": 100} ] } """
