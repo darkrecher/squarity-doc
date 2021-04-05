@@ -35,6 +35,7 @@
     "red_road_both": [80, 0],
     "red_cursor": [12, 8],
     "red_magnet": [14, 8],
+    "red_go_back": [4, 8],
 
     "red_town_build_00": [0, 0],
     "red_town_build_01": [20, 8],
@@ -70,6 +71,7 @@
     "blu_road_both": [80, 4],
     "blu_cursor": [12, 8],
     "blu_magnet": [14, 8],
+    "blu_go_back": [4, 8],
 
     "blu_town_build_00": [0, 0],
     "blu_town_build_01": [20, 8],
@@ -99,6 +101,12 @@
 # Les routes mettent un petit temps à se construire ?
 # (Elles ne coûtent rien et la construction ne peut être interrompue).
 
+# TODO : la magnétisation lorsque c'est une tile d'un suburb.
+# il faut qu'elle prenne ce qu'il y a autour, au max.
+
+# TODO : les villes construisent plus ou moins automatiquement des routes autour d'elles.
+# Sinon ça fait zarbi et ça glitche.
+
 import random
 
 # Moche, mais ça permet de convertir plus rapidement.
@@ -123,6 +131,10 @@ def bounding_rect_overlaps(b_rect_1, b_rect_2):
     return True
 
 
+def manhattan_dist(tile_1, tile_2):
+    return abs(tile_1.x - tile_2.x) + abs(tile_1.y - tile_2.y)
+
+
 def directions_from_pos(tile_src, tile_dst):
     diff_x = tile_dst.x - tile_src.x
     diff_y = tile_dst.y - tile_src.y
@@ -139,6 +151,39 @@ def directions_from_pos(tile_src, tile_dst):
     return directions
 
 
+def is_behind_right_down(tile_ref, tile_test):
+    return tile_test.x <= tile_ref.x and tile_test.y <= tile_ref.y
+
+
+def is_behind_left_down(tile_ref, tile_test):
+    return tile_test.x >= tile_ref.x and tile_test.y <= tile_ref.y
+
+
+def is_behind_right_up(tile_ref, tile_test):
+    return tile_test.x <= tile_ref.x and tile_test.y >= tile_ref.y
+
+
+def is_behind_left_up(tile_ref, tile_test):
+    return tile_test.x >= tile_ref.x and tile_test.y >= tile_ref.y
+
+
+# Clé : 2 booléens rightward, downward.
+# valeur : un tuple de 7 éléments :
+# - La fonction is_behind
+# - direction forward en diagonale, forward horizontale, forward verticale
+# - direction backward en diagonale, backward horizontale, backward verticale
+CONFIG_FROM_WARDNESSES = {
+    (True, True): (is_behind_right_down, 3, 2, 4, 7, 6, 0),
+    (True, False): (is_behind_right_up, 1, 2, 0, 5, 6, 4),
+    (False, True): (is_behind_left_down, 5, 6, 4, 1, 2, 0),
+    (False, False): (is_behind_left_up, 7, 6, 0, 3, 2, 4),
+}
+
+# La distance jusqu'à laquelle on envoie l'ordre de backward conquest,
+# en fonction de la size de la town.
+DIST_BACKWARDING_FROM_SIZE = {1: 2, 2: 4, 4: 6}
+
+
 class Player:
     def __init__(self, player_id, w, h, color, game_master, rightward, downward):
         self.player_id = player_id
@@ -148,9 +193,19 @@ class Player:
         self.game_master = game_master
         self.rightward = rightward
         self.downward = downward
+
+        (
+            self.is_behind,
+            self.dir_forw_diag,
+            self.dir_forw_hori,
+            self.dir_forw_verti,
+            self.dir_back_diag,
+            self.dir_back_hori,
+            self.dir_back_verti,
+        ) = CONFIG_FROM_WARDNESSES[(self.rightward, self.downward)]
         self._controlled_tiles = []
         self._controlled_roads = []
-        # On a besoin d'indexer là-dessus, parce qu'en général, on n'a plein de bare tiles
+        # On a besoin d'indexer là-dessus, parce qu'en général, on a plein de bare tiles
         # avec une seule unité, et pas beaucoup avec plusieurs. Donc quand faut
         # bouger les "plusieurs", c'est mieux de savoir tout de suite où elles sont.
         self.controlled_bare_tiles_with_many_units = []
@@ -162,12 +217,11 @@ class Player:
         self.total_units = 0
         self.tile_building_town = None
         self.building_time = 0
-        # TODO : en dur à l'arrache
-        if color == "red":
-            self.tile_magnet = game_master.game_area[8][10]
-            print("tile_magnet", self.tile_magnet)
-        else:
-            self.tile_magnet = None
+        self.tile_magnet = None
+        # Liste de sous-listes de 2 elem : le délai avant go backward, la tile.
+        # Le premier élément, c'est la tile de la town qui a lancé son ordre de backward.
+        self.infos_go_backward = []
+        self.tile_limit_go_back = None
 
     def __str__(self):
         return "player_%s" % self.player_id
@@ -302,9 +356,148 @@ class Player:
         for town in self.active_towns:
             town.process_unit_generation()
 
+    def move_units_on_bare_tiles(self, turn_index):
+        select_tile = turn_index & 3
+        check_go_back = self.tile_limit_go_back is not None
+        for tile in self.controlled_bare_tiles_with_many_units:
+            # Le y est multiplié par 2, sinon ça fait le même select pour toutes
+            # les tiles d'une même diagonale.
+            if (tile.x + tile.y * 2) & 3 == select_tile:
+                if check_go_back and self.is_behind(self.tile_limit_go_back, tile):
+                    # backward, en mode conquest
+                    tile_dest = tile.adjacencies[self.dir_back_diag]
+                    if (
+                        tile_dest is not None
+                        and tile_dest.town is None
+                        and (tile_dest.player_owner != self or tile_dest.nb_unit < 16)
+                    ):
+                        tile.remove_unit()
+                        tile_dest.add_unit(self)
+                else:
+                    # forward, en mode move.
+                    # TODO : précalculer les possible_direcs et les foutre dans une liste de 2 elems.
+                    if tile.x & 1:
+                        possible_direcs = (
+                            self.dir_forw_diag,
+                            self.dir_forw_hori,
+                            self.dir_forw_verti,
+                        )
+                    else:
+                        possible_direcs = (
+                            self.dir_forw_diag,
+                            self.dir_forw_verti,
+                            self.dir_forw_hori,
+                        )
+                    for direction in possible_direcs:
+                        tile_dest = tile.adjacencies[direction]
+                        if (
+                            tile_dest is not None
+                            and tile_dest.town is None
+                            and tile_dest.player_owner == self
+                            and tile_dest.nb_unit < 16
+                        ):
+                            tile.remove_unit()
+                            tile_dest.add_unit(self)
+                            break
+
+    def set_town_backward_conquest(self, town):
+        self.tile_limit_go_back = None
+        self.tile_magnet = None
+        self.infos_go_backward = []
+        if town is None:
+            return
+        tile_go_backward_diag = town.get_tile_go_backward_diag()
+        if tile_go_backward_diag.adjacencies[self.dir_back_diag] is None:
+            # On essaie de backwarder avec une town qui est sur un bord arrière de l'aire de jeu,
+            # ça sert à rien. On laisse tomber.
+            return
+
+        dist_backwarding = DIST_BACKWARDING_FROM_SIZE[town.size]
+        delay_max = dist_backwarding + town.size - 1
+        self.infos_go_backward.append([delay_max, tile_go_backward_diag])
+
+        for tile_start in town.tiles_cmd_go_backward_horiz:
+            tile_cur = tile_start
+            for _ in range(dist_backwarding):
+                if tile_cur is not None and tile_cur.road_horiz:
+                    delay = delay_max - manhattan_dist(tile_go_backward_diag, tile_cur)
+                    self.infos_go_backward.append([delay, tile_cur])
+                    tile_cur = tile_cur.adjacencies[self.dir_back_hori]
+                else:
+                    break
+        for tile_start in town.tiles_cmd_go_backward_vertic:
+            tile_cur = tile_start
+            for _ in range(dist_backwarding):
+                if tile_cur is not None and tile_cur.road_vertic:
+                    delay = delay_max - manhattan_dist(tile_go_backward_diag, tile_cur)
+                    self.infos_go_backward.append([delay, tile_cur])
+                    tile_cur = tile_cur.adjacencies[self.dir_back_verti]
+                else:
+                    break
+
+        self.tile_limit_go_back = tile_go_backward_diag
+        self.tile_magnet = tile_go_backward_diag
+
+    def _process_backward_conquest_town_tile(
+        self, select_tile, infos_go_backward_town_tile
+    ):
+        delay, tile_go_backward = infos_go_backward_town_tile
+        tile_dest = tile_go_backward.adjacencies[self.dir_back_diag]
+        if tile_dest.town is not None:
+            return
+        if (tile_go_backward.x + tile_go_backward.y) & 3 != select_tile:
+            return
+        if delay > 0:
+            delay -= 1
+            infos_go_backward_town_tile[0] = delay
+            return
+        if tile_dest.player_owner == self and tile_dest.nb_unit >= 16:
+            return
+        if tile_go_backward.suburb_owner is None:
+            raise Exception("tile_go_back town sans Suburb. Not supposed to happen.")
+        for tile_src in tile_go_backward.suburb_owner.real_suburb_tiles:
+            if tile_src.player_owner == self and tile_src.nb_unit >= 2:
+                tile_src.remove_unit()
+                tile_dest.add_unit(self)
+                return
+
+    def _process_backward_conquest_road_tile(
+        self, select_tile, infos_go_backward_road_tile
+    ):
+        delay, tile_go_backward = infos_go_backward_road_tile
+        tile_dest = tile_go_backward.adjacencies[self.dir_back_diag]
+        if tile_dest.town is not None:
+            return
+        if (tile_go_backward.x + tile_go_backward.y) & 3 != select_tile:
+            return
+        if delay > 0:
+            delay -= 1
+            infos_go_backward_road_tile[0] = delay
+            return
+        if tile_dest.player_owner == self and tile_dest.nb_unit >= 16:
+            return
+        if tile_go_backward.player_owner != self or tile_go_backward.nb_unit <= 2:
+            return
+        tile_go_backward.remove_unit()
+        tile_dest.add_unit(self)
+
+    def process_backward_conquest(self, turn_index):
+        if not self.infos_go_backward:
+            return
+        select_tile = turn_index & 3
+        self._process_backward_conquest_town_tile(
+            select_tile, self.infos_go_backward[0]
+        )
+        for infos_go_backward_road_tile in self.infos_go_backward[1:]:
+            self._process_backward_conquest_road_tile(
+                select_tile, infos_go_backward_road_tile
+            )
+
 
 class Town:
-    def __init__(self, x_left, y_up, size, player_owner, game_master):
+    def __init__(
+        self, x_left, y_up, size, player_owner, game_master, create_suburb=True
+    ):
         self.x_left = x_left
         self.y_up = y_up
         self.size = size
@@ -312,7 +505,6 @@ class Town:
         self.game_master = game_master
         self.rect = (x_left, y_up, x_left + size, y_up + size)
         self.is_active = True
-        self.unit_gen_horiz = True
         self.unit_gen_points = 0
         self.unit_gen_speed = size ** 2 + size // 2
 
@@ -322,13 +514,16 @@ class Town:
                 self.tiles_position.append(self.game_master.game_area[y][x])
 
         self._compute_unit_gen_tiles()
-        self.adjacent_tiles = tuple([tile for tile in self.unit_gen_tiles_horiz_first])
+        self.adjacent_tiles = tuple([tile for tile in self.unit_gen_tiles])
+        # tile_go_backward_diag est la tile diagonale backward, qui sera la tile utilisée pour
+        # envoyer les units en backward conquest. On la calcule que si on en aura besoin.
+        self.tile_go_backward_diag = None
         self.update_unit_gen_tiles()
-        # TODO : calculer la tile diagonale backward, qui sera la tile utilisée pour
-        # envoyer les units en backward conquest.
         self.player_owner.towns.append(self)
         self.player_owner.update_active_towns()
-        suburb_of_this_town = Suburb(self, self.game_master)
+        self.built_all_adjacent_roads = False
+        if create_suburb:
+            suburb_of_this_town = Suburb(self, self.game_master)
 
     def get_suburb_owner(self):
         # Toutes les tiles d'une même town ont le même suburb owner. Puisque c'est la même town.
@@ -337,96 +532,116 @@ class Town:
         # tout le monde.
         return self.tiles_position[0].suburb_owner
 
+    def get_tile_go_backward_diag(self):
+        if self.tile_go_backward_diag is None:
+            # Lazy computing. Parce qu'on n'a besoin de ça que si la town envoie des units backward.
+            wardnesses = (self.player_owner.rightward, self.player_owner.downward)
+            if wardnesses == (True, False):
+                coord_x, coord_y = self.x_left, self.y_up + self.size - 1
+            elif wardnesses == (False, True):
+                coord_x, coord_y = self.x_left + self.size - 1, self.y_up
+            elif wardnesses == (True, True):
+                coord_x, coord_y = self.x_left, self.y_up
+            elif wardnesses == (False, False):
+                coord_x, coord_y = (
+                    self.x_left + self.size - 1,
+                    self.y_up + self.size - 1,
+                )
+            self.tile_go_backward_diag = self.game_master.game_area[coord_y][coord_x]
+        return self.tile_go_backward_diag
+
+    def _apply_coord_offsets_and_filter(self, x_base, y_base, offsets):
+        # On checke que ça dépasse pas les bords de l'aire de jeu.
+        return [
+            self.game_master.game_area[y_base + y_offset][x_base + x_offset]
+            for (x_offset, y_offset) in offsets
+            if 0 <= x_base + x_offset < self.game_master.w
+            and 0 <= y_base + y_offset < self.game_master.h
+        ]
+
     def _compute_unit_gen_tiles(self):
         """
-        Calcule unit_gen_tiles_horiz_first et unit_gen_tiles_vertic_first.
-        C'est à dire la liste des tiles où on pose les units. Par ordre de priorité horiz/vertic,
-        et en accord avec les rightward/leftward, downward/upward du player.
+        Calcule la variable unit_gen_tiles. C'est la liste de tiles où on pose les units.
+        L'ordre des tiles est donnée avec le horiz en priorité, puis le vertic.
+        L'ordre est en accord avec les rightward/leftward, downward/upward de player.
+
+        Calcule également les listes tiles_cmd_go_backward_horiz et tiles_cmd_go_backward_vertic.
+        Ce sont les listes de tiles à partir desquelles la town envoie ces commandes "go backward".
         """
         size = self.size
         wardnesses = (self.player_owner.rightward, self.player_owner.downward)
         if wardnesses == (True, False):
             unit_gen_offsets = (
-                tuple([(size, size - 1 - offset) for offset in range(size)]),
-                tuple([(offset, -1) for offset in range(size)]),
-                tuple([(-1, size - 1 - offset) for offset in range(size)]),
-                tuple([(offset, size) for offset in range(size)]),
+                [(size, size - 1 - offset) for offset in range(size)],
+                [(offset, -1) for offset in range(size)],
+                [(-1, size - 1 - offset) for offset in range(size)],
+                [(offset, size) for offset in range(size)],
             )
         elif wardnesses == (False, True):
             unit_gen_offsets = (
-                tuple([(-1, offset) for offset in range(size)]),
-                tuple([(size - 1 - offset, size) for offset in range(size)]),
-                tuple([(size, offset) for offset in range(size)]),
-                tuple([(size - 1 - offset, -1) for offset in range(size)]),
+                [(-1, offset) for offset in range(size)],
+                [(size - 1 - offset, size) for offset in range(size)],
+                [(size, offset) for offset in range(size)],
+                [(size - 1 - offset, -1) for offset in range(size)],
             )
         elif wardnesses == (True, True):
             unit_gen_offsets = (
-                tuple([(size, offset) for offset in range(size)]),
-                tuple([(offset, -1) for offset in range(size)]),
-                tuple([(-1, offset) for offset in range(size)]),
-                tuple([(offset, size) for offset in range(size)]),
+                [(size, offset) for offset in range(size)],
+                [(offset, -1) for offset in range(size)],
+                [(-1, offset) for offset in range(size)],
+                [(offset, size) for offset in range(size)],
             )
         elif wardnesses == (False, False):
             unit_gen_offsets = (
-                tuple([(-1, size - 1 - offset) for offset in range(size)]),
-                tuple([(size - 1 - offset, -1) for offset in range(size)]),
-                tuple([(size, size - 1 - offset) for offset in range(size)]),
-                tuple([(size - 1 - offset, size) for offset in range(size)]),
+                [(-1, size - 1 - offset) for offset in range(size)],
+                [(size - 1 - offset, -1) for offset in range(size)],
+                [(size, size - 1 - offset) for offset in range(size)],
+                [(size - 1 - offset, size) for offset in range(size)],
             )
         else:
             raise Exception("Bad wardnesses. Not supposed to happen.")
+
+        # On filtre d'abord. Et ensuite on additionne les listes.
         (horiz_first, vertic_first, horiz_second, vertic_second) = unit_gen_offsets
-        unit_gen_horiz_first_offsets = (
-            horiz_first + vertic_first + horiz_second + vertic_second
+        horiz_first = self._apply_coord_offsets_and_filter(
+            self.x_left, self.y_up, horiz_first
         )
-        unit_gen_vertic_first_offsets = (
-            vertic_first + horiz_first + vertic_second + horiz_second
+        vertic_first = self._apply_coord_offsets_and_filter(
+            self.x_left, self.y_up, vertic_first
         )
-        # On checke que ça dépasse pas les bords de l'aire de jeu.
-        self.unit_gen_tiles_horiz_first = [
-            self.game_master.game_area[self.y_up + y_offset][self.x_left + x_offset]
-            for (x_offset, y_offset) in unit_gen_horiz_first_offsets
-            if 0 <= self.x_left + x_offset < self.game_master.w
-            and 0 <= self.y_up + y_offset < self.game_master.h
-        ]
-        self.unit_gen_tiles_vertic_first = [
-            self.game_master.game_area[self.y_up + y_offset][self.x_left + x_offset]
-            for (x_offset, y_offset) in unit_gen_vertic_first_offsets
-            if 0 <= self.x_left + x_offset < self.game_master.w
-            and 0 <= self.y_up + y_offset < self.game_master.h
-        ]
+        horiz_second = self._apply_coord_offsets_and_filter(
+            self.x_left, self.y_up, horiz_second
+        )
+        vertic_second = self._apply_coord_offsets_and_filter(
+            self.x_left, self.y_up, vertic_second
+        )
+
+        self.unit_gen_tiles = horiz_first + vertic_first + horiz_second + vertic_second
+        self.tiles_cmd_go_backward_horiz = tuple(horiz_second)
+        self.tiles_cmd_go_backward_vertic = tuple(vertic_second)
 
     def update_unit_gen_tiles(self):
         """
-        Met à jour les variables unit_gen_tiles_horiz_first et unit_gen_tiles_vertic_first,
-        ainsi que self.is_active, en fonction des towns autour.
+        Met à jour la variable unit_gen_tiles, ainsi que self.is_active,
+        en fonction des towns autour.
         """
         print("--- town update_unit_gen_tiles")
         print(self.x_left, self.y_up)
-        self.unit_gen_tiles_horiz_first = [
-            tile for tile in self.unit_gen_tiles_horiz_first if tile.town is None
+        self.unit_gen_tiles = [
+            tile for tile in self.unit_gen_tiles if tile.town is None
         ]
         print(
-            "unit_gen_tiles_horiz_first",
-            " ; ".join(
-                (f"{tile.x},{tile.y}") for tile in self.unit_gen_tiles_horiz_first
-            ),
-        )
-        self.unit_gen_tiles_vertic_first = [
-            tile for tile in self.unit_gen_tiles_vertic_first if tile.town is None
-        ]
-        print(
-            "unit_gen_tiles_vertic_first",
-            " ; ".join(
-                (f"{tile.x},{tile.y}") for tile in self.unit_gen_tiles_vertic_first
-            ),
+            "unit_gen_tiles",
+            " ; ".join((f"{tile.x},{tile.y}") for tile in self.unit_gen_tiles),
         )
         print("---")
 
-        if not self.unit_gen_tiles_horiz_first:
+        if not self.unit_gen_tiles:
             self.is_active = False
-            # TODO : transférer une partie des points de génération de unit de cette town
-            # à la génération de unit par terrain.
+            # La town garde ses points de génération de unit.
+            # Ils seront réutilisés si la town est fusionnée avec d'autres.
+            # Et si c'est une town de size max et qu'elle est désactivée, eh bien
+            # on perd les points. La personne qui joue avait qu'à mieux gérer son urbanisme.
             print("TODO desactivation town", self.x_left, self.y_up, self.size)
             self.player_owner.update_active_towns()
             # Il faut updater la liste des gamobjects de chaque tile de la town,
@@ -439,28 +654,56 @@ class Town:
         self.unit_gen_points = min(self.unit_gen_points, UNIT_GEN_TOWN_POINT_MAX_CUMUL)
         if self.unit_gen_points > UNIT_GEN_TOWN_POINT_REQUIRED:
 
-            if self.unit_gen_horiz:
-                unit_gen_tiles = self.unit_gen_tiles_horiz_first
-            else:
-                unit_gen_tiles = self.unit_gen_tiles_vertic_first
+            if not self.built_all_adjacent_roads:
 
-            for tile in unit_gen_tiles:
-                if tile.player_owner != self.player_owner or tile.nb_unit < 16:
-                    tile.add_unit(self.player_owner)
-                    self.unit_gen_points -= UNIT_GEN_TOWN_POINT_REQUIRED
-                    self.unit_gen_horiz = not self.unit_gen_horiz
+                # Il faut créer les routes tout autour de la ville.
+                # On en crée une par tour, pas plus.
+                # On ne produit pas forcément l'unité que la ville devrait produire.
+                # Ce n'est pas trop grave, ça décale la production juste pour une fois,
+                # puisque les points de production sont conservés.
+                for tile in self.unit_gen_tiles:
                     if (
                         (not tile.road_horiz or not tile.road_vertic)
                         and self.player_owner == tile.player_owner
                         and tile.nb_unit >= 2
                     ):
                         tile.add_road(True, True)
-                    return
-            # Si on est arrivé là, on aurait du générer une unit, mais on n'a aucun
-            # endroit où la placer. Tant pis, on testera au prochain tour.
-            # C'est pour ça qu'on peut cumuler plus de points de génération que le coût de
-            # création d'une unit. Ça permet d'avoir un petit délai dans la génération,
-            # sans perdre de points.
+                        return
+
+                for tile in self.unit_gen_tiles:
+                    if (not tile.road_horiz or not tile.road_vertic) and (
+                        self.player_owner != tile.player_owner or tile.nb_unit < 2
+                    ):
+                        tile.add_unit(self.player_owner)
+                        self.unit_gen_points -= UNIT_GEN_TOWN_POINT_REQUIRED
+                        if tile.nb_unit >= 2:
+                            tile.add_road(True, True)
+                        return
+
+                if all(
+                    [
+                        tile.road_horiz and tile.road_vertic
+                        for tile in self.unit_gen_tiles
+                    ]
+                ):
+                    self.built_all_adjacent_roads = True
+
+            else:
+
+                # Toutes les routes autour sont déjà créées.
+                # On ajoute une unité sur n'importe quelle tile, osef.
+                # Le suburb s'occupera de les répartir comme il faut.
+                for tile in self.unit_gen_tiles:
+                    if self.player_owner != tile.player_owner or tile.nb_unit < 16:
+                        tile.add_unit(self.player_owner)
+                        self.unit_gen_points -= UNIT_GEN_TOWN_POINT_REQUIRED
+                        return
+
+                # Si on est arrivé là, on aurait du générer une unit, mais on n'a aucun
+                # endroit où la placer. Tant pis, on testera au prochain tour.
+                # C'est pour ça qu'on peut cumuler plus de points de génération que le coût de
+                # création d'une unit. Ça permet d'avoir un petit délai dans la génération,
+                # sans perdre de points.
 
 
 REVERSE_DIRS = (4, 5, 6, 7, 0, 1, 2, 3)
@@ -859,6 +1102,8 @@ class Tile:
                 self.game_master.uncontrolled_roads.append(self)
             else:
                 self.player_owner.add_controlled_road(self)
+                if self.nb_unit > 1:
+                    self.player_owner.controlled_bare_tiles_with_many_units.remove(self)
 
         if adj_towns:
             adj_suburbs = set((town.get_suburb_owner() for town in adj_towns))
@@ -910,7 +1155,7 @@ class Tile:
         if self.player_owner is None:
             raise Exception("Town without owner. Not supposed to happen.")
 
-        if not self.road_horiz and not self.road_vertic and self.nb_unit > 1:
+        if self in self.player_owner.controlled_bare_tiles_with_many_units:
             self.player_owner.controlled_bare_tiles_with_many_units.remove(self)
         self._remove_all_roads()
         for tile_adj in self.adjacencies[::2]:
@@ -919,7 +1164,7 @@ class Tile:
                 # La tile adjacente doit avoir road_vertic et road_horiz.
                 if int(tile_adj.road_horiz) + int(tile_adj.road_vertic) == 1:
                     tile_adj.add_road(True, True)
-        # Pour enlever les units, on aurait dû passer par la fonction remove_units.
+        # Pour enlever les units, on aurait dû passer par la fonction remove_unit.
         # Mais on va pas le faire, parce que ça mettrait player_owner à None.
         self.nb_unit = 0
         self.town = Town(self.x, self.y, size, self.player_owner, self.game_master)
@@ -1149,15 +1394,6 @@ class GameMaster:
             self._equilibrate_units_in_one_suburb(suburb, turn_index)
 
 
-def main():
-    game_master = GameMaster(5, 5)
-    # test_adjacencies_and_add_roads(game_master)
-    test_spread_units(game_master)
-
-
-if __name__ == "__main__":
-    main()
-
 SANDBOX_MODES = [
     "add red unit",
     "add blu unit",
@@ -1166,6 +1402,7 @@ SANDBOX_MODES = [
     "add town",
     "red magnet",
     "blu magnet",
+    "backward conquest",
     "describe",
 ]
 
@@ -1212,11 +1449,14 @@ class GameModel:
         gamobjs_copy[self.y_cursor][self.x_cursor].append("red_cursor")
         for player in self.game_master.players.values():
             if player.tile_magnet is not None:
-                # TODO : mettre ce nom de gamobj en cache ?
+                # TODO : mettre ce nom de gamobj en cache ? et le go back aussi ?
                 gamobj_magnet = player.color + "_magnet"
                 gamobjs_copy[player.tile_magnet.y][player.tile_magnet.x].append(
                     gamobj_magnet
                 )
+            gamobj_go_back = player.color + "_go_back"
+            for delay, tile in player.infos_go_backward:
+                gamobjs_copy[tile.y][tile.x].append(gamobj_go_back)
         return gamobjs_copy
 
     def on_process_turn(self):
@@ -1256,6 +1496,17 @@ class GameModel:
                     self.game_master.players[1].tile_magnet = None
                 else:
                     self.game_master.players[1].tile_magnet = tile_target
+            elif sandbox_mode == "backward conquest":
+                if tile_target.town is None:
+                    print("Il faut sélectionner une ville pour le backward conquest")
+                else:
+                    player = tile_target.player_owner
+                    if player.infos_go_backward:
+                        player.set_town_backward_conquest(None)
+                        print("Cancel go backward")
+                    else:
+                        player.set_town_backward_conquest(tile_target.town)
+                        print("player.infos_go_backward", player.infos_go_backward)
             elif sandbox_mode == "describe":
                 print("-----")
                 print(tile_target)
@@ -1266,8 +1517,11 @@ class GameModel:
         self.game_master.equilibrate_units_in_suburbs(self.turn_index)
 
         for _, player in self.game_master.players.items():
+            # TODO : la magnétisation interne à un suburb doit se faire ici. Sinon ce sera galère pour construire des villes.
             player.process_town_building()
             player.move_units_on_roads(self.turn_index)
+            player.move_units_on_bare_tiles(self.turn_index)
+            player.process_backward_conquest(self.turn_index)
             player.process_unit_generation_town()
 
         self.turn_index += 1
