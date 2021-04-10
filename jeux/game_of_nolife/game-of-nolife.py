@@ -1,7 +1,8 @@
 # https://i.ibb.co/mczrkx2/game-of-nolife-tileset.png (old)
 # https://i.ibb.co/qgVyDdR/game-of-nolife-tileset.png (old)
 # https://i.ibb.co/VHQh8sr/game-of-nolife-tileset.png (old)
-# https://i.ibb.co/LhqpFs2/game-of-nolife-tileset.png
+# https://i.ibb.co/LhqpFs2/game-of-nolife-tileset.png (old)
+# https://i.ibb.co/q7zv4y8/game-of-nolife-tileset.png
 
 """
 {
@@ -29,6 +30,27 @@
     "red_15": [56, 0],
     "red_16": [60, 0],
     "red_town_1x1": [68, 0],
+    "red_town_2x2_00": [64, 12],
+    "red_town_2x2_10": [68, 12],
+    "red_town_2x2_01": [64, 16],
+    "red_town_2x2_11": [68, 16],
+    "red_town_4x4_00": [0, 16],
+    "red_town_4x4_10": [4, 16],
+    "red_town_4x4_20": [8, 16],
+    "red_town_4x4_30": [12, 16],
+    "red_town_4x4_01": [0, 20],
+    "red_town_4x4_11": [4, 20],
+    "red_town_4x4_21": [8, 20],
+    "red_town_4x4_31": [12, 20],
+    "red_town_4x4_02": [0, 24],
+    "red_town_4x4_12": [4, 24],
+    "red_town_4x4_22": [8, 24],
+    "red_town_4x4_32": [12, 24],
+    "red_town_4x4_03": [0, 28],
+    "red_town_4x4_13": [4, 28],
+    "red_town_4x4_23": [8, 28],
+    "red_town_4x4_33": [12, 28],
+
     "red_controls": [64, 0],
     "red_road_horiz": [72, 0],
     "red_road_vertic": [76, 0],
@@ -65,6 +87,27 @@
     "blu_15": [56, 4],
     "blu_16": [60, 4],
     "blu_town_1x1": [68, 4],
+    "blu_town_2x2_00": [72, 12],
+    "blu_town_2x2_10": [76, 12],
+    "blu_town_2x2_01": [72, 16],
+    "blu_town_2x2_11": [76, 16],
+    "blu_town_4x4_00": [16, 16],
+    "blu_town_4x4_10": [20, 16],
+    "blu_town_4x4_20": [24, 16],
+    "blu_town_4x4_30": [28, 16],
+    "blu_town_4x4_01": [16, 20],
+    "blu_town_4x4_11": [20, 20],
+    "blu_town_4x4_21": [24, 20],
+    "blu_town_4x4_31": [28, 20],
+    "blu_town_4x4_02": [16, 24],
+    "blu_town_4x4_12": [20, 24],
+    "blu_town_4x4_22": [24, 24],
+    "blu_town_4x4_32": [28, 24],
+    "blu_town_4x4_03": [16, 28],
+    "blu_town_4x4_13": [20, 28],
+    "blu_town_4x4_23": [24, 28],
+    "blu_town_4x4_33": [28, 28],
+
     "blu_controls": [64, 4],
     "blu_road_horiz": [72, 4],
     "blu_road_vertic": [76, 4],
@@ -104,8 +147,7 @@
 # TODO : la magnétisation lorsque c'est une tile d'un suburb.
 # il faut qu'elle prenne ce qu'il y a autour, au max.
 
-# TODO : les villes construisent plus ou moins automatiquement des routes autour d'elles.
-# Sinon ça fait zarbi et ça glitche.
+# TODO : backward conquest limité dans un carré, sinon c'est overkill.
 
 import random
 
@@ -117,7 +159,7 @@ GAMOBJ_NAME_TO_NB_UNIT = tuple(
 
 NB_TURNS_TOWN_BUILDING = 9
 NB_TURNS_TOWN_BUILDING_TIMEOUT = 25
-UNIT_GEN_TOWN_POINT_REQUIRED = 5  # 16
+UNIT_GEN_TOWN_POINT_REQUIRED = 16  # 16, ou 20... Je sais pas...
 UNIT_GEN_TOWN_POINT_MAX_CUMUL = UNIT_GEN_TOWN_POINT_REQUIRED * 2
 
 
@@ -167,21 +209,51 @@ def is_behind_left_up(tile_ref, tile_test):
     return tile_test.x >= tile_ref.x and tile_test.y >= tile_ref.y
 
 
+def sort_key_right_down(town):
+    x_behind = town.x_left
+    y_behind = town.y_up
+    return (x_behind + y_behind, y_behind)
+
+
+def sort_key_left_down(town):
+    x_behind = town.x_left + town.size - 1
+    y_behind = town.y_up
+    return (-x_behind + y_behind, y_behind)
+
+
+def sort_key_right_up(town):
+    x_behind = town.x_left
+    y_behind = town.y_up + town.size - 1
+    return (x_behind - y_behind, -y_behind)
+
+
+def sort_key_left_up(town):
+    x_behind = town.x_left + town.size - 1
+    y_behind = town.y_up + town.size - 1
+    return (-x_behind - x_behind, -x_behind)
+
+
 # Clé : 2 booléens rightward, downward.
 # valeur : un tuple de 7 éléments :
-# - La fonction is_behind
+# - La fonction sort_by, permettant de trier les towns en partant du point de départ du player.
+# - La fonction is_behind, permettant de savoir si une tile est derrière une autre,
+#   dans le sens de l'avancée du player
 # - direction forward en diagonale, forward horizontale, forward verticale
 # - direction backward en diagonale, backward horizontale, backward verticale
 CONFIG_FROM_WARDNESSES = {
-    (True, True): (is_behind_right_down, 3, 2, 4, 7, 6, 0),
-    (True, False): (is_behind_right_up, 1, 2, 0, 5, 6, 4),
-    (False, True): (is_behind_left_down, 5, 6, 4, 1, 2, 0),
-    (False, False): (is_behind_left_up, 7, 6, 0, 3, 2, 4),
+    (True, True): (sort_key_right_down, is_behind_right_down, 3, 2, 4, 7, 6, 0),
+    (True, False): (sort_key_right_up, is_behind_right_up, 1, 2, 0, 5, 6, 4),
+    (False, True): (sort_key_left_down, is_behind_left_down, 5, 6, 4, 1, 2, 0),
+    (False, False): (sort_key_left_up, is_behind_left_up, 7, 6, 0, 3, 2, 4),
 }
 
 # La distance jusqu'à laquelle on envoie l'ordre de backward conquest,
 # en fonction de la size de la town.
 DIST_BACKWARDING_FROM_SIZE = {1: 2, 2: 4, 4: 6}
+
+TOWN_MERGE_STATE_UNSORTED = 0
+TOWN_MERGE_STATE_UNCHECKED = 1
+TOWN_MERGE_STATE_STABLE = 2
 
 
 class Player:
@@ -195,6 +267,7 @@ class Player:
         self.downward = downward
 
         (
+            self.sort_key_town,
             self.is_behind,
             self.dir_forw_diag,
             self.dir_forw_hori,
@@ -222,6 +295,9 @@ class Player:
         # Le premier élément, c'est la tile de la town qui a lancé son ordre de backward.
         self.infos_go_backward = []
         self.tile_limit_go_back = None
+        self.town_merge_state = TOWN_MERGE_STATE_STABLE
+        self.towns_to_merge = None
+        self.town_to_shatter = None
 
     def __str__(self):
         return "player_%s" % self.player_id
@@ -237,6 +313,17 @@ class Player:
         # TODO : faut trier ces tiles, selon le sens dans lequel on les résout.
         # pour des trucs genre le mouvement en diagonal arrière, y'a besoin.
         # TODO : même chose pour les roads et les bare_tiles_many.
+
+    def add_towns(self, towns):
+        self.towns += towns
+        self.update_active_towns()
+        self.town_merge_state = TOWN_MERGE_STATE_UNSORTED
+
+    def remove_towns(self, towns):
+        for town in towns:
+            self.towns.remove(town)
+        self.update_active_towns()
+        self.town_merge_state = TOWN_MERGE_STATE_UNSORTED
 
     def add_controlled_road(self, tile):
         self._controlled_roads.append(tile)
@@ -296,6 +383,13 @@ class Player:
                     road_ok = tile.road_vertic and tile_dest.road_vertic
                 if not road_ok:
                     continue
+                if (
+                    tile.suburb_owner is not None
+                    and tile.suburb_owner == tile_dest.suburb_owner
+                ):
+                    # Déplacement d'unité entre deux tiles d'un même suburb.
+                    # Ça sert à rien. On fait pas.
+                    continue
                 if tile_dest.player_owner == self:
                     self.move_unit_without_check(tile, tile_dest)
                 else:
@@ -340,6 +434,7 @@ class Player:
 
         # On peut pas avancer la construction de la ville, car y'a des unités qui sont parties.
         # On essaie de ramener des unités autour pour reprendre la construction.
+        # TODO : c'est de la merde ce truc. Faut pas faire ça. La magnétisation le gère tout seul !
         for adj_tile in self.tile_building_town.adjacencies:
             if (
                 adj_tile is not None
@@ -435,6 +530,7 @@ class Player:
                 else:
                     break
 
+        # TODO : c'est pas cette tile !!!
         self.tile_limit_go_back = tile_go_backward_diag
         self.tile_magnet = tile_go_backward_diag
 
@@ -493,6 +589,171 @@ class Player:
                 select_tile, infos_go_backward_road_tile
             )
 
+    def merge_town(self, towns_to_remove, size_new_town):
+        # TODO : si la town sélectionnée par le player est dans towns_to_remove,
+        # faut déselectionner.
+        x_new_town = []
+        y_new_town = []
+        unit_gen_points = 0
+        for town in towns_to_remove:
+            x_new_town.append(town.x_left)
+            y_new_town.append(town.y_up)
+            unit_gen_points += town.unit_gen_points
+        self.remove_towns(towns_to_remove)
+        x_new_town = min(x_new_town)
+        y_new_town = min(y_new_town)
+        new_town = Town(
+            x_new_town, y_new_town, size_new_town, self, self.game_master, False
+        )
+        new_town.unit_gen_points = unit_gen_points
+        self.add_towns([new_town])
+        for tile in new_town.tiles_position:
+            tile.town = new_town
+            tile.update_linked_gamobjs()
+
+    def shatter_town(self, town_to_shatter, size_new_town):
+        """
+        Le nom de la fonction ressemble à Chatterton. Lolilol !
+        """
+        # TODO : si la town sélectionnée par le player est dans towns_to_remove,
+        # faut déselectionner.
+
+        # On divise les points de génération en 4 pour en donner à chaque ville.
+        # Il risque d'y avoir de la perte car on fait une divison entière. C'est comme ça.
+        # La réurbanisation, ça coûte des ressources.
+        unit_gen_points_new_towns = town_to_shatter.unit_gen_points // 4
+        x_left = town_to_shatter.x_left
+        y_up = town_to_shatter.y_up
+        self.remove_towns([town_to_shatter])
+        coord_new_towns = (
+            (x_left, y_up),
+            (x_left + size_new_town, y_up),
+            (x_left, y_up + size_new_town),
+            (x_left + size_new_town, y_up + size_new_town),
+        )
+        new_towns = []
+        for x, y in coord_new_towns:
+            new_town = Town(x, y, size_new_town, self, self.game_master, False)
+            new_town.unit_gen_points = unit_gen_points_new_towns
+            for tile in new_town.tiles_position:
+                tile.town = new_town
+                tile.update_linked_gamobjs()
+            new_towns.append(new_town)
+        self.add_towns(new_towns)
+
+    def check_town_size_2_merge(self, cur_town):
+        """
+        On checke que 3 cases. Celles où on est censé avoir le left_up
+        des 3 villes avec lesquelles on merge. (2*forward chacune)
+        Si, sur l'une de ces 3 cases, on a une ville de taille 4,
+        qui est situé après dans l'ordre, et qu'on a aucune ville de taille 4 située avant,
+        et que les modulos sont les mêmes, alors on shatter celle qui est après.
+        Sinon on fait rien, car ça risque de tout pourrir.
+        Si on a 3 ville de taille 2, avec les left_up qui correspondent, on merge.
+        """
+        tile_of_town = cur_town.tiles_position[0]
+        tile_diag_1 = tile_of_town.adjacencies[self.dir_forw_diag]
+        if tile_diag_1 is None:
+            return False
+        tile_diag_2 = tile_diag_1.adjacencies[self.dir_forw_diag]
+        if tile_diag_2 is None:
+            return False
+        tile_forw_hori = tile_of_town.adjacencies[self.dir_forw_hori]
+        tile_forw_hori = tile_forw_hori.adjacencies[self.dir_forw_hori]
+        tile_forw_verti = tile_of_town.adjacencies[self.dir_forw_verti]
+        tile_forw_verti = tile_forw_verti.adjacencies[self.dir_forw_verti]
+        tiles_aside = [tile_forw_verti, tile_forw_hori, tile_diag_2]
+        towns_aside = [tile.town for tile in tiles_aside]
+        if None in towns_aside:
+            return False
+        if 1 in [town.size for town in towns_aside]:
+            return False
+
+        x_modu_cur_town = cur_town.x_left % 2
+        y_modu_cur_town = cur_town.y_up % 2
+        for town in towns_aside:
+            if town.x_left % 2 != x_modu_cur_town or town.y_up % 2 != y_modu_cur_town:
+                return False
+        if any((town.player_owner != self for town in towns_aside)):
+            return False
+
+        can_modify = True
+        potential_towns_to_shatter = []
+        for town in towns_aside:
+            if town.size == 4:
+                if self.sort_key_town(cur_town) < self.sort_key_town(town):
+                    potential_towns_to_shatter.append(town)
+                else:
+                    can_modify = False
+        if not can_modify:
+            return False
+
+        if potential_towns_to_shatter:
+            self.town_to_shatter = potential_towns_to_shatter[0]
+            return True
+        else:
+            self.towns_to_merge = [cur_town] + towns_aside
+            return True
+
+    def process_town_merging(self):
+        if self.town_merge_state == TOWN_MERGE_STATE_STABLE:
+            return
+
+        if self.town_merge_state == TOWN_MERGE_STATE_UNSORTED:
+            self.towns.sort(key=self.sort_key_town)
+            self.town_merge_state = TOWN_MERGE_STATE_UNCHECKED
+            return
+
+        if self.towns_to_merge:
+            self.merge_town(self.towns_to_merge, self.towns_to_merge[0].size * 2)
+            self.towns_to_merge = None
+            return
+
+        if self.town_to_shatter:
+            self.shatter_town(self.town_to_shatter, self.town_to_shatter.size // 2)
+            self.town_to_shatter = None
+            return
+
+        if self.town_merge_state == TOWN_MERGE_STATE_UNCHECKED:
+            for cur_town in self.towns:
+
+                if cur_town.size == 1:
+                    # TODO : trop de bordel. Faut que ça aille dans une fonction.
+                    tile_of_town = cur_town.tiles_position[0]
+                    tiles_aside = [
+                        tile_of_town.adjacencies[self.dir_forw_hori],
+                        tile_of_town.adjacencies[self.dir_forw_verti],
+                        tile_of_town.adjacencies[self.dir_forw_diag],
+                    ]
+                    if None in tiles_aside:
+                        continue
+                    towns_aside = [tile.town for tile in tiles_aside]
+                    if None in towns_aside:
+                        continue
+                    if any((town.player_owner != self for town in towns_aside)):
+                        continue
+                    can_modify = True
+                    potential_towns_to_shatter = []
+                    for town in towns_aside:
+                        if town.size != 1:
+                            if self.sort_key_town(cur_town) < self.sort_key_town(town):
+                                potential_towns_to_shatter.append(town)
+                            else:
+                                can_modify = False
+                    if can_modify:
+                        if potential_towns_to_shatter:
+                            self.town_to_shatter = potential_towns_to_shatter[0]
+                            return
+                        else:
+                            self.towns_to_merge = [cur_town] + towns_aside
+                            return
+
+                elif cur_town.size == 2:
+                    if self.check_town_size_2_merge(cur_town):
+                        return
+
+            self.town_merge_state = TOWN_MERGE_STATE_STABLE
+
 
 class Town:
     def __init__(
@@ -519,8 +780,6 @@ class Town:
         # envoyer les units en backward conquest. On la calcule que si on en aura besoin.
         self.tile_go_backward_diag = None
         self.update_unit_gen_tiles()
-        self.player_owner.towns.append(self)
-        self.player_owner.update_active_towns()
         self.built_all_adjacent_roads = False
         if create_suburb:
             suburb_of_this_town = Suburb(self, self.game_master)
@@ -625,16 +884,20 @@ class Town:
         Met à jour la variable unit_gen_tiles, ainsi que self.is_active,
         en fonction des towns autour.
         """
-        print("--- town update_unit_gen_tiles")
-        print(self.x_left, self.y_up)
+        # TODO : virer ça après.
+        todo_debug_mode = False
+        if todo_debug_mode:
+            print("--- town update_unit_gen_tiles")
+            print(self.x_left, self.y_up)
         self.unit_gen_tiles = [
             tile for tile in self.unit_gen_tiles if tile.town is None
         ]
-        print(
-            "unit_gen_tiles",
-            " ; ".join((f"{tile.x},{tile.y}") for tile in self.unit_gen_tiles),
-        )
-        print("---")
+        if todo_debug_mode:
+            print(
+                "unit_gen_tiles",
+                " ; ".join((f"{tile.x},{tile.y}") for tile in self.unit_gen_tiles),
+            )
+            print("---")
 
         if not self.unit_gen_tiles:
             self.is_active = False
@@ -642,7 +905,8 @@ class Town:
             # Ils seront réutilisés si la town est fusionnée avec d'autres.
             # Et si c'est une town de size max et qu'elle est désactivée, eh bien
             # on perd les points. La personne qui joue avait qu'à mieux gérer son urbanisme.
-            print("TODO desactivation town", self.x_left, self.y_up, self.size)
+            if todo_debug_mode:
+                print("TODO desactivation town", self.x_left, self.y_up, self.size)
             self.player_owner.update_active_towns()
             # Il faut updater la liste des gamobjects de chaque tile de la town,
             # car lorsque la town est désactivée, on l'affiche en plus foncée.
@@ -825,7 +1089,6 @@ class Suburb:
             road_tile._update_all_road_adjacencies()
 
         self._update_bounding_rect()
-        print("merged suburb: " + str(self))
         self.game_master.suburbs.remove(other_suburb)
 
     def __str__(self):
@@ -888,7 +1151,16 @@ class Tile:
         gamobjs = []
         color = self.player_owner.color
         if self.town:
-            gamobjs.append(color + "_town_1x1")
+            town_size = self.town.size
+            if town_size == 1:
+                gamobj_town_suffix = "_town_1x1"
+            else:
+                offset_x = min(self.x - self.town.x_left, town_size - 1)
+                offset_y = min(self.y - self.town.y_up, town_size - 1)
+                gamobj_town_suffix = (
+                    f"_town_{town_size}x{town_size}_{offset_x}{offset_y}"
+                )
+            gamobjs.append(color + gamobj_town_suffix)
             if not self.town.is_active:
                 gamobjs.append("town_desactivate")
         else:
@@ -1151,7 +1423,7 @@ class Tile:
 
     # TODO : on n'aura pas besoin du param size, mais c'est juste pour tester.
     def build_town(self, size=1):
-        print("start build town", self)
+        print("start build town")
         if self.player_owner is None:
             raise Exception("Town without owner. Not supposed to happen.")
 
@@ -1168,6 +1440,7 @@ class Tile:
         # Mais on va pas le faire, parce que ça mettrait player_owner à None.
         self.nb_unit = 0
         self.town = Town(self.x, self.y, size, self.player_owner, self.game_master)
+        self.player_owner.add_towns([self.town])
         for tile_adj in self.adjacencies[::2]:
             if tile_adj is not None and tile_adj.town is not None:
                 tile_adj.town.update_unit_gen_tiles()
@@ -1298,23 +1571,16 @@ class GameMaster:
         return False
 
     def check_suburb_merging_by_list(self, many_suburbs):
-        # TODO pas encore codé.
-        print("check_suburb_merging_by_list")
         # TODO : faut les trier pour repérer le plus grand.
         # On merge le plus grand avec les autres,
         # c'est plus rapide que de merger un petit avec d'autres.
         first_suburb = many_suburbs.pop(0)
-        print("rect", first_suburb.bounding_rect)
         while many_suburbs:
             other_suburb = many_suburbs.pop(0)
-            print("rect", other_suburb.bounding_rect)
             if self.check_two_suburbs_merge(first_suburb, other_suburb):
-                print("must_merge from list")
                 first_suburb.merge(other_suburb)
 
     def check_suburb_merging_with_all_others(self, one_suburb):
-        print("check_suburb_merging_with_all_others")
-        print(one_suburb.bounding_rect)
         suburbs_to_merge = []
         for other_suburb in self.suburbs:
             if one_suburb == other_suburb:
@@ -1322,9 +1588,7 @@ class GameMaster:
             if bounding_rect_overlaps(
                 one_suburb.bounding_rect, other_suburb.bounding_rect
             ):
-                print("overlaps", one_suburb.bounding_rect, other_suburb.bounding_rect)
                 if self.check_two_suburbs_merge(one_suburb, other_suburb):
-                    print("must_merge from one with other.")
                     suburbs_to_merge.append(other_suburb)
 
         for other_suburb in suburbs_to_merge:
@@ -1404,6 +1668,7 @@ SANDBOX_MODES = [
     "blu magnet",
     "backward conquest",
     "describe",
+    "merge_town",
 ]
 
 # Utile uniquement pour le mode sandbox.
@@ -1478,8 +1743,10 @@ class GameModel:
                 else:
                     tile_target.add_road(vertic=True)
             elif sandbox_mode == "add town":
-                if tile_target.player_owner is None:
-                    print("On ne peut construire une ville que sur une case occupée.")
+                if tile_target.player_owner is None or tile_target.town is not None:
+                    print(
+                        "On ne peut construire une ville que sur une case sans ville, mais occupée."
+                    )
                     print("Et la construction avance seulement si il y a 16 unités.")
                 else:
                     if tile_target.player_owner.tile_building_town is not None:
@@ -1507,6 +1774,36 @@ class GameModel:
                     else:
                         player.set_town_backward_conquest(tile_target.town)
                         print("player.infos_go_backward", player.infos_go_backward)
+            elif sandbox_mode == "merge_town":
+                player = tile_target.player_owner
+                x = tile_target.x
+                y = tile_target.y
+                # TODO : test à l'arrache mais osef.
+                towns_to_remove = [
+                    self.game_master.game_area[y][x].town,
+                    self.game_master.game_area[y + 1][x].town,
+                    self.game_master.game_area[y][x + 1].town,
+                    self.game_master.game_area[y + 1][x + 1].town,
+                ]
+                if all((town is not None for town in towns_to_remove)):
+                    if all((town.size == 1 for town in towns_to_remove)):
+                        player.merge_town(towns_to_remove, 2)
+                else:
+                    print("pas de town à merger.")
+
+                # TODO : re test à l'arrache mais osef.
+                towns_to_remove = [
+                    self.game_master.game_area[y][x].town,
+                    self.game_master.game_area[y + 2][x].town,
+                    self.game_master.game_area[y][x + 2].town,
+                    self.game_master.game_area[y + 2][x + 2].town,
+                ]
+                if all((town is not None for town in towns_to_remove)):
+                    if all((town.size == 2 for town in towns_to_remove)):
+                        player.merge_town(towns_to_remove, 4)
+                else:
+                    print("vraiment pas de town à merger.")
+
             elif sandbox_mode == "describe":
                 print("-----")
                 print(tile_target)
@@ -1523,6 +1820,7 @@ class GameModel:
             player.move_units_on_bare_tiles(self.turn_index)
             player.process_backward_conquest(self.turn_index)
             player.process_unit_generation_town()
+            player.process_town_merging()
 
         self.turn_index += 1
         # TODO : calculer approximativement un délai plus ou moins long selon la quantité de trucs à gérer.
