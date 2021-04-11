@@ -7,8 +7,8 @@
 """
 {
   "game_area": {
-    "nb_tile_width": 20,
-    "nb_tile_height": 25
+    "nb_tile_width": 41,
+    "nb_tile_height": 40
   },
   "tile_size": 4,
 
@@ -55,7 +55,7 @@
     "red_road_horiz": [72, 0],
     "red_road_vertic": [76, 0],
     "red_road_both": [80, 0],
-    "red_cursor": [12, 8],
+    "red_cursor": [4, 2],
     "red_magnet": [14, 8],
     "red_go_back": [4, 8],
 
@@ -132,17 +132,43 @@
     "neutral_road_vertic": [76, 8],
     "neutral_road_both": [80, 8],
 
+    "grn_01": [0, 8],
+    "grn_02": [4, 8],
+    "grn_03": [8, 8],
+    "grn_04": [12, 8],
+    "grn_05": [16, 8],
+    "grn_06": [20, 8],
+    "grn_07": [24, 8],
+    "grn_08": [28, 8],
+    "grn_09": [32, 8],
+    "grn_10": [36, 8],
+    "grn_11": [40, 8],
+    "grn_12": [44, 8],
+    "grn_13": [48, 8],
+    "grn_14": [52, 8],
+    "grn_15": [56, 8],
+    "grn_16": [60, 8],
+    "grn_controls": [64, 8],
+    "grn_road_horiz": [72, 8],
+    "grn_road_vertic": [76, 8],
+    "grn_road_both": [80, 8],
+
     "bla": [0, 0]
 
   }
 }
 """
 
+# TODO : décaler toutes les tiles du joueur blu. Parce que je voulais faire autrement et finalement non.
+
+# TODO : dessiner des routes contrôlées par le joueur "bionature".
+
 # Prochains trucs :
 # Des missiles bactériologiques !!! Qui partent en diagonale depuis une ville.
 
-# Les routes mettent un petit temps à se construire ?
-# (Elles ne coûtent rien et la construction ne peut être interrompue).
+# FUTURE : Les routes mettent un petit temps à se construire.
+# Elles ne coûtent rien et la construction ne peut être interrompue.
+
 
 # TODO : la magnétisation lorsque c'est une tile d'un suburb.
 # il faut qu'elle prenne ce qu'il y a autour, au max.
@@ -159,8 +185,17 @@ GAMOBJ_NAME_TO_NB_UNIT = tuple(
 
 NB_TURNS_TOWN_BUILDING = 9
 NB_TURNS_TOWN_BUILDING_TIMEOUT = 25
-UNIT_GEN_TOWN_POINT_REQUIRED = 16  # 16, ou 20... Je sais pas...
+# Nombre de points que doit accumuler une ville pour générer un pixel.
+# La ville gagne un nombre fixe de points à chaque tour, selon sa taille.
+# petite : 1, moyenne : 6, grande : 22.
+UNIT_GEN_TOWN_POINT_REQUIRED = 100  # 16, ou 20, ou 50... Je sais pas... On va dire 50.
 UNIT_GEN_TOWN_POINT_MAX_CUMUL = UNIT_GEN_TOWN_POINT_REQUIRED * 2
+
+# Nombre de points à avoir pour générer un pixel.
+# On gagne un point par tour et par tile contrôlée
+UNIT_GEN_TILE_POINT_REQUIRED = 1000
+UNIT_GEN_TILE_POINT_REQUIRED_BIONATURE = 25000
+UNIT_GEN_TILE_POINT_MAX_CUMUL = UNIT_GEN_TILE_POINT_REQUIRED * 50
 
 
 def bounding_rect_overlaps(b_rect_1, b_rect_2):
@@ -245,6 +280,7 @@ CONFIG_FROM_WARDNESSES = {
     (True, False): (sort_key_right_up, is_behind_right_up, 1, 2, 0, 5, 6, 4),
     (False, True): (sort_key_left_down, is_behind_left_down, 5, 6, 4, 1, 2, 0),
     (False, False): (sort_key_left_up, is_behind_left_up, 7, 6, 0, 3, 2, 4),
+    (None, None): (None, None, None, None, None, None, None, None),
 }
 
 # La distance jusqu'à laquelle on envoie l'ordre de backward conquest,
@@ -257,7 +293,26 @@ TOWN_MERGE_STATE_STABLE = 2
 
 
 class Player:
-    def __init__(self, player_id, w, h, color, game_master, rightward, downward):
+    def __init__(
+        self,
+        player_id,
+        w,
+        h,
+        color,
+        game_master,
+        rightward,
+        downward,
+        is_bionature=False,
+    ):
+        if is_bionature:
+            rightward = None
+            downward = None
+        else:
+            if rightward is None or downward is None:
+                raise Exception(
+                    "Pour les players non neutral, il faut définir les booléens rightward et downward."
+                )
+
         self.player_id = player_id
         self.w = w
         self.h = h
@@ -265,7 +320,7 @@ class Player:
         self.game_master = game_master
         self.rightward = rightward
         self.downward = downward
-
+        self.is_bionature = is_bionature
         (
             self.sort_key_town,
             self.is_behind,
@@ -276,15 +331,13 @@ class Player:
             self.dir_back_hori,
             self.dir_back_verti,
         ) = CONFIG_FROM_WARDNESSES[(self.rightward, self.downward)]
+
         self._controlled_tiles = []
         self._controlled_roads = []
         # On a besoin d'indexer là-dessus, parce qu'en général, on a plein de bare tiles
         # avec une seule unité, et pas beaucoup avec plusieurs. Donc quand faut
         # bouger les "plusieurs", c'est mieux de savoir tout de suite où elles sont.
         self.controlled_bare_tiles_with_many_units = []
-        # TODO : faut les trier de façon à les parcourir le long de diagonales.
-        # Ça servira lorsqu'on fusionnera les towns.
-        # La diagonale dépend des xxx_wards du player.
         self.towns = []
         self.active_towns = []
         self.total_units = 0
@@ -298,21 +351,20 @@ class Player:
         self.town_merge_state = TOWN_MERGE_STATE_STABLE
         self.towns_to_merge = None
         self.town_to_shatter = None
+        self.unit_gen_tile = 0
 
     def __str__(self):
         return "player_%s" % self.player_id
 
     def add_controlled_tile(self, tile):
+        # Pas besoin de trier ces tiles dans le sens dans lequel on les résout.
+        # Au début, je croyais, mais en fait non. Avec les histoires de modulo
+        # (à chaque tour, on gère que une tile sur deux, ou une sur quatre),
+        # ça se gère bien tout seul.
         self._controlled_tiles.append(tile)
-        # TODO : faut trier ces tiles, selon le sens dans lequel on les résout.
-        # pour des trucs genre le mouvement en diagonal arrière, y'a besoin.
-        # TODO : Ou alors, on trie que quand y'a besoin. Comme ça, on triera pas plusieurs fois pour rien.
 
     def remove_controlled_tile(self, tile):
         self._controlled_tiles.remove(tile)
-        # TODO : faut trier ces tiles, selon le sens dans lequel on les résout.
-        # pour des trucs genre le mouvement en diagonal arrière, y'a besoin.
-        # TODO : même chose pour les roads et les bare_tiles_many.
 
     def add_towns(self, towns):
         self.towns += towns
@@ -408,6 +460,21 @@ class Player:
             # Et on fait une tile sur deux, réparti dans l'arène.
             if (tile.x + tile.y) & 1 == select_tile and not tile.town_building_step:
                 function_move(tile)
+
+    def move_magnetized_units_on_suburb(self):
+        if self.tile_magnet is None:
+            return
+        if self.tile_magnet.suburb_owner is None:
+            return
+        if self.tile_magnet.town is not None:
+            return
+        magnetized_suburb = self.tile_magnet.suburb_owner
+        for suburb_tile in magnetized_suburb.real_suburb_tiles:
+            if self.tile_magnet.player_owner == self and self.tile_magnet.nb_unit >= 16:
+                return
+            if suburb_tile.player_owner == self and suburb_tile.nb_unit > 2:
+                suburb_tile.remove_unit()
+                self.tile_magnet.add_unit(self)
 
     def process_town_building(self):
         if self.tile_building_town is None:
@@ -562,6 +629,8 @@ class Player:
     ):
         delay, tile_go_backward = infos_go_backward_road_tile
         tile_dest = tile_go_backward.adjacencies[self.dir_back_diag]
+        if tile_dest is None:
+            return
         if tile_dest.town is not None:
             return
         if (tile_go_backward.x + tile_go_backward.y) & 3 != select_tile:
@@ -580,6 +649,7 @@ class Player:
     def process_backward_conquest(self, turn_index):
         if not self.infos_go_backward:
             return
+        print("todo infos_go_backward", self.infos_go_backward[1:])
         select_tile = turn_index & 3
         self._process_backward_conquest_town_tile(
             select_tile, self.infos_go_backward[0]
@@ -754,6 +824,44 @@ class Player:
 
             self.town_merge_state = TOWN_MERGE_STATE_STABLE
 
+    def process_unit_gen_tile(self):
+        if self.unit_gen_tile < UNIT_GEN_TILE_POINT_MAX_CUMUL:
+            self.unit_gen_tile += len(self._controlled_tiles)
+        if self.unit_gen_tile >= UNIT_GEN_TILE_POINT_REQUIRED:
+            tile_target = random.choice(self._controlled_tiles)
+            if tile_target.town is not None or tile_target.nb_unit >= 16:
+                # On peut pas ajouter de unit sur la tile choisie.
+                # On s'en va direct, et on retentera sa chance au prochain tour.
+                # Si la personne qui joue a beaucoup de ville et beaucoup de tile pleine,
+                # elle aura du retard dans la génération de ses units.
+                # C'est son problème. Elle a qu'à gérer mieux son expansion.
+                return
+            tile_target.add_unit(self)
+            self.unit_gen_tile -= UNIT_GEN_TILE_POINT_REQUIRED
+
+    def process_unit_gen_tile_bionature(self, turn_index=0):
+        if self.unit_gen_tile < UNIT_GEN_TILE_POINT_MAX_CUMUL:
+            self.unit_gen_tile += len(self._controlled_tiles)
+        if self.unit_gen_tile >= UNIT_GEN_TILE_POINT_REQUIRED_BIONATURE:
+            tile_target = random.choice(self._controlled_tiles)
+            if tile_target.town is not None or tile_target.nb_unit >= 16:
+                return
+            # On permet à la bionature de s'étendre sur des tiles adjacentes,
+            # lorsqu'elle ne sont contrôlées par personne.
+            # Comme ça, la bionature n'embête pas trop les autres personnes,
+            # elle ne leur prend pas de tile, tout en ayant un fort potentiel de grandissement.
+            potential_tiles = [
+                tile
+                for tile in tile_target.adjacencies
+                if tile is not None and tile.player_owner is None and tile.town is None
+            ]
+            potential_tiles.append(tile_target)
+            # On choisit la potential tile avec un faux random à la turn_index.
+            # Pas besoin de faire du vrai random pour ça.
+            tile_target_final = potential_tiles[turn_index % len(potential_tiles)]
+            tile_target_final.add_unit(self)
+            self.unit_gen_tile -= UNIT_GEN_TILE_POINT_REQUIRED_BIONATURE
+
 
 class Town:
     def __init__(
@@ -766,8 +874,8 @@ class Town:
         self.game_master = game_master
         self.rect = (x_left, y_up, x_left + size, y_up + size)
         self.is_active = True
-        self.unit_gen_points = 0
-        self.unit_gen_speed = size ** 2 + size // 2
+        self.unit_gen_points = UNIT_GEN_TOWN_POINT_REQUIRED - 5
+        self.unit_gen_speed = size ** 2 + size * 2 * (size > 1)
 
         self.tiles_position = []
         for x in range(x_left, x_left + size):
@@ -1421,8 +1529,7 @@ class Tile:
         self.town_building_step = 0
         self.update_linked_gamobjs()
 
-    # TODO : on n'aura pas besoin du param size, mais c'est juste pour tester.
-    def build_town(self, size=1):
+    def build_town(self):
         print("start build town")
         if self.player_owner is None:
             raise Exception("Town without owner. Not supposed to happen.")
@@ -1439,7 +1546,7 @@ class Tile:
         # Pour enlever les units, on aurait dû passer par la fonction remove_unit.
         # Mais on va pas le faire, parce que ça mettrait player_owner à None.
         self.nb_unit = 0
-        self.town = Town(self.x, self.y, size, self.player_owner, self.game_master)
+        self.town = Town(self.x, self.y, 1, self.player_owner, self.game_master)
         self.player_owner.add_towns([self.town])
         for tile_adj in self.adjacencies[::2]:
             if tile_adj is not None and tile_adj.town is not None:
@@ -1489,7 +1596,10 @@ class GameMaster:
         player_1 = Player(
             1, self.w, self.h, "blu", self, rightward=False, downward=True
         )
-        self.players = {0: player_0, 1: player_1}
+        player_bionature = Player(
+            2, self.w, self.h, "grn", self, None, None, is_bionature=True
+        )
+        self.players = {0: player_0, 1: player_1, 2: player_bionature}
 
     def make_adjacencies(self, x, y):
         adjacencies = (
@@ -1627,16 +1737,25 @@ class GameMaster:
                     tile_unit_max.remove_unit()
                     un_owned_tile.add_unit(player_tile)
                 else:
-                    diff = tile_unit_max.nb_unit - tile_unit_min.nb_unit
-                    if diff > 1:
-                        player_tile.move_unit_without_check(
-                            tile_unit_max, tile_unit_min, diff // 2
-                        )
+                    if (
+                        player_tile.tile_magnet is not None
+                        and player_tile.tile_magnet.suburb_owner == suburb
+                    ):
+                        # Si la magnétisation de la persone qui joue est dans ce suburb,
+                        # on répartit pas. Parce que la personne veut rassembler toutes ses unités
+                        # au même endroit.
+                        pass
+                    else:
+                        diff = tile_unit_max.nb_unit - tile_unit_min.nb_unit
+                        if diff > 1:
+                            player_tile.move_unit_without_check(
+                                tile_unit_max, tile_unit_min, diff // 2
+                            )
         # elif len(most_unequilibrateds) == 2:
         else:
-            iter_uneq = iter(most_unequilibrateds.items())
-            player_tile_1, tile_extrems_1 = next(iter_uneq)
-            player_tile_2, tile_extrems_2 = next(iter_uneq)
+            tile_extrems = list(most_unequilibrateds.values())
+            tile_extrems_1 = tile_extrems[0]
+            tile_extrems_2 = tile_extrems[1]
             tile_unit_max_1 = tile_extrems_1[1]
             tile_unit_max_2 = tile_extrems_2[1]
             tile_unit_max_1.remove_unit()
@@ -1645,7 +1764,7 @@ class GameMaster:
         #     Si on a plus que 2 players, faut déterminer équitablement quelles unités on élimine.
         #     On éliminera une unité pour 2 players parmi toutes la liste. Mais lesquels ?
         #     Un round-robin shufflé basé sur le numéro de tour de jeu ?
-        #     TODO WIP.
+        #     TODO.
         #     for x in range(6):
         #         a = x % 3
         #         b = x % 2
@@ -1657,6 +1776,47 @@ class GameMaster:
         for suburb in self.suburbs:
             self._equilibrate_units_in_one_suburb(suburb, turn_index)
 
+    def init_bionature_units(self, player_bionature):
+        nb_epicentre = 25
+        min_size = min(self.w, self.h)
+        rand_epi = min_size // 5
+        epicentres = []
+        for _ in range(nb_epicentre):
+            x_epi = random.randint(0, min_size)
+            y_epi = x_epi
+            x_epi += random.randint(-rand_epi, rand_epi)
+            y_epi += random.randint(-rand_epi, rand_epi)
+            epicentres.append((x_epi, y_epi))
+
+        for x in range(self.w):
+            for y in range(self.h):
+
+                dist_main_diag = abs(x - y)
+                min_unit = max(0, (3 - dist_main_diag / 2))
+                max_unit = 10 - dist_main_diag * 3
+                epi_adds = [
+                    20 - (x - x_epi) ** 2 - (y - y_epi) ** 2
+                    for x_epi, y_epi in epicentres
+                ]
+                epi_adds = [val for val in epi_adds if val > 0]
+                max_unit += sum(epi_adds)
+                min_unit += len(epi_adds)
+                if max_unit <= 0:
+                    if dist_main_diag < 10:
+                        max_unit = 2
+                    elif dist_main_diag < 20:
+                        max_unit = 1
+                max_unit = max(min_unit, max_unit)
+
+                if max_unit > 0:
+                    min_unit = int(min_unit)
+                    max_unit = int(max_unit)
+                    nb_bionature_unit = random.randint(min_unit, max_unit)
+                    if nb_bionature_unit > 16:
+                        nb_bionature_unit = 16
+                    tile = self.game_area[y][x]
+                    tile.add_unit(player_bionature, nb_bionature_unit)
+
 
 SANDBOX_MODES = [
     "add red unit",
@@ -1667,8 +1827,8 @@ SANDBOX_MODES = [
     "red magnet",
     "blu magnet",
     "backward conquest",
+    "add grn unit",
     "describe",
-    "merge_town",
 ]
 
 # Utile uniquement pour le mode sandbox.
@@ -1686,16 +1846,10 @@ def coord_move(x, y, direction):
 
 class GameModel:
     def __init__(self):
-        self.w = 20
-        self.h = 25
+        self.w = 41
+        self.h = 40
         self.game_master = GameMaster(self.w, self.h)
-
-        # test_adjacencies_and_add_roads(self.game_master)
-        # test_build_town(self.game_master)
-        # test_unit_gen_town_start(self.game_master)
-        # test_unit_gen_town_2(self.game_master)
-        # test_conquest_roads(self.game_master)
-
+        self.game_master.init_bionature_units(self.game_master.players[2])
         self.must_start = True
         self.sandbox_action = False
         self.x_cursor = 0
@@ -1729,9 +1883,11 @@ class GameModel:
             sandbox_mode = SANDBOX_MODES[self.sandbox_mode_index]
             tile_target = self.game_master.game_area[self.y_cursor][self.x_cursor]
             if sandbox_mode == "add red unit":
-                tile_target.add_unit(self.game_master.players[0], 1)
+                if tile_target.town is None:
+                    tile_target.add_unit(self.game_master.players[0], 1)
             elif sandbox_mode == "add blu unit":
-                tile_target.add_unit(self.game_master.players[1], 1)
+                if tile_target.town is None:
+                    tile_target.add_unit(self.game_master.players[1], 1)
             elif sandbox_mode == "add horiz road":
                 if tile_target.town is not None:
                     print("Pas de route sur une town")
@@ -1774,36 +1930,9 @@ class GameModel:
                     else:
                         player.set_town_backward_conquest(tile_target.town)
                         print("player.infos_go_backward", player.infos_go_backward)
-            elif sandbox_mode == "merge_town":
-                player = tile_target.player_owner
-                x = tile_target.x
-                y = tile_target.y
-                # TODO : test à l'arrache mais osef.
-                towns_to_remove = [
-                    self.game_master.game_area[y][x].town,
-                    self.game_master.game_area[y + 1][x].town,
-                    self.game_master.game_area[y][x + 1].town,
-                    self.game_master.game_area[y + 1][x + 1].town,
-                ]
-                if all((town is not None for town in towns_to_remove)):
-                    if all((town.size == 1 for town in towns_to_remove)):
-                        player.merge_town(towns_to_remove, 2)
-                else:
-                    print("pas de town à merger.")
-
-                # TODO : re test à l'arrache mais osef.
-                towns_to_remove = [
-                    self.game_master.game_area[y][x].town,
-                    self.game_master.game_area[y + 2][x].town,
-                    self.game_master.game_area[y][x + 2].town,
-                    self.game_master.game_area[y + 2][x + 2].town,
-                ]
-                if all((town is not None for town in towns_to_remove)):
-                    if all((town.size == 2 for town in towns_to_remove)):
-                        player.merge_town(towns_to_remove, 4)
-                else:
-                    print("vraiment pas de town à merger.")
-
+            elif sandbox_mode == "add grn unit":
+                if tile_target.town is None:
+                    tile_target.add_unit(self.game_master.players[2], 1)
             elif sandbox_mode == "describe":
                 print("-----")
                 print(tile_target)
@@ -1814,18 +1943,22 @@ class GameModel:
         self.game_master.equilibrate_units_in_suburbs(self.turn_index)
 
         for _, player in self.game_master.players.items():
-            # TODO : la magnétisation interne à un suburb doit se faire ici. Sinon ce sera galère pour construire des villes.
-            player.process_town_building()
-            player.move_units_on_roads(self.turn_index)
-            player.move_units_on_bare_tiles(self.turn_index)
-            player.process_backward_conquest(self.turn_index)
-            player.process_unit_generation_town()
-            player.process_town_merging()
+            if not player.is_bionature:
+                player.move_magnetized_units_on_suburb()
+                player.process_town_building()
+                player.move_units_on_roads(self.turn_index)
+                player.move_units_on_bare_tiles(self.turn_index)
+                player.process_backward_conquest(self.turn_index)
+                player.process_unit_generation_town()
+                player.process_town_merging()
+                player.process_unit_gen_tile()
+            else:
+                player.process_unit_gen_tile_bionature(self.turn_index)
 
         self.turn_index += 1
         # TODO : calculer approximativement un délai plus ou moins long selon la quantité de trucs à gérer.
         return (
-            """ { "delayed_actions": [ {"name": "process_turn", "delay_ms": 100} ] } """
+            """ { "delayed_actions": [ {"name": "process_turn", "delay_ms": 200} ] } """
         )
 
     def on_game_event(self, event_name):
