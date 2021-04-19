@@ -161,19 +161,13 @@
 
 """
 
+------------
 GAME OF NO-LIFE v0.1
+------------
 
 Pas de doc, pas d'interface, pas d'infos expliquant comment jouer.
 Tout ça viendra plus tard.
 
-
-Vocabulaire spécifique au jeu :
-
-unité/pixel : un petit pixel de couleur rouge, bleu ou vert, qui peut se déplacer d'une tile à l'autre.
-tile/case : une case du jeu. Ça fait partie du vocabulaire générique de Squarity
-bionature : les pixels verts, qui ne sont pas contrôlés par un humain, mais par le jeu.
-town/ville : une ville, de couleur rouge ou bleue. La bionature ne construit pas de ville.
-direction de conquête : TODO.
 
 Petit information concernant les commentaires dans le code.
 
@@ -186,6 +180,32 @@ je lui mets un punch un his/her face).
 Pour désigner la personne qui joue, j'utilise le terme "Player". Et je fais comme si
 c'était son prénom. Vous lirez donc des phrases du genre : "Player doit déplacer ses unités",
 "la town de Player", etc.
+
+
+Vocabulaire spécifique au jeu :
+
+unité/pixel : un petit pixel rouge, bleu ou vert, qui peut se déplacer d'une tile à l'autre.
+
+tile/case : une case du jeu. Ça fait partie du vocabulaire générique de Squarity
+
+bare tile : une tile sur laquelle il n'y a pas de ville, et aucune route.
+Mais il peut y avoir une ou plusieurs unités.
+
+bionature : les pixels verts, qui ne sont pas contrôlés par un humain, mais par le jeu.
+
+town/ville : une ville, de couleur rouge ou bleue. La bionature ne construit pas de ville.
+
+wardness/direction de conquête : deux booléens indiquant vers laquelle Player doit aller :
+ - rightward : direction horizontale (True:droite, False:gauche)
+ - upward : direction verticale (True:bas , False:haut)
+Pour Player red : rightward=True, upward=False. Pour Player blue, c'est inversé.
+
+line conquest : TODO , c'est à dire la construction
+# d'une ligne de route, qui se termine par une ville.
+
+La direction de conquête influe sur différents détails : l'ordre des tiles adjacentes où les towns
+posent les pixels générés, la direction des missiles bactériologiques, l'ordre de priorité des
+merge de town, la direction des backward conquest, etc.
 """
 
 # TODO : décaler toutes les tiles de Player blu. Parce que je voulais faire autrement et finalement non.
@@ -251,6 +271,10 @@ UNIT_GEN_TILE_POINT_MAX_CUMUL = UNIT_GEN_TILE_POINT_REQUIRED * 50
 # au départ, et ça embêterait les Players humains d'avoir une bionature qui s'étend trop vite.
 UNIT_GEN_TILE_POINT_REQUIRED_BIONATURE = 25000
 
+# La distance jusqu'à laquelle on envoie les ordres de backward conquest,
+# en fonction de la size de la town.
+DIST_BACKWARDING_FROM_SIZE = {1: 2, 2: 4, 4: 6}
+
 
 def bounding_rect_overlaps(b_rect_1, b_rect_2):
     """
@@ -272,9 +296,15 @@ def manhattan_dist(tile_1, tile_2):
 
 def directions_from_pos(tile_src, tile_dst):
     """
-    Renvoie 0, 6, 4 ou 2 (une des 4 directions),
+    Renvoie un tuple de 0, 1 ou 2 directions : 0, 6, 4 ou 2,
     en fonction de la position relative de tile_src par rapport à tile_dst.
     0: up, 2:right, 4:down, 6:left.
+    Les directions renvoyées correspondent à celles pour aller de tile_src vers tile_dst.
+    Si tile_src et tile_dst sont sur la même ligne ou la même colonne, la fonction ne renverra
+    qu'une seule direction.
+    L'ordre est déterminé selon la distance. Si les deux tiles sont plus éloigneés en X qu'en Y,
+    la première direction du tuple sera la direction horizontale. Sinon, c'est l'inverse.
+    (On se sert pas de cette particularité dans le code, mais on sait jamais).
     """
     diff_x = tile_dst.x - tile_src.x
     diff_y = tile_dst.y - tile_src.y
@@ -365,14 +395,14 @@ CONFIG_FROM_WARDNESSES = {
     (None, None): (None, None, None, None, None, None, None, None),
 }
 
-# La distance jusqu'à laquelle on envoie les ordres de backward conquest,
-# en fonction de la size de la town.
-DIST_BACKWARDING_FROM_SIZE = {1: 2, 2: 4, 4: 6}
-
+# Les différents états possibles lorsqu'on effectue des merge/shatter de town.
+# Voir fonction Player.process_town_merging.
 TOWN_MERGE_STATE_UNSORTED = 0
 TOWN_MERGE_STATE_UNCHECKED = 1
 TOWN_MERGE_STATE_STABLE = 2
 
+# Utilisé lorsque Player déclenche une "line conquest".
+# Il s'agit du nombre de tours de jeu pour le temps de pause après construction d'une route.
 DELAY_ROADIFY = 10
 
 
@@ -393,14 +423,13 @@ class Player:
             downward = None
         else:
             if rightward is None or downward is None:
-                raise Exception(
-                    "Pour les players non neutral, il faut définir les booléens rightward et downward."
-                )
+                raise Exception("Players humains, il faut rightward et downward.")
 
         self.player_id = player_id
         self.w = w
         self.h = h
         self.color = color
+        # Le game master qui gère ce Player.
         self.game_master = game_master
         self.rightward = rightward
         self.downward = downward
@@ -416,27 +445,48 @@ class Player:
             self.dir_back_verti,
         ) = CONFIG_FROM_WARDNESSES[(self.rightward, self.downward)]
 
+        # Liste de tiles
         self._controlled_tiles = []
+        # Liste de tiles aussi.
         self._controlled_roads = []
-        # On a besoin d'indexer là-dessus, parce qu'en général, on a plein de bare tiles
-        # avec une seule unité, et pas beaucoup avec plusieurs. Donc quand faut
-        # bouger les "plusieurs", c'est mieux de savoir tout de suite où elles sont.
+        # Liste de tiles aussi. "bare tile" = une tile qui n'a pas de route.
+        # On a besoin de cette liste pour accélérer les traitements. En général, on a plein
+        # de bare tiles avec une seule unité dessus. Elles ne demandent aucune gestion.
+        # Les bare tiles ayant plusieurs unités sont moins nombreuses, mais demandent une gestion.
+        # On bouge les unités supplémentaires forward, ou backward.
+        # C'est donc avantageux de référencer ces tiles particulières, pour les gérer plus vite,
+        # plutôt que de parcourir toute les controlled_tiles à chaque fois.
         self.controlled_bare_tiles_with_many_units = []
         self.towns = []
+        # Les towns ayant au moins une tile non-town adjacente. C'est à dire qu'elle peuvent
+        # générer des unités et les placer autour d'elles.
         self.active_towns = []
         self.total_units = 0
+        # La tile sur laquelle se trouve une ville en construction.
+        # On ne peut construire qu'une seule ville à la fois.
         self.tile_building_town = None
+        # Nombre de tour écoulé depuis le début de la construction de la ville en cours.
         self.building_time = 0
+        # La tile vers laquelle toutes les unités doivent aller.
+        # Lorsqu'il n'y a pas de magnet, les unités doivent à-peu-près se répartir sur les routes.
         self.tile_magnet = None
-        # Liste de sous-listes de 2 elem : le délai avant go backward, la tile.
+        # Gestion du backward conquest. C'est une liste de sous-listes de 2 elem :
+        #  - délai (nb de tours) avant lequel cette tile peut envoyer des unités en backward.
+        #  - la tile concernée, qui doit/devra faire du backward conquest.
         # Le premier élément, c'est la tile de la town qui a lancé son ordre de backward.
         self.infos_go_backward = []
+        # Au-dela de cette tile, les unités ne doivent pas faire de backward conquest.
+        # C'est pourri, et le backward conquest sera géré avec un bounding rect.
+        # Y'a un TODO à ce sujet.
         self.tile_limit_go_back = None
+        # Pour les 3 variables suivantes, voir fonction Player.process_town_merging.
         self.town_merge_state = TOWN_MERGE_STATE_STABLE
         self.towns_to_merge = None
         self.town_to_shatter = None
+        # Nombre de points accumulés, pour la génération des unités par terrain contrôlés.
         self.unit_gen_tile = 0
-
+        # Pour les 4 variables suivantes : Gestion des line conquest.
+        # Voir fonction Player.process_roadification.
         self.tiles_to_roadify = []
         self.tile_to_townify = None
         self.delay_roadify = 0
@@ -448,7 +498,7 @@ class Player:
     def add_controlled_tile(self, tile):
         # Pas besoin de trier ces tiles dans le sens dans lequel on les résout.
         # Au début, je croyais, mais en fait non. Avec les histoires de modulo
-        # (à chaque tour, on gère que une tile sur deux, ou une sur quatre),
+        # (à chaque tour, on ne gère qu'une tile sur deux, ou une sur quatre),
         # ça se gère bien tout seul.
         self._controlled_tiles.append(tile)
 
@@ -457,7 +507,7 @@ class Player:
 
     def add_towns(self, towns):
         """
-        Référence une town déjà construite dans les towns du joueur.
+        Référence une town qui vient d'être construite.
         """
         self.towns += towns
         self.update_active_towns()
@@ -469,7 +519,8 @@ class Player:
         """
         Supprime une town référencée.
         Dans le jeu, on ne détruit jamais les towns. Mais on les merge.
-        Un merge provoque une suppression de town (que l'on remplace par une town plus grande).
+        Un merge provoque une suppression de plusieurs towns,
+        que l'on remplace par une town plus grande.
         """
         for town in towns:
             self.towns.remove(town)
@@ -486,10 +537,20 @@ class Player:
     def move_unit_without_check(self, tile_source, tile_dest, qty=1):
         """
         Cette fonction n'est à utiliser que quand on est sûr de ce qu'on fait.
-        Elle permet de déplacer des unités d'un même joueur, entre deux tiles
-        On vérifie pas les changements d'owner.
+        Elle permet de déplacer des unités d'une tile vers une autre.
+        Toutes les conditions suivantes doivent être réunies :
+         - tile_source et tile_dest sont toutes les deux contrôlées par Player.
+         - il y a au moins une route sur tile_source et au moins une route sur tile_dest.
+         - les unités déplacées ne vont pas supprimer toutes les unités de tile_source
+         - les unités déplacés ne vont pas aboutir à avoir plus de 16 unités sur tile_dest.
 
-        Par exemple, pour équilibrer les unités entre deux routes adjacentes.
+        Le déplacement d'unités est très rapide, car on ne fait aucun check.
+        Pas de mise à jour des listes de tiles
+        (_controlled_tiles, _controlled_roads, controlled_bare_tiles_with_many_units).
+        Pas de vérification des owner de tile_source et tile_dest.
+
+        On utilise cette fonction pour équilibrer les unités entre deux routes adjacentes,
+        ou entre deux tiles d'un même suburb, contrôlées par Player.
         """
         tile_source.nb_unit -= qty
         tile_dest.nb_unit += qty
@@ -497,6 +558,11 @@ class Player:
         tile_dest.update_linked_gamobjs()
 
     def cancel_all_orders(self):
+        """
+        Supprime tous les ordres en cours que Player a pu envoyer :
+        les constructions de routes et ville d'une line conquest, magnétisation,
+        backward conquest, etc.
+        """
         self.tile_magnet = None
         self.infos_go_backward = []
         self.tile_limit_go_back = None
@@ -504,12 +570,34 @@ class Player:
         self.tile_to_townify = None
 
     def _spread_units_on_one_road(self, tile):
+        """
+        Répartit les unités qui sont sur une tile, vers les tiles adjacentes.
+        On sort au maximum une seule unité par tile adjacente.
+        On sort une unité lorsque les conditions suivantes sont respectées :
+         - la tile de départ et la tile adjacente sont connectées par une route.
+         - les deux tiles sont contrôlées par Player.
+         - la tile a plus de deux unités dessus. Car on considère qu'il faut toujours
+           au moins deux unités sur une road pour en garder le contrôle.
+           (en vrai, on contrôle toujours la tile si on a une seule unité dessus,
+           mais on peut pas la bouger).
+         - il y a plus de une unité de plus entre la tile de départ et la tile adjacente.
+           Exemple : 7 unités sur la tile de départ, 5 sur la tile adjacente -> on en déplace une.
+           mais avec 6 unités sur la tile de départ, 5 sur la tile adjacente -> on déplace pas.
+           C'est ce qui fait qu'au fur et à mesure qu'on s'éloigne d'une ville, on a en général
+           de moins en moins d'unités.
+
+        Pour gérer tout ça, la fonction utilise la variable Tile.road_adjacencies_same_player.
+        Cette variable est mise à jour lors des déplacements d'unités.
+        Voir la classe Tile.
+        """
         nb_unit_source = tile.nb_unit
         # TODO : on itère sur les 8 cases alors que y'aurait besoin que de 2.
         # D'abord parce que y'a jamais les diagonales.
         # Et ensuite parce qu'on peut ... ah non. Ah si, mais faut calculer la différence absolue.
         # et ensuite déterminer si on bouge de la tile 1 -> 2, ou l'inverse.
         # Mais faut le faire, parce que ça optimiserait bien.
+        # Nan c'est pourri. On fait que une tile sur deux. Pas de truc tordu avec les valeurs abs.
+        # Ça risquerait de péter par rapport au fait qu'on gère une tile sur deux à chaque tour.
         for adj_tile, adj_connexion_type in zip(
             tile.adjacencies, tile.road_adjacencies_same_player
         ):
@@ -520,8 +608,24 @@ class Player:
                 and nb_unit_source - adj_tile.nb_unit > 1
             ):
                 self.move_unit_without_check(tile, adj_tile)
+                nb_unit_source = tile.nb_unit
 
     def _move_units_to_magnet(self, tile):
+        """
+        Déplace une unité d'une tile ayant une route, vers une tile adjacente,
+        dans le cas ou Player a une magnétisation.
+        Ça ne fait pas du vrai pathfinding, mais osef. L'unité est déplacée vers une tile
+        adjacente (horizontale ou verticale), dans la direction de la tile magnetisée.
+        Et tant pis si à la fin ça mène vers un cul-de-sac ou vers une tile qui ne permet pas
+        d'atteindre la tile magnetisée. (Player a qu'à gérer son réseau routier correctement !)
+        La tile source et la tile dest doivent être connectées par une route.
+        On permet des déplacements vers des tiles non contrôlées, ou même des tiles appartenant
+        à l'autre Player. Dans ce dernier cas, l'unité sera détruite. Mais c'est ce qui permet
+        d'éliminer des unités adverses pour gagner du terrain.
+
+        On ne déplace pas d'unité si la tile n'a que 1 ou 2 unités. En accord avec le principe
+        qu'il faut laisser 2 unités sur une tile de road avant de pouvoir en déplacer.
+        """
         nb_unit_source = tile.nb_unit
         if nb_unit_source <= 2:
             return
@@ -530,12 +634,14 @@ class Player:
         # si les deux sont possibles.
         # Parce que là, on fait deux mouvements d'unités si il y a les deux chemins possibles.
         # Et c'est pas génial.
-        #  TODO : random à l'arrache, à partir d'une liste de 1000 valeurs booléennes random prédéfinies.
+        # TODO : random à l'arrache, à partir d'une liste de 1000 valeurs booléennes random prédéfinies.
         # C'est de la merde, mais on n'a pas besoin de plus. Et ça évitera de faire ralentir le jeu.
+        # Ou alors, chaque Tile a un petit booléen horiz/vertic qui s'alterne à chaque décision.
         for direc in dirs:
             tile_dest = tile.adjacencies[direc]
             if tile_dest is not None:
                 if tile_dest.player_owner == self and tile_dest.nb_unit >= 16:
+                    # La tile de destination est déjà pleine au max. Pas de déplacement.
                     continue
                 # TODO : peut-être sortir ça dans une fonction générique. (le check des routes).
                 if direc in (2, 6):
@@ -543,21 +649,58 @@ class Player:
                 elif direc in (0, 4):
                     road_ok = tile.road_vertic and tile_dest.road_vertic
                 if not road_ok:
+                    # Pas de connexion de route. Pas de déplacement.
                     continue
                 if (
                     tile.suburb_owner is not None
                     and tile.suburb_owner == tile_dest.suburb_owner
                 ):
-                    # Déplacement d'unité entre deux tiles d'un même suburb.
-                    # Ça sert à rien. On fait pas.
+                    # Là, ce serait un déplacement d'unité entre deux tiles d'un même suburb.
+                    # Ça sert à rien, le suburb gère lui-même ses répartitions d'unités.
                     continue
+                # Voilà. On a fait toutes les vérifs qu'il faut. On peut déplacer.
+                # Soit c'est un déplacement sans aucun check, car les deux tiles sont contrôlés
+                # par Player. Soit c'est un déplacement avec tous les check nécessaires.
                 if tile_dest.player_owner == self:
+
                     self.move_unit_without_check(tile, tile_dest)
                 else:
                     tile.remove_unit()
                     tile_dest.add_unit(self)
 
     def move_units_on_roads(self, turn_index):
+        """
+        Gestion de tous les déplacements d'unités qui sont sur des routes,
+        en tenant compte de l'éventuelle magnétisation.
+
+        On parcourt une tile sur deux de toutes les tiles ayant des routes et
+        contrôlées par Player.
+        Le "un sur deux" est géré de cette manière :
+        L'aire de jeu est considéré comme ça :
+        ABABAB...
+        BABABA...
+        ABABAB...
+        BABABA...
+        ...
+        La tile en haut à gauche est "A", celle à droite est "B", celle encore à droite est "B",
+        et ainsi de suite.
+        Sur la ligne en-dessous, c'est presque pareil, sauf que la tile tout à gauche est "B".
+
+        Cette fonction gère, soit toutes les tiles "A", soit toutes les "B".
+        Le choix est déterminé par le paramètre turn_index (numéro du tour de jeu actuel).
+        Si turn_index est pair, on gère tous les "A", sinon, tous les "B".
+
+        Ça permet de diminuer les traitements à faire à chaque tour, et surtout, ça permet
+        de montrer les pixels qui se déplacent progressivement. Si on gère toutes les tiles
+        à chaque tour, on prend le risque d'avoir une unité qui se déplace d'une tile à l'autre,
+        tout le long d'une route. Et ça donne l'impression qu'elle s'est téléportée. C'est moche.
+
+        Dans tous les cas, il y a une tile particulière qu'on ne gère jamais, qui ne sort jamais
+        ses unités (ni en répartition, ni en magnet). C'est la tile sur laquelle Player est
+        en train de construire une ville (s'il y a une ville en construction).
+        Sinon, on prend le risque d'enlever les 16 unités de la tile sur laquelle
+        se construit la ville.
+        """
         if self.tile_magnet is None:
             function_move = self._spread_units_on_one_road
         else:
@@ -566,33 +709,50 @@ class Player:
 
         for tile in self._controlled_roads:
             # La tile qui construit une ville ne transfère pas ses unités aux autres.
-            # Et on fait une tile sur deux, réparti dans l'arène.
+            # Et on fait une tile sur deux, répartie dans l'arène.
             if (tile.x + tile.y) & 1 == select_tile and not tile.town_building_step:
                 function_move(tile)
 
     def move_magnetized_units_on_suburb(self):
+        """
+        Gère les déplacement d'unités interne au suburb dans lequel se trouve la tile magnetisée.
+        """
         if self.tile_magnet is None:
             return
         if self.tile_magnet.suburb_owner is None:
             return
         if self.tile_magnet.town is not None:
+            # Il y a une magnétisation, et elle est dans un suburb. Mais la tile magnetisée est
+            # sur une town. Dans ce cas, on ne fait aucun déplacement dans le suburb
+            # lui-même, parce qu'on ne peut pas placer des unités sur une town.
             return
         magnetized_suburb = self.tile_magnet.suburb_owner
+        # Les déplacement internes à un suburb doivent être assez rapide. Pour toutes les tiles
+        # du suburb pour lesquelles on peut prélever une unité, on le fait et on la place
+        # directement sur la tile magnetisée. Les tiles prélevables sont celles contrôlées par
+        # Player, et qui comportent plus que deux unités.
         for suburb_tile in magnetized_suburb.real_suburb_tiles:
             if self.tile_magnet.player_owner == self and self.tile_magnet.nb_unit >= 16:
+                # La tile magnetisée est déjà pleine au max des unités de Player.
+                # Il n'y a plus besoin de déplacer d'unités.
                 return
             if suburb_tile.player_owner == self and suburb_tile.nb_unit > 2:
+                # Déplacement d'une unité vers la tile magnetisée.
                 suburb_tile.remove_unit()
                 self.tile_magnet.add_unit(self)
 
     def process_town_building(self):
+        """
+        Gère la town en cours de construction, s'il y en a une.
+        Rappel : Player ne peut construire qu'une town à la fois.
+        """
         if self.tile_building_town is None:
             return
         self.building_time += 1
         if self.building_time >= NB_TURNS_TOWN_BUILDING_TIMEOUT:
             # La construction de la ville a pris trop de temps.
             # Parce que les unités qui sont dessus n'ont pas arrêté de se faire éliminer.
-            # Tant pis, on arrête tout.
+            # Tant pis, on arrête la construction.
             self.tile_building_town.cancel_town_building()
             self.building_time = 0
             self.tile_building_town = None
@@ -603,38 +763,69 @@ class Player:
             # On avance la construction de 1.
             self.tile_building_town.advance_town_building()
             if self.tile_building_town.town_building_step >= NB_TURNS_TOWN_BUILDING:
+                # On a réussi à faire avancer la construction jusqu'au bout.
+                # On peut poser la ville ! La fonction build_town s'occupe de tout ça.
                 self.tile_building_town.build_town()
+                # Arrêt de la construction en cours, puisqu'on a fini.
                 self.building_time = 0
                 if self.tile_magnet == self.tile_building_town:
                     self.tile_magnet = None
                 self.tile_building_town = None
             return
 
-        # On peut pas avancer la construction de la ville, car y'a des unités qui sont parties.
-        # On essaie de ramener des unités autour pour reprendre la construction.
-        # TODO : c'est de la merde ce truc. Faut pas faire ça. La magnétisation le gère tout seul !
-        for adj_tile in self.tile_building_town.adjacencies:
-            if (
-                adj_tile is not None
-                and adj_tile.player_owner == self
-                and adj_tile.nb_unit > 1
-            ):
-                self.move_unit_without_check(adj_tile, self.tile_building_town)
-                break
-
     def update_active_towns(self):
         self.active_towns = [town for town in self.towns if town.is_active]
 
     def process_unit_generation_town(self):
+        """
+        Effectue la génération des unités pour toutes les towns actives.
+        """
         for town in self.active_towns:
             town.process_unit_generation()
 
     def move_units_on_bare_tiles(self, turn_index):
+        """
+        Gère les déplacements des unités qui sont sur des bare tiles.
+        Seule les bare tiles ayant plus de 1 unité font des déplacements. Sinon ce serait
+        un déplacement qui déclencherait la perte de contrôle d'une tile, et c'est un peu idiot.
+        On connait directement les tiles concernées, grâce à la liste
+        self.controlled_bare_tiles_with_many_units, mise à jour à chaque déplacement d'unité.
+
+        Pour la zone de jeu "backward conquest", les unités sont déplacées en diagonale, vers
+        l'arrière (par rapport à la direction de conquête de Player). On permet les déplacements
+        sur des tiles non contrôlées ou contrôlées par d'autres (les unités s'élimineront).
+        C'est le but de la conquête.
+        On déplacera ainsi progressivement les unités vers l'arrière, jusqu'à arriver à la limite
+        de la zone, ou bien jusqu'à une tile avec route.
+
+        Pour la zone de jeu en dehors de backward conquest, on déplace les unités vers l'avant,
+        mais uniquement sur des tiles contrôlées.
+        On prend le premier déplacement possible parmi les 3 dispo :
+        diagonal avant, horizontal avant, vertical avant.
+        Juste pour ajouter un peu de variété, on alterne l'ordre horizontal/vertical dans ces
+        déplacements possibles, en fonction de x (abscisse).
+        Ce comportement devrait ramener progressivement les unités vers une route
+        (en général, à proximité de la town qui a précédemment lancé une backward conquest).
+        Il est possible que les unités se déplaçant de cette manière se retrouvent coincées
+        dans un cul de sac. C'est le problème de Player, qui n'a qu'à bien gérer ses terrains.
+
+        À chaque tour, on gère une tile sur 4, selon presque le même principe que dans la fonction
+        move_units_on_roads (avec les "ABAB...").
+        Mais pour cette fonction, on fait comme ça :
+        ABCDABCDABCD...
+        CDABCDABCDAB...
+        ABCDABCDABCD...
+        CDABCDABCDAB...
+        ...
+        Si on avait géré avec juste les ABAB, ça aurait fait des diagonales de "A"
+        et des diagonales de "B". Ce qui est embêtant, car justement les unités se
+        déplacent en diagonales ! On aurait eu des grands déplacements qui auraient
+        ressemblé à de la téléportation.
+        """
         select_tile = turn_index & 3
         check_go_back = self.tile_limit_go_back is not None
         for tile in self.controlled_bare_tiles_with_many_units:
-            # Le y est multiplié par 2, sinon ça fait le même select pour toutes
-            # les tiles d'une même diagonale.
+            # Le y est multiplié par 2, pour pouvoir faire le "ABCD / CDAB" décrit en docstring.
             if (tile.x + tile.y * 2) & 3 == select_tile:
                 if check_go_back and self.is_behind(self.tile_limit_go_back, tile):
                     # backward, en mode conquest
@@ -649,6 +840,7 @@ class Player:
                 else:
                     # forward, en mode move.
                     # TODO : précalculer les possible_direcs et les foutre dans une liste de 2 elems.
+                    # Ou alors, une sous-fonction, parce que là ça imbrique un max.
                     if tile.x & 1:
                         possible_direcs = (
                             self.dir_forw_diag,
@@ -669,11 +861,34 @@ class Player:
                             and tile_dest.player_owner == self
                             and tile_dest.nb_unit < 16
                         ):
+                            # On ne peut pas utiliser la fonction move_unit_without_check,
+                            # parce qu'on n'est pas sur des tiles de routes. Et que justement, ces
+                            # déplacements changent le contenu de controlled_bare_tiles_with_many_units
                             tile.remove_unit()
                             tile_dest.add_unit(self)
                             break
 
     def set_town_backward_conquest(self, town):
+        """
+        Déclenche une backward conquest sur une town. Cette fonction met à jour
+        la liste self.infos_go_backward (voir commentaire dans la fonction __init__),
+        ainsi que self.tile_limit_go_back.
+        Cette fonction magnétise également la town qui backward conquest (self.tile_magnet).
+
+        Dans infos_go_backward, le premier élément correspond à la town.
+        Les éléments suivants sont des tiles : on prend les tiles qui partent de la town,
+        dans les directions backward horizontale et backward verticale, et ayant des roads.
+
+        Chacune de ces tiles va envoyer des unités sur la tile derrière elle, en diagonale.
+        Le problème, c'est que comme en même temps on magnétise, toutes les unités vont se
+        concentrer au même endroit, et les roads un peu éloignée de la town risquent de ne
+        plus avoir d'unités à envoyer en backward. D'où le delay.
+
+        Chaque élément de infos_go_backward contient un delay et la tile qui envoie des unités.
+        Plus on se rapproche de la town, plus le délai est grand. Ça laisse une chance aux tiles
+        éloignées d'attraper tout de suite les unités passant dessus (suite à la magnétisation),
+        et de les envoyer en backward conquest.
+        """
         self.tile_limit_go_back = None
         self.tile_magnet = None
         self.infos_go_backward = []
@@ -685,10 +900,18 @@ class Player:
             # ça sert à rien. On laisse tomber.
             return
 
+        # Distance jusqu'à laquelle la town va indiquer aux roads de faire du backward conquest.
         dist_backwarding = DIST_BACKWARDING_FROM_SIZE[town.size]
+        # Là faudrait faire un petit pour expliquer le calcul du delay_max, mais pfou, ça va bien.
         delay_max = dist_backwarding + town.size - 1
+        # Ajout de la première tile, correspondant à celle de la town.
+        # Pour les towns ayant size>1, on prend la tile la plus derrière
+        # (par rapport à la direction de conquête).
         self.infos_go_backward.append([delay_max, tile_go_backward_diag])
 
+        # On prend toutes les routes qui peuvent partir en arrière de la town.
+        # Il faut donc faire deux boucles imbriquées. Car pour les towns ayant size>1, on a
+        # plusieurs routes qui partent en arrière horiz, et plusieurs routes en arrière vertic.
         for tile_start in town.tiles_cmd_go_backward_horiz:
             tile_cur = tile_start
             for _ in range(dist_backwarding):
@@ -697,6 +920,8 @@ class Player:
                     self.infos_go_backward.append([delay, tile_cur])
                     tile_cur = tile_cur.adjacencies[self.dir_back_hori]
                 else:
+                    # Dès que la route qui part de la town s'arrête, on arrête le backwarding
+                    # et on fait la route suivante. On gère pas les tournants ni rien.
                     break
         for tile_start in town.tiles_cmd_go_backward_vertic:
             tile_cur = tile_start
@@ -708,7 +933,10 @@ class Player:
                 else:
                     break
 
-        # TODO : c'est pas cette tile !!!
+        # TODO : c'est pas cette tile !!! La limite de go_backward doit être la tile de town
+        # la plus forward possible. C'est à dire celle opposée à tile_go_backward_diag.
+        # Mais de toutes façons faudra changer ça car on doit limiter la backward_conquest à un
+        # bounding rect (plus ou moins grand selon ta taille de la ville.)
         self.tile_limit_go_back = tile_go_backward_diag
         self.tile_magnet = tile_go_backward_diag
         print("todo infos_go_backward", self.infos_go_backward)
@@ -716,10 +944,20 @@ class Player:
     def _process_backward_conquest_town_tile(
         self, select_tile, infos_go_backward_town_tile
     ):
+        """
+        Gère l'envoi d'unité pour la tile de town qui fait le backward conquest.
+        C'est une gestion particulière par rapport aux autres tiles de backward conquest,
+        car la town elle-même n'a pas d'unité. Elle va piocher dans son suburb.
+
+        On envoit une unité tous les 4 tours de jeu, c'est géré par le param select_tile.
+        """
         delay, tile_go_backward = infos_go_backward_town_tile
         tile_dest = tile_go_backward.adjacencies[self.dir_back_diag]
         if tile_dest.town is not None:
             return
+        # Ici, pas besoin de y*2 comme pour la fonction move_units_on_bare_tiles.
+        # Les town et les roads qui en partent ne sont pas tracés le long de diagonale.
+        # On fait comme on veut, du coup on fait au plus simple.
         if (tile_go_backward.x + tile_go_backward.y) & 3 != select_tile:
             return
         if delay > 0:
@@ -730,6 +968,9 @@ class Player:
             return
         if tile_go_backward.suburb_owner is None:
             raise Exception("tile_go_back town sans Suburb. Not supposed to happen.")
+        # Arrivé ici, on a fait tous les checks nécessaires. C'est le bon tour de jeu,
+        # le delay est fini, la tile de destination peut accueillir le pixel.
+        # Il n'y a plus qu'à trouver un pixel consentant dans le suburb, et on peut l'envoyer !
         for tile_src in tile_go_backward.suburb_owner.real_suburb_tiles:
             if tile_src.player_owner == self and tile_src.nb_unit >= 2:
                 tile_src.remove_unit()
@@ -739,12 +980,22 @@ class Player:
     def _process_backward_conquest_road_tile(
         self, select_tile, infos_go_backward_road_tile
     ):
+        """
+        Gère les envois d'unités pour une tile de road qui fait le backward conquest.
+        On envoit une unité tous les 4 tours de jeu, c'est géré par le param select_tile.
+        """
         delay, tile_go_backward = infos_go_backward_road_tile
         tile_dest = tile_go_backward.adjacencies[self.dir_back_diag]
         if tile_dest is None:
             return
         if tile_dest.town is not None:
             return
+        # Mouais bon, ça marche pas hyper bien. Entre la magnétisation qui concentre toutes les
+        # unités das le suburb, le fait de checker un tour sur 4, et les delays, on se retrouve
+        # assez souvent avec plein d'unités qui partent sur seulement 2 ou 3 diagonales, et très
+        # peu qui partent à partir des roads éloignées. Tant pis, on laisse comme ça, je veux
+        # pas me prendre la tête avec ce truc. L'une des méthodes c'est de démarrer
+        # une backward conquest, l'interrombre pour rééquilibrer les unités, la redémarrer, etc.
         if (tile_go_backward.x + tile_go_backward.y) & 3 != select_tile:
             return
         if delay > 0:
@@ -753,12 +1004,17 @@ class Player:
             return
         if tile_dest.player_owner == self and tile_dest.nb_unit >= 16:
             return
+        # Contrairement au backward conquest de la town, on prend les unités uniquement
+        # sur la tile actuelle, et à condition qu'il y en ait suffisamment.
         if tile_go_backward.player_owner != self or tile_go_backward.nb_unit <= 2:
             return
         tile_go_backward.remove_unit()
         tile_dest.add_unit(self)
 
     def process_backward_conquest(self, turn_index):
+        """
+        Gère l'envoi d'unité pour toutes les tiles qui doivent faire le backward conquest.
+        """
         if not self.infos_go_backward:
             return
         select_tile = turn_index & 3
@@ -771,11 +1027,29 @@ class Player:
             )
 
     def merge_town(self, towns_to_remove, size_new_town):
-        # TODO : si la town sélectionnée par le player est dans towns_to_remove,
+        """
+        Fusionne une town.
+        Supprime les towns de la liste towns_to_remove, et crée à la place une nouvelle town
+        ayant la taille de size_new_town.
+        Il n'y a pas de check de cohérence entre les towns supprimées et celle créée. Il faut
+        avoir fait les vérifs avant.
+
+        La fonction met à jour les trucs qu'il faut (lien de tile vers town, etc), mais elle
+        ne fait rien concernant les suburbs, car il n'y a rien à faire.
+        Un merge ou un shatter de town n'ont aucune influence sur la façon dont sont organisés
+        les suburbs. Car ça ne change rien au niveau des tiles. Les tiles ayant une town en ont
+        toujours une, les tiles n'en ayant pas n'en ont toujours pas.
+
+        La nouvelle town récupère les points de génération d'unités de toutes les towns supprimées.
+        """
+        # TODO : si la town sélectionnée par Player est dans towns_to_remove,
         # faut déselectionner.
         x_new_town = []
         y_new_town = []
         unit_gen_points = 0
+        # Le coin supérieur gauche de la nouvelle town correspondra au coin supérieur gauche
+        # de la town supprimée qui est le plus en haut à gauche. Si les params sont cohérents,
+        # la nouvelle town sera créée au bon endroit.
         for town in towns_to_remove:
             x_new_town.append(town.x_left)
             y_new_town.append(town.y_up)
@@ -788,6 +1062,7 @@ class Player:
         )
         new_town.unit_gen_points = unit_gen_points
         self.add_towns([new_town])
+        # Mise à jour des liens vers les towns, qui sont dans les tiles concernées.
         for tile in new_town.tiles_position:
             tile.town = new_town
             tile.update_linked_gamobjs()
@@ -795,13 +1070,20 @@ class Player:
     def shatter_town(self, town_to_shatter, size_new_town):
         """
         Le nom de la fonction ressemble à Chatterton. Lolilol !
-        """
-        # TODO : si la town sélectionnée par le player est dans towns_to_remove,
-        # faut déselectionner.
 
-        # On divise les points de génération en 4 pour en donner à chaque ville.
-        # Il risque d'y avoir de la perte car on fait une divison entière. C'est comme ça.
-        # La réurbanisation, ça coûte des ressources.
+        Détruit une town et crée 4 towns plus petite à la place.
+        Le param size_new_town doit être égal à la taille de la town à supprimer,
+        divisée par deux. Sinon ça donnerait n'importe quoi.
+
+        Les points de génération de la town détruite sont divisés en 4
+        et donnés à chaque nouvelle town. Il peut y avoir de la perte, car on fait
+        une divison entière. C'est comme ça. La réurbanisation, ça coûte des ressources.
+
+        Comme pour merge_town, on ne fait rien dans les suburbs, car un shatter ne modifie
+        pas l'organisation des suburbs.
+        """
+        # TODO : si la town sélectionnée par Player est dans towns_to_remove,
+        # faut déselectionner.
         unit_gen_points_new_towns = town_to_shatter.unit_gen_points // 4
         x_left = town_to_shatter.x_left
         y_up = town_to_shatter.y_up
@@ -824,15 +1106,30 @@ class Player:
 
     def check_town_size_2_merge(self, cur_town):
         """
+        Vérifie si la town passée en paramètre, qui doit avoir une size de 2, peut être fusionnée
+        avec 3 autres towns de size 2 bien placée. Si c'est le cas, la variable membre
+        self.towns_to_merge sera définie.
+        Vérifie aussi si cette town devrait déclencher un shatter d'une town de size 4, pour
+        pouvoir refaire un merge à un autre endroit.
+        Une town de size 1 peut déclencher un shatter de towns de size 2 et 4.
+        Une town de size 2 ne peut déclencher un shatter que pour les towns de size 4.
+
+        Si une town de size 2 ne peut être fusionnée à cause d'un mauvais placement d'une autre town
+        de size 2, cette fonction n'a pas à le gérer. C'est le shatter par une town de size 1
+        qui le fera.
+
         On checke que 3 cases. Celles où on est censé avoir le left_up
         des 3 villes avec lesquelles on merge. (2*forward chacune)
-        Si, sur l'une de ces 3 cases, on a une ville de taille 4,
-        qui est situé après dans l'ordre, et qu'on a aucune ville de taille 4 située avant,
-        et que les modulos sont les mêmes, alors on shatter celle qui est après.
-        Sinon on fait rien, car ça risque de tout pourrir.
-        Si on a 3 ville de taille 2, avec les left_up qui correspondent, on merge.
+        Si, sur l'une de ces 3 cases, on a :
+         - une ville de taille 4,
+         - avec des modulos de left_up égaux à ceux de cur_town,
+         - qui est située plus loin selon le tri par sort_key_xxx,
+         - et qu'on a aucune ville de taille 4 située avant selon le tri par sort_key_xxx,
+        alors on shatter cette ville de taille 4 qui est située plus loin.
+        Si tout ça n'est pas réuni, on shatter rien du tout, car ça risque de tout pourrir.
         """
         tile_of_town = cur_town.tiles_position[0]
+        # Récupération des 3 cases que l'on checke : tile_diag_2, tile_forw_hori, tile_forw_verti.
         tile_diag_1 = tile_of_town.adjacencies[self.dir_forw_diag]
         if tile_diag_1 is None:
             return False
@@ -844,6 +1141,9 @@ class Player:
         tile_forw_verti = tile_of_town.adjacencies[self.dir_forw_verti]
         tile_forw_verti = tile_forw_verti.adjacencies[self.dir_forw_verti]
         tiles_aside = [tile_forw_verti, tile_forw_hori, tile_diag_2]
+        # Récupération des 3 towns associées à ces 3 cases.
+        # Si on n'a pas 3 towns, ou si l'une d'elle a une taille de 1, pas de merge/shatter possible.
+        # On s'en va.
         towns_aside = [tile.town for tile in tiles_aside]
         if None in towns_aside:
             return False
@@ -854,8 +1154,11 @@ class Player:
         y_modu_cur_town = cur_town.y_up % 2
         for town in towns_aside:
             if town.x_left % 2 != x_modu_cur_town or town.y_up % 2 != y_modu_cur_town:
+                # L'une des towns de taille 2 n'est pas placée au bon endroit
+                # par rapport à cur_town. Pas de merge/shatter possible.
                 return False
         if any((town.player_owner != self for town in towns_aside)):
+            # Tout est bien placé, mais au moins une des towns n'appartient pas à Player.
             return False
 
         can_modify = True
@@ -863,20 +1166,76 @@ class Player:
         for town in towns_aside:
             if town.size == 4:
                 if self.sort_key_town(cur_town) < self.sort_key_town(town):
+                    # Il y a une town de taille 4 qui gêne, et elle est placée après.
+                    # On pourra peut-être la shatterer.
                     potential_towns_to_shatter.append(town)
                 else:
+                    # Il y a une town de taille 4 qui gêne, mais elle est placée avant.
+                    # C'est elle qui a la priorité. On ne la shatter pas.
+                    # Et donc, pas de merge/shatter possible.
+                    # La ville cur_town va rester comme elle est.
                     can_modify = False
         if not can_modify:
             return False
 
         if potential_towns_to_shatter:
+            # Il faudrait shatterer une ou plusieurs towns pour faire un merge ultérieur.
+            # Pas besoin de se souvenir de tout ce qu'il faut shatterer.
+            # On signale juste la première.
+            # Lors d'une prochaine exécution de la fonction process_town_merging, on retrouvera
+            # les éventuelles autres towns à shatterer, et on s'en occupera.
             self.town_to_shatter = potential_towns_to_shatter[0]
             return True
         else:
+            # Youpi ! On peut faire un merge !
             self.towns_to_merge = [cur_town] + towns_aside
             return True
 
     def process_town_merging(self):
+        """
+        Gère tous les merge/shatter des towns. Cette gestion est décomposée en plusieurs
+        petites étapes, on en effectue une seule à chaque tour. Ça permet de ne pas faire de
+        gros traitements qui ralentirait le jeu, et ça permet aussi de montrer les étapes
+        intermédiaires de merge/shatter. On voit petit à petit les villes se réorganiser,
+        et je trouve ça cool.
+
+        L'étape en cours est renseignée par les variables membres
+        town_merge_state, towns_to_merge et town_to_shatter.
+
+        Ça se passe comme ça :
+
+        town_merge_state == TOWN_MERGE_STATE_STABLE : on a tout vérifié récemment,
+        il n'y a rien à faire. Dès qu'une nouvelle town est construite par Player, on entame un
+        cycle de vérification, avec TOWN_MERGE_STATE_UNSORTED.
+
+        town_merge_state == TOWN_MERGE_STATE_UNSORTED : on trie la liste self.towns, selon l'ordre
+        self.sort_key_town (l'une des fonctions sort_key_xxx), qui permet de savoir quelles towns
+        doivent être mergées en priorité. (voir fonction sort_key_right_down).
+
+        town_merge_state = TOWN_MERGE_STATE_UNCHECKED : on parcourt toutes les towns.
+        Dès qu'on en trouve une qui doit être mergée, ou shatterée, on arrête le parcours,
+        et on retient ce qu'on a trouvé. Soit self.towns_to_merge devient différent de None,
+        soit self.town_to_shatter devient différent de None.
+        Si on n'a rien trouvé à faire, town_merge_state prend la valeur TOWN_MERGE_STATE_STABLE,
+        et on met la gestion en pause, jusqu'à la prochaine construction de ville
+        où on revérifie tout.
+        À priori, la vérification complète de toutes les villes ne prend pas beaucoup de temps.
+        On peut donc se permettre de tout vérifier en un seul tour.
+
+        towns_to_merge is not None : on merge les town qui ont été retenues comme étant à merger.
+        Cette action modifie la liste de towns, donc on revient à l'étape TOWN_MERGE_STATE_UNSORTED
+        et on refait tout un processus de vérification.
+
+        self.town_to_shatter : on shatter la town qui a été retenue comme étant à shatterer,
+        puis on revient à l'étape TOWN_MERGE_STATE_UNSORTED pour refaire le processus.
+
+        Cette gestion a la garantie qu'on n'aura jamais de cycle infinie de merge/shatter, grâce
+        au fait qu'on ait ordonné les villes (avec self.sort_key_town).
+        Il suffit d'instaurer ces règles :
+         - on merge tout ce qu'on peut merger.
+         - on shatter une town uniquement si elle empêche un merge, et uniquement si la
+           première town du merge empêché se trouve avant la town à shatterer.
+        """
         if self.town_merge_state == TOWN_MERGE_STATE_STABLE:
             return
 
@@ -898,6 +1257,7 @@ class Player:
         if self.town_merge_state == TOWN_MERGE_STATE_UNCHECKED:
             for cur_town in self.towns:
 
+                # --- Vérification des merge/shatter pour les villes ayant une size de 1 ---
                 if cur_town.size == 1:
                     # TODO : trop de bordel. Faut que ça aille dans une fonction.
                     tile_of_town = cur_town.tiles_position[0]
@@ -929,13 +1289,26 @@ class Player:
                             self.towns_to_merge = [cur_town] + towns_aside
                             return
 
+                # --- Vérification des merge/shatter pour les villes ayant une size de 2 ---
                 elif cur_town.size == 2:
                     if self.check_town_size_2_merge(cur_town):
                         return
 
+            # On a vérifié toutes les towns, aucun merge ni aucun shatter à faire.
+            # On se remet dans l'état stable, et on est en pause.
             self.town_merge_state = TOWN_MERGE_STATE_STABLE
 
     def process_unit_gen_tile(self):
+        """
+        Gère la génération des unités produites par la possession de terrain.
+        Les unités produites ainsi sont placées au hasard, sur n'importe quelle tile contrôlée
+        par Player et pouvant accueillir une unité. Ça peut être sur une road,
+        ou sur une "bare tile". Si c'est sur une bare tile, l'unité se déplacera progressivement
+        en forward, jusqu'à rejoindre une route (ou pas, mais c'est le problème de Player).
+
+        La gestion de choix de la tile au hasard est faite de manière un peu particulière.
+        Et de toutes façons ça va changer. Voir commentaire dans la fonction.
+        """
         if self.unit_gen_tile < UNIT_GEN_TILE_POINT_MAX_CUMUL:
             self.unit_gen_tile += len(self._controlled_tiles)
         if self.unit_gen_tile >= UNIT_GEN_TILE_POINT_REQUIRED:
@@ -956,16 +1329,35 @@ class Player:
             self.unit_gen_tile -= UNIT_GEN_TILE_POINT_REQUIRED
 
     def process_unit_gen_tile_bionature(self, turn_index=0):
+        """
+        Gère la génération des unités produites par la possession de terrain, dans le cas
+        où Player est de type "bionature" (les pixels verts).
+        Les unités de bionature peuvent être placées sur une tile déjà contrôlée par la bionature,
+        ou sur une tile adjacente si elle n'est contrôlée par personne.
+
+        On permet donc à la bionature de s'étendre progressivement, mais jamais de conquérir
+        des tiles occupées par d'autres Player, ou d'éliminer d'autres unités.
+        Comme ça, la bionature n'embête pas trop les autres Player,
+        tout en ayant quand même des possibiltés d'envahissement.
+
+        On choisit d'abord une tile contrôlée par la bionature et pouvant accueillir une unité
+        de plus, ensuite on regarde les tiles autour qui sont vides, et on choisi parmi la première
+        tile, ou l'une des autres.
+        Ça fait une probabilité plus grande de choisir une tile vide plutôt qu'une tile déjà
+        occupée. C'est ce qu'on veut, ça fait une bionature qui va plutôt avoir tendance
+        à s'étendre, et c'est cool.
+        """
         if self.unit_gen_tile < UNIT_GEN_TILE_POINT_MAX_CUMUL:
             self.unit_gen_tile += len(self._controlled_tiles)
         if self.unit_gen_tile >= UNIT_GEN_TILE_POINT_REQUIRED_BIONATURE:
             tile_target = random.choice(self._controlled_tiles)
+            # Là c'est un peu pourri. Si toutes les tiles de la bionature sont au max,
+            # avec 16 pixels, alors on ne peut plus choisir aucune tile de départ.
+            # Donc on ne peut même plus s'étendre sur les autres tiles.
+            # On ne gère pas ce cas, car il est quand même très rare.
+            # Et il se règle tout seul dès qu'on élimine une seul unité de bionature.
             if tile_target.town is not None or tile_target.nb_unit >= 16:
                 return
-            # On permet à la bionature de s'étendre sur des tiles adjacentes,
-            # lorsqu'elle ne sont contrôlées par personne.
-            # Comme ça, la bionature n'embête pas trop les autres personnes,
-            # elle ne leur prend pas de tile, tout en ayant un fort potentiel de grandissement.
             potential_tiles = [
                 tile
                 for tile in tile_target.adjacencies
