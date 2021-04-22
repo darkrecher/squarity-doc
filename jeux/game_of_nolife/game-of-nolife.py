@@ -200,15 +200,15 @@ wardness/direction de conquête : deux booléens indiquant vers laquelle Player 
  - upward : direction verticale (True:bas , False:haut)
 Pour Player red : rightward=True, upward=False. Pour Player blue, c'est inversé.
 
-line conquest : TODO , c'est à dire la construction
-# d'une ligne de route, qui se termine par une ville.
+line conquest : TODO à expliquer. c'est la construction d'une ligne de route,
+qui se termine par une ville.
 
 La direction de conquête influe sur différents détails : l'ordre des tiles adjacentes où les towns
 posent les pixels générés, la direction des missiles bactériologiques, l'ordre de priorité des
 merge de town, la direction des backward conquest, etc.
 """
 
-# TODO : décaler toutes les tiles de Player blu. Parce que je voulais faire autrement et finalement non.
+# TODO : décaler toutes les images de tiles de Player blu. Parce que je voulais faire autrement et finalement non.
 
 # TODO : dessiner des routes contrôlées par la "bionature".
 
@@ -223,9 +223,6 @@ merge de town, la direction des backward conquest, etc.
 # TODO : si Player possède un nombre d'unité supérieur à 2.5 * le nombre de cases contrôlées, la génération d'unité
 # se met en pause (town et tiles). Ça évite de se retrouver avec un gros tas d'unités dont on sait pas quoi faire,
 # et ça rend encore plus importante l'occupation de terrains.
-
-# TODO WIP : ajouter automatiquement 32 unités de chaque couleur et démarrer une construction de town.
-# Sinon on peut rien faire au début.
 
 import random
 
@@ -1462,6 +1459,24 @@ class Player:
                     self.tile_building_town = self.tile_to_townify
                     self.tile_to_townify = None
 
+    def init_first_units_and_town(self):
+        # Zut, j'ai déjà fait ce genre de petit bout de code ici et là,
+        # mais flemme de le factoriser.
+        if self.rightward:
+            x_first_town = 1
+        else:
+            x_first_town = self.w - 2
+        if self.downward:
+            y_first_town = 1
+        else:
+            y_first_town = self.h - 2
+        tile_first_town = self.game_master.game_area[y_first_town][x_first_town]
+        tile_first_town.add_unit(self, 16)
+        tile_first_town.build_town()
+
+        for tile_adj in tile_first_town.town.adjacent_tiles:
+            tile_adj.add_unit(self, 12)
+
 
 class Town:
     """
@@ -1481,8 +1496,6 @@ class Town:
         self.player_owner = player_owner
         # Le game master qui gère tout le jeu.
         self.game_master = game_master
-        # Les coordonnées du rectangle sur lequel s'étend la ville. TODO : y'en a besoin de ce truc ? Parce que sinon on vire.
-        self.rect = (x_left, y_up, x_left + size, y_up + size)
         # Une town est active si elle a au moins une tile non-town adjacente.
         # C'est à dire qu'elle peut générer des unités et les placer autour d'elle.
         self.is_active = True
@@ -2431,6 +2444,8 @@ class GameMaster:
         player_bionature = Player(
             2, self.w, self.h, "grn", self, None, None, is_bionature=True
         )
+        player_0.init_first_units_and_town()
+        player_1.init_first_units_and_town()
         self.players = {0: player_0, 1: player_1, 2: player_bionature}
 
     def _make_adjacencies(self, x, y):
@@ -2593,14 +2608,30 @@ class GameMaster:
         Répartit toutes les unités qui sont présentes dans un même suburb,
         ou bien élimine des unités différentes si plusieurs Players sont sur ce suburb.
 
-        TODO WIP : expliquer qu'on fait progressivement. Un peu à chaque tour,
-        et ça se fait tout seul.
+        Quand on répartit les unités, on ne le fait que "ponctuellement". On prend la tile
+        qui a le plus d'unités et celle qui en a le moins, on calcule la différence,
+        et on transfère la moitié de la différence de la plus peuplée à la moins peuplée.
+
+        Ça ne fait pas une répartition parfaite. Mais au prochain tour de jeu, on refera
+        la même petite action ponctuelle. Et progressivement, ça finit par se répartir
+        équitablement. On applique toujours le même principe : ça fait moins de traitement
+        à exécuter à chaque tour, et ça montre à l'écran la répartition progressive.
+
+        Même chose lorsqu'il y a des unités de différentes couleurs. On en élimine que deux,
+        (une de chaque couleur). On élimine pas tout d'un coup. Ça finit par se nettoyer
+        tout seul au fur et à mesure des tours de jeux.
         """
-        # Clé : un player ayant des unités dans ce suburb.
+        # most_unequilibrateds est un dictionnaire enregistrant les tiles les plus déséquilibrées
+        # (en nombre d'unités)
+        # Clé : Player ayant des unités dans ce suburb.
         # Valeur : tuple de 2 éléments : tile avec le max d'unité, tile avec le min d'unité.
+        # ça peut être deux fois la même si Player ne contrôle qu'une seule tile dans ce suburb.
         most_unequilibrateds = {}
+        # Une tile du suburb contrôlée par personne. On prend la première qu'on trouve.
+        # Ça peut rester None si toutes les tiles sont contrôlées.
         un_owned_tile = None
         func_get_unit = lambda tile: tile.nb_unit
+        # Définition de most_unequilibrateds et un_owned_tile
         for tile in suburb.real_suburb_tiles:
             player_tile = tile.player_owner
             if player_tile is None:
@@ -2611,6 +2642,9 @@ class GameMaster:
                     most_unequilibrateds[player_tile] = [tile, tile]
                 else:
                     tile_unit_min, tile_unit_max = most_unequilibrateds[player_tile]
+                    # Il y a peut-être plusieurs tile ayant le même max d'unités, et plusieurs
+                    # tile ayant le même min. C'est pas important. On prend n'importe quel max
+                    # et n'importe quel min.
                     most_unequilibrateds[player_tile] = [
                         min(tile_unit_min, tile, key=func_get_unit),
                         max(tile_unit_max, tile, key=func_get_unit),
@@ -2620,20 +2654,30 @@ class GameMaster:
             return
 
         if len(most_unequilibrateds) == 1:
+            # Il n'y a qu'une seule personne dans ce suburb. On fait de la répartition d'unités,
+            # si c'est nécessaire et possible.
             player_tile, tile_extrems = next(iter(most_unequilibrateds.items()))
             tile_unit_min, tile_unit_max = tile_extrems
             if tile_unit_max.nb_unit > 2:
                 if un_owned_tile:
+                    # Il y a une tile non contrôlée dans le suburb. C'est plus prioritaire
+                    # de contrôler toutes les tiles que de se répartir dans les tiles
+                    # qu'on contrôle. Donc on prend une unité de la tile où on en a le plus,
+                    # et on la met sur la tile non contrôlée.
+                    # Il y a peut-être d'autres tiles non contrôlée, mais on ne s'en occupe pas.
+                    # Ça se fera tout seul au prochain tour.
                     tile_unit_max.remove_unit()
                     un_owned_tile.add_unit(player_tile)
                 else:
+                    # Toutes les tiles du suburb sont contrôlées par Player.
+                    # On peut faire une répartition.
                     if (
                         player_tile.tile_magnet is not None
                         and player_tile.tile_magnet.suburb_owner == suburb
                     ):
-                        # Si la magnétisation de la persone qui joue est dans ce suburb,
-                        # on répartit pas. Parce que la personne veut rassembler toutes ses unités
-                        # au même endroit.
+                        # Si la tile magnétisée de Player est dans ce suburb, on ne répartit pas
+                        # les unités. Player veut rassembler toutes ses unités au même endroit,
+                        # si on fait une répartition, ça va gêner le rassemblement.
                         pass
                     else:
                         diff = tile_unit_max.nb_unit - tile_unit_min.nb_unit
@@ -2643,6 +2687,8 @@ class GameMaster:
                             )
         # elif len(most_unequilibrateds) == 2:
         else:
+            # Il y a plusieurs personnes dans ce suburb. On élimine une unité à chacune,
+            # en les prenant à partir de leurs tiles ayant le maximum d'unité.
             tile_extrems = list(most_unequilibrateds.values())
             tile_extrems_1 = tile_extrems[0]
             tile_extrems_2 = tile_extrems[1]
@@ -2652,7 +2698,7 @@ class GameMaster:
             tile_unit_max_2.remove_unit()
         # else:
         #     Si on a plus que 2 players, faut déterminer équitablement quelles unités on élimine.
-        #     On éliminera une unité pour 2 players parmi toutes la liste. Mais lesquels ?
+        #     On éliminera une unité pour 2 players parmi la liste. Mais lesquels ?
         #     Un round-robin shufflé basé sur le numéro de tour de jeu ?
         #     TODO.
         #     for x in range(6):
@@ -2673,17 +2719,38 @@ class GameMaster:
         #     s+=[(a,b)]
 
     def equilibrate_units_in_suburbs(self, turn_index):
+        """
+        Équilibrage/élimination d'unités dans tous les suburbs de l'aire de jeu.
+        """
         for suburb in self.suburbs:
             self._equilibrate_units_in_one_suburb(suburb, turn_index)
 
     def init_bionature_units(self, player_bionature):
+        """
+        Place les unités d'une bionature dans l'aire de jeu, au début d'une partie.
+
+        On en place systématiquement 2 le long de la diagonale qui va de haut-gauche à bas-droit,
+        et aussi à quelques cases de distance de cette diagonale, pour en faire une "plus épaisse".
+        On en place systématiquement 1 à quelques cases de distance plus grande de cette diagonale.
+        Pour que ça transitionne doucment de 0 vers 1 puis 1 vers 2 au fur et à mesure qu'on est
+        proche de la diagonale.
+
+        En plus de ça, on place quelques "épicentres" le long de cette diagonale, à quelques cases
+        de distance (avec un peu de random).
+        Les tiles ayant des épicentres proche d'elle peuvent avoir plus d'unités, aussi bien en max
+        que en min. La quantité d'unité est à chaque fois déterminée au hasard, entre le min et
+        le max calculé en tenant compte de la diagonale et des épicentres proches.
+        """
         nb_epicentre = 25
         min_size = min(self.w, self.h)
         rand_epi = min_size // 5
         epicentres = []
+        # Placement des épicentres.
         for _ in range(nb_epicentre):
+            # D'abord on le place au hasard sur la diagonale.
             x_epi = random.randint(0, min_size)
             y_epi = x_epi
+            # Et ensuite on le déplace un peu à côté, avec du hasard.
             x_epi += random.randint(-rand_epi, rand_epi)
             y_epi += random.randint(-rand_epi, rand_epi)
             epicentres.append((x_epi, y_epi))
@@ -2691,9 +2758,12 @@ class GameMaster:
         for x in range(self.w):
             for y in range(self.h):
 
+                # Détermination du min et du max initial, en fonction de la distance
+                # par rapport à la diagonale.
                 dist_main_diag = abs(x - y)
                 min_unit = max(0, (3 - dist_main_diag / 2))
                 max_unit = 10 - dist_main_diag * 3
+                # Ajout de quantité en min et en max, en fonction des épicentres proches.
                 epi_adds = [
                     20 - (x - x_epi) ** 2 - (y - y_epi) ** 2
                     for x_epi, y_epi in epicentres
@@ -2701,13 +2771,19 @@ class GameMaster:
                 epi_adds = [val for val in epi_adds if val > 0]
                 max_unit += sum(epi_adds)
                 min_unit += len(epi_adds)
+                # Augmentation du max en dernier recours, si la tile est proche de la diagonale
+                # mais qu'on n'a pas eu de bol et qu'on n'a pas assez de min et max.
                 if max_unit <= 0:
                     if dist_main_diag < 10:
                         max_unit = 2
                     elif dist_main_diag < 20:
                         max_unit = 1
+                # Des fois, avec tous ces savants calcul, max_unit est plus petit que min_unit.
+                # Dans ce cas, on redéfinit max_unit.
                 max_unit = max(min_unit, max_unit)
 
+                # Et finalement, on choisit le nombre d'unité au hasard entre le min et le max,
+                # et on pose ça sur la tile.
                 if max_unit > 0:
                     min_unit = int(min_unit)
                     max_unit = int(max_unit)
