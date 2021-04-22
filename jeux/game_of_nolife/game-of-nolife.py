@@ -224,6 +224,9 @@ merge de town, la direction des backward conquest, etc.
 # se met en pause (town et tiles). Ça évite de se retrouver avec un gros tas d'unités dont on sait pas quoi faire,
 # et ça rend encore plus importante l'occupation de terrains.
 
+# TODO WIP : ajouter automatiquement 32 unités de chaque couleur et démarrer une construction de town.
+# Sinon on peut rien faire au début.
+
 import random
 
 # Moche, mais ça permet de convertir plus rapidement.
@@ -1999,36 +2002,30 @@ class Tile:
         self.linked_gamobjs[:] = gamobjs
 
     def __str__(self):
-        # TODO : f-string bordel !
-        return "".join(
-            map(
-                str,
-                (
-                    "Tile",
-                    " x:",
-                    self.x,
-                    " y:",
-                    self.y,
-                    " player_owner:",
-                    self.player_owner,
-                    " nb_unit:",
-                    self.nb_unit,
-                    " town:",
-                    self.town,
-                    " road:",
-                    "|" * self.road_vertic,
-                    "-" * self.road_horiz,
-                    " road_adjacencies_same_player",
-                    self.road_adjacencies_same_player,
-                    " suburb_owner:",
-                    self.suburb_owner,
-                ),
-            )
+        str_roads = "|" * self.road_vertic + "-" * self.road_horiz
+        return (
+            f"Tile x: {self.x} y: {self.y} player_owner: {self.player_owner} "
+            f"nb_unit: {self.nb_unit} town: {self.town} road: {str_roads} "
+            f"road_adjacencies_same_player {self.road_adjacencies_same_player} "
+            f"suburb_owner: {self.suburb_owner}"
         )
 
     def _update_road_adjacency(self, direction):
+        """
+        Met à jour un élément de la variable road_adjacencies_same_player, pour la direction
+        indiquée en param.
+        En même temps, on met à jour l'élément opposé de road_adjacencies_same_player de la
+        tile adjacente.
+        Rappel : chaque élément de road_adjacencies_same_player peut valoir :
+         - 0 : pas de route, ou alors une route, mais les deux tiles adjacentes
+               appartiennent à deux Players différent(e)s.
+         - 1 : une route qui connecte, et les deux tiles sont contrôlées par Player.
+         - 2 : les deux tiles appartiennent au même suburb. Il y a une connexion,
+               mais on s'en fiche (lorsqu'on effectue des répartitions de pixels sur les routes).
+        """
         other_tile = self.adjacencies[direction]
         if other_tile is None:
+            # C'est une tile sur un bord d'écran.
             self.road_adjacencies_same_player[direction] = 0
             return
 
@@ -2067,15 +2064,27 @@ class Tile:
 
         self.road_adjacencies_same_player[direction] = connection_type
         reversed_direction = REVERSE_DIRS[direction]
+        # Mise à jour de la connexion opposée, pour la tile adjacente à cette tile.
         other_tile.road_adjacencies_same_player[reversed_direction] = connection_type
 
     def _update_all_road_adjacencies(self):
+        """
+        Mise à jour de toutes la liste road_adjacencies_same_player, en fonction
+        des roads et des tiles contrôlées.
+        Pas de mise à jour sur les adjacences diagonales, car pas de routes diagonales.
+        """
         self._update_road_adjacency(0)
         self._update_road_adjacency(2)
         self._update_road_adjacency(4)
         self._update_road_adjacency(6)
 
     def _update_all_road_adjacencies_with_current_roads(self):
+        """
+        Comme on ne peut que ajouter des routes et pas en détruire (sauf dans le cas spécial
+        où on construit une ville), les seules mises à jour d'adjacences utiles
+        sont pour les directions où on a la route correspondante.
+        Sinon, les autres adjacences, ça va rester à zéro, pas besoin d'updater.
+        """
         if self.road_horiz:
             self._update_road_adjacency(2)
             self._update_road_adjacency(6)
@@ -2084,6 +2093,21 @@ class Tile:
             self._update_road_adjacency(4)
 
     def add_unit(self, player, qty=1):
+        """
+        Ajoute une ou plusieurs unités sur la tile, appartenant à player, indiqué en param.
+        Cette fonction effectue tous les checks nécessaires, et toutes les mises à jour
+        des listes d'indexation, de comptage, de contrôle, etc.
+
+        Si on ajoute des unités de Player A, alors qu'il y a déjà des unités de Player B,
+        les unités s'annulent. On peut avoir 3 cas possibles :
+         - moins d'unité de A que de B : ça fait diminuer un peu les unités de B, c'est tout.
+         - autant d'unités de A et de B : toutes les unités s'éliminent. La tile n'est plus
+           contrôlée par personne.
+         - plus d'unités de A que de B : on enlève d'abord toutes les unités de B.
+           On met à jour tout ce qu'il faut par rapport au fait que B perd le contrôle
+           d'une tile, puis on ajoute ce qu'il reste des unités de A. Et on fait
+           à nouveau des mises à jour par rapport au fait que A gagne le contrôle d'une tile.
+        """
         if not qty:
             return
         if self.town is not None:
@@ -2110,11 +2134,17 @@ class Tile:
             player.total_units += qty
         else:
             if qty < self.nb_unit:
+                # On élimine un peu d'unité de l'autre Player, et on s'arrête là.
                 self.remove_unit(qty)
             else:
                 qty_unit_left_after = qty - self.nb_unit
+                # On enlève toutes les unités de l'autre Player. La fonction remove_unit
+                # gère toutes les mises à jour de listes, index, etc., dans le cas d'une
+                # suppression.
                 self.remove_unit(self.nb_unit)
-                # Ha ha. Récursivité. Mais juste une seule fois.
+                # Ha ha. Récursivité. La fonction add_unit s'appelle elle-même.
+                # Mais ce re-appel ne peut arriver qu'une seule fois maximum.
+                # car quand on en arrive là, la tile n'est plus contrôlée par personne.
                 self.add_unit(player, qty_unit_left_after)
 
         if (
@@ -2124,6 +2154,9 @@ class Tile:
             and self.nb_unit > 1
             and initial_nb_unit <= 1
         ):
+            # On est passé de 0 ou 1 unités à plusiers unités, et il n'y a pas de routes.
+            # Cette tile doit donc être référencée dans la liste des bare tiles ayant
+            # plus de une unité.
             self.player_owner.controlled_bare_tiles_with_many_units.append(self)
 
         if must_check_road_adjacencies:
@@ -2134,6 +2167,15 @@ class Tile:
         self.update_linked_gamobjs()
 
     def remove_unit(self, qty=1):
+        """
+        Supprime une ou plusieurs unités sur une tile, que que soit Player qui contrôle la tile.
+        Comme pour add_unit, cette fonction effectue tous les checks nécessaires,
+        et toutes les mises à jour des listes d'indexation, de comptage, de contrôle, etc.
+
+        Si on essaye d'enlever plus d'unité qu'il n'y en a déjà, on fait tomber le nombre d'unité
+        à zéro (on n'émet pas d'erreur ni d'avertissement).
+        Lorsque le nombre d'unité tombe à zéro, Player perd le contrôle de cette tile.
+        """
         if not qty:
             return
         if self.player_owner is None:
@@ -2151,6 +2193,8 @@ class Tile:
             and self.nb_unit <= 1
             and initial_nb_unit > 1
         ):
+            # On est passé de plusieurs unités à 0 ou 1 unités.
+            # On enlève la tile de la liste des bare tiles ayant plus d'une unités.
             self.player_owner.controlled_bare_tiles_with_many_units.remove(self)
 
         if self.nb_unit == 0:
@@ -2159,11 +2203,22 @@ class Tile:
                 self.player_owner.remove_controlled_road(self)
                 self.game_master.uncontrolled_roads.append(self)
             self.player_owner = None
+            # L'ajout d'unité a provoqué un changement important. Il n'y a plus d'owner.
+            # Il faut donc vérifier tous les contrôles et les adjacences de routes.
             self._update_all_road_adjacencies_with_current_roads()
 
         self.update_linked_gamobjs()
 
     def add_road(self, horiz=False, vertic=False):
+        """
+        Ajoute une route horizontale ou verticale ou les deux à la fois sur la tile.
+        Ça fait tous les checks qu'il faut, et ça met à jour toutes les listes et les références.
+        En particulier, les opérations à faire sur les suburbs.
+        La construction d'une route à côté d'une ville fait transférer la tile de
+        "potential_tiles" vers "real_suburb_tiles".
+        Et en plus, ça peut faire fusionner plusieurs suburbs, car la route les
+        connecte entre eux.
+        """
         if not (horiz or vertic):
             return
         adj_towns = [
@@ -2186,6 +2241,8 @@ class Tile:
         self.road_vertic = self.road_vertic or vertic
         current_road_qty = self.road_horiz + self.road_vertic
         self._update_all_road_adjacencies_with_current_roads()
+        # Si on a ajouté des routes alors qu'il n'y en avait pas du tout au départ,
+        # il y a diverses listes à mettre à jour, pour le game_master et pour Player.
         if previous_road_qty == 0 and current_road_qty > 0:
             if self.player_owner is None:
                 self.game_master.uncontrolled_roads.append(self)
@@ -2194,7 +2251,12 @@ class Tile:
                 if self.nb_unit > 1:
                     self.player_owner.controlled_bare_tiles_with_many_units.remove(self)
 
+        # Gestion des suburbs, que cet ajout de route peut modifier.
+        # Si on a une ou plusieurs villes à côté de la tile, alors il se passe des trucs au
+        # niveau des suburbs. Sinon, ce n'est pas une tile potentielle de suburb.
         if adj_towns:
+            # Récupération de tous les suburbs adjacents. Plusieurs tiles adjacentes peuvent
+            # appartenir au même suburb. On gère ce cas avec le "set".
             adj_suburbs = set((town.get_suburb_owner() for town in adj_towns))
             for suburb in adj_suburbs:
                 # Dans le ou les suburbs concernés, la construction de route transfère la tile
@@ -2202,9 +2264,11 @@ class Tile:
                 suburb.transfer_potential_road(self)
             if len(adj_suburbs) > 1:
                 # Ce transfert de tile peut faire merger un ou plusieurs suburbs.
+                # La fonction check_suburb_merging_by_list vérifie tous les merges posibles,
+                # et effectue ceux qui doivent être fait.
                 self.game_master.check_suburb_merging_by_list(list(adj_suburbs))
-            # Et du coup, maintenant qu'on a mergé, on met à jour les connexions entre route.
-            # On va en annuler certaines (mettre une connexion à 2),
+            # Maintenant qu'on a fait des merges, on met à jour les connexions entre route.
+            # On en annulera certaines (on met des "2" dans road_adjacencies_same_player),
             # car ce sont devenues des routes d'un même suburb.
             self._update_all_road_adjacencies()
         self.update_linked_gamobjs()
@@ -2221,6 +2285,7 @@ class Tile:
             return
         self.road_vertic = False
         self.road_horiz = False
+        # Quelques listes à mettre à jour, et les adjacencies. Mais rien concernant les suburbs.
         if self.player_owner is None:
             self.game_master.uncontrolled_roads.remove(self)
         else:
@@ -2229,16 +2294,41 @@ class Tile:
         self.update_linked_gamobjs()
 
     def advance_town_building(self):
+        """
+        Fait avancer de 1 point la construction en cours de la town sur cette tile.
+        """
         if self.town_building_step >= NB_TURNS_TOWN_BUILDING:
             return
         self.town_building_step += 1
         self.update_linked_gamobjs()
 
     def cancel_town_building(self):
+        """
+        Annule la construction en cours de la town sur cette tile.
+        Soit à cause d'un timeout, soit parce que Player a donné d'autres ordres, qui annulent
+        les diverses actions en cours.
+        Une annulation de construction n'a aucune conséquence pour Player. Pas de perte d'unités,
+        ni de tile contrôlée. Player a juste perdu quelques tours à commencer de construire
+        une town pour finalement ne pas la terminer.
+        """
         self.town_building_step = 0
         self.update_linked_gamobjs()
 
     def build_town(self):
+        """
+        Crée immédiatement une town de size 1 sur cette tile.
+        Les 16 unités présentes sur la tile, qui ont été nécessaires durant tout le temps de
+        construction de la town, sont automatiquement supprimées.
+        La fonction fait tous les checks qu'il faut, la suppression des unités existantes,
+        l'ajout dans les listes, etc.
+        Pas besoin de spécifier Player. On prend player_owner actuel de la tile.
+        Si pas de player_owner, on balance une exception.
+
+        La fonction ne fait rien concernant les merge/shatter de town. C'est le game_master
+        qui s'occupe de ça, quand c'est le moment. Mais l'ajout de la town modifie l'état
+        de vérification des merge/shatter, pour prévenir le game_master qu'il doit relancer
+        tout un cycle de vérification.
+        """
         print("start build town")
         if self.player_owner is None:
             raise Exception("Town without owner. Not supposed to happen.")
@@ -2246,20 +2336,32 @@ class Tile:
         if self in self.player_owner.controlled_bare_tiles_with_many_units:
             self.player_owner.controlled_bare_tiles_with_many_units.remove(self)
         self._remove_all_roads()
+
+        # On transforme toutes les routes sur les tiles adjacentes en routes horiz+vertic.
+        # Il n'y a pas de route droite autour des towns. C'est une règle que j'ai décidée,
+        # car ça simplifie le jeu, et ça évite d'embêter Player, qui n'a pas besoin
+        # de les construire manuellement.
         for tile_adj in self.adjacencies[::2]:
             if tile_adj is not None:
-                # Si y'a des routes autour, il faut automatiquement les transformer en carrefour
-                # La tile adjacente doit avoir road_vertic et road_horiz.
                 if int(tile_adj.road_horiz) + int(tile_adj.road_vertic) == 1:
                     tile_adj.add_road(True, True)
+
         # Pour enlever les units, on aurait dû passer par la fonction remove_unit.
         # Mais on va pas le faire, parce que ça mettrait player_owner à None.
         self.nb_unit = 0
+        # Création effective de la town.
         self.town = Town(self.x, self.y, 1, self.player_owner, self.game_master)
         self.player_owner.add_towns([self.town])
+        # On ajoute une town. Donc toutes les towns adjacentes ne peuvent plus générer
+        # leurs unités sur cette tile. Elles doivent donc remettre à jour leurs listes
+        # de génération, voire remettre à jour leur booléen is_active.
         for tile_adj in self.adjacencies[::2]:
             if tile_adj is not None and tile_adj.town is not None:
                 tile_adj.town.update_unit_gen_tiles()
+        # L'ajout d'une town a automatiquement créé son petit suburb autour d'elle.
+        # Il faut immédiatement vérifier si ce suburb ne peut pas être mergé avec
+        # un ou plusieurs autres. De cette manière, ça déclenchera les éventuels merges
+        # de suburb existants qui doivent être mergés.
         self.game_master.check_suburb_merging_with_all_others(
             self.town.get_suburb_owner()
         )
@@ -2268,11 +2370,27 @@ class Tile:
 
 
 class GameMaster:
+    """
+    Le maître du jeu. La classe qui dirige tout le bazar, qui contient les Players, l'aire de jeu,
+    qui ordonnance les actions, etc.
+
+    C'est aussi le GameMaster qui gère les suburb (merge, équilibrage des unités), car les suburbs
+    sont neutres.
+    """
+
     def __init__(self, w, h):
         self.w = w
         self.h = h
+        # Tableau à 2 dimensions contenant des objets Tile
         self.game_area = []
+        # Tableau à 2 dimensions contenant des game_objects (c'est à dire des listes de strings)
+        # Lorsqu'on veut rafraîchir ce qui est affiché à l'écran, on prend une ou plusieurs tiles
+        # de game_area, on update leurs game_objects, et on les mets dans
+        # les cases correspondantes de gamobjs_to_export.
+        # De cette manière, on n'a pas besoin de recalculer les apparences de toutes les tiles
+        # lorsqu'il faut redessiner l'aire de jeu à l'écran.
         self.gamobjs_to_export = []
+        # Initialisation de ces deux tableaux.
         for y in range(self.h):
             line = []
             line_gamobjs = []
@@ -2283,21 +2401,26 @@ class GameMaster:
                 line.append(tile)
             self.gamobjs_to_export.append(tuple(line_gamobjs))
             self.game_area.append(tuple(line))
+        # On convertit tout en tuple. Parce qu'on ne change pas la disposition des éléments
+        # dans les tableaux. On ne change que le contenu de chacun des éléments.
         self.game_area = tuple(self.game_area)
         self.gamobjs_to_export = tuple(self.gamobjs_to_export)
 
-        # Définition des adjacences de tiles.
+        # Définition des adjacences. Chaque objet Tile a une variable membre "adjacencies",
+        # contenant des références vers les tiles adjacentes, selon les directions.
         for y in range(self.h):
             for x in range(self.w):
-                adjacencies = self.make_adjacencies(x, y)
+                adjacencies = self._make_adjacencies(x, y)
                 self.game_area[y][x].adjacencies = adjacencies
 
+        # Tous les objets Suburb de l'aire de jeu.
         self.suburbs = []
         # J'ai besoin de ça pour savoir si il faut checker des conquêtes de roads.
         # C'est assez rare qu'il y ait des routes inocuppées, mais quand c'est le cas,
         # faut boucler dessus pour voir si on peut y propager des unités.
         self.uncontrolled_roads = []
 
+        # Création des Players.
         # TODO : Faut les créer en dehors ces trucs. Et les passer en params.
         player_0 = Player(
             0, self.w, self.h, "red", self, rightward=True, downward=False
@@ -2310,7 +2433,12 @@ class GameMaster:
         )
         self.players = {0: player_0, 1: player_1, 2: player_bionature}
 
-    def make_adjacencies(self, x, y):
+    def _make_adjacencies(self, x, y):
+        """
+        Renvoie les tiles adjacentes à la tile aux coordonnées x, y.
+        On renvoie toujours une liste de 8 éléments (les 8 directions), mais certains éléments
+        peuvent être None, si les coordonnées x, y sont sur un bord de l'aire de jeu.
+        """
         adjacencies = (
             self.game_area[y - 1][x] if 0 <= y - 1 else None,
             self.game_area[y - 1][x + 1] if 0 <= y - 1 and x + 1 < self.w else None,
@@ -2328,7 +2456,7 @@ class GameMaster:
         Lorsqu'une tile de road n'a pas de owner, et qu'elle est connectée à une road adjacente,
         et que cette road est contrôlée par quelqu'un,
         alors on déplace automatiquement une unité dessus pour la conquérir.
-        Si il y a différents owner sur les tiles adjacentes, on ne fait rien.
+        Si les tiles adjacentes sont contrôlées par plusieurs Players, on ne fait rien.
         """
         if not self.uncontrolled_roads:
             return
@@ -2337,17 +2465,19 @@ class GameMaster:
         # car elle risque de changer pendant qu'on boucle dessus.
         uncontrolled_roads_copy = list(self.uncontrolled_roads)
         for tile in uncontrolled_roads_copy:
+            # Liste des tiles adjacentes qui pourraient conquérir cette tile non contrôlée.
             conqueror_tiles = []
+            # Liste des Players qui pourraient conquérer cette tile.
             conqueror_players = set()
             if tile.road_vertic:
                 for adj_tile in (tile.adjacencies[0], tile.adjacencies[4]):
                     if (
                         adj_tile is not None
                         and adj_tile.player_owner is not None
-                        # Si le player est magnetisé, il ne conquiert pas les routes neutres.
-                        # De fait, il en conquiert. Celles qui lui permettent d'accéder
-                        # à la tile magnetisée.
-                        # Mais les autres, non.
+                        # Si Player a fait une magnetisation, il/elle ne conquiert
+                        # pas les routes neutres. (En fait si, mais pas via cette fonction).
+                        # Player va automatiquement conquérir les routes
+                        # qui lui permettent d'accéder à la tile magnetisée.
                         and adj_tile.player_owner.tile_magnet is None
                         and adj_tile.nb_unit > 1
                         and adj_tile.road_vertic
@@ -2366,13 +2496,28 @@ class GameMaster:
                         conqueror_tiles.append(adj_tile)
                         conqueror_players.add(adj_tile.player_owner)
 
+            # Si plusieurs Player peuvent conquérir la tile, on ne fait rien.
             if len(conqueror_players) == 1:
+                # Player peut conquérir la tile. On prend la première tile adjacente
+                # qui peut faire la conquête, et on déplace une unité, de la tile adjacente,
+                # vers cette tile. Rien de plus à faire. L'équilibrage des unités entre
+                # cette tile nouvellement conquise et les tiles adjacentes se fera tout
+                # seul, au prochain tour, grâce à la fonction Player._spread_units_on_one_road.
                 conqueror_tile = conqueror_tiles[0]
                 conqueror_player = list(conqueror_players)[0]
                 conqueror_tile.remove_unit()
                 tile.add_unit(conqueror_player)
 
     def check_two_suburbs_merge(self, suburb_1, suburb_2):
+        """
+        Renvoie True ou False, selon que les deux suburbs passés en paramètre doivent être
+        mergés, ou pas.
+        On merge si la town d'un suburb se trouve sur n'importe quelle tile de l'autre suburb
+        (potential tile, real tile, town tile).
+        On merge aussi si la real tile d'un suburb se trouve dans les real tile de l'autre suburb.
+        (Ce serait le cas où on a construit une route entre deux villes, qui merge les
+        suburb de ces deux villes).
+        """
         suburb_1_all_tiles = (
             suburb_1.town_tiles + suburb_1.real_suburb_tiles + suburb_1.potential_tiles
         )
@@ -2390,17 +2535,44 @@ class GameMaster:
         return False
 
     def check_suburb_merging_by_list(self, many_suburbs):
+        """
+        Vérifie si tous les suburbs de la liste many_suburbs doivent être mergés en un seul
+        gros suburb, ou pas. Si oui, effectue ces merges.
+
+        Attention, cette fonction ne peut gérer que deux cas :
+         - soit faut tout merger en un seul, et on le fait.
+         - soit il ne faut merger aucun suburb entre eux, et on ne fait rien.
+
+        Par exemple, si on passe une liste de suburbs [A, B, C, D], et qu'il faudrait merger
+        A+B et C+D, mais pas A+B+C+D : la fonction ne va pas savoir gérer ça, et les
+        actions effectuées seront plus ou moins n'importe quoi.
+
+        Il faut donc faire attention à la liste qu'on donne en paramètre.
+        """
         # TODO : faut les trier pour repérer le plus grand.
         # On merge le plus grand avec les autres,
         # c'est plus rapide que de merger un petit avec d'autres.
         first_suburb = many_suburbs.pop(0)
         while many_suburbs:
             other_suburb = many_suburbs.pop(0)
+            # À priori, il n'y aurait besoin de faire la vérification que entre les deux
+            # premiers suburbs. Mais je préfère la faire à chaque fois.
             if self.check_two_suburbs_merge(first_suburb, other_suburb):
                 first_suburb.merge(other_suburb)
 
     def check_suburb_merging_with_all_others(self, one_suburb):
+        """
+        Vérifie si il faut merger le suburb passé en paramètre, avec tous
+        les autres suburb existants.
+        L'ordre de vérif n'est pas important, car les merge sont transitifs.
+        Si A doit être mergé avec B et D, mais pas avec C,
+        on peut faire (A verif B), puis (A verif D), ou l'inverse. Ça reviendra au même.
+        Dans cet exemple, B pourrait être mergé directement avec D, ou pas. Ça dépend de la
+        disposition des suburbs. Mais on ne s'occupe pas de ces cas, car le but est uniquement
+        de merger A avec le reste.
+        """
         suburbs_to_merge = []
+        # D'abord on vérifie tout ce qui doit être mergé.
         for other_suburb in self.suburbs:
             if one_suburb == other_suburb:
                 continue
@@ -2410,12 +2582,20 @@ class GameMaster:
                 if self.check_two_suburbs_merge(one_suburb, other_suburb):
                     suburbs_to_merge.append(other_suburb)
 
+        # Et ensuite on merge tout ce qui doit être mergé.
         for other_suburb in suburbs_to_merge:
             # TODO Là aussi, faut merger le plus grand avec le plus petit.
             # C'est plus rapide.
             one_suburb.merge(other_suburb)
 
     def _equilibrate_units_in_one_suburb(self, suburb, turn_index):
+        """
+        Répartit toutes les unités qui sont présentes dans un même suburb,
+        ou bien élimine des unités différentes si plusieurs Players sont sur ce suburb.
+
+        TODO WIP : expliquer qu'on fait progressivement. Un peu à chaque tour,
+        et ça se fait tout seul.
+        """
         # Clé : un player ayant des unités dans ce suburb.
         # Valeur : tuple de 2 éléments : tile avec le max d'unité, tile avec le min d'unité.
         most_unequilibrateds = {}
@@ -2436,6 +2616,7 @@ class GameMaster:
                         max(tile_unit_max, tile, key=func_get_unit),
                     ]
         if not most_unequilibrateds:
+            # Il n'y a personne dans ce suburb ! (c'est rare). On ne fait rien.
             return
 
         if len(most_unequilibrateds) == 1:
@@ -2568,6 +2749,12 @@ def coord_move(x, y, direction):
 
 
 class GameModel:
+    """
+    Pas de doc précise concernant cette classe, car il y a sûrement beaucoup de choses
+    qui vont changer.
+    TODO : écrire la doc quand les choses arrêteront de changer.
+    """
+
     def __init__(self):
         self.w = 41
         self.h = 40
