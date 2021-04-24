@@ -1,11 +1,12 @@
+# https://i.postimg.cc/c4yJRSwJ/snake-match-tileset.png
+# https://i.postimg.cc/K8WHBk2C/snake-match-tileset.png
 # https://i.postimg.cc/4xwYHY3p/snake-match-tileset.png
-# https://i.postimg.cc/pVJsMDxY/snake-match-tileset.png
-# https://i.postimg.cc/gcQqQtbX/snake-match-tileset.png
-# https://i.postimg.cc/XJdtF6nF/snake-match-tileset.png
 
 # Note pour plus tard : imgbb c'est de la daube comme hébergeur d'images.
 # Ça, ça marche mieux. Et ça retaille pas stupidement les images sans prévenir.
 # https://postimages.org/
+
+# https://tinyurl.com/f7bbky72
 
 """
 {
@@ -19,13 +20,23 @@
         "fruit_01": [32, 0],
         "fruit_02": [64, 0],
         "block_00": [96, 0],
+        "backgrnd": [128, 0],
 
-        "snake_horiz": [0, 35],
-        "snake_vertic": [32, 35],
+        "snake_neck_up": [64, 0],
+        "snake_neck_right": [64, 0],
+        "snake_neck_down": [64, 0],
+        "snake_neck_left": [64, 0],
         "snake_head_up": [64, 35],
         "snake_head_right": [96, 35],
         "snake_head_down": [128, 35],
         "snake_head_left": [160, 35],
+
+        "snake_horiz": [0, 35],
+        "snake_vertic": [32, 35],
+        "snake_turn_up_left": [0, 70],
+        "snake_turn_up_right": [32, 70],
+        "snake_turn_down_right": [64, 70],
+        "snake_turn_down_left": [96, 70],
 
         "bla": [0, 0]
     }
@@ -45,6 +56,16 @@ DIR_DOWN = 4
 DIR_LEFT = 6
 
 DIR_FROM_EVENT = {"U": DIR_UP, "R": DIR_RIGHT, "D": DIR_DOWN, "L": DIR_LEFT}
+
+OPPOSITE_DIR = {
+    DIR_UP: DIR_DOWN,
+    DIR_RIGHT: DIR_LEFT,
+    DIR_DOWN: DIR_UP,
+    DIR_LEFT: DIR_RIGHT,
+}
+
+DELAY_GRAVITY_MS = 250
+ACTION_GRAVITY = f""" {{ "delayed_actions": [ {{"name": "apply_gravity", "delay_ms": {DELAY_GRAVITY_MS}}} ] }} """
 
 
 class Tile:
@@ -78,16 +99,15 @@ class Tile:
         self.render()
 
     def render(self):
+        self.game_objects[:] = ["backgrnd"]
         if self.fruit is not None:
             gamobj_fruit = f"fruit_{self.fruit:02}"
-            self.game_objects[:] = [gamobj_fruit]
+            self.game_objects.append(gamobj_fruit)
         elif self.block_type is not None:
             gamobj_block = f"block_{self.block_type:02}"
-            self.game_objects[:] = [gamobj_block]
+            self.game_objects.append(gamobj_block)
         elif self.snake_part is not None:
-            self.game_objects[:] = [self.snake_part]
-        else:
-            self.game_objects[:] = []
+            self.game_objects.append(self.snake_part)
 
     def does_stop_gravity(self):
         # Plus tard, on aura peut-être des blocs qui tombent.
@@ -118,10 +138,34 @@ class Tile:
 class Snake:
 
     GAMOBJ_FROM_HEAD_DIR = {
-        0: "snake_head_up",
-        2: "snake_head_right",
-        4: "snake_head_down",
-        6: "snake_head_left",
+        DIR_UP: "snake_head_up",
+        DIR_RIGHT: "snake_head_right",
+        DIR_DOWN: "snake_head_down",
+        DIR_LEFT: "snake_head_left",
+    }
+
+    # clé : tuple de 2 éléments.
+    #  - la direction au début de la tile du body.
+    #  - la direction à la fin de la tile du body.
+    # Il y a des combinaisons impossibles (toutes celles où on
+    # fait demi-tour, par exemple RIGHT, RIGHT). Osef, on met tout.
+    GAMOBJ_BODY_FROM_DIRS = {
+        (DIR_UP, DIR_UP): "snake_vertic",
+        (DIR_UP, DIR_RIGHT): "snake_turn_up_right",
+        (DIR_UP, DIR_DOWN): "snake_vertic",
+        (DIR_UP, DIR_LEFT): "snake_turn_up_left",
+        (DIR_RIGHT, DIR_UP): "snake_turn_up_right",
+        (DIR_RIGHT, DIR_RIGHT): "snake_horiz",
+        (DIR_RIGHT, DIR_DOWN): "snake_turn_down_right",
+        (DIR_RIGHT, DIR_LEFT): "snake_horiz",
+        (DIR_DOWN, DIR_UP): "snake_vertic",
+        (DIR_DOWN, DIR_RIGHT): "snake_turn_down_right",
+        (DIR_DOWN, DIR_DOWN): "snake_vertic",
+        (DIR_DOWN, DIR_LEFT): "snake_turn_down_left",
+        (DIR_LEFT, DIR_UP): "snake_turn_up_left",
+        (DIR_LEFT, DIR_RIGHT): "snake_horiz",
+        (DIR_LEFT, DIR_DOWN): "snake_turn_down_left",
+        (DIR_LEFT, DIR_LEFT): "snake_horiz",
     }
 
     def __init__(self, game_model, x, y):
@@ -132,21 +176,46 @@ class Snake:
         self.tile_snake_head.set_snake_part(gamobj_head)
         tile_snake_up = self.tile_snake_head.adjacencies[DIR_UP]
         tile_snake_up.set_snake_part("snake_vertic")
+        # Liste de tuple de 3 elems :
+        # - direction du serpent au début de la tile.
+        # - la tile sur laquelle se trouve le morceau de corps du serpent.
+        # - direction du serpent à la fin de la tile.
+        self.bodies = [(DIR_UP, tile_snake_up, DIR_DOWN)]
 
     def on_event_direction(self, direction):
-        if self.head_dir != direction:
-            # TODO : C'est pas tout à fait comme ça. Mais on verra ça plus tard
-            self.head_dir = direction
+        if self._can_move(direction):
+            tile_dest = self.tile_snake_head.adjacencies[direction]
+            cancel_last_body = False
+            tile_last_body_infos = None
+            if self.bodies:
+                tile_last_body_infos = self.bodies[-1]
+                tile_last_body = tile_last_body_infos[1]
+                if tile_last_body == tile_dest:
+                    cancel_last_body = True
+
+            if cancel_last_body:
+                self.tile_snake_head.emptify()
+                # Le serpent revient en arrière.
+                self.bodies.pop()
+                self.head_dir = OPPOSITE_DIR[tile_last_body_infos[0]]
+            else:
+                # Le serpent avance.
+                tile_new_body = self.tile_snake_head
+                if tile_last_body_infos is None:
+                    # Il n'y a pas du tout de body. On prend une direction par défaut.
+                    # Et comme le serpent arrive par le haut de l'écran, on prend up.
+                    start_dir = DIR_UP
+                else:
+                    start_dir = OPPOSITE_DIR[tile_last_body_infos[2]]
+                gamobj_body = Snake.GAMOBJ_BODY_FROM_DIRS[(start_dir, direction)]
+                tile_new_body.set_snake_part(gamobj_body)
+                new_body_part = (start_dir, tile_new_body, direction)
+                self.bodies.append(new_body_part)
+                self.head_dir = direction
+
+            self.tile_snake_head = tile_dest
             gamobj_head = Snake.GAMOBJ_FROM_HEAD_DIR[self.head_dir]
             self.tile_snake_head.set_snake_part(gamobj_head)
-        else:
-            # La direction de l'event est pareil que la direction
-            # de la tête. On peut faire avancer le serpent.
-            if self._can_move(direction):
-                self.tile_snake_head.emptify()
-                self.tile_snake_head = self.tile_snake_head.adjacencies[direction]
-                gamobj_head = Snake.GAMOBJ_FROM_HEAD_DIR[self.head_dir]
-                self.tile_snake_head.set_snake_part(gamobj_head)
 
     def _can_move(self, direction):
         tile_dest = self.tile_snake_head.adjacencies[direction]
@@ -154,10 +223,18 @@ class Snake:
             return False
         if tile_dest.block_type is not None:
             return False
-        # C'est pas tout à fait ça. Le snake peut revenir en arrière
-        # sur la snake part précédente. On verra ça après.
         if tile_dest.snake_part is not None:
-            return False
+            # Le snake peut revenir en arrière, uniquement sur la snake part précédente.
+            if not self.bodies:
+                print("No body, but body. Not supposed to happen")
+                return False
+            else:
+                tile_last_body_infos = self.bodies[-1]
+                tile_last_body = tile_last_body_infos[1]
+                if tile_last_body == tile_dest:
+                    return True
+                else:
+                    return False
         return True
 
 
@@ -186,6 +263,9 @@ class GameModel:
                 tile.set_random_content()
 
         self.snake = Snake(self, snake_x, snake_y)
+        # TODO : à priori, pas besoin que ce soit une variable membre.
+        self.gravities_to_apply = None
+        self.applying_gravity = False
 
     def make_adjacencies(self, x, y):
         """
@@ -245,8 +325,8 @@ class GameModel:
     def compute_gravity_falls(self, x_column):
         """
         Renvoie une liste de liste.
-        Chaque élément de la liste de liste est une ordonnée Y,
-        indiquant que la tile à cette ordonnée doit prendre
+        Chaque élément de la liste de liste est une tile,
+        indiquant que cette tile doit prendre
         le contenu de la tile au-dessus d'elle, pour appliquer une gravité.
         Chaque sous-liste indique implicitement qu'il faut prendre la
         dernière tile au-dessus et la vider.
@@ -300,17 +380,46 @@ class GameModel:
             # À la fin du fall, on vide la dernière tile.
             tile_src.emptify()
 
+    def check_gravity_all_area(self):
+        self.gravities_to_apply = []
+        must_apply_gravity = False
+        for x in range(self.game_w):
+            gravity_falls = self.compute_gravity_falls(x)
+            self.gravities_to_apply.append(gravity_falls)
+            if gravity_falls:
+                must_apply_gravity = True
+        if not must_apply_gravity:
+            self.gravities_to_apply = None
+
     def on_game_event(self, event_name):
         direction = DIR_FROM_EVENT.get(event_name)
+
         if direction is not None:
             self.snake.on_event_direction(direction)
-        else:
-            applied_gravity = False
-            for x in range(self.game_w):
-                gravity_falls = self.compute_gravity_falls(x)
-                if gravity_falls:
-                    applied_gravity = True
-                    self.apply_gravity(gravity_falls)
-            if not applied_gravity:
-                print("Plus besoin d'appliquer la gravité !!")
+            if not self.applying_gravity:
+                # On est pas déjà en train d'appliquer de la gravité.
+                # On en appliquera une (pas tout de suite, dans quelques ms).
+                self.applying_gravity = True
+                return ACTION_GRAVITY
+            else:
+                return None
 
+        elif event_name == "action_1":
+            if not self.applying_gravity:
+                # On est pas déjà en train d'appliquer de la gravité.
+                # On en appliquera une (pas tout de suite, dans quelques ms).
+                self.applying_gravity = True
+                return ACTION_GRAVITY
+            else:
+                return None
+
+        elif event_name == "apply_gravity":
+
+            self.check_gravity_all_area()
+            if self.gravities_to_apply:
+                for gravity_falls in self.gravities_to_apply:
+                    self.apply_gravity(gravity_falls)
+                return ACTION_GRAVITY
+            else:
+                self.applying_gravity = False
+                return None
