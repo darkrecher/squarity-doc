@@ -1,3 +1,4 @@
+# https://i.postimg.cc/KjMBC4bz/snake-match-tileset.png
 # https://i.postimg.cc/c4yJRSwJ/snake-match-tileset.png
 # https://i.postimg.cc/K8WHBk2C/snake-match-tileset.png
 # https://i.postimg.cc/4xwYHY3p/snake-match-tileset.png
@@ -38,9 +39,32 @@
         "snake_turn_down_right": [64, 70],
         "snake_turn_down_left": [96, 70],
 
+        "match_up": [0, 105],
+        "match_right": [32, 105],
+        "match_down": [64, 105],
+        "match_left": [96, 105],
+        "match_horiz": [128, 105],
+        "match_vertic": [160, 105],
+
         "bla": [0, 0]
     }
 }
+"""
+
+"""
+
+Snake-Match
+
+Déplacez votre serpent et mangez les fruits.
+
+Ne vous étonnez pas, au début, les fruits ne tombent pas,
+et dès qu'on fait le premier mouvement, ils tombent.
+
+C'est parce que j'ai pas fini de tout coder.
+
+Le bouton d'action "2" permet d'afficher les match-3 horizontaux.
+Et pour l'instant, ça fait que ça. Mais c'est déjà pas mal.
+
 """
 
 import random
@@ -79,6 +103,9 @@ class Tile:
         # que ça, à priori)
         self.snake_part = None
         self.game_objects = []
+        self.gamobj_matches = []
+        self.has_horizontal_match = False
+        self.has_vertical_match = False
 
     def set_random_content(self):
         self.fruit = None
@@ -98,6 +125,26 @@ class Tile:
         self.snake_part = snake_part
         self.render()
 
+    def add_match(self, gamobj):
+        # TODO : On fait un clear_match puis plusieurs add_match.
+        # Et c'est que à la fin de ces traitements qu'on aurait besoin
+        # de faire un render().
+        # Mais là, on fait des render à chaque modif. C'est bourrin.
+        self.gamobj_matches.append(gamobj)
+        # TODO : c'est moche de gérer avec les gamobj,
+        # on essaiera de faire mieux si on a le temps.
+        if "right" in gamobj or "left" in gamobj or "horiz" in gamobj:
+            self.has_horizontal_match = True
+        else:
+            self.has_vertical_match = True
+        self.render()
+
+    def clear_match(self):
+        self.gamobj_matches = []
+        self.has_horizontal_match = False
+        self.has_vertical_match = False
+        self.render()
+
     def render(self):
         self.game_objects[:] = ["backgrnd"]
         if self.fruit is not None:
@@ -108,6 +155,8 @@ class Tile:
             self.game_objects.append(gamobj_block)
         elif self.snake_part is not None:
             self.game_objects.append(self.snake_part)
+
+        self.game_objects += self.gamobj_matches
 
     def does_stop_gravity(self):
         # Plus tard, on aura peut-être des blocs qui tombent.
@@ -263,8 +312,6 @@ class GameModel:
                 tile.set_random_content()
 
         self.snake = Snake(self, snake_x, snake_y)
-        # TODO : à priori, pas besoin que ce soit une variable membre.
-        self.gravities_to_apply = None
         self.applying_gravity = False
 
     def make_adjacencies(self, x, y):
@@ -381,15 +428,52 @@ class GameModel:
             tile_src.emptify()
 
     def check_gravity_all_area(self):
-        self.gravities_to_apply = []
+        gravities_to_apply = []
         must_apply_gravity = False
         for x in range(self.game_w):
             gravity_falls = self.compute_gravity_falls(x)
-            self.gravities_to_apply.append(gravity_falls)
+            gravities_to_apply.append(gravity_falls)
             if gravity_falls:
                 must_apply_gravity = True
         if not must_apply_gravity:
-            self.gravities_to_apply = None
+            gravities_to_apply = None
+        return gravities_to_apply
+
+    def check_all_match(self):
+
+        # clear des matches précédents.
+        for line in self.tiles:
+            for tile in line:
+                tile.clear_match()
+
+        # check horizontal.
+        for line in self.tiles:
+            for tile_start in line:
+                # TODO : mettre ça dans une fonction parce que là c'est
+                # trop de code imbriqué.
+                current_matches = []
+                current_fruit_type = tile_start.fruit
+                if (
+                    not tile_start.has_horizontal_match
+                    and current_fruit_type is not None
+                ):
+                    tile_cur = tile_start
+                    while tile_cur is not None and tile_cur.fruit == current_fruit_type:
+                        current_matches.append(tile_cur)
+                        tile_cur = tile_cur.adjacencies[DIR_RIGHT]
+                    # print(tile_start.x, tile_start.y, len(current_matches))
+                    if len(current_matches) >= 3:
+                        print(
+                            "first and length : ",
+                            tile_start.x,
+                            tile_start.y,
+                            len(current_matches),
+                        )
+                        print("last", current_matches[-1].x, current_matches[-1].y)
+                        current_matches[0].add_match("match_right")
+                        for tile in current_matches[1:-1]:
+                            tile.add_match("match_horiz")
+                        current_matches[-1].add_match("match_left")
 
     def on_game_event(self, event_name):
         direction = DIR_FROM_EVENT.get(event_name)
@@ -413,11 +497,14 @@ class GameModel:
             else:
                 return None
 
+        elif event_name == "action_2":
+            self.check_all_match()
+
         elif event_name == "apply_gravity":
 
-            self.check_gravity_all_area()
-            if self.gravities_to_apply:
-                for gravity_falls in self.gravities_to_apply:
+            gravities_to_apply = self.check_gravity_all_area()
+            if gravities_to_apply is not None:
+                for gravity_falls in gravities_to_apply:
                     self.apply_gravity(gravity_falls)
                 return ACTION_GRAVITY
             else:
