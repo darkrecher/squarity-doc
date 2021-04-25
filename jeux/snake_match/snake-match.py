@@ -1,6 +1,7 @@
+# https://i.postimg.cc/26JG3pcM/snake-match-tileset.png
+# https://i.postimg.cc/8krrNVTM/snake-match-tileset.png
+# https://i.postimg.cc/YqGL2BkQ/snake-match-tileset.png
 # https://i.postimg.cc/L6JjRr6f/snake-match-tileset.png
-# https://i.postimg.cc/FsFvnhzN/snake-match-tileset.png
-# https://i.postimg.cc/nhRHcFYk/snake-match-tileset.png
 
 # Note pour plus tard : imgbb c'est de la daube comme hébergeur d'images.
 # Ça, ça marche mieux. Et ça retaille pas stupidement les images sans prévenir.
@@ -57,6 +58,19 @@
         "fruit_03": [96, 140],
         "fruit_04": [128, 140],
         "fruit_05": [160, 140],
+        "fruit_06": [192, 140],
+
+        "guide_van_00": [0, 175],
+        "guide_van_01": [32, 175],
+        "guide_van_10": [0, 207],
+        "guide_van_11": [32, 207],
+
+        "won_00": [64, 175],
+        "won_01": [96, 175],
+        "won_02": [128, 175],
+        "won_03": [160, 175],
+        "won_04": [192, 175],
+        "won_05": [224, 175],
 
         "bla": [0, 0]
     }
@@ -91,13 +105,13 @@ Jusqu'ici c'est pas trop mal quand même.
 # X le bouton d'action numéro 1 fait rewind le serpent. Pour aller plus vite quand on doit faire un grand rewind.
 # X calculer la longueur du serpent et la limiter. Petit message si le serpent est au max et qu'on veut le faire avancer.
 # X calculer la quantité de trucs que bouffe le serpent. Le limiter quand il est saturé. Avec un petit message.
-# - des XP quand on mange et qu'on fait des matchs. Augmenter de niveau augmente sa longueur et sa capacité de bouffage. Petit message à chaque fois qu'on monte de niveau.
-# - petit message quand on recommence, avec : nb d'XP gagné par les matchs, par le bouffage, et nombre d'XP restant avant le prochain niveau.
-# - à la profondeur 1664, on trouve le but du jeu : Le Guide on Van-Random. Il est entouré de blocs. Il faut les détruire pour le sauver.
+# X des XP quand on mange et qu'on fait des matchs. Augmenter de niveau augmente sa longueur et sa capacité de bouffage. Petit message à chaque fois qu'on monte de niveau.
+# X petit message quand on recommence, avec : nb d'XP gagné par les matchs, par le bouffage, et nombre d'XP restant avant le prochain niveau.
+# - à la profondeur 555, on trouve le but du jeu : Le Guide on Van-Random. Il est entouré de blocs. Il faut les détruire pour le sauver.
 # - petit icône de message quand on affiche un message. Parce que les gens penseront pas forcément à regarder le texte dans la console.
 # - un écran de fin.
-# - le set_content_random change selon la profondeur : de plus en plus de blocs, et de plus en plus de type de fruits.
 # - un type de fruit en plus parce que même avec 6, c'est trop facile. (surtout qu'au début, on les met pas tous)
+# - le set_content_random change selon la profondeur : de plus en plus de blocs, et de plus en plus de type de fruits.
 # - calculer la profondeur et donner des XP quand on atteint certains seuils. Avec un petit message, comme d'hab'.
 # - À un certain niveau, le serpent obtient le pouvoir de bouffer des blocs, mais ça lui coûte 10 points de bouffage.
 # - Des putains de graphismes mieux que ce que j'ai fait là.
@@ -110,8 +124,8 @@ Jusqu'ici c'est pas trop mal quand même.
 
 import random
 
-# Je mets 5 et pas 6 pour l'instant. Sinon, y'a rien qui va matcher et je vais galérer pour tester.
-NB_FRUITS = 5
+NB_FRUITS = 7
+DEEP_WON = 20  # 555
 
 DEBUG = False
 
@@ -165,6 +179,7 @@ class Tile:
         self.has_horizontal_match = False
         self.has_vertical_match = False
         self.gamobj_miscellaneous = None
+        self.has_guide = False
 
     def set_random_content(self):
         """
@@ -172,16 +187,33 @@ class Tile:
         On met pas un élément vide, parce que j'ai pas besoin de ça !
         """
         self.emptify()
-        # TODO : ce sera pas comme ça du tout, car plus on va profondément
-        # plus on a de chance de tomber sur des blocs.
-        choice = random.randrange(NB_FRUITS + 1)
-        if choice == 0:
-            if self.game_model.deep_distance > 5:
-                self.block_type = 0
-            else:
-                self.fruit = 0
+
+        deeps_won = (DEEP_WON, DEEP_WON + 1)
+        deep_distance = self.game_model.deep_distance
+        if deep_distance in deeps_won and self.x in (4, 5):
+            x_sprite = self.x - 4
+            y_sprite = deep_distance - DEEP_WON
+            self.gamobj_miscellaneous = f"guide_van_{y_sprite}{x_sprite}"
+            self.has_guide = True
+            self.render()
+            return
+
+        self.gamobj_miscellaneous = None
+        if deep_distance in (100, 200, 299, 300) or deep_distance >= DEEP_WON - 1:
+            self.block_type = 0
+        elif deep_distance in (199,) and self.x % 2:
+            self.block_type = 0
         else:
-            self.fruit = choice - 1
+            # TODO : ce sera pas comme ça du tout, car plus on va profondément
+            # plus on a de chance de tomber sur des blocs.
+            choice = random.randrange(NB_FRUITS + 1)
+            if choice == 0:
+                if self.game_model.deep_distance > 5:
+                    self.block_type = 0
+                else:
+                    self.fruit = 0
+            else:
+                self.fruit = choice - 1
         self.render()
 
     def set_gamobj_miscellaneous(self, gamobj):
@@ -189,7 +221,10 @@ class Tile:
         self.render()
 
     def set_snake_part(self, snake_part):
+        # Et hop, encore un truc dégueux.
+        stored_has_guide = self.has_guide
         self.emptify()
+        self.has_guide = stored_has_guide
         self.snake_part = snake_part
         self.render()
 
@@ -236,11 +271,18 @@ class Tile:
             # secondes, on verra des fruits qui restent en l'air
             # pendant qu'ils se matchent. Mais ça simplifie beaucoup de choses.
             return True
+        if self.has_guide:
+            return True
         return False
 
     def is_empty(self):
         return all(
-            (self.fruit is None, self.block_type is None, self.snake_part is None)
+            (
+                self.fruit is None,
+                self.block_type is None,
+                self.snake_part is None,
+                not self.has_guide,
+            )
         )
 
     def get_content_from_other_tile(self, other):
@@ -251,7 +293,7 @@ class Tile:
         self.has_horizontal_match = other.has_horizontal_match
         self.has_vertical_match = other.has_vertical_match
         self.gamobj_miscellaneous = other.gamobj_miscellaneous
-
+        self.has_guide = other.has_guide
         self.render()
 
     def emptify(self):
@@ -259,6 +301,7 @@ class Tile:
         self.block_type = None
         self.snake_part = None
         self.gamobj_matches = []
+        self.has_guide = False
         # emptify ne supprime pas les gamobj_miscellaneous. Parce que voilà.
         self.render()
 
@@ -481,14 +524,19 @@ class GameModel:
         # où se trouve des morceaux de serpent qui empêche d'aller plus bas.
         self.x_forbids_go_deep = []
         self.fading_to_black = 0
-        self.snake_length_max = 100
-        self.stomach_capacity = 15
+        self.snake_length_max = 40
+        self.stomach_capacity = 60
+        self.xp_previous_runs = 0
+        self.current_level = 1
+        self.xp_next_level = 50 + 100 * self.current_level
+        self.told_hint_about_match = False
         self.start_game_run()
 
     def start_game_run(self):
         self.deep_distance = 0
         self.warned_about_snake_length = False
         self.warned_about_stomach = False
+        self.xp_from_matches = 0
         for line in self.tiles:
             for tile in line:
                 tile.emptify()
@@ -741,8 +789,21 @@ class GameModel:
                         current_matches[-1].add_match("match_up")
                         matched_tiles = matched_tiles.union(set(current_matches))
 
-        # TODO : calculer les XP des matches.
         self.matched_tiles = list(matched_tiles)
+        # On calcule les XP des matches.
+        xp_match = 0
+        for tile in self.matched_tiles:
+            gamobj_matches = tile.gamobj_matches
+
+            if "match_vertic" in gamobj_matches or "match_horiz" in gamobj_matches:
+                xp_match += 4
+            else:
+                xp_match += 2
+            if len(gamobj_matches) >= 2:
+                xp_match += 5
+            # FUTURE : donner plus de points pour les matches provenant de réactions en chaine.
+        # print(xp_match)
+        self.xp_from_matches += xp_match
 
     def destroy_matched_fruits(self):
         for tile in self.matched_tiles:
@@ -773,6 +834,10 @@ class GameModel:
         self.matched_tiles = [tile.adjacencies[DIR_UP] for tile in self.matched_tiles]
         self.matched_tiles = [tile for tile in self.matched_tiles if tile is not None]
 
+        if self.deep_distance == 95 and not self.told_hint_about_match:
+            message_to_player(("You can destroy blocks by matching fruits near them",))
+            self.told_hint_about_match = True
+
     def update_x_forbids_with_movement(self):
         """
         Nom de fonction tout pourri, pas mieux.
@@ -792,9 +857,37 @@ class GameModel:
             )
             return None
         else:
-            message_to_player(("You return home",))
+            # TODO : faudrait factoriser ça, car c'est de la game logic.
+            # Et là je l'ai mis à deux endroits différents c'est mal.
+            total_xp = (
+                self.xp_previous_runs + self.snake.qty_eaten + self.xp_from_matches
+            )
+            message_to_player(
+                (
+                    "You return home",
+                    f"XP gained from fruit eating : {self.snake.qty_eaten}",
+                    f"XP gained from matches : {self.xp_from_matches}",
+                    f"XP total : {total_xp}. Next level at : {self.xp_next_level}",
+                )
+            )
+            self.xp_previous_runs += self.snake.qty_eaten + self.xp_from_matches
             self.fading_to_black = 1
             return ACTION_FADE_TO_BLACK
+
+    def check_next_level(self):
+        total_xp = self.xp_previous_runs + self.snake.qty_eaten + self.xp_from_matches
+        if total_xp >= self.xp_next_level:
+            # TODO : ligne à factoriser car game logic.
+            self.current_level += 1
+            self.xp_next_level = 50 + 200 * self.current_level
+            self.snake_length_max += 50
+            self.stomach_capacity += 75
+            message_to_player(
+                (
+                    f"Level up ! You are level {self.current_level}",
+                    f"Snake length : {self.snake_length_max}. Stomach capacity : {self.stomach_capacity}",
+                )
+            )
 
     def on_game_event(self, event_name):
 
@@ -849,6 +942,7 @@ class GameModel:
 
             else:
 
+                self.check_next_level()
                 move_result = self.snake.on_event_direction(direction)
                 if move_result == Snake.MOVE_RESULT_FAIL_TOO_SHORT:
                     if not self.warned_about_snake_length:
@@ -868,6 +962,9 @@ class GameModel:
                             )
                         )
                         self.warned_about_stomach = True
+
+                if self.snake.tile_snake_head.has_guide:
+                    print("You won !!!")
 
                 self.update_x_forbids_with_movement()
                 if not self.applying_gravity:
