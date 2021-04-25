@@ -90,9 +90,7 @@ OPPOSITE_DIR = {
 DELAY_GRAVITY_MS = 250
 ACTION_GRAVITY = f""" {{ "delayed_actions": [ {{"name": "apply_gravity", "delay_ms": {DELAY_GRAVITY_MS}}} ] }} """
 
-DELAY_ANIM_MATCH = (
-    300
-)  # 100 # TODO : faut mettre 100, mais là je met 300 le temps de tester des trucs.
+DELAY_ANIM_MATCH = 100
 ACTION_ANIM_MATCH = f""" {{ "delayed_actions": [ {{"name": "anim_match", "delay_ms": {DELAY_ANIM_MATCH}}} ] }} """
 
 
@@ -113,16 +111,18 @@ class Tile:
         self.has_vertical_match = False
 
     def set_random_content(self):
-        self.fruit = None
-        self.block_type = None
-        choice = random.randrange(NB_FRUITS + 2)
+        """
+        Place un élément au hasard, mais forcément quelque chose.
+        On met pas un élément vide, parce que j'ai pas besoin de ça !
+        """
+        self.emptify()
+        # TODO : ce sera pas comme ça du tout, car plus on va profondément
+        # plus on a de chance de tomber sur des blocs.
+        choice = random.randrange(NB_FRUITS + 1)
         if choice == 0:
-            # On met rien du tout.
-            pass
-        elif choice == 1:
             self.block_type = 0
         else:
-            self.fruit = choice - 2
+            self.fruit = choice - 1
         self.render()
 
     def set_snake_part(self, snake_part):
@@ -180,8 +180,11 @@ class Tile:
     def get_content_from_other_tile(self, other):
         self.fruit = other.fruit
         self.block_type = other.block_type
-        # On transfert pas self.gamobj_matches, parce que les tiles
-        # en cours de match sont pas censées bouger.
+        self.snake_part = other.snake_part
+        self.gamobj_matches = other.gamobj_matches
+        self.has_horizontal_match = other.has_horizontal_match
+        self.has_vertical_match = other.has_vertical_match
+
         self.render()
 
     def emptify(self):
@@ -233,11 +236,11 @@ class Snake:
         self.tile_snake_head.set_snake_part(gamobj_head)
         tile_snake_up = self.tile_snake_head.adjacencies[DIR_UP]
         tile_snake_up.set_snake_part("snake_vertic")
-        # Liste de tuple de 3 elems :
+        # Liste de liste de 3 elems :
         # - direction du serpent au début de la tile.
         # - la tile sur laquelle se trouve le morceau de corps du serpent.
         # - direction du serpent à la fin de la tile.
-        self.bodies = [(DIR_UP, tile_snake_up, DIR_DOWN)]
+        self.bodies = [[DIR_UP, tile_snake_up, DIR_DOWN]]
 
     def on_event_direction(self, direction):
         if self._can_move(direction):
@@ -266,7 +269,7 @@ class Snake:
                     start_dir = OPPOSITE_DIR[tile_last_body_infos[2]]
                 gamobj_body = Snake.GAMOBJ_BODY_FROM_DIRS[(start_dir, direction)]
                 tile_new_body.set_snake_part(gamobj_body)
-                new_body_part = (start_dir, tile_new_body, direction)
+                new_body_part = [start_dir, tile_new_body, direction]
                 self.bodies.append(new_body_part)
                 self.head_dir = direction
 
@@ -296,6 +299,31 @@ class Snake:
                 else:
                     return False
         return True
+
+    def update_scroll_to_deeper(self):
+        self.tile_snake_head = self.tile_snake_head.adjacencies[DIR_UP]
+        if self.tile_snake_head is None:
+            # Not supposed to happen.
+            raise Exception("On est allé plus profond jusqu'à supprimer le serpent")
+        for body_infos in self.bodies:
+            tile_body = body_infos[1]
+            if tile_body is not None:
+                tile_body = tile_body.adjacencies[DIR_UP]
+                body_infos[1] = tile_body
+        # TODO : Je sais pas comment gérer le serpent qui se découpe !!
+        # if self.bodies[-1][1] is None:
+        #     keep_last_body = self.bodies[-1]
+        # else:
+        #     keep_last_body = None
+        self.bodies = [
+            body_infos for body_infos in self.bodies if body_infos[1] is not None
+        ]
+        # if keep_last_body is not None:
+        #     print("keep last body !!")
+        #     # Sauf que maintenant j'ai un putain de None dans mes tiles de body...
+        #     # Sur un malentendu, ça va passer.
+        #     self.bodies.append(keep_last_body)
+        # print(self.bodies)
 
 
 class GameModel:
@@ -533,6 +561,23 @@ class GameModel:
                 if adj_tile is not None and adj_tile.block_type == 0:
                     adj_tile.emptify()
 
+    def go_deeper(self):
+        # Les tiles doivent prendre ce qu'il y a en-dessous d'elles.
+        # Encore des itérations stupides avec des x et y, car j'ai pas
+        # indexé par colonne. C'est pas grave. On est des pauvres, on indexe pas, mais on n'a honte de rien.
+        for x in range(self.game_w):
+            tile_current = self.tiles[0][x]
+            for _ in range(self.game_h - 1):
+                tile_below = tile_current.adjacencies[DIR_DOWN]
+                tile_current.get_content_from_other_tile(tile_below)
+                tile_current = tile_below
+            tile_below.set_random_content()
+        # Il faut aussi déplacer les références de tiles du body du serpent.
+        self.snake.update_scroll_to_deeper()
+        # Et les références des tiles en cours de match.
+        self.matched_tiles = [tile.adjacencies[DIR_UP] for tile in self.matched_tiles]
+        self.matched_tiles = [tile for tile in self.matched_tiles if tile is not None]
+
     def on_game_event(self, event_name):
         direction = DIR_FROM_EVENT.get(event_name)
 
@@ -547,22 +592,23 @@ class GameModel:
                 return None
 
         elif event_name == "action_1":
-            if not self.applying_gravity:
-                # On est pas déjà en train d'appliquer de la gravité.
-                # On en appliquera une (pas tout de suite, dans quelques ms).
-                self.applying_gravity = True
-                return ACTION_GRAVITY
-            else:
-                return None
+            self.go_deeper()
+            if not self.match_anim_time and not self.applying_gravity:
+                self.check_all_match()
+                if self.matched_tiles:
+                    self.match_anim_time = 1
+                    self.match_show_gamobj = 1
+                    for tile in self.matched_tiles:
+                        tile.render()
+                    return ACTION_ANIM_MATCH
+                else:
+                    # Pas de match suite à un scroll plus profond.
+                    # On peut s'arrêter. Pas besoin de checker la gravité,
+                    # quand on va plus profond on tombe forcément sur des objets et pas du vide.
+                    return None
 
         elif event_name == "action_2":
-            self.check_all_match()
-            if self.matched_tiles:
-                self.match_anim_time = 1
-                self.match_show_gamobj = 1
-                for tile in self.matched_tiles:
-                    tile.render()
-                return ACTION_ANIM_MATCH
+            return None
 
         elif event_name == "anim_match":
             # print("anim match", self.match_anim_time, self.match_show_gamobj)
@@ -611,7 +657,7 @@ class GameModel:
                             tile.render()
                         return ACTION_ANIM_MATCH
                     else:
-                        # On a finit la gravité, et on vient de vérifier
+                        # On a fini la gravité, et on vient de vérifier
                         # qu'il n'y a plus de match à faire.
                         # on peut s'arrêter là.
                         return None
