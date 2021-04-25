@@ -1,12 +1,12 @@
+# https://i.postimg.cc/L6JjRr6f/snake-match-tileset.png
+# https://i.postimg.cc/FsFvnhzN/snake-match-tileset.png
 # https://i.postimg.cc/nhRHcFYk/snake-match-tileset.png
-# https://i.postimg.cc/pd7yS6bZ/snake-match-tileset.png
-# https://i.postimg.cc/L6svkJDM/snake-match-tileset.png
-# https://i.postimg.cc/KjMBC4bz/snake-match-tileset.png
 
 # Note pour plus tard : imgbb c'est de la daube comme hébergeur d'images.
 # Ça, ça marche mieux. Et ça retaille pas stupidement les images sans prévenir.
 # https://postimages.org/
 
+# https://ldjam.com/events/ludum-dare/48/$237474/snakematch
 # https://tinyurl.com/f7bbky72
 
 """
@@ -31,6 +31,7 @@
         "snake_head_right": [96, 35],
         "snake_head_down": [128, 35],
         "snake_head_left": [160, 35],
+        "fade_black": [192, 35],
 
         "snake_horiz": [0, 35],
         "snake_vertic": [32, 35],
@@ -48,6 +49,14 @@
 
         "arrow_deep_forbidden": [160, 0],
         "arrow_deep_go": [192, 0],
+
+        "earth": [0, 140],
+        "sky": [32, 140],
+        "sky_unpassable": [32, 140],
+        "back_home": [64, 140],
+        "fruit_03": [96, 140],
+        "fruit_04": [128, 140],
+        "fruit_05": [160, 140],
 
         "bla": [0, 0]
     }
@@ -71,6 +80,28 @@ Mais ça fait bugger le serpent si vous lui faites faire des circuits bizarres !
 Jusqu'ici c'est pas trop mal quand même.
 
 """
+
+# On approche de la fin. C'est le moment de lister tout ce qu'il reste à faire:
+# TODO au pluriel.
+
+# X Le début du jeu, avec un décor de ciel et de terre.
+# X quand on rewind le serpent et qu'on appuie encore une fois sur la flèche du haut, on revient au début du jeu et on recommence une partie.
+# - petit icône "maison" avec flèche du haut dans l'interface, pour expliquer que ça fait repartir à la maison.
+# - 3 types de fruits en plus.
+# - le bouton d'action numéro 1 fait rewind le serpent. Pour aller plus vite quand on doit faire un grand rewind.
+# - calculer la longueur du serpent et la limiter. Petit message si le serpent est au max et qu'on veut le faire avancer.
+# - calculer la quantité de trucs que bouffe le serpent. Le limiter quand il est saturé. Avec un petit message.
+# - des XP quand on mange et qu'on fait des matchs. Augmenter de niveau augmente sa longueur et sa capacité de bouffage. Petit message à chaque fois qu'on monte de niveau.
+# - petit message quand on recommence, avec : nb d'XP gagné par les matchs, par le bouffage, et nombre d'XP restant avant le prochain niveau.
+# - à la profondeur 1664, on trouve le but du jeu : Le Guide on Van-Random. Il est entouré de blocs. Il faut les détruire pour le sauver.
+# - petit icône de message quand on affiche un message. Parce que les gens penseront pas forcément à regarder le texte dans la console.
+# - un écran de fin.
+# - le set_content_random change selon la profondeur : de plus en plus de blocs, et de plus en plus de type de fruits.
+# - calculer la profondeur et donner des XP quand on atteint certains seuils. Avec un petit message, comme d'hab'.
+# - À un certain niveau, le serpent obtient le pouvoir de bouffer des blocs, mais ça lui coûte 10 points de bouffage.
+# - Des putains de graphismes mieux que ce que j'ai fait là.
+# - background qui change plus on va profond.
+# - bug pourri au début du jeu. Si on recule le serpent il se réaffiche en partant du haut et pas de la gauche. Mais osef.
 
 import random
 
@@ -99,6 +130,11 @@ ACTION_GRAVITY = f""" {{ "delayed_actions": [ {{"name": "apply_gravity", "delay_
 DELAY_ANIM_MATCH = 100
 ACTION_ANIM_MATCH = f""" {{ "delayed_actions": [ {{"name": "anim_match", "delay_ms": {DELAY_ANIM_MATCH}}} ] }} """
 
+# Ha ha ha ! Fade to Black. Une subtile et lointaine référence
+# à la suite du jeu vidéo Flash Back. Tout le monde s'en fout ? OK..
+DELAY_FADE_TO_BLACK = 100
+ACTION_FADE_TO_BLACK = f""" {{ "delayed_actions": [ {{"name": "anim_fade_to_black", "delay_ms": {DELAY_FADE_TO_BLACK}}} ] }} """
+
 
 class Tile:
     def __init__(self, game_model, x, y):
@@ -115,6 +151,7 @@ class Tile:
         self.gamobj_matches = []
         self.has_horizontal_match = False
         self.has_vertical_match = False
+        self.gamobj_miscellaneous = None
 
     def set_random_content(self):
         """
@@ -126,9 +163,16 @@ class Tile:
         # plus on a de chance de tomber sur des blocs.
         choice = random.randrange(NB_FRUITS + 1)
         if choice == 0:
-            self.block_type = 0
+            if self.game_model.deep_distance > 5:
+                self.block_type = 0
+            else:
+                self.fruit = 0
         else:
             self.fruit = choice - 1
+        self.render()
+
+    def set_gamobj_miscellaneous(self, gamobj):
+        self.gamobj_miscellaneous = gamobj
         self.render()
 
     def set_snake_part(self, snake_part):
@@ -151,7 +195,10 @@ class Tile:
         self.has_vertical_match = False
 
     def render(self):
-        self.game_objects[:] = ["backgrnd"]
+        if self.gamobj_miscellaneous is not None:
+            self.game_objects[:] = [self.gamobj_miscellaneous]
+        else:
+            self.game_objects[:] = ["backgrnd"]
         if self.fruit is not None:
             gamobj_fruit = f"fruit_{self.fruit:02}"
             self.game_objects.append(gamobj_fruit)
@@ -190,6 +237,7 @@ class Tile:
         self.gamobj_matches = other.gamobj_matches
         self.has_horizontal_match = other.has_horizontal_match
         self.has_vertical_match = other.has_vertical_match
+        self.gamobj_miscellaneous = other.gamobj_miscellaneous
 
         self.render()
 
@@ -198,6 +246,7 @@ class Tile:
         self.block_type = None
         self.snake_part = None
         self.gamobj_matches = []
+        # emptify ne supprime pas les gamobj_miscellaneous. Parce que voilà.
         self.render()
 
 
@@ -234,19 +283,27 @@ class Snake:
         (DIR_LEFT, DIR_LEFT): "snake_horiz",
     }
 
-    def __init__(self, game_model, x, y):
+    def __init__(self, game_model, y_start):
         self.game_model = game_model
-        self.tile_snake_head = self.game_model.tiles[y][x]
-        self.head_dir = DIR_DOWN
-        gamobj_head = Snake.GAMOBJ_FROM_HEAD_DIR[self.head_dir]
-        self.tile_snake_head.set_snake_part(gamobj_head)
-        tile_snake_up = self.tile_snake_head.adjacencies[DIR_UP]
-        tile_snake_up.set_snake_part("snake_vertic")
+
         # Liste de liste de 3 elems :
         # - direction du serpent au début de la tile.
         # - la tile sur laquelle se trouve le morceau de corps du serpent.
         # - direction du serpent à la fin de la tile.
-        self.bodies = [[DIR_UP, tile_snake_up, DIR_DOWN]]
+        self.bodies = []
+        tile_snake_body = self.game_model.tiles[y_start][0]
+
+        self.bodies.append([DIR_LEFT, tile_snake_body, DIR_RIGHT])
+        tile_snake_body.set_snake_part("snake_horiz")
+        tile_snake_body = tile_snake_body.adjacencies[DIR_RIGHT]
+        self.bodies.append([DIR_LEFT, tile_snake_body, DIR_RIGHT])
+        tile_snake_body.set_snake_part("snake_horiz")
+        tile_snake_body = tile_snake_body.adjacencies[DIR_RIGHT]
+
+        self.tile_snake_head = tile_snake_body
+        self.head_dir = DIR_RIGHT
+        gamobj_head = Snake.GAMOBJ_FROM_HEAD_DIR[self.head_dir]
+        self.tile_snake_head.set_snake_part(gamobj_head)
 
     def on_event_direction(self, direction):
         if self._can_move(direction):
@@ -304,6 +361,10 @@ class Snake:
                     return True
                 else:
                     return False
+        # Ni vu ni connu je t'embrouille. Je gère le début du jeu avec
+        # des game_object qui sont censés être uniquement des éléments de décors.
+        if tile_dest.gamobj_miscellaneous in ("earth", "sky_unpassable"):
+            return False
         return True
 
     def update_scroll_to_deeper(self):
@@ -315,20 +376,9 @@ class Snake:
             tile_body = body_infos[1]
             tile_body = tile_body.adjacencies[DIR_UP]
             body_infos[1] = tile_body
-        # TODO : Je sais pas comment gérer le serpent qui se découpe !!
-        # if self.bodies[-1][1] is None:
-        #     keep_last_body = self.bodies[-1]
-        # else:
-        #     keep_last_body = None
         self.bodies = [
             body_infos for body_infos in self.bodies if body_infos[1] is not None
         ]
-        # if keep_last_body is not None:
-        #     print("keep last body !!")
-        #     # Sauf que maintenant j'ai un putain de None dans mes tiles de body...
-        #     # Sur un malentendu, ça va passer.
-        #     self.bodies.append(keep_last_body)
-        # print(self.bodies)
 
     def check_scroll_deeper(self):
         x_forbids_go_deep = []
@@ -366,15 +416,50 @@ class GameModel:
             for x, tile in enumerate(line):
                 adj = self.make_adjacencies(x, y)
                 tile.adjacencies = adj
-                tile.set_random_content()
+                # tile.set_random_content()
 
-        self.snake = Snake(self, snake_x, snake_y)
         self.applying_gravity = False
-        self.must_check_match = False
         self.matched_tiles = []
         # Liste de coordonnées X, indiquant les positions
         # où se trouve des morceaux de serpent qui empêche d'aller plus bas.
         self.x_forbids_go_deep = []
+        self.fading_to_black = 0
+        self.start_game_run()
+
+    def start_game_run(self):
+        self.deep_distance = 0
+        for line in self.tiles:
+            for tile in line:
+                tile.emptify()
+
+        # Plein de numéros magiques en dur. Osef. À l'arrache.
+        for line in self.tiles[:-5]:
+            for tile in line:
+                tile.set_gamobj_miscellaneous("sky")
+        for tile in self.tiles[-5]:
+            tile.set_gamobj_miscellaneous("sky_unpassable")
+        for tile in self.tiles[-4]:
+            tile.set_gamobj_miscellaneous("sky")
+        for tile in self.tiles[-3]:
+            tile.set_gamobj_miscellaneous("earth")
+        tile_passage = self.tiles[-3][self.game_w // 2]
+        tile_passage.emptify()
+        tile_passage.gamobj_miscellaneous = None
+        tile_passage.render()
+        for y in (-2, -1):
+            for tile in self.tiles[y]:
+                # Pas de fonction set. Osef.
+                tile.block_type = 0
+                tile.render()
+            # Je suis un bourrin et j'aurais dû mettre des foncsions set.
+            tile_passage = self.tiles[y][self.game_w // 2]
+            tile_passage.emptify()
+            tile_passage.gamobj_miscellaneous = None
+            tile_passage.fruit = 0
+            tile.block_type = 0
+            tile_passage.render()
+
+        self.snake = Snake(self, self.game_h - 4)
 
     def make_adjacencies(self, x, y):
         """
@@ -420,6 +505,13 @@ class GameModel:
             exported_tiles[1][x + self.offset_interface_x].append(
                 "arrow_deep_forbidden"
             )
+
+        if self.fading_to_black:
+            # Gros bourrin parce qu'on reparcourt toute l'aire de jeu.
+            # Osef, quand on le fait, on fait rien d'autre que ça.
+            for exported_line in exported_tiles:
+                for tile_gamobjs in exported_line:
+                    tile_gamobjs.extend(["fade_black"] * self.fading_to_black)
 
         return exported_tiles
 
@@ -586,6 +678,7 @@ class GameModel:
                     adj_tile.emptify()
 
     def go_deeper(self):
+        self.deep_distance += 1
         # Les tiles doivent prendre ce qu'il y a en-dessous d'elles.
         # Encore des itérations stupides avec des x et y, car j'ai pas
         # indexé par colonne. C'est pas grave. On est des pauvres, on indexe pas, mais on n'a honte de rien.
@@ -603,9 +696,35 @@ class GameModel:
         self.matched_tiles = [tile for tile in self.matched_tiles if tile is not None]
 
     def on_game_event(self, event_name):
+
+        if event_name == "anim_fade_to_black":
+            self.fading_to_black += 1
+            if self.fading_to_black == 10:
+                self.fading_to_black = 0
+                self.start_game_run()
+                return None
+            else:
+                return ACTION_FADE_TO_BLACK
+        else:
+            if self.fading_to_black:
+                # On est en train de faire un fondu vers le noir.
+                # Toutes les autres actions ne doivent pas être prises en compte.
+                return None
+
         direction = DIR_FROM_EVENT.get(event_name)
 
         if direction is not None:
+            if direction == DIR_UP and not self.snake.bodies:
+                # Le serpent rentre à la maison.
+                if self.applying_gravity or self.match_anim_time:
+                    print(
+                        "Wait the end of the gravity and the matches before returning home"
+                    )
+                else:
+                    print("You return home")
+                    self.fading_to_black = 1
+                    return ACTION_FADE_TO_BLACK
+
             if (
                 direction == DIR_DOWN
                 and self.snake.tile_snake_head.y == self.game_h - 2
@@ -681,11 +800,9 @@ class GameModel:
                     # des matchs en cours. (Ça peut arriver si le serpent
                     # fait tomber des fruits pendant qu'il y a un autre
                     # match).
-                    # Dans ce cas, on fait rien dans l'immédiat, mais
-                    # on retient qu'il faudra quand même refaire un check
-                    # de match. (TODO : je sais pas vraiment si j'ai besoin
-                    # de ça en fait).
-                    self.must_check_match = True
+                    # Dans ce cas, on fait rien dans l'immédiat.
+                    # La vérif des match se refera à la fin de l'enchainement:
+                    # vérif des match en cours, application de gravité.
                     return None
                 else:
                     self.check_all_match()
