@@ -86,26 +86,32 @@ Jusqu'ici c'est pas trop mal quand même.
 
 # X Le début du jeu, avec un décor de ciel et de terre.
 # X quand on rewind le serpent et qu'on appuie encore une fois sur la flèche du haut, on revient au début du jeu et on recommence une partie.
-# - petit icône "maison" avec flèche du haut dans l'interface, pour expliquer que ça fait repartir à la maison.
-# - 3 types de fruits en plus.
-# - le bouton d'action numéro 1 fait rewind le serpent. Pour aller plus vite quand on doit faire un grand rewind.
-# - calculer la longueur du serpent et la limiter. Petit message si le serpent est au max et qu'on veut le faire avancer.
-# - calculer la quantité de trucs que bouffe le serpent. Le limiter quand il est saturé. Avec un petit message.
+# X petit icône "maison" avec flèche du haut dans l'interface, pour expliquer que ça fait repartir à la maison.
+# X 3 types de fruits en plus.
+# X le bouton d'action numéro 1 fait rewind le serpent. Pour aller plus vite quand on doit faire un grand rewind.
+# X calculer la longueur du serpent et la limiter. Petit message si le serpent est au max et qu'on veut le faire avancer.
+# X calculer la quantité de trucs que bouffe le serpent. Le limiter quand il est saturé. Avec un petit message.
 # - des XP quand on mange et qu'on fait des matchs. Augmenter de niveau augmente sa longueur et sa capacité de bouffage. Petit message à chaque fois qu'on monte de niveau.
 # - petit message quand on recommence, avec : nb d'XP gagné par les matchs, par le bouffage, et nombre d'XP restant avant le prochain niveau.
 # - à la profondeur 1664, on trouve le but du jeu : Le Guide on Van-Random. Il est entouré de blocs. Il faut les détruire pour le sauver.
 # - petit icône de message quand on affiche un message. Parce que les gens penseront pas forcément à regarder le texte dans la console.
 # - un écran de fin.
 # - le set_content_random change selon la profondeur : de plus en plus de blocs, et de plus en plus de type de fruits.
+# - un type de fruit en plus parce que même avec 6, c'est trop facile. (surtout qu'au début, on les met pas tous)
 # - calculer la profondeur et donner des XP quand on atteint certains seuils. Avec un petit message, comme d'hab'.
 # - À un certain niveau, le serpent obtient le pouvoir de bouffer des blocs, mais ça lui coûte 10 points de bouffage.
 # - Des putains de graphismes mieux que ce que j'ai fait là.
 # - background qui change plus on va profond.
 # - bug pourri au début du jeu. Si on recule le serpent il se réaffiche en partant du haut et pas de la gauche. Mais osef.
 
+# Idées d'achievement pour plus tard :
+# - Terminer un niveau avec à la fois l'estomac plein et la longueur max du serpent atteinte.
+# - Terminer avec la longueur max atteinte, et un estomac très très vide (on a avancé en faisant pratiquement que des matchs)
+
 import random
 
-NB_FRUITS = 3
+# Je mets 5 et pas 6 pour l'instant. Sinon, y'a rien qui va matcher et je vais galérer pour tester.
+NB_FRUITS = 5
 
 DEBUG = False
 
@@ -134,6 +140,13 @@ ACTION_ANIM_MATCH = f""" {{ "delayed_actions": [ {{"name": "anim_match", "delay_
 # à la suite du jeu vidéo Flash Back. Tout le monde s'en fout ? OK..
 DELAY_FADE_TO_BLACK = 100
 ACTION_FADE_TO_BLACK = f""" {{ "delayed_actions": [ {{"name": "anim_fade_to_black", "delay_ms": {DELAY_FADE_TO_BLACK}}} ] }} """
+
+
+def message_to_player(strings):
+    print("-" * 10)
+    for string in strings:
+        print(string)
+    print("-" * 10)
 
 
 class Tile:
@@ -252,6 +265,11 @@ class Tile:
 
 class Snake:
 
+    MOVE_RESULT_FAIL_BLOCKED = 0
+    MOVE_RESULT_FAIL_TOO_SHORT = 1
+    MOVE_RESULT_FAIL_STOMACH_FULL = 2
+    MOVE_RESULT_OK = 3
+
     GAMOBJ_FROM_HEAD_DIR = {
         DIR_UP: "snake_head_up",
         DIR_RIGHT: "snake_head_right",
@@ -305,40 +323,79 @@ class Snake:
         gamobj_head = Snake.GAMOBJ_FROM_HEAD_DIR[self.head_dir]
         self.tile_snake_head.set_snake_part(gamobj_head)
 
+        self.current_length = len(self.bodies) + 1
+        self.qty_eaten = 0
+
+    def rewind(self):
+        if not self.bodies:
+            return
+        # Copié-collé de bouts de code de on_event_direction.
+        # Beurk. On n'est plus à ça près.
+        tile_last_body_infos = self.bodies[-1]
+        tile_last_body = tile_last_body_infos[1]
+        self.tile_snake_head.emptify()
+        # Le serpent revient en arrière.
+        self.bodies.pop()
+        self.head_dir = OPPOSITE_DIR[tile_last_body_infos[0]]
+        self.tile_snake_head = tile_last_body
+        gamobj_head = Snake.GAMOBJ_FROM_HEAD_DIR[self.head_dir]
+        self.tile_snake_head.set_snake_part(gamobj_head)
+        self.current_length -= 1
+
     def on_event_direction(self, direction):
-        if self._can_move(direction):
-            tile_dest = self.tile_snake_head.adjacencies[direction]
-            cancel_last_body = False
-            tile_last_body_infos = None
-            if self.bodies:
-                tile_last_body_infos = self.bodies[-1]
-                tile_last_body = tile_last_body_infos[1]
-                if tile_last_body == tile_dest:
-                    cancel_last_body = True
+        """
+        Renvoie une valeur Snake.MOVE_RESULT_XXX
+        """
+        if not self._can_move(direction):
+            return Snake.MOVE_RESULT_FAIL_BLOCKED
 
-            if cancel_last_body:
-                self.tile_snake_head.emptify()
-                # Le serpent revient en arrière.
-                self.bodies.pop()
-                self.head_dir = OPPOSITE_DIR[tile_last_body_infos[0]]
+        tile_dest = self.tile_snake_head.adjacencies[direction]
+        cancel_last_body = False
+        tile_last_body_infos = None
+        if self.bodies:
+            tile_last_body_infos = self.bodies[-1]
+            tile_last_body = tile_last_body_infos[1]
+            if tile_last_body == tile_dest:
+                cancel_last_body = True
+
+        if cancel_last_body:
+            self.tile_snake_head.emptify()
+            # Le serpent revient en arrière.
+            self.bodies.pop()
+            self.head_dir = OPPOSITE_DIR[tile_last_body_infos[0]]
+            self.current_length -= 1
+        else:
+            # Le serpent veut avancer, mais on doit vérifier
+            # qu'il a encore de la marge de longueur.
+            if self.current_length >= self.game_model.snake_length_max:
+                return Snake.MOVE_RESULT_FAIL_TOO_SHORT
+
+            if (
+                tile_dest.fruit is not None
+                and self.qty_eaten >= self.game_model.stomach_capacity
+            ):
+                return Snake.MOVE_RESULT_FAIL_STOMACH_FULL
+
+            tile_new_body = self.tile_snake_head
+            if tile_last_body_infos is None:
+                # Il n'y a pas du tout de body. On prend une direction par défaut.
+                # Et comme le serpent arrive par le haut de l'écran, on prend up.
+                start_dir = DIR_UP
             else:
-                # Le serpent avance.
-                tile_new_body = self.tile_snake_head
-                if tile_last_body_infos is None:
-                    # Il n'y a pas du tout de body. On prend une direction par défaut.
-                    # Et comme le serpent arrive par le haut de l'écran, on prend up.
-                    start_dir = DIR_UP
-                else:
-                    start_dir = OPPOSITE_DIR[tile_last_body_infos[2]]
-                gamobj_body = Snake.GAMOBJ_BODY_FROM_DIRS[(start_dir, direction)]
-                tile_new_body.set_snake_part(gamobj_body)
-                new_body_part = [start_dir, tile_new_body, direction]
-                self.bodies.append(new_body_part)
-                self.head_dir = direction
+                start_dir = OPPOSITE_DIR[tile_last_body_infos[2]]
+            gamobj_body = Snake.GAMOBJ_BODY_FROM_DIRS[(start_dir, direction)]
+            tile_new_body.set_snake_part(gamobj_body)
+            new_body_part = [start_dir, tile_new_body, direction]
+            self.bodies.append(new_body_part)
+            self.head_dir = direction
+            self.current_length += 1
+            if tile_dest.fruit is not None:
+                self.qty_eaten += 1
 
-            self.tile_snake_head = tile_dest
-            gamobj_head = Snake.GAMOBJ_FROM_HEAD_DIR[self.head_dir]
-            self.tile_snake_head.set_snake_part(gamobj_head)
+        self.tile_snake_head = tile_dest
+        gamobj_head = Snake.GAMOBJ_FROM_HEAD_DIR[self.head_dir]
+        self.tile_snake_head.set_snake_part(gamobj_head)
+        return Snake.MOVE_RESULT_OK
 
     def _can_move(self, direction):
         tile_dest = self.tile_snake_head.adjacencies[direction]
@@ -424,10 +481,14 @@ class GameModel:
         # où se trouve des morceaux de serpent qui empêche d'aller plus bas.
         self.x_forbids_go_deep = []
         self.fading_to_black = 0
+        self.snake_length_max = 100
+        self.stomach_capacity = 15
         self.start_game_run()
 
     def start_game_run(self):
         self.deep_distance = 0
+        self.warned_about_snake_length = False
+        self.warned_about_stomach = False
         for line in self.tiles:
             for tile in line:
                 tile.emptify()
@@ -505,6 +566,23 @@ class GameModel:
             exported_tiles[1][x + self.offset_interface_x].append(
                 "arrow_deep_forbidden"
             )
+
+        show_home = any(
+            (
+                not self.snake.bodies,
+                self.warned_about_snake_length,
+                self.warned_about_stomach,
+            )
+        )
+        if show_home:
+            if self.snake.bodies:
+                # Deux indexage suivant d'un .x, c'est bien crade.
+                # Désolay...
+                x_home = self.snake.bodies[0][1].x
+            else:
+                x_home = self.snake.tile_snake_head.x
+            x_home += self.offset_interface_x
+            exported_tiles[1][x_home].append("back_home")
 
         if self.fading_to_black:
             # Gros bourrin parce qu'on reparcourt toute l'aire de jeu.
@@ -695,6 +773,29 @@ class GameModel:
         self.matched_tiles = [tile.adjacencies[DIR_UP] for tile in self.matched_tiles]
         self.matched_tiles = [tile for tile in self.matched_tiles if tile is not None]
 
+    def update_x_forbids_with_movement(self):
+        """
+        Nom de fonction tout pourri, pas mieux.
+        """
+        if not self.x_forbids_go_deep:
+            return
+        new_x_forbids_go_deep = self.snake.check_scroll_deeper()
+        self.x_forbids_go_deep = [
+            x for x in self.x_forbids_go_deep if x in new_x_forbids_go_deep
+        ]
+
+    def go_back_home_if_possible(self):
+        # Le serpent rentre à la maison.
+        if self.applying_gravity or self.match_anim_time:
+            message_to_player(
+                ("Wait the end of the gravity and the matches", "before returning home")
+            )
+            return None
+        else:
+            message_to_player(("You return home",))
+            self.fading_to_black = 1
+            return ACTION_FADE_TO_BLACK
+
     def on_game_event(self, event_name):
 
         if event_name == "anim_fade_to_black":
@@ -714,16 +815,9 @@ class GameModel:
         direction = DIR_FROM_EVENT.get(event_name)
 
         if direction is not None:
+
             if direction == DIR_UP and not self.snake.bodies:
-                # Le serpent rentre à la maison.
-                if self.applying_gravity or self.match_anim_time:
-                    print(
-                        "Wait the end of the gravity and the matches before returning home"
-                    )
-                else:
-                    print("You return home")
-                    self.fading_to_black = 1
-                    return ACTION_FADE_TO_BLACK
+                return self.go_back_home_if_possible()
 
             if (
                 direction == DIR_DOWN
@@ -731,8 +825,12 @@ class GameModel:
             ):
                 self.x_forbids_go_deep = self.snake.check_scroll_deeper()
                 if self.x_forbids_go_deep:
-                    print("Rewind yourself please.")
-                    print("If you go deeper, you will cut yourself !")
+                    message_to_player(
+                        (
+                            ('Push the button "1" to rewind yourself.'),
+                            ("If you go deeper, you will cut yourself !"),
+                        )
+                    )
                     return
                 self.go_deeper()
                 if not self.match_anim_time and not self.applying_gravity:
@@ -751,11 +849,29 @@ class GameModel:
 
             else:
 
-                self.snake.on_event_direction(direction)
-                if self.x_forbids_go_deep:
-                    self.x_forbids_go_deep = self.snake.check_scroll_deeper()
+                move_result = self.snake.on_event_direction(direction)
+                if move_result == Snake.MOVE_RESULT_FAIL_TOO_SHORT:
+                    if not self.warned_about_snake_length:
+                        message_to_player(
+                            (
+                                "You have reached your maximum length.",
+                                "You should go home and restart a trip.",
+                            )
+                        )
+                        self.warned_about_snake_length = True
+                elif move_result == Snake.MOVE_RESULT_FAIL_STOMACH_FULL:
+                    if not self.warned_about_stomach:
+                        message_to_player(
+                            (
+                                "You ate too much fruits.",
+                                "You should go home and restart a trip.",
+                            )
+                        )
+                        self.warned_about_stomach = True
+
+                self.update_x_forbids_with_movement()
                 if not self.applying_gravity:
-                    # On est pas déjà en train d'appliquer de la gravité.
+                    # On n'est pas déjà en train d'appliquer de la gravité.
                     # On en appliquera une (pas tout de suite, dans quelques ms).
                     self.applying_gravity = True
                     return ACTION_GRAVITY
@@ -763,7 +879,12 @@ class GameModel:
                     return None
 
         elif event_name == "action_1":
-            return None
+            if self.snake.bodies:
+                self.snake.rewind()
+                self.update_x_forbids_with_movement()
+                return None
+            else:
+                return self.go_back_home_if_possible()
 
         elif event_name == "action_2":
             return None
