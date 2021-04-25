@@ -1,7 +1,6 @@
+# https://i.postimg.cc/pd7yS6bZ/snake-match-tileset.png
+# https://i.postimg.cc/L6svkJDM/snake-match-tileset.png
 # https://i.postimg.cc/KjMBC4bz/snake-match-tileset.png
-# https://i.postimg.cc/c4yJRSwJ/snake-match-tileset.png
-# https://i.postimg.cc/K8WHBk2C/snake-match-tileset.png
-# https://i.postimg.cc/4xwYHY3p/snake-match-tileset.png
 
 # Note pour plus tard : imgbb c'est de la daube comme hébergeur d'images.
 # Ça, ça marche mieux. Et ça retaille pas stupidement les images sans prévenir.
@@ -91,9 +90,15 @@ OPPOSITE_DIR = {
 DELAY_GRAVITY_MS = 250
 ACTION_GRAVITY = f""" {{ "delayed_actions": [ {{"name": "apply_gravity", "delay_ms": {DELAY_GRAVITY_MS}}} ] }} """
 
+DELAY_ANIM_MATCH = (
+    300
+)  # 100 # TODO : faut mettre 100, mais là je met 300 le temps de tester des trucs.
+ACTION_ANIM_MATCH = f""" {{ "delayed_actions": [ {{"name": "anim_match", "delay_ms": {DELAY_ANIM_MATCH}}} ] }} """
+
 
 class Tile:
-    def __init__(self, x, y):
+    def __init__(self, game_model, x, y):
+        self.game_model = game_model
         self.x = x
         self.y = y
         self.fruit = None
@@ -126,10 +131,6 @@ class Tile:
         self.render()
 
     def add_match(self, gamobj):
-        # TODO : On fait un clear_match puis plusieurs add_match.
-        # Et c'est que à la fin de ces traitements qu'on aurait besoin
-        # de faire un render().
-        # Mais là, on fait des render à chaque modif. C'est bourrin.
         self.gamobj_matches.append(gamobj)
         # TODO : c'est moche de gérer avec les gamobj,
         # on essaiera de faire mieux si on a le temps.
@@ -137,13 +138,11 @@ class Tile:
             self.has_horizontal_match = True
         else:
             self.has_vertical_match = True
-        self.render()
 
     def clear_match(self):
         self.gamobj_matches = []
         self.has_horizontal_match = False
         self.has_vertical_match = False
-        self.render()
 
     def render(self):
         self.game_objects[:] = ["backgrnd"]
@@ -156,7 +155,7 @@ class Tile:
         elif self.snake_part is not None:
             self.game_objects.append(self.snake_part)
 
-        self.game_objects += self.gamobj_matches
+        self.game_objects += self.gamobj_matches * self.game_model.match_show_gamobj
 
     def does_stop_gravity(self):
         # Plus tard, on aura peut-être des blocs qui tombent.
@@ -164,6 +163,12 @@ class Tile:
         if self.block_type == 0:
             return True
         if self.snake_part is not None:
+            return True
+        if self.gamobj_matches:
+            # Les tiles en cours de match ne peuvent pas tomber.
+            # Ça fait bizarre, car pendant quelques fractions de
+            # secondes, on verra des fruits qui restent en l'air
+            # pendant qu'ils se matchent. Mais ça simplifie beaucoup de choses.
             return True
         return False
 
@@ -175,12 +180,15 @@ class Tile:
     def get_content_from_other_tile(self, other):
         self.fruit = other.fruit
         self.block_type = other.block_type
+        # On transfert pas self.gamobj_matches, parce que les tiles
+        # en cours de match sont pas censées bouger.
         self.render()
 
     def emptify(self):
         self.fruit = None
         self.block_type = None
         self.snake_part = None
+        self.gamobj_matches = []
         self.render()
 
 
@@ -272,6 +280,9 @@ class Snake:
             return False
         if tile_dest.block_type is not None:
             return False
+        if tile_dest.gamobj_matches:
+            # On ne peut pas manger des fruits en train d'être matchés.
+            return False
         if tile_dest.snake_part is not None:
             # Le snake peut revenir en arrière, uniquement sur la snake part précédente.
             if not self.bodies:
@@ -298,9 +309,12 @@ class GameModel:
         snake_x = self.w // 2
         snake_y = 1
 
+        self.match_anim_time = 0
+        self.match_show_gamobj = 0
+
         tiles = []
         for y in range(self.game_h):
-            line = [Tile(x, y) for x in range(self.game_w)]
+            line = [Tile(self, x, y) for x in range(self.game_w)]
             line = tuple(line)
             tiles.append(line)
         self.tiles = tuple(tiles)
@@ -313,6 +327,8 @@ class GameModel:
 
         self.snake = Snake(self, snake_x, snake_y)
         self.applying_gravity = False
+        self.must_check_match = False
+        self.matched_tiles = []
 
     def make_adjacencies(self, x, y):
         """
@@ -442,11 +458,12 @@ class GameModel:
     def check_all_match(self):
 
         # clear des matches précédents.
+        matched_tiles = set()
         for line in self.tiles:
             for tile in line:
                 tile.clear_match()
 
-        # check horizontal.
+        # --- check des matches horizontaux ---
         for line in self.tiles:
             for tile_start in line:
                 # TODO : mettre ça dans une fonction parce que là c'est
@@ -463,17 +480,58 @@ class GameModel:
                         tile_cur = tile_cur.adjacencies[DIR_RIGHT]
                     # print(tile_start.x, tile_start.y, len(current_matches))
                     if len(current_matches) >= 3:
-                        print(
-                            "first and length : ",
-                            tile_start.x,
-                            tile_start.y,
-                            len(current_matches),
-                        )
-                        print("last", current_matches[-1].x, current_matches[-1].y)
+                        # print(
+                        #     "first and length : ",
+                        #     tile_start.x,
+                        #     tile_start.y,
+                        #     len(current_matches),
+                        # )
+                        # print("last", current_matches[-1].x, current_matches[-1].y)
                         current_matches[0].add_match("match_right")
                         for tile in current_matches[1:-1]:
                             tile.add_match("match_horiz")
                         current_matches[-1].add_match("match_left")
+                        matched_tiles = matched_tiles.union(set(current_matches))
+
+        # --- check des matches verticaux. ---
+        # TODO : copié-collé de gros bourrin avec le check horizontal.
+        # À mon avis y'a moyen de faire mieux.
+        # TODO : et ce serait tellement classe d'avoir les tiles
+        # indexées par ligne ET par colonne. Comme ça j'aurais pas besoin
+        # d'itérer sur x et y comme un pauvre.
+        for x_start in range(self.game_w):
+            for y_start in range(self.game_h):
+                tile_start = self.tiles[y_start][x_start]
+                # TODO : mettre ça dans une fonction parce que là c'est
+                # trop de code imbriqué.
+                current_matches = []
+                current_fruit_type = tile_start.fruit
+                if not tile_start.has_vertical_match and current_fruit_type is not None:
+                    tile_cur = tile_start
+                    while tile_cur is not None and tile_cur.fruit == current_fruit_type:
+                        current_matches.append(tile_cur)
+                        tile_cur = tile_cur.adjacencies[DIR_DOWN]
+                    # print(tile_start.x, tile_start.y, len(current_matches))
+                    if len(current_matches) >= 3:
+                        current_matches[0].add_match("match_down")
+                        for tile in current_matches[1:-1]:
+                            tile.add_match("match_vertic")
+                        current_matches[-1].add_match("match_up")
+                        matched_tiles = matched_tiles.union(set(current_matches))
+
+        # TODO : calculer les XP des matches.
+        self.matched_tiles = list(matched_tiles)
+
+    def destroy_matched_fruits(self):
+        for tile in self.matched_tiles:
+            tile.emptify()
+            # On détruit les blocs adjacents aux matches.
+            # J'aurais sûrement pas le temps de faire des blocs ayant
+            # plusieurs points de vie (à détruire en plusieurs matchs)
+            # Donc je pète le bloc direct.
+            for adj_tile in tile.adjacencies[::2]:
+                if adj_tile is not None and adj_tile.block_type == 0:
+                    adj_tile.emptify()
 
     def on_game_event(self, event_name):
         direction = DIR_FROM_EVENT.get(event_name)
@@ -499,6 +557,28 @@ class GameModel:
 
         elif event_name == "action_2":
             self.check_all_match()
+            if self.matched_tiles:
+                self.match_anim_time = 1
+                self.match_show_gamobj = 1
+                for tile in self.matched_tiles:
+                    tile.render()
+                return ACTION_ANIM_MATCH
+
+        elif event_name == "anim_match":
+            # print("anim match", self.match_anim_time, self.match_show_gamobj)
+            self.match_anim_time += 1
+            self.match_show_gamobj = [0, 1, 2, 3, 2, 1, 0][self.match_anim_time]
+            for tile in self.matched_tiles:
+                tile.render()
+            if self.match_anim_time == 6:
+                self.match_anim_time = 0
+                # Animation du match terminé. On détruit les fruits
+                self.destroy_matched_fruits()
+                # Et du coup, faut revérifier la gravité.
+                self.applying_gravity = True
+                return ACTION_GRAVITY
+            else:
+                return ACTION_ANIM_MATCH
 
         elif event_name == "apply_gravity":
 
@@ -509,4 +589,30 @@ class GameModel:
                 return ACTION_GRAVITY
             else:
                 self.applying_gravity = False
-                return None
+                # La gravité est finie. Maintenant, il faut vérifier
+                # si on doit faire des matches.
+                if self.match_anim_time:
+                    # Ah zut alors. La gravité est finie mais on a encore
+                    # des matchs en cours. (Ça peut arriver si le serpent
+                    # fait tomber des fruits pendant qu'il y a un autre
+                    # match).
+                    # Dans ce cas, on fait rien dans l'immédiat, mais
+                    # on retient qu'il faudra quand même refaire un check
+                    # de match. (TODO : je sais pas vraiment si j'ai besoin
+                    # de ça en fait).
+                    self.must_check_match = True
+                    return None
+                else:
+                    self.check_all_match()
+                    if self.matched_tiles:
+                        self.match_anim_time = 1
+                        self.match_show_gamobj = 1
+                        for tile in self.matched_tiles:
+                            tile.render()
+                        return ACTION_ANIM_MATCH
+                    else:
+                        # On a finit la gravité, et on vient de vérifier
+                        # qu'il n'y a plus de match à faire.
+                        # on peut s'arrêter là.
+                        return None
+
