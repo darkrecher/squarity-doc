@@ -1,3 +1,4 @@
+# https://i.postimg.cc/nhRHcFYk/snake-match-tileset.png
 # https://i.postimg.cc/pd7yS6bZ/snake-match-tileset.png
 # https://i.postimg.cc/L6svkJDM/snake-match-tileset.png
 # https://i.postimg.cc/KjMBC4bz/snake-match-tileset.png
@@ -45,6 +46,9 @@
         "match_horiz": [128, 105],
         "match_vertic": [160, 105],
 
+        "arrow_deep_forbidden": [160, 0],
+        "arrow_deep_go": [192, 0],
+
         "bla": [0, 0]
     }
 }
@@ -61,8 +65,10 @@ et dès qu'on fait le premier mouvement, ils tombent.
 
 C'est parce que j'ai pas fini de tout coder.
 
-Le bouton d'action "2" permet d'afficher les match-3 horizontaux.
-Et pour l'instant, ça fait que ça. Mais c'est déjà pas mal.
+Le bouton d'action "1" permet d'aller plus profondément.
+Mais ça fait bugger le serpent si vous lui faites faire des circuits bizarres !
+
+Jusqu'ici c'est pas trop mal quand même.
 
 """
 
@@ -307,9 +313,8 @@ class Snake:
             raise Exception("On est allé plus profond jusqu'à supprimer le serpent")
         for body_infos in self.bodies:
             tile_body = body_infos[1]
-            if tile_body is not None:
-                tile_body = tile_body.adjacencies[DIR_UP]
-                body_infos[1] = tile_body
+            tile_body = tile_body.adjacencies[DIR_UP]
+            body_infos[1] = tile_body
         # TODO : Je sais pas comment gérer le serpent qui se découpe !!
         # if self.bodies[-1][1] is None:
         #     keep_last_body = self.bodies[-1]
@@ -324,6 +329,16 @@ class Snake:
         #     # Sur un malentendu, ça va passer.
         #     self.bodies.append(keep_last_body)
         # print(self.bodies)
+
+    def check_scroll_deeper(self):
+        x_forbids_go_deep = []
+        if self.tile_snake_head.y == 0:
+            x_forbids_go_deep.append(self.tile_snake_head.x)
+        for body_infos in self.bodies:
+            dir_start, tile_body, dir_end = body_infos
+            if tile_body.y == 0 and dir_start == DIR_DOWN:
+                x_forbids_go_deep.append(tile_body.x)
+        return x_forbids_go_deep
 
 
 class GameModel:
@@ -357,6 +372,9 @@ class GameModel:
         self.applying_gravity = False
         self.must_check_match = False
         self.matched_tiles = []
+        # Liste de coordonnées X, indiquant les positions
+        # où se trouve des morceaux de serpent qui empêche d'aller plus bas.
+        self.x_forbids_go_deep = []
 
     def make_adjacencies(self, x, y):
         """
@@ -397,6 +415,12 @@ class GameModel:
             exported_tiles.append(interface_line)
         if DEBUG:
             print(exported_tiles)
+
+        for x in self.x_forbids_go_deep:
+            exported_tiles[1][x + self.offset_interface_x].append(
+                "arrow_deep_forbidden"
+            )
+
         return exported_tiles
 
     def check_fall_column(self, x_column, fall_column):
@@ -582,30 +606,45 @@ class GameModel:
         direction = DIR_FROM_EVENT.get(event_name)
 
         if direction is not None:
-            self.snake.on_event_direction(direction)
-            if not self.applying_gravity:
-                # On est pas déjà en train d'appliquer de la gravité.
-                # On en appliquera une (pas tout de suite, dans quelques ms).
-                self.applying_gravity = True
-                return ACTION_GRAVITY
+            if (
+                direction == DIR_DOWN
+                and self.snake.tile_snake_head.y == self.game_h - 2
+            ):
+                self.x_forbids_go_deep = self.snake.check_scroll_deeper()
+                if self.x_forbids_go_deep:
+                    print("Rewind yourself please.")
+                    print("If you go deeper, you will cut yourself !")
+                    return
+                self.go_deeper()
+                if not self.match_anim_time and not self.applying_gravity:
+                    self.check_all_match()
+                    if self.matched_tiles:
+                        self.match_anim_time = 1
+                        self.match_show_gamobj = 1
+                        for tile in self.matched_tiles:
+                            tile.render()
+                        return ACTION_ANIM_MATCH
+                    else:
+                        # Pas de match suite à un scroll plus profond.
+                        # On peut s'arrêter. Pas besoin de checker la gravité,
+                        # quand on va plus profond on tombe forcément sur des objets et pas du vide.
+                        return None
+
             else:
-                return None
+
+                self.snake.on_event_direction(direction)
+                if self.x_forbids_go_deep:
+                    self.x_forbids_go_deep = self.snake.check_scroll_deeper()
+                if not self.applying_gravity:
+                    # On est pas déjà en train d'appliquer de la gravité.
+                    # On en appliquera une (pas tout de suite, dans quelques ms).
+                    self.applying_gravity = True
+                    return ACTION_GRAVITY
+                else:
+                    return None
 
         elif event_name == "action_1":
-            self.go_deeper()
-            if not self.match_anim_time and not self.applying_gravity:
-                self.check_all_match()
-                if self.matched_tiles:
-                    self.match_anim_time = 1
-                    self.match_show_gamobj = 1
-                    for tile in self.matched_tiles:
-                        tile.render()
-                    return ACTION_ANIM_MATCH
-                else:
-                    # Pas de match suite à un scroll plus profond.
-                    # On peut s'arrêter. Pas besoin de checker la gravité,
-                    # quand on va plus profond on tombe forcément sur des objets et pas du vide.
-                    return None
+            return None
 
         elif event_name == "action_2":
             return None
