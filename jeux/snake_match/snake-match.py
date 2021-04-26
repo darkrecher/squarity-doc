@@ -64,6 +64,7 @@
         "guide_van_01": [32, 175],
         "guide_van_10": [0, 207],
         "guide_van_11": [32, 207],
+        "white": [64, 207],
 
         "won_00": [64, 175],
         "won_01": [96, 175],
@@ -107,10 +108,10 @@ Jusqu'ici c'est pas trop mal quand même.
 # X calculer la quantité de trucs que bouffe le serpent. Le limiter quand il est saturé. Avec un petit message.
 # X des XP quand on mange et qu'on fait des matchs. Augmenter de niveau augmente sa longueur et sa capacité de bouffage. Petit message à chaque fois qu'on monte de niveau.
 # X petit message quand on recommence, avec : nb d'XP gagné par les matchs, par le bouffage, et nombre d'XP restant avant le prochain niveau.
-# - à la profondeur 555, on trouve le but du jeu : Le Guide on Van-Random. Il est entouré de blocs. Il faut les détruire pour le sauver.
+# X à la profondeur 555, on trouve le but du jeu : Le Guide on Van-Random. Il est entouré de blocs. Il faut les détruire pour le sauver.
 # - petit icône de message quand on affiche un message. Parce que les gens penseront pas forcément à regarder le texte dans la console.
-# - un écran de fin.
-# - un type de fruit en plus parce que même avec 6, c'est trop facile. (surtout qu'au début, on les met pas tous)
+# X un écran de fin.
+# X un type de fruit en plus parce que même avec 6, c'est trop facile. (surtout qu'au début, on les met pas tous)
 # - le set_content_random change selon la profondeur : de plus en plus de blocs, et de plus en plus de type de fruits.
 # - calculer la profondeur et donner des XP quand on atteint certains seuils. Avec un petit message, comme d'hab'.
 # - À un certain niveau, le serpent obtient le pouvoir de bouffer des blocs, mais ça lui coûte 10 points de bouffage.
@@ -125,7 +126,7 @@ Jusqu'ici c'est pas trop mal quand même.
 import random
 
 NB_FRUITS = 7
-DEEP_WON = 20  # 555
+DEEP_WON = 248
 
 DEBUG = False
 
@@ -199,21 +200,35 @@ class Tile:
             return
 
         self.gamobj_miscellaneous = None
-        if deep_distance in (100, 200, 299, 300) or deep_distance >= DEEP_WON - 1:
+        bloc_lines = (50, 75, 100, 125, 150, 176, 201, 226)
+        semibloc_lines = (99, 124, 149, 173, 199, 225)
+        if deep_distance in bloc_lines or deep_distance >= DEEP_WON - 1:
             self.block_type = 0
-        elif deep_distance in (199,) and self.x % 2:
+        elif deep_distance in semibloc_lines and self.x % 2:
             self.block_type = 0
         else:
-            # TODO : ce sera pas comme ça du tout, car plus on va profondément
-            # plus on a de chance de tomber sur des blocs.
-            choice = random.randrange(NB_FRUITS + 1)
-            if choice == 0:
-                if self.game_model.deep_distance > 5:
-                    self.block_type = 0
-                else:
-                    self.fruit = 0
+
+            if deep_distance < 5:
+                proba_block = 0
             else:
-                self.fruit = choice - 1
+                proba_block = 5 + (deep_distance / (DEEP_WON * 3 // 4) * 100 // 7)
+                if proba_block > 5 + 100 // 7:
+                    proba_block = 5 + 100 // 7
+
+            if random.randrange(100) < proba_block:
+                self.block_type = 0
+            else:
+                # Il faut mettre un fruit.
+                if deep_distance < 10:
+                    fruit = random.randrange(NB_FRUITS - 3)
+                elif deep_distance < 75:
+                    fruit = random.randrange(NB_FRUITS - 2)
+                elif deep_distance < 100:
+                    fruit = random.randrange(NB_FRUITS - 1)
+                else:
+                    fruit = random.randrange(NB_FRUITS)
+                self.fruit = fruit
+
         self.render()
 
     def set_gamobj_miscellaneous(self, gamobj):
@@ -529,11 +544,26 @@ class GameModel:
         self.xp_previous_runs = 0
         self.current_level = 1
         self.xp_next_level = 50 + 100 * self.current_level
-        self.told_hint_about_match = False
+        self.hints = [
+            (
+                30,
+                "As you rummage through the fruits, you wonder about the sense of life.",
+            ),
+            (47, "You can destroy blocks by matching fruits near them"),
+            (100, "You hear the guide calling from far. He says 'Fetchez la vache !!'"),
+            (
+                150,
+                "The earth looks more arbitrary than before. An evidence that a Van-Random went through that way",
+            ),
+            (234, "You are almost there. You can see the Guide !"),
+        ]
+        self.won_game = False
+        self.qty_run = 0
         self.start_game_run()
 
     def start_game_run(self):
         self.deep_distance = 0
+        self.qty_run += 1
         self.warned_about_snake_length = False
         self.warned_about_stomach = False
         self.xp_from_matches = 0
@@ -631,6 +661,14 @@ class GameModel:
                 x_home = self.snake.tile_snake_head.x
             x_home += self.offset_interface_x
             exported_tiles[1][x_home].append("back_home")
+
+        if self.won_game:
+            for y in range(7, 10):
+                for x in range(1, 9):
+                    exported_tiles[y][x].append("white")
+            for x in range(2, 8):
+                gamobj_won = f"won_0{x-2}"
+                exported_tiles[8][x].append(gamobj_won)
 
         if self.fading_to_black:
             # Gros bourrin parce qu'on reparcourt toute l'aire de jeu.
@@ -834,9 +872,10 @@ class GameModel:
         self.matched_tiles = [tile.adjacencies[DIR_UP] for tile in self.matched_tiles]
         self.matched_tiles = [tile for tile in self.matched_tiles if tile is not None]
 
-        if self.deep_distance == 95 and not self.told_hint_about_match:
-            message_to_player(("You can destroy blocks by matching fruits near them",))
-            self.told_hint_about_match = True
+        if self.hints:
+            if self.deep_distance >= self.hints[0][0]:
+                hint_dist, hint_to_tell = self.hints.pop(0)
+                message_to_player((hint_to_tell,))
 
     def update_x_forbids_with_movement(self):
         """
@@ -879,7 +918,7 @@ class GameModel:
         if total_xp >= self.xp_next_level:
             # TODO : ligne à factoriser car game logic.
             self.current_level += 1
-            self.xp_next_level = 50 + 200 * self.current_level
+            self.xp_next_level = 50 + 300 * self.current_level
             self.snake_length_max += 50
             self.stomach_capacity += 75
             message_to_player(
@@ -890,6 +929,9 @@ class GameModel:
             )
 
     def on_game_event(self, event_name):
+
+        if self.won_game:
+            True
 
         if event_name == "anim_fade_to_black":
             self.fading_to_black += 1
@@ -964,7 +1006,21 @@ class GameModel:
                         self.warned_about_stomach = True
 
                 if self.snake.tile_snake_head.has_guide:
-                    print("You won !!!")
+                    total_xp = (
+                        self.xp_previous_runs
+                        + self.snake.qty_eaten
+                        + self.xp_from_matches
+                    )
+                    final_score = total_xp / self.qty_run
+                    message_to_player(
+                        ("You won !!!", f"Your final score : {final_score}")
+                    )
+                    for line in self.tiles:
+                        for tile in line:
+                            if tile.fruit is not None or tile.block_type == 0:
+                                tile.emptify()
+                    self.won_game = True
+                    return None
 
                 self.update_x_forbids_with_movement()
                 if not self.applying_gravity:
