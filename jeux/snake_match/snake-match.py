@@ -7,6 +7,8 @@
 # Ça, ça marche mieux. Et ça retaille pas stupidement les images sans prévenir.
 # https://postimages.org/
 
+# http://squarity.fr/#fetchez_githubgist_darkrecher/3f078827875858debcb31af0483e74e0/raw/snake-match.txt
+
 # https://ldjam.com/events/ludum-dare/48/$237474/snakematch
 # https://tinyurl.com/f7bbky72
 
@@ -80,19 +82,17 @@
 
 """
 
+
+
 Snake-Match
 
-Déplacez votre serpent et mangez les fruits.
 
-Ne vous étonnez pas, au début, les fruits ne tombent pas,
-et dès qu'on fait le premier mouvement, ils tombent.
+You are Leon the Python. You have to dig deep in the fruits and do some Match-3.
 
-C'est parce que j'ai pas fini de tout coder.
+Will you be albe to save your creator, the Guide on Van-Random, who fell in the fruits while trying to write a language that would formalize the fruitiness of the world ?
 
-Le bouton d'action "1" permet d'aller plus profondément.
-Mais ça fait bugger le serpent si vous lui faites faire des circuits bizarres !
 
-Jusqu'ici c'est pas trop mal quand même.
+
 
 """
 

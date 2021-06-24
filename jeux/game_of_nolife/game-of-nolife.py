@@ -1,14 +1,11 @@
-# https://i.ibb.co/mczrkx2/game-of-nolife-tileset.png (old)
-# https://i.ibb.co/qgVyDdR/game-of-nolife-tileset.png (old)
-# https://i.ibb.co/VHQh8sr/game-of-nolife-tileset.png (old)
-# https://i.ibb.co/LhqpFs2/game-of-nolife-tileset.png (old)
-# https://i.ibb.co/q7zv4y8/game-of-nolife-tileset.png
+# https://i.ibb.co/86p1rHz/game-of-nolife-tileset.png (old)
+# https://i.ibb.co/B4PCz82/game-of-nolife-tileset.png
 
 """
 {
   "game_area": {
-    "nb_tile_width": 41,
-    "nb_tile_height": 40
+    "nb_tile_width": 26,
+    "nb_tile_height": 25
   },
   "tile_size": 4,
 
@@ -152,6 +149,10 @@
     "grn_road_horiz": [72, 8],
     "grn_road_vertic": [76, 8],
     "grn_road_both": [80, 8],
+
+    "missile_ur": [32, 16],
+    "missile_dl": [36, 16],
+    "missile_exploding": [34, 16],
 
     "bla": [0, 0]
 
@@ -2382,6 +2383,90 @@ class Tile:
         print("end build town")
 
 
+class Missile:
+
+    DELAY_MOVE = 5
+    MOVING = 0
+    DEFINING_DEST_TILES = 1
+    EXPLODING = 2
+    FINISHED = 3
+
+    def __init__(self, tile, direction, duration, player_to_spawn, game_master):
+        self.tile = tile
+        self.direction = direction
+        self.duration = duration
+        self.game_master = game_master
+        self.player_to_spawn = player_to_spawn
+        self.gamobj = "missile_ur" if self.direction == 1 else "missile_dl"
+        self.slide_dir_1 = (direction + 1) % 8
+        self.slide_dir_2 = (direction - 1) % 8
+        self.delay_move = Missile.DELAY_MOVE
+        self.current_action = Missile.MOVING
+
+    def handle(self):
+        if self.current_action == Missile.MOVING:
+            self.move()
+        elif self.current_action == Missile.DEFINING_DEST_TILES:
+            self.define_dest_tiles()
+        elif self.current_action == Missile.EXPLODING:
+            self.explode()
+
+    def move(self):
+        self.delay_move -= 1
+        if self.delay_move:
+            return
+
+        if self.duration == 0:
+            # TODO : faire exploser le missile.
+            self.current_action = Missile.DEFINING_DEST_TILES
+            self.duration = 15
+            self.gamobj = "missile_exploding"
+            return
+
+        self.delay_move = Missile.DELAY_MOVE
+        next_tile = self.tile.adjacencies[self.direction]
+        if next_tile is None:
+            next_tile = self.tile.adjacencies[self.slide_dir_1]
+        if next_tile is None:
+            next_tile = self.tile.adjacencies[self.slide_dir_2]
+        if next_tile is None:
+            return
+
+        self.tile = next_tile
+        self.duration -= 1
+
+    def define_dest_tiles(self):
+        """
+        Pattern de placement des unites vertes.
+          .
+         .x.
+        .xXx.
+         .x.
+          .
+        """
+        # dest_center = self.tile if self.tile.town is None else None
+        self.dest_tiles = [self.tile]
+        far_dest_tiles = []
+        for adj_dir in range(8):
+            adj_tile = self.tile.adjacencies[adj_dir]
+            self.dest_tiles.append(adj_tile)
+            if adj_dir % 2 == 0:
+                far_tile = None
+                if adj_tile is not None:
+                    far_tile = adj_tile.adjacencies[adj_dir]
+                far_dest_tiles.append(far_tile)
+        self.dest_tiles += far_dest_tiles
+        self.current_action = Missile.EXPLODING
+
+    def explode(self):
+        if self.duration == 0:
+            self.current_action = Missile.FINISHED
+        tile_target = self.dest_tiles[self.duration % len(self.dest_tiles)]
+        if tile_target is not None:
+            tile_target.add_unit(self.player_to_spawn)
+        self.duration -= 1
+
+
 class GameMaster:
     """
     Le maître du jeu. La classe qui dirige tout le bazar, qui contient les Players, l'aire de jeu,
@@ -2447,6 +2532,12 @@ class GameMaster:
         player_0.init_first_units_and_town()
         player_1.init_first_units_and_town()
         self.players = {0: player_0, 1: player_1, 2: player_bionature}
+        self.missiles = []
+        # TODO test.
+        missile = Missile(self.game_area[5][3], 1, 10, player_bionature, self)
+        self.missiles.append(missile)
+        missile = Missile(self.game_area[0][25], 5, 4, player_bionature, self)
+        self.missiles.append(missile)
 
     def _make_adjacencies(self, x, y):
         """
@@ -2832,10 +2923,11 @@ class GameModel:
     """
 
     def __init__(self):
-        self.w = 41
-        self.h = 40
+        self.w = 26
+        self.h = 25
         self.game_master = GameMaster(self.w, self.h)
-        self.game_master.init_bionature_units(self.game_master.players[2])
+        # TODO : remettre ça après les tests sur les missiles.
+        # self.game_master.init_bionature_units(self.game_master.players[2])
         self.must_start = True
         self.sandbox_action = False
         self.x_cursor = 0
@@ -2851,6 +2943,9 @@ class GameModel:
             line = [list(gamobjs) for gamobjs in line_source]
             gamobjs_copy.append(line)
 
+        for missile in self.game_master.missiles:
+            tile = missile.tile
+            gamobjs_copy[tile.y][tile.x].append(missile.gamobj)
         gamobjs_copy[self.y_cursor][self.x_cursor].append("red_cursor")
         for player in self.game_master.players.values():
             if player.tile_magnet is not None:
@@ -2971,6 +3066,9 @@ class GameModel:
                 player.process_line_conquest()
             else:
                 player.process_unit_gen_tile_bionature(self.turn_index)
+
+        for missile in self.game_master.missiles:
+            missile.handle()
 
         self.turn_index += 1
         # TODO : calculer approximativement un délai plus ou moins long selon la quantité de trucs à gérer.
