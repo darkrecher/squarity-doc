@@ -1,5 +1,6 @@
-# https://i.ibb.co/86p1rHz/game-of-nolife-tileset.png (old)
-# https://i.ibb.co/B4PCz82/game-of-nolife-tileset.png
+# https://i.ibb.co/B4PCz82/game-of-nolife-tileset.png (old)
+# https://i.ibb.co/J5gZSkg/game-of-nolife-tileset.png
+
 
 """
 {
@@ -227,11 +228,12 @@ merge de town, la direction des backward conquest, etc.
 
 import random
 
-# Moche, mais ça permet de convertir plus rapidement.
-GAMOBJ_NAME_TO_NB_UNIT = tuple(
-    "00;01;02;03;04;05;06;07;08;09;10;11;12;13;14;15;16".split(";")
-)
-
+# La distance jusqu'à laquelle on fait le backward conquest,
+# en fonction de la size de la town.
+DIST_BACKWARD_CONQUEST = {1: 3, 2: 6, 4: 9}
+# Nombre d'unité à envoyer à chaque tour en backward conquest,
+# en fonction de la size de la town.
+NB_UNIT_TO_SENT_BACKWARD_CONQUEST = {1: 1, 2: 2, 4: 3}
 
 # Nombre de tour de jeu nécessaire pour construire une town.
 NB_TURNS_TOWN_BUILDING = 9
@@ -247,7 +249,7 @@ NB_TURNS_TOWN_BUILDING_TIMEOUT = 25
 # J'ai mis un nombre assez grand, car ce ne sont pas les villes qui produisent le plus,
 # mais le fait de contrôler beaucoup de terrain. Ça devrait (j'espère) rendre le jeu
 # plus intéressant.
-UNIT_GEN_TOWN_POINT_REQUIRED = 100
+UNIT_GEN_TOWN_POINT_REQUIRED = 25  # 100
 # Parfois, une town ne peut pas générer de pixels, parce que toutes les tiles autour d'elle
 # sont déjà pleines de pixels. Dans ce cas, la town cumule ses points de génération pour
 # plus tard, lorsqu'elle aura de la place autour d'elle.
@@ -276,13 +278,23 @@ UNIT_GEN_TILE_POINT_MAX_CUMUL = UNIT_GEN_TILE_POINT_REQUIRED * 50
 # au départ, et ça embêterait les Players humains d'avoir une bionature qui s'étend trop vite.
 UNIT_GEN_TILE_POINT_REQUIRED_BIONATURE = 25000
 
-# La distance jusqu'à laquelle on envoie les ordres de backward conquest,
-# en fonction de la size de la town.
-DIST_BACKWARDING_FROM_SIZE = {1: 2, 2: 4, 4: 6}
-
 # Les directions opposées en fonction d'une direction.
 # 0:haut, 1:diag haut-droite, 2:droite, etc. ça tourne dans le sens des aiguilles d'une montre.
 REVERSE_DIRS = (4, 5, 6, 7, 0, 1, 2, 3)
+
+# Moche, mais ça permet de convertir plus rapidement.
+GAMOBJ_NAME_TO_NB_UNIT = tuple(
+    "00;01;02;03;04;05;06;07;08;09;10;11;12;13;14;15;16".split(";")
+)
+
+
+def pos_in_bounding_rect(b_rect, x, y):
+    """
+    Renvoie True si la position x, y est dans le rect.
+    Le rect à passer en paramètre s'étend de x1 à x2 - 1, et de y1 à y2 - 1.
+    """
+    x_min, y_min, x_max, y_max = b_rect
+    return (x_min <= x < x_max) and (y_min <= y < y_max)
 
 
 def bounding_rect_overlaps(b_rect_1, b_rect_2):
@@ -479,15 +491,14 @@ class Player:
         # La tile vers laquelle toutes les unités doivent aller.
         # Lorsqu'il n'y a pas de magnet, les unités doivent à-peu-près se répartir sur les routes.
         self.tile_magnet = None
-        # Gestion du backward conquest. C'est une liste de sous-listes de 2 elem :
-        #  - délai (nb de tours) avant lequel cette tile peut envoyer des unités en backward.
-        #  - la tile concernée, qui doit/devra faire du backward conquest.
-        # Le premier élément, c'est la tile de la town qui a lancé son ordre de backward.
-        self.infos_go_backward = []
-        # Au-dela de cette tile, les unités ne doivent pas faire de backward conquest.
-        # C'est pourri, et le backward conquest sera géré avec un bounding rect.
-        # Y'a un TODO à ce sujet.
-        self.tile_limit_go_back = None
+        # La tile qui fait le backward conquest, s'il y en a une.
+        # C'est forcément une tile de town. Et c'est la tile de town la plus en arrière possible
+        # (dans le cas des towns ayant une size supérieure à 1)
+        self.tile_go_backward = None
+        # Les unités qui font un backward conquest sont limitées dans un bounding rect.
+        # Plus la town ayant lancé la conquest est grande, plus le bounding rect est grand.
+        self.bounding_rect_go_back = None
+        self.nb_unit_to_send_backward = 0
         # Pour les 3 variables suivantes, voir fonction Player.process_town_merging.
         self.town_merge_state = TOWN_MERGE_STATE_STABLE
         self.towns_to_merge = None
@@ -573,8 +584,9 @@ class Player:
         backward conquest, etc.
         """
         self.tile_magnet = None
-        self.infos_go_backward = []
-        self.tile_limit_go_back = None
+        self.tile_go_backward = None
+        self.bounding_rect_go_back = None
+        self.nb_unit_to_send_backward = 0
         self.tiles_to_roadify = []
         self.tile_to_townify = None
 
@@ -832,20 +844,31 @@ class Player:
         ressemblé à de la téléportation.
         """
         select_tile = turn_index & 3
-        check_go_back = self.tile_limit_go_back is not None
+        check_go_back = self.bounding_rect_go_back is not None
         for tile in self.controlled_bare_tiles_with_many_units:
             # Le y est multiplié par 2, pour pouvoir faire le "ABCD / CDAB" décrit en docstring.
             if (tile.x + tile.y * 2) & 3 == select_tile:
-                if check_go_back and self.is_behind(self.tile_limit_go_back, tile):
-                    # backward, en mode conquest
-                    tile_dest = tile.adjacencies[self.dir_back_diag]
-                    if (
-                        tile_dest is not None
-                        and tile_dest.town is None
-                        and (tile_dest.player_owner != self or tile_dest.nb_unit < 16)
-                    ):
-                        tile.remove_unit()
-                        tile_dest.add_unit(self)
+                if check_go_back and pos_in_bounding_rect(
+                    self.bounding_rect_go_back, tile.x, tile.y
+                ):
+                    if tile.nb_unit > 3:
+                        # backward, en mode conquest
+                        for direction in (
+                            self.dir_back_diag,
+                            self.dir_back_hori,
+                            self.dir_back_verti,
+                        ):
+                            tile_dest = tile.adjacencies[direction]
+                            if (
+                                tile_dest is not None
+                                and tile_dest.town is None
+                                and (
+                                    tile_dest.player_owner != self
+                                    or tile_dest.nb_unit < 16
+                                )
+                            ):
+                                tile.remove_unit()
+                                tile_dest.add_unit(self)
                 else:
                     # forward, en mode move.
                     # TODO : précalculer les possible_direcs et les foutre dans une liste de 2 elems.
@@ -880,160 +903,81 @@ class Player:
     def set_town_backward_conquest(self, town):
         """
         Déclenche une backward conquest sur une town. Cette fonction met à jour
-        la liste self.infos_go_backward (voir commentaire dans la fonction __init__),
-        ainsi que self.tile_limit_go_back.
+        self.tile_go_backward et self.bounding_rect_go_back.
         Cette fonction magnétise également la town qui backward conquest (self.tile_magnet).
-
-        Dans infos_go_backward, le premier élément correspond à la town.
-        Les éléments suivants sont des tiles : on prend les tiles qui partent de la town,
-        dans les directions backward horizontale et backward verticale, et ayant des roads.
-
-        Chacune de ces tiles va envoyer des unités sur la tile derrière elle, en diagonale.
-        Le problème, c'est que comme en même temps on magnétise, toutes les unités vont se
-        concentrer au même endroit, et les roads un peu éloignée de la town risquent de ne
-        plus avoir d'unités à envoyer en backward. D'où le delay.
-
-        Chaque élément de infos_go_backward contient un delay et la tile qui envoie des unités.
-        Plus on se rapproche de la town, plus le délai est grand. Ça laisse une chance aux tiles
-        éloignées d'attraper tout de suite les unités passant dessus (suite à la magnétisation),
-        et de les envoyer en backward conquest.
         """
-        self.tile_limit_go_back = None
         self.tile_magnet = None
-        self.infos_go_backward = []
+        self.tile_go_backward = None
         if town is None:
             return
-        tile_go_backward_diag = town.get_tile_go_backward_diag()
-        if tile_go_backward_diag.adjacencies[self.dir_back_diag] is None:
+        self.nb_unit_to_send_backward = NB_UNIT_TO_SENT_BACKWARD_CONQUEST[town.size]
+        # Définition de la tile qui fait le backward. Ça correspond à la town.
+        # Pour les towns ayant size > 1, on prend la tile la plus derrière
+        # (par rapport à la direction de conquête).
+        self.tile_go_backward = town.get_tile_go_backward_diag()
+        if self.tile_go_backward.adjacencies[self.dir_back_diag] is None:
             # On essaie de backwarder avec une town qui est sur un bord arrière de l'aire de jeu,
             # ça sert à rien. On laisse tomber.
             return
 
-        # Distance jusqu'à laquelle la town va indiquer aux roads de faire du backward conquest.
-        dist_backwarding = DIST_BACKWARDING_FROM_SIZE[town.size]
-        # Là faudrait faire un petit pour expliquer le calcul du delay_max, mais pfou, ça va bien.
-        delay_max = dist_backwarding + town.size - 1
-        # Ajout de la première tile, correspondant à celle de la town.
-        # Pour les towns ayant size>1, on prend la tile la plus derrière
-        # (par rapport à la direction de conquête).
-        self.infos_go_backward.append([delay_max, tile_go_backward_diag])
+        cur_tile = self.tile_go_backward
+        for _ in range(DIST_BACKWARD_CONQUEST[town.size]):
+            if cur_tile.adjacencies[self.dir_back_diag] is None:
+                break
+            else:
+                cur_tile = cur_tile.adjacencies[self.dir_back_diag]
 
-        # On prend toutes les routes qui peuvent partir en arrière de la town.
-        # Il faut donc faire deux boucles imbriquées. Car pour les towns ayant size>1, on a
-        # plusieurs routes qui partent en arrière horiz, et plusieurs routes en arrière vertic.
-        for tile_start in town.tiles_cmd_go_backward_horiz:
-            tile_cur = tile_start
-            for _ in range(dist_backwarding):
-                if tile_cur is not None and tile_cur.road_horiz:
-                    delay = delay_max - manhattan_dist(tile_go_backward_diag, tile_cur)
-                    self.infos_go_backward.append([delay, tile_cur])
-                    tile_cur = tile_cur.adjacencies[self.dir_back_hori]
-                else:
-                    # Dès que la route qui part de la town s'arrête, on arrête le backwarding
-                    # et on fait la route suivante. On gère pas les tournants ni rien.
-                    break
-        for tile_start in town.tiles_cmd_go_backward_vertic:
-            tile_cur = tile_start
-            for _ in range(dist_backwarding):
-                if tile_cur is not None and tile_cur.road_vertic:
-                    delay = delay_max - manhattan_dist(tile_go_backward_diag, tile_cur)
-                    self.infos_go_backward.append([delay, tile_cur])
-                    tile_cur = tile_cur.adjacencies[self.dir_back_verti]
-                else:
-                    break
+        tile_bounding_rect_opposite = cur_tile
+        rect_xs = sorted([self.tile_go_backward.x, tile_bounding_rect_opposite.x])
+        rect_ys = sorted([self.tile_go_backward.y, tile_bounding_rect_opposite.y])
+        self.bounding_rect_go_back = (
+            rect_xs[0],
+            rect_ys[0],
+            rect_xs[1] + 1,
+            rect_ys[1] + 1,
+        )
+        print("self.bounding_rect_go_back", self.bounding_rect_go_back)
+        self.tile_magnet = self.tile_go_backward
 
-        # TODO : c'est pas cette tile !!! La limite de go_backward doit être la tile de town
-        # la plus forward possible. C'est à dire celle opposée à tile_go_backward_diag.
-        # Mais de toutes façons faudra changer ça car on doit limiter la backward_conquest à un
-        # bounding rect (plus ou moins grand selon ta taille de la ville.)
-        self.tile_limit_go_back = tile_go_backward_diag
-        self.tile_magnet = tile_go_backward_diag
-        print("todo infos_go_backward", self.infos_go_backward)
-
-    def _process_backward_conquest_town_tile(
-        self, select_tile, infos_go_backward_town_tile
-    ):
+    def _process_backward_conquest_town_tile(self, select_tile):
         """
         Gère l'envoi d'unité pour la tile de town qui fait le backward conquest.
-        C'est une gestion particulière par rapport aux autres tiles de backward conquest,
-        car la town elle-même n'a pas d'unité. Elle va piocher dans son suburb.
+        La town elle-même n'a pas d'unité. Elle va piocher dans son suburb.
 
         On envoit une unité tous les 4 tours de jeu, c'est géré par le param select_tile.
         """
-        delay, tile_go_backward = infos_go_backward_town_tile
-        tile_dest = tile_go_backward.adjacencies[self.dir_back_diag]
+        tile_dest = self.tile_go_backward.adjacencies[self.dir_back_diag]
         if tile_dest.town is not None:
             return
         # Ici, pas besoin de y*2 comme pour la fonction move_units_on_bare_tiles.
-        # Les town et les roads qui en partent ne sont pas tracés le long de diagonale.
+        # Les town ne sont pas tracés le long de diagonales.
         # On fait comme on veut, du coup on fait au plus simple.
-        if (tile_go_backward.x + tile_go_backward.y) & 3 != select_tile:
-            return
-        if delay > 0:
-            delay -= 1
-            infos_go_backward_town_tile[0] = delay
+        if (self.tile_go_backward.x + self.tile_go_backward.y) & 3 != select_tile:
             return
         if tile_dest.player_owner == self and tile_dest.nb_unit >= 16:
             return
-        if tile_go_backward.suburb_owner is None:
+        if self.tile_go_backward.suburb_owner is None:
             raise Exception("tile_go_back town sans Suburb. Not supposed to happen.")
-        # Arrivé ici, on a fait tous les checks nécessaires. C'est le bon tour de jeu,
-        # le delay est fini, la tile de destination peut accueillir le pixel.
-        # Il n'y a plus qu'à trouver un pixel consentant dans le suburb, et on peut l'envoyer !
-        for tile_src in tile_go_backward.suburb_owner.real_suburb_tiles:
+        # Arrivé ici, on a fait tous les checks nécessaires.
+        # C'est le bon tour de jeu et la tile de destination peut accueillir le pixel.
+        # Il n'y a plus qu'à trouver des pixels consentant dans le suburb et les envoyer !
+        nb_unit_sent = 0
+        for tile_src in self.tile_go_backward.suburb_owner.real_suburb_tiles:
             if tile_src.player_owner == self and tile_src.nb_unit >= 2:
                 tile_src.remove_unit()
-                tile_dest.add_unit(self)
-                return
-
-    def _process_backward_conquest_road_tile(
-        self, select_tile, infos_go_backward_road_tile
-    ):
-        """
-        Gère les envois d'unités pour une tile de road qui fait le backward conquest.
-        On envoit une unité tous les 4 tours de jeu, c'est géré par le param select_tile.
-        """
-        delay, tile_go_backward = infos_go_backward_road_tile
-        tile_dest = tile_go_backward.adjacencies[self.dir_back_diag]
-        if tile_dest is None:
-            return
-        if tile_dest.town is not None:
-            return
-        # Mouais bon, ça marche pas hyper bien. Entre la magnétisation qui concentre toutes les
-        # unités das le suburb, le fait de checker un tour sur 4, et les delays, on se retrouve
-        # assez souvent avec plein d'unités qui partent sur seulement 2 ou 3 diagonales, et très
-        # peu qui partent à partir des roads éloignées. Tant pis, on laisse comme ça, je veux
-        # pas me prendre la tête avec ce truc. L'une des méthodes c'est de démarrer
-        # une backward conquest, l'interrombre pour rééquilibrer les unités, la redémarrer, etc.
-        if (tile_go_backward.x + tile_go_backward.y) & 3 != select_tile:
-            return
-        if delay > 0:
-            delay -= 1
-            infos_go_backward_road_tile[0] = delay
-            return
-        if tile_dest.player_owner == self and tile_dest.nb_unit >= 16:
-            return
-        # Contrairement au backward conquest de la town, on prend les unités uniquement
-        # sur la tile actuelle, et à condition qu'il y en ait suffisamment.
-        if tile_go_backward.player_owner != self or tile_go_backward.nb_unit <= 2:
-            return
-        tile_go_backward.remove_unit()
-        tile_dest.add_unit(self)
+                nb_unit_sent += 1
+                if nb_unit_sent == self.nb_unit_to_send_backward:
+                    break
+        tile_dest.add_unit(self, nb_unit_sent)
 
     def process_backward_conquest(self, turn_index):
         """
         Gère l'envoi d'unité pour toutes les tiles qui doivent faire le backward conquest.
         """
-        if not self.infos_go_backward:
+        if not self.bounding_rect_go_back:
             return
         select_tile = turn_index & 3
-        self._process_backward_conquest_town_tile(
-            select_tile, self.infos_go_backward[0]
-        )
-        for infos_go_backward_road_tile in self.infos_go_backward[1:]:
-            self._process_backward_conquest_road_tile(
-                select_tile, infos_go_backward_road_tile
-            )
+        self._process_backward_conquest_town_tile(select_tile)
 
     def merge_town(self, towns_to_remove, size_new_town):
         """
@@ -2384,6 +2328,14 @@ class Tile:
 
 
 class Missile:
+    """
+    Pattern de placement des unités vertes, pour chaque tour.
+         |  .  |     |     |
+      .  |     |  .. | .   |
+    . X. | .X .|  X. | .X  |
+         |  .  | .   |  .. |
+      .  |     |     |     |
+    """
 
     DELAY_MOVE = 5
     MOVING = 0
@@ -2391,10 +2343,37 @@ class Missile:
     EXPLODING = 2
     FINISHED = 3
 
+    # J'aime bien Black, mais quand il formate des trucs comme ça, je le trouve relou.
+    DIRECTIONS_DEST_TILES = (
+        (),
+        (0,),
+        (2,),
+        (6, 6),
+        (4, 4),
+        (),
+        (6,),
+        (4,),
+        (2, 2),
+        (0, 0),
+        (),
+        (0,),
+        (2,),
+        (0, 2),
+        (6, 4),
+        (),
+        (6,),
+        (4,),
+        (0, 6),
+        (2, 4),
+    )
+
     def __init__(self, tile, direction, duration, player_to_spawn, game_master):
         self.tile = tile
         self.direction = direction
         self.duration = duration
+        self.index_dest_tile = 0
+        self.payload_qty = 20
+        self.dumps_per_turn = 5
         self.game_master = game_master
         self.player_to_spawn = player_to_spawn
         self.gamobj = "missile_ur" if self.direction == 1 else "missile_dl"
@@ -2409,7 +2388,7 @@ class Missile:
         elif self.current_action == Missile.DEFINING_DEST_TILES:
             self.define_dest_tiles()
         elif self.current_action == Missile.EXPLODING:
-            self.explode()
+            self.dump_payload()
 
     def move(self):
         self.delay_move -= 1
@@ -2419,7 +2398,6 @@ class Missile:
         if self.duration == 0:
             # TODO : faire exploser le missile.
             self.current_action = Missile.DEFINING_DEST_TILES
-            self.duration = 15
             self.gamobj = "missile_exploding"
             return
 
@@ -2436,35 +2414,59 @@ class Missile:
         self.duration -= 1
 
     def define_dest_tiles(self):
-        """
-        Pattern de placement des unites vertes.
-          .
-         .x.
-        .xXx.
-         .x.
-          .
-        """
-        # dest_center = self.tile if self.tile.town is None else None
-        self.dest_tiles = [self.tile]
-        far_dest_tiles = []
-        for adj_dir in range(8):
-            adj_tile = self.tile.adjacencies[adj_dir]
-            self.dest_tiles.append(adj_tile)
-            if adj_dir % 2 == 0:
-                far_tile = None
-                if adj_tile is not None:
-                    far_tile = adj_tile.adjacencies[adj_dir]
-                far_dest_tiles.append(far_tile)
-        self.dest_tiles += far_dest_tiles
+        self.dest_tiles = []
+        for direction_sequence in Missile.DIRECTIONS_DEST_TILES:
+            cur_tile = self.tile
+            for direction in direction_sequence:
+                cur_tile = cur_tile.adjacencies[direction]
+                if cur_tile is None:
+                    break
+            if cur_tile is not None and cur_tile.town is None:
+                self.dest_tiles.append(cur_tile)
+
+        if not self.dest_tiles:
+            # Aucune tile de libre sur laquelle on peut poser des unités vertes.
+            # on enlève la payload. Au prochain tour, la fonction dump_payload
+            # mettra automatiquement l'état en FINISHED.
+            # Je ne met pas directement l'état en FINISHED, comme ça, le dessin du missile
+            # qui explose reste un peu plus longtemps. Pour bien montrer que le missile était
+            # quand même là, même si il n'a eu aucun effet.
+            self.payload_qty = 0
         self.current_action = Missile.EXPLODING
 
-    def explode(self):
-        if self.duration == 0:
+    def dump_payload(self):
+        if not self.payload_qty:
             self.current_action = Missile.FINISHED
-        tile_target = self.dest_tiles[self.duration % len(self.dest_tiles)]
-        if tile_target is not None:
-            tile_target.add_unit(self.player_to_spawn)
-        self.duration -= 1
+            return
+
+        self.dumps_made = 0
+        nb_times_resetted_index = 0
+        while (
+            self.dumps_made < self.dumps_per_turn
+            and self.payload_qty
+            and nb_times_resetted_index <= 2
+        ):
+
+            dest_tile = self.dest_tiles[self.index_dest_tile]
+            if dest_tile.town is None and (
+                dest_tile.player_owner != self.player_to_spawn or dest_tile.nb_unit < 16
+            ):
+                dest_tile.add_unit(self.player_to_spawn)
+                self.payload_qty -= 1
+                self.dumps_made += 1
+
+            self.index_dest_tile += 1
+            if self.index_dest_tile >= len(self.dest_tiles):
+                self.index_dest_tile = 0
+                nb_times_resetted_index += 1
+                if nb_times_resetted_index == 2 and self.dumps_made == 0:
+                    # Ça fait deux fois qu'on repasse par l'index numéro 0.
+                    # Ça veut dire qu'on a fait le tour du compteur (et même un peu plus)
+                    # sans avoir réussi à placer une seule unité verte.
+                    # C'est pas la peine d'essayer d'en replacer d'autres. Il n'y a plus
+                    # de tile disponible (elles sont peut-être déjà toute remplie de vert)
+                    # On termine le missile, même si il avait encore de la payload. Tant pis !
+                    self.payload_qty = 0
 
 
 class GameMaster:
@@ -2954,8 +2956,9 @@ class GameModel:
                 gamobjs_copy[player.tile_magnet.y][player.tile_magnet.x].append(
                     gamobj_magnet
                 )
-            gamobj_go_back = player.color + "_go_back"
-            for delay, tile in player.infos_go_backward:
+            if player.tile_go_backward is not None:
+                gamobj_go_back = player.color + "_go_back"
+                tile = player.tile_go_backward
                 gamobjs_copy[tile.y][tile.x].append(gamobj_go_back)
         return gamobjs_copy
 
@@ -3031,7 +3034,6 @@ class GameModel:
                     player = tile_target.player_owner
                     player.cancel_all_orders()
                     player.set_town_backward_conquest(tile_target.town)
-                    print("player.infos_go_backward", player.infos_go_backward)
             elif sandbox_mode == "add grn unit":
                 if tile_target.town is None:
                     tile_target.add_unit(self.game_master.players[2], 1)
@@ -3067,8 +3069,14 @@ class GameModel:
             else:
                 player.process_unit_gen_tile_bionature(self.turn_index)
 
+        missiles_to_remove = []
+
         for missile in self.game_master.missiles:
             missile.handle()
+            if missile.current_action == Missile.FINISHED:
+                missiles_to_remove.append(missile)
+        for missile_to_rem in missiles_to_remove:
+            self.game_master.missiles.remove(missile_to_rem)
 
         self.turn_index += 1
         # TODO : calculer approximativement un délai plus ou moins long selon la quantité de trucs à gérer.
