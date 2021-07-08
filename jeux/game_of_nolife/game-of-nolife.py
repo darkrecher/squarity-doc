@@ -155,6 +155,17 @@
     "missile_dl": [36, 16],
     "missile_exploding": [34, 16],
 
+    "missile_build_00": [0, 0],
+    "missile_build_01": [20, 8],
+    "missile_build_02": [24, 8],
+    "missile_build_03": [28, 8],
+    "missile_build_04": [32, 8],
+    "missile_build_05": [36, 8],
+    "missile_build_06": [40, 8],
+    "missile_build_07": [44, 8],
+    "missile_build_08": [48, 8],
+    "missile_build_09": [52, 8],
+
     "bla": [0, 0]
 
   }
@@ -214,13 +225,7 @@ merge de town, la direction des backward conquest, etc.
 
 # TODO : dessiner des routes contrôlées par la "bionature".
 
-# BIG TODO : Des missiles bactériologiques !!! Qui partent en diagonale depuis une ville.
-
-# TODO : backward conquest limité dans un carré, sinon c'est overkill.
-
 # TODO : renommer la classe Player en PlayerHandler. Sinon on confond avec "Player" qui est la personne humaine qui joue.
-
-# TODO : ralentir la vitesse de génération des villes.
 
 # TODO : si Player possède un nombre d'unité supérieur à 2.5 * le nombre de cases contrôlées, la génération d'unité
 # se met en pause (town et tiles). Ça évite de se retrouver avec un gros tas d'unités dont on sait pas quoi faire,
@@ -249,7 +254,7 @@ NB_TURNS_TOWN_BUILDING_TIMEOUT = 25
 # J'ai mis un nombre assez grand, car ce ne sont pas les villes qui produisent le plus,
 # mais le fait de contrôler beaucoup de terrain. Ça devrait (j'espère) rendre le jeu
 # plus intéressant.
-UNIT_GEN_TOWN_POINT_REQUIRED = 25  # 100
+UNIT_GEN_TOWN_POINT_REQUIRED = 100
 # Parfois, une town ne peut pas générer de pixels, parce que toutes les tiles autour d'elle
 # sont déjà pleines de pixels. Dans ce cas, la town cumule ses points de génération pour
 # plus tard, lorsqu'elle aura de la place autour d'elle.
@@ -262,8 +267,8 @@ UNIT_GEN_TOWN_POINT_MAX_CUMUL = UNIT_GEN_TOWN_POINT_REQUIRED * 2
 # Petit calcul pour prouver que c'est plus avantageux de prendre du terrain que de
 # construire des villes :
 # J'ai 256 pixels, je m'en sers pour conquérir 256 terrains.
-# UNIT_GEN_TILE_POINT_REQUIRED / 256 =
-# 3.90. Ces 256 terrains vont me générer un pixel tous les 3,90 tours.
+# UNIT_GEN_TILE_POINT_REQUIRED / 256 = 3.90.
+# Ces 256 terrains vont me générer un pixel tous les 3,90 tours.
 # J'ai 256 pixels, ça fait 16 * 4 * 4. Je peux m'en servir pour construire une super grosse ville.
 # UNIT_GEN_TOWN_POINT_REQUIRED / 22 = 4.54.
 # La super grosse ville me génère un pixel tous les 4,54 tours.
@@ -1428,8 +1433,23 @@ class Town:
     Une ville, placée sur une seule tile, ou qui s'étend sur un carré de 2x2 ou 4x4 tiles.
 
     Les villes sont imprenables et indestructibles (ça simplifie le jeu), mais elles peuvent
-    être fusionnées/shatterée avec d'autres villes de la même couleur.
+    être fusionnées/shatterées avec d'autres villes de la même couleur.
     """
+
+    # clé : un tuple. (taille town, rightward, downward)
+    # valeur : les index, dans la liste self.tiles_position, des tiles
+    #          qui génèrent des missiles.
+    # Il n'y a pas la taille de town = 1, car pour cette tile, la liste se déduit très facilement.
+    DICT_INDEX_MISSILE_TILES = {
+        (2, False, False): (1, 2),
+        (2, True, True): (2, 1),
+        (2, False, True): (0, 3),
+        (2, True, False): (3, 0),
+        (4, False, False): (3, 6, 9, 12),
+        (4, True, True): (12, 9, 6, 3),
+        (4, False, True): (0, 5, 10, 15),
+        (4, True, False): (15, 10, 5, 0),
+    }
 
     def __init__(
         self, x_left, y_up, size, player_owner, game_master, create_suburb=True
@@ -1460,10 +1480,23 @@ class Town:
         self.adjacent_tiles = tuple([tile for tile in self.unit_gen_tiles])
         # tile_go_backward_diag est la tile de town qui est la plus backward possible.
         # C'est elle qui sera utilisée pour envoyer les units en backward conquest.
-        # On la calcule que si on en aura besoin.
+        # On la calculera que si on en aura besoin.
         self.tile_go_backward_diag = None
         self.update_unit_gen_tiles()
         self.built_all_adjacent_roads = False
+        # Détermination de la liste des tiles générant des missiles.
+        if self.size == 1:
+            self.tiles_gen_missile = self.tiles_position
+        else:
+            missile_tile_indexes_key = (
+                self.size,
+                self.player_owner.rightward,
+                self.player_owner.downward,
+            )
+            self.tiles_gen_missile = [
+                self.tiles_position[index]
+                for index in Town.DICT_INDEX_MISSILE_TILES[missile_tile_indexes_key]
+            ]
         # Si c'est une town qui vient d'être construite, on lui crée tout de suite son petit suburb
         # (qui sera éventuellement fusionné avec d'autres juste après).
         # Si c'est une town créée suite à des merge/shatter, on ne crée pas de suburb.
@@ -2337,11 +2370,18 @@ class Missile:
       .  |     |     |     |
     """
 
-    DELAY_MOVE = 5
-    MOVING = 0
-    DEFINING_DEST_TILES = 1
-    EXPLODING = 2
-    FINISHED = 3
+    DELAY_MOVE = 2
+    UNIT_COST = 10
+    # Nombre de tours avant que la construction du missile soit annulée
+    # Si il y a suffisamment d'unité dans le suburb de la ville où le missile
+    # est en train d'être construit, on ne devrait pas atteindre le timeout.
+    TIMEOUT = UNIT_COST * 3
+
+    BUILDING = 0
+    MOVING = 1
+    DEFINING_DEST_TILES = 2
+    EXPLODING = 3
+    FINISHED = 4
 
     # J'aime bien Black, mais quand il formate des trucs comme ça, je le trouve relou.
     DIRECTIONS_DEST_TILES = (
@@ -2367,28 +2407,90 @@ class Missile:
         (2, 4),
     )
 
-    def __init__(self, tile, direction, duration, player_to_spawn, game_master):
+    def __init__(
+        self,
+        player_owner,
+        tile,
+        duration,
+        game_master,
+        initial_delay_move=None,
+        direction=None,
+        player_to_spawn=None,
+    ):
+        self.player_owner = player_owner
         self.tile = tile
-        self.direction = direction
         self.duration = duration
         self.index_dest_tile = 0
         self.payload_qty = 20
         self.dumps_per_turn = 5
         self.game_master = game_master
-        self.player_to_spawn = player_to_spawn
-        self.gamobj = "missile_ur" if self.direction == 1 else "missile_dl"
-        self.slide_dir_1 = (direction + 1) % 8
-        self.slide_dir_2 = (direction - 1) % 8
-        self.delay_move = Missile.DELAY_MOVE
-        self.current_action = Missile.MOVING
+        self.initial_delay_move = initial_delay_move
+        self.direction = (
+            self.player_owner.dir_forw_diag if direction is None else direction
+        )
+        self.player_to_spawn = (
+            self.game_master.player_bionature
+            if player_to_spawn is None
+            else player_to_spawn
+        )
+        self.suburb_owner = self.tile.suburb_owner
+        if self.suburb_owner is None:
+            raise Exception(
+                "Construction d'un missile sur une zone sans suburb. Not supposed to happen."
+            )
+        self.slide_dir_1 = (self.direction + 1) % 8
+        self.slide_dir_2 = (self.direction - 1) % 8
+        self.build_step = 0
+        self.time_before_timeout = Missile.TIMEOUT
+        self.current_action = Missile.BUILDING
+        self.gamobj = f"missile_build_{self.build_step:02}"
 
     def handle(self):
-        if self.current_action == Missile.MOVING:
-            self.move()
-        elif self.current_action == Missile.DEFINING_DEST_TILES:
-            self.define_dest_tiles()
-        elif self.current_action == Missile.EXPLODING:
-            self.dump_payload()
+        function_from_action = {
+            Missile.BUILDING: self.build,
+            Missile.MOVING: self.move,
+            Missile.DEFINING_DEST_TILES: self.define_dest_tiles,
+            Missile.EXPLODING: self.dump_payload,
+            Missile.FINISHED: self.finished,
+        }
+        function_from_action[self.current_action]()
+
+    def build(self):
+        self.time_before_timeout -= 1
+        # On enlève une unité du player dans le suburb, pour avancer la construction du missile.
+        for suburb_tile in self.suburb_owner.real_suburb_tiles:
+            if (
+                suburb_tile.player_owner == self.player_owner
+                and suburb_tile.nb_unit > 1
+            ):
+                suburb_tile.remove_unit(1)
+                self.build_step += 1
+
+        if self.build_step < Missile.UNIT_COST:
+            self.gamobj = f"missile_build_{self.build_step:02}"
+        else:
+            self.delay_move = (
+                self.initial_delay_move
+                if self.initial_delay_move is not None
+                else Missile.DELAY_MOVE
+            )
+            self.gamobj = "missile_ur" if self.direction == 1 else "missile_dl"
+            self.current_action = Missile.MOVING
+
+        if not self.time_before_timeout:
+            # Construction du missile fail.
+            # Il faut rendre les unités investies et annuler le missile.
+            for suburb_tile in self.suburb_owner.real_suburb_tiles:
+                if (
+                    suburb_tile.player_owner != self.player_owner
+                    or suburb_tile.nb_unit + self.build_step <= 16
+                ):
+                    suburb_tile.add_unit(self.player_owner, self.build_step)
+                    break
+            # Si on a parcourut toutes les tiles sans trouver d'endroit où rendre les unités,
+            # elles sont perdues tant pis. Mais c'est pas censé arriver, car si il y a des unités,
+            # alors on aurait pu avancer la construction du missile.
+            self.current_action = Missile.FINISHED
 
     def move(self):
         self.delay_move -= 1
@@ -2396,7 +2498,6 @@ class Missile:
             return
 
         if self.duration == 0:
-            # TODO : faire exploser le missile.
             self.current_action = Missile.DEFINING_DEST_TILES
             self.gamobj = "missile_exploding"
             return
@@ -2468,6 +2569,9 @@ class Missile:
                     # On termine le missile, même si il avait encore de la payload. Tant pis !
                     self.payload_qty = 0
 
+    def finished(self):
+        pass
+
 
 class GameMaster:
     """
@@ -2534,12 +2638,13 @@ class GameMaster:
         player_0.init_first_units_and_town()
         player_1.init_first_units_and_town()
         self.players = {0: player_0, 1: player_1, 2: player_bionature}
+        self.player_bionature = player_bionature
         self.missiles = []
         # TODO test.
-        missile = Missile(self.game_area[5][3], 1, 10, player_bionature, self)
-        self.missiles.append(missile)
-        missile = Missile(self.game_area[0][25], 5, 4, player_bionature, self)
-        self.missiles.append(missile)
+        # missile = Missile(player_0, self.game_area[5][3], 1, 10, player_bionature, self)
+        # self.missiles.append(missile)
+        # missile = Missile(player_1, self.game_area[0][25], 5, 4, player_bionature, self)
+        # self.missiles.append(missile)
 
     def _make_adjacencies(self, x, y):
         """
@@ -2901,6 +3006,7 @@ SANDBOX_MODES = [
     "conquest right",
     "conquest down",
     "conquest left",
+    "missiles",
     "describe",
 ]
 
@@ -3045,6 +3151,38 @@ class GameModel:
                 self._conquest(tile_target, 4)
             elif sandbox_mode == "conquest left":
                 self._conquest(tile_target, 6)
+            elif sandbox_mode == "missiles":
+                if tile_target.town is None:
+                    print("Il faut sélectionner une ville pour balancer des missiles.")
+                else:
+                    # On vérifier que y'a pas déjà des missiles en construction pour cette town.
+                    player_owner_missile = tile_target.town.player_owner
+                    tiles_gen_missile = tile_target.town.tiles_gen_missile
+                    can_launch_missile = True
+                    for missile in self.game_master.missiles:
+                        if (
+                            missile.player_owner == player_owner_missile
+                            and missile.current_action == Missile.BUILDING
+                            and missile.tile in tiles_gen_missile
+                        ):
+                            can_launch_missile = False
+                            break
+
+                    if can_launch_missile:
+                        # C'est bon, on peut lancer les missiles.
+                        missile_delays_from_town_size = {
+                            1: [None],
+                            2: [2, 6],
+                            4: [2, 10, 14, 6],
+                        }
+                        missile_delays = missile_delays_from_town_size[
+                            tile_target.town.size
+                        ]
+                        for tile, delay in zip(tiles_gen_missile, missile_delays):
+                            missile = Missile(
+                                player_owner_missile, tile, 10, self.game_master, delay
+                            )
+                            self.game_master.missiles.append(missile)
 
             elif sandbox_mode == "describe":
                 print("-----")
