@@ -1,12 +1,11 @@
-# https://i.ibb.co/B4PCz82/game-of-nolife-tileset.png (old)
-# https://i.ibb.co/J5gZSkg/game-of-nolife-tileset.png
-
+# https://i.ibb.co/qRHp4WX/game-of-nolife-tileset.png (old)
+# https://i.ibb.co/C84whqp/game-of-nolife-tileset.png
 
 """
 {
   "game_area": {
-    "nb_tile_width": 26,
-    "nb_tile_height": 25
+    "nb_tile_width": 41,
+    "nb_tile_height": 40
   },
   "tile_size": 4,
 
@@ -57,16 +56,16 @@
     "red_magnet": [14, 8],
     "red_go_back": [4, 8],
 
-    "red_town_build_00": [0, 0],
-    "red_town_build_01": [20, 8],
-    "red_town_build_02": [24, 8],
-    "red_town_build_03": [28, 8],
-    "red_town_build_04": [32, 8],
-    "red_town_build_05": [36, 8],
-    "red_town_build_06": [40, 8],
-    "red_town_build_07": [44, 8],
-    "red_town_build_08": [48, 8],
-    "red_town_build_09": [52, 8],
+    "red_town_build_00": [0, 12],
+    "red_town_build_01": [4, 12],
+    "red_town_build_02": [8, 12],
+    "red_town_build_03": [12, 12],
+    "red_town_build_04": [16, 12],
+    "red_town_build_05": [20, 12],
+    "red_town_build_06": [24, 12],
+    "red_town_build_07": [28, 12],
+    "red_town_build_08": [32, 12],
+    "red_town_build_09": [36, 12],
 
     "blu_01": [0, 4],
     "blu_02": [4, 4],
@@ -114,16 +113,16 @@
     "blu_magnet": [14, 8],
     "blu_go_back": [4, 8],
 
-    "blu_town_build_00": [0, 0],
-    "blu_town_build_01": [20, 8],
-    "blu_town_build_02": [24, 8],
-    "blu_town_build_03": [28, 8],
-    "blu_town_build_04": [32, 8],
-    "blu_town_build_05": [36, 8],
-    "blu_town_build_06": [40, 8],
-    "blu_town_build_07": [44, 8],
-    "blu_town_build_08": [48, 8],
-    "blu_town_build_09": [52, 8],
+    "blu_town_build_00": [40, 12],
+    "blu_town_build_01": [44, 12],
+    "blu_town_build_02": [48, 12],
+    "blu_town_build_03": [52, 12],
+    "blu_town_build_04": [56, 12],
+    "blu_town_build_05": [60, 12],
+    "blu_town_build_06": [40, 16],
+    "blu_town_build_07": [44, 16],
+    "blu_town_build_08": [48, 16],
+    "blu_town_build_09": [52, 16],
 
     "town_desactivate": [68, 8],
     "neutral_road_horiz": [72, 8],
@@ -147,9 +146,9 @@
     "grn_15": [56, 8],
     "grn_16": [60, 8],
     "grn_controls": [64, 8],
-    "grn_road_horiz": [72, 8],
-    "grn_road_vertic": [76, 8],
-    "grn_road_both": [80, 8],
+    "grn_road_horiz": [32, 20],
+    "grn_road_vertic": [36, 20],
+    "grn_road_both": [40, 20],
 
     "missile_ur": [32, 16],
     "missile_dl": [36, 16],
@@ -213,25 +212,26 @@ wardness/direction de conquête : deux booléens indiquant vers laquelle Player 
  - upward : direction verticale (True:bas , False:haut)
 Pour Player red : rightward=True, upward=False. Pour Player blue, c'est inversé.
 
-line conquest : TODO à expliquer. c'est la construction d'une ligne de route,
-qui se termine par une ville.
+line conquest : construction, à partir d'une ville existante, d'une ligne de route
+(horizontale ou verticale), sur une distance prédéfinie. Puis construction, au bout
+de cette ligne de route, d'une nouvelle ville.
 
 La direction de conquête influe sur différents détails : l'ordre des tiles adjacentes où les towns
 posent les pixels générés, la direction des missiles bactériologiques, l'ordre de priorité des
 merge de town, la direction des backward conquest, etc.
 """
 
-# TODO : décaler toutes les images de tiles de Player blu. Parce que je voulais faire autrement et finalement non.
-
-# TODO : dessiner des routes contrôlées par la "bionature".
-
-# TODO : renommer la classe Player en PlayerHandler. Sinon on confond avec "Player" qui est la personne humaine qui joue.
-
-# TODO : si Player possède un nombre d'unité supérieur à 2.5 * le nombre de cases contrôlées, la génération d'unité
-# se met en pause (town et tiles). Ça évite de se retrouver avec un gros tas d'unités dont on sait pas quoi faire,
-# et ça rend encore plus importante l'occupation de terrains.
+# TODO : le missile n'explose pas si il arrive au coin de l'aire de jeu.
 
 import random
+
+TOTAL_GAME_WIDTH = 41
+TOTAL_GAME_HEIGHT = 40
+
+# Si Player possède un nombre d'unité supérieur à (RATIO_CONTROLLED_TILE_FOR_GENERATION * nombre de tile contrôlées),
+# la génération d'unité se met en pause (town et tiles). Ça évite de se retrouver avec un gros tas d'unités
+# dont on sait pas quoi faire, et ça rend encore plus importante l'occupation de terrains.
+RATIO_CONTROLLED_TILE_FOR_GEN = 3
 
 # La distance jusqu'à laquelle on fait le backward conquest,
 # en fonction de la size de la town.
@@ -267,13 +267,13 @@ UNIT_GEN_TOWN_POINT_MAX_CUMUL = UNIT_GEN_TOWN_POINT_REQUIRED * 2
 # Petit calcul pour prouver que c'est plus avantageux de prendre du terrain que de
 # construire des villes :
 # J'ai 256 pixels, je m'en sers pour conquérir 256 terrains.
-# UNIT_GEN_TILE_POINT_REQUIRED / 256 = 3.90.
-# Ces 256 terrains vont me générer un pixel tous les 3,90 tours.
+# UNIT_GEN_TILE_POINT_REQUIRED / 256 = 3.51.
+# Ces 256 terrains vont me générer un pixel tous les 3,51 tours.
 # J'ai 256 pixels, ça fait 16 * 4 * 4. Je peux m'en servir pour construire une super grosse ville.
 # UNIT_GEN_TOWN_POINT_REQUIRED / 22 = 4.54.
 # La super grosse ville me génère un pixel tous les 4,54 tours.
 # L'avantage est encore plus flagrant avec les petites villes et les moyennes villes.
-UNIT_GEN_TILE_POINT_REQUIRED = 1000
+UNIT_GEN_TILE_POINT_REQUIRED = 900
 # Cumul de points de génération par terrain contrôlé. Pour le cas où a assez de points,
 # mais on ne trouve pas de tile sur laquelle poser le pixel généré.
 UNIT_GEN_TILE_POINT_MAX_CUMUL = UNIT_GEN_TILE_POINT_REQUIRED * 50
@@ -291,6 +291,27 @@ REVERSE_DIRS = (4, 5, 6, 7, 0, 1, 2, 3)
 GAMOBJ_NAME_TO_NB_UNIT = tuple(
     "00;01;02;03;04;05;06;07;08;09;10;11;12;13;14;15;16".split(";")
 )
+
+
+def iterate_on_pseudo_random_boolean():
+    # Fonction qui sort des booléens random à l'arrache, à partir d'une liste
+    # de 1000 valeurs booléennes random prédéfinies. C'est de la merde, mais on n'a pas besoin de plus.
+    # Et ça évitera de faire ralentir le jeu en appelant la vraie fonction random à chaque fois.
+    RANDOM_QUANTITY = 1000
+    bools = [True] * (RANDOM_QUANTITY // 2) + [False] * (RANDOM_QUANTITY // 2)
+    random.shuffle(bools)
+    index_bool = 0
+    while 1:
+        yield bools[index_bool]
+        index_bool += 1
+        if index_bool >= RANDOM_QUANTITY:
+            index_bool = 0
+
+
+pseudo_random_boolean = iterate_on_pseudo_random_boolean()
+# Première itération pour initialiser et shuffler la liste.
+# Le booléen renvoyé ne sert à rien. Osef.
+next(pseudo_random_boolean)
 
 
 def pos_in_bounding_rect(b_rect, x, y):
@@ -432,7 +453,7 @@ TOWN_MERGE_STATE_STABLE = 2
 DELAY_ROADIFY = 10
 
 
-class Player:
+class PlayerHandler:
     def __init__(
         self,
         player_id,
@@ -617,15 +638,10 @@ class Player:
         Voir la classe Tile.
         """
         nb_unit_source = tile.nb_unit
-        # TODO : on itère sur les 8 cases alors que y'aurait besoin que de 2.
-        # D'abord parce que y'a jamais les diagonales.
-        # Et ensuite parce qu'on peut ... ah non. Ah si, mais faut calculer la différence absolue.
-        # et ensuite déterminer si on bouge de la tile 1 -> 2, ou l'inverse.
-        # Mais faut le faire, parce que ça optimiserait bien.
-        # Nan c'est pourri. On fait que une tile sur deux. Pas de truc tordu avec les valeurs abs.
-        # Ça risquerait de péter par rapport au fait qu'on gère une tile sur deux à chaque tour.
+        # On itère sur les 4 cases autour, et non pas sur les 8. On ne fait pas les diagonales.
+        # Y'en n'a pas besoin parce que y'a pas de routes diagonales.
         for adj_tile, adj_connexion_type in zip(
-            tile.adjacencies, tile.road_adjacencies_same_player
+            tile.adjacencies[::2], tile.road_adjacencies_same_player[::2]
         ):
             if (
                 adj_tile is not None
@@ -656,25 +672,17 @@ class Player:
         if nb_unit_source <= 2:
             return
         dirs = directions_from_pos(tile, self.tile_magnet)
-        # TODO : choisir au hasard une des deux directions,
-        # si les deux sont possibles.
-        # Parce que là, on fait deux mouvements d'unités si il y a les deux chemins possibles.
-        # Et c'est pas génial.
-        # TODO : random à l'arrache, à partir d'une liste de 1000 valeurs booléennes random prédéfinies.
-        # C'est de la merde, mais on n'a pas besoin de plus. Et ça évitera de faire ralentir le jeu.
-        # Ou alors, chaque Tile a un petit booléen horiz/vertic qui s'alterne à chaque décision.
+        # Cette variable contiendra toutes les directions possibles vers lesquelles on peut déplacer une unité
+        # Soit 0, 1 ou 2 directions possibles.
+        # Si il y en a 2, on en sélectionnera une seule, au hasard.
+        possible_tiles_dest = []
         for direc in dirs:
             tile_dest = tile.adjacencies[direc]
             if tile_dest is not None:
                 if tile_dest.player_owner == self and tile_dest.nb_unit >= 16:
                     # La tile de destination est déjà pleine au max. Pas de déplacement.
                     continue
-                # TODO : peut-être sortir ça dans une fonction générique. (le check des routes).
-                if direc in (2, 6):
-                    road_ok = tile.road_horiz and tile_dest.road_horiz
-                elif direc in (0, 4):
-                    road_ok = tile.road_vertic and tile_dest.road_vertic
-                if not road_ok:
+                if not tile.is_road_connected(direc, tile_dest):
                     # Pas de connexion de route. Pas de déplacement.
                     continue
                 if (
@@ -684,15 +692,29 @@ class Player:
                     # Là, ce serait un déplacement d'unité entre deux tiles d'un même suburb.
                     # Ça sert à rien, le suburb gère lui-même ses répartitions d'unités.
                     continue
-                # Voilà. On a fait toutes les vérifs qu'il faut. On peut déplacer.
-                # Soit c'est un déplacement sans aucun check, car les deux tiles sont contrôlés
-                # par Player. Soit c'est un déplacement avec tous les check nécessaires.
-                if tile_dest.player_owner == self:
+                # Voilà. On a fait toutes les vérifs qu'il faut. On pourra déplacer dans cette direction.
+                possible_tiles_dest.append(tile_dest)
 
-                    self.move_unit_without_check(tile, tile_dest)
-                else:
-                    tile.remove_unit()
-                    tile_dest.add_unit(self)
+        if not possible_tiles_dest:
+            return
+
+        if len(possible_tiles_dest) == 1:
+            selected_tile_dest = possible_tiles_dest[0]
+        else:
+            selected_index = int(next(pseudo_random_boolean))
+            selected_tile_dest = possible_tiles_dest[selected_index]
+
+        # Soit c'est un déplacement sans aucun check, car les deux tiles sont contrôlés
+        # par Player. Soit c'est un déplacement avec tous les check nécessaires.
+        if selected_tile_dest.player_owner == self:
+            self.move_unit_without_check(tile, selected_tile_dest)
+        else:
+            tile.remove_unit()
+            selected_tile_dest.add_unit(self)
+
+    def can_generate_unit(self):
+        limit_total_units = len(self._controlled_tiles) * RATIO_CONTROLLED_TILE_FOR_GEN
+        return self.total_units < limit_total_units
 
     def move_units_on_roads(self, turn_index):
         """
@@ -1425,7 +1447,10 @@ class Player:
         tile_first_town.build_town()
 
         for tile_adj in tile_first_town.town.adjacent_tiles:
-            tile_adj.add_unit(self, 12)
+            tile_adj.add_road(True, True)
+            tile_adj.add_unit(self, 16)
+        tile_back = tile_first_town.adjacencies[self.dir_back_diag]
+        tile_back.add_unit(self, 14)
 
 
 class Town:
@@ -2001,6 +2026,19 @@ class Tile:
             f"suburb_owner: {self.suburb_owner}"
         )
 
+    def is_road_connected(self, direction, other_tile):
+        """
+        Vérifie si deux tiles adjacentes sont connectées par une route.
+        Attention, les paramètres doivent être cohérents entre eux. Il faut le vérifier avant.
+        C'est à dire que other_tile doit être la tile adjacente à celle-ci, dans la direction donnée.
+        Pour résumer : self.adjacencies[direction] == other_tile
+        """
+        if direction in (2, 6):
+            return self.road_horiz and other_tile.road_horiz
+        if direction in (0, 4):
+            return self.road_vertic and other_tile.road_vertic
+        return False
+
     def _update_road_adjacency(self, direction):
         """
         Met à jour un élément de la variable road_adjacencies_same_player, pour la direction
@@ -2038,15 +2076,10 @@ class Tile:
             # Dans ce cas aussi, l'équilibrage des unités est géré par le suburb.
             connection_type = 2
         else:
-            if direction in (0, 4):
-                roads_to_check = self.road_vertic and other_tile.road_vertic
-            elif direction in (6, 2):
-                roads_to_check = self.road_horiz and other_tile.road_horiz
-            else:
-                raise Exception("Road adj with diag dir. Not supposed to happen.")
+            roads_ok = self.is_road_connected(direction, other_tile)
             connection_ok = all(
                 (
-                    roads_to_check,
+                    roads_ok,
                     self.player_owner is not None,
                     self.player_owner == other_tile.player_owner,
                 )
@@ -2339,6 +2372,7 @@ class Tile:
 
         # Pour enlever les units, on aurait dû passer par la fonction remove_unit.
         # Mais on va pas le faire, parce que ça mettrait player_owner à None.
+        self.player_owner.total_units -= self.nb_unit
         self.nb_unit = 0
         # Création effective de la town.
         self.town = Town(self.x, self.y, 1, self.player_owner, self.game_master)
@@ -2624,15 +2658,15 @@ class GameMaster:
         # faut boucler dessus pour voir si on peut y propager des unités.
         self.uncontrolled_roads = []
 
-        # Création des Players.
+        # Création des PlayerHandler.
         # TODO : Faut les créer en dehors ces trucs. Et les passer en params.
-        player_0 = Player(
+        player_0 = PlayerHandler(
             0, self.w, self.h, "red", self, rightward=True, downward=False
         )
-        player_1 = Player(
+        player_1 = PlayerHandler(
             1, self.w, self.h, "blu", self, rightward=False, downward=True
         )
-        player_bionature = Player(
+        player_bionature = PlayerHandler(
             2, self.w, self.h, "grn", self, None, None, is_bionature=True
         )
         player_0.init_first_units_and_town()
@@ -2989,7 +3023,8 @@ class GameMaster:
                     if nb_bionature_unit > 16:
                         nb_bionature_unit = 16
                     tile = self.game_area[y][x]
-                    tile.add_unit(player_bionature, nb_bionature_unit)
+                    if tile.town is None:
+                        tile.add_unit(player_bionature, nb_bionature_unit)
 
 
 SANDBOX_MODES = [
@@ -3031,11 +3066,10 @@ class GameModel:
     """
 
     def __init__(self):
-        self.w = 26
-        self.h = 25
+        self.w = TOTAL_GAME_WIDTH
+        self.h = TOTAL_GAME_HEIGHT
         self.game_master = GameMaster(self.w, self.h)
-        # TODO : remettre ça après les tests sur les missiles.
-        # self.game_master.init_bionature_units(self.game_master.players[2])
+        self.game_master.init_bionature_units(self.game_master.players[2])
         self.must_start = True
         self.sandbox_action = False
         self.x_cursor = 0
@@ -3187,6 +3221,8 @@ class GameModel:
             elif sandbox_mode == "describe":
                 print("-----")
                 print(tile_target)
+                print("TODO red", self.game_master.players[0].can_generate_unit())
+                print("TODO blu", self.game_master.players[1].can_generate_unit())
 
             self.sandbox_action = False
 
@@ -3195,14 +3231,17 @@ class GameModel:
 
         for _, player in self.game_master.players.items():
             if not player.is_bionature:
+                can_generate_unit = player.can_generate_unit()
                 player.move_magnetized_units_on_suburb()
                 player.process_town_building()
                 player.move_units_on_roads(self.turn_index)
                 player.move_units_on_bare_tiles(self.turn_index)
                 player.process_backward_conquest(self.turn_index)
-                player.process_unit_generation_town()
+                if can_generate_unit:
+                    player.process_unit_generation_town()
                 player.process_town_merging()
-                player.process_unit_gen_tile()
+                if can_generate_unit:
+                    player.process_unit_gen_tile()
                 player.process_line_conquest()
             else:
                 player.process_unit_gen_tile_bionature(self.turn_index)
