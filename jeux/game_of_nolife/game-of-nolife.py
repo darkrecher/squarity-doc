@@ -221,12 +221,21 @@ posent les pixels générés, la direction des missiles bactériologiques, l'ord
 merge de town, la direction des backward conquest, etc.
 """
 
-# TODO : le missile n'explose pas si il arrive au coin de l'aire de jeu.
+# TODO : arrêt complet de la génération des tiles quand y'a plus que des villes partout.
 
 import random
 
+# TODO : faut faire gaffe à quels endroits on utilise ces constantes.
+# Tant que y'a pas d'interface, osef. Mais ça va changer.
+# Dimensions, en nombre de cases, du jeu Squarity, en comptant les cases dédiées
+# à l'interface, sur les bords.
 TOTAL_GAME_WIDTH = 41
 TOTAL_GAME_HEIGHT = 40
+# Dimensions, en nombre de cases, du jeu 'game of no-life',
+# dans lequel évoluent les unités, les villes, etc.
+WARZONE_WIDTH = 41
+WARZONE_HEIGHT = 40
+
 
 # Si Player possède un nombre d'unité supérieur à (RATIO_CONTROLLED_TILE_FOR_GENERATION * nombre de tile contrôlées),
 # la génération d'unité se met en pause (town et tiles). Ça évite de se retrouver avec un gros tas d'unités
@@ -389,41 +398,54 @@ def is_behind_left_up(tile_ref, tile_test):
     return tile_test.x >= tile_ref.x and tile_test.y >= tile_ref.y
 
 
-def sort_key_right_down(town):
+def get_town_infos_right_down(town):
     """
-    Les fonctions sort_key_xxx permettent d'ordonner les villes, en fonction de la direction
-    de conquête de Player. Les villes doivent être ordonnables, car on doit pouvoir
-    définir une priorité parmi les merge/shatter de ville.
+    Les fonctions get_town_infos_xxx renvoient un tuple de 3 éléments.
+
+    Les deux premiers éléments correspondent à la coordonnée x, y de la tile la plus
+    en arrière, de la town passée en paramètre.
+    Si la town a une taille de 1, la tile la plus arrière est la tile de la town
+    (on n'a pas le choix).
+    Si la town est plus étendue, la tile la plus arrière se trouve dans un coin.
+    Le coin en question dépend de la direction de conquête de Player.
+    C'est pour ça qu'il y a 4 fonctions, une par direction de conquête.
+
+    Le dernier éléent du tuple renvoyé est un sous-tuple de 2 élément.
+    Il s'agit d'une clé de tri, pour ordonner les villes, en fonction de la direction
+    de conquête de Player.
+    Les villes doivent être ordonnables, car on doit pouvoir définir une priorité parmi
+    les merge/shatter de ville.
     Par exemple, pour Player red, on merge les villes en commençant par le bas et la gauche.
     Les villes qui sont toutes sur la même diagonale ont leur premier index de priorité égal.
     Le deuxième index permet d'ordonner les villes qui sont sur la même diagonale.
 
     Pour les moyennes et les grosses villes, qui s'étendent sur plusieurs cases, on prend comme
-    case de référence celle qui est le plus "derrière" possible.
+    case de référence celle qui est le plus en arrière possible.
+    (Ça correspond aux coordonnées qu'on a renvoyées dans les 2 premiers elems du tuple).
     Par exemple, pour Player red, qui part du coin inférieur gauche de l'aire de jeu,
     la case la plus derrière pour une de ses towns est le coin inférieur gauche de la town.
     """
     x_behind = town.x_left
     y_behind = town.y_up
-    return (x_behind + y_behind, y_behind)
+    return (x_behind, y_behind, (x_behind + y_behind, y_behind))
 
 
-def sort_key_left_down(town):
+def get_town_infos_left_down(town):
     x_behind = town.x_left + town.size - 1
     y_behind = town.y_up
-    return (-x_behind + y_behind, y_behind)
+    return (x_behind, y_behind, (-x_behind + y_behind, y_behind))
 
 
-def sort_key_right_up(town):
+def get_town_infos_right_up(town):
     x_behind = town.x_left
     y_behind = town.y_up + town.size - 1
-    return (x_behind - y_behind, -y_behind)
+    return (x_behind, y_behind, (x_behind - y_behind, -y_behind))
 
 
-def sort_key_left_up(town):
+def get_town_infos_left_up(town):
     x_behind = town.x_left + town.size - 1
     y_behind = town.y_up + town.size - 1
-    return (-x_behind - x_behind, -x_behind)
+    return (x_behind, y_behind, (-x_behind - y_behind, -y_behind))
 
 
 # Configuration de tout un tas de variable de Player, en fonction de ses directions de conquête.
@@ -435,10 +457,10 @@ def sort_key_left_up(town):
 # - directions forward en diagonale, forward horizontale, forward verticale
 # - directions backward en diagonale, backward horizontale, backward verticale
 CONFIG_FROM_WARDNESSES = {
-    (True, True): (sort_key_right_down, is_behind_right_down, 3, 2, 4, 7, 6, 0),
-    (True, False): (sort_key_right_up, is_behind_right_up, 1, 2, 0, 5, 6, 4),
-    (False, True): (sort_key_left_down, is_behind_left_down, 5, 6, 4, 1, 2, 0),
-    (False, False): (sort_key_left_up, is_behind_left_up, 7, 6, 0, 3, 2, 4),
+    (True, True): (get_town_infos_right_down, is_behind_right_down, 3, 2, 4, 7, 6, 0),
+    (True, False): (get_town_infos_right_up, is_behind_right_up, 1, 2, 0, 5, 6, 4),
+    (False, True): (get_town_infos_left_down, is_behind_left_down, 5, 6, 4, 1, 2, 0),
+    (False, False): (get_town_infos_left_up, is_behind_left_up, 7, 6, 0, 3, 2, 4),
     (None, None): (None, None, None, None, None, None, None, None),
 }
 
@@ -482,7 +504,7 @@ class PlayerHandler:
         self.downward = downward
         self.is_bionature = is_bionature
         (
-            self.sort_key_town,
+            self.get_town_infos,
             self.is_behind,
             self.dir_forw_diag,
             self.dir_forw_hori,
@@ -531,12 +553,19 @@ class PlayerHandler:
         self.town_to_shatter = None
         # Nombre de points accumulés, pour la génération des unités par terrain contrôlés.
         self.unit_gen_tile = 0
+        # Nombre de tours consécutifs durant lesquels on a tenté de placer une unité générée,
+        # et qu'on n'a pas pu parce qu'on n'a pas trouvé de tile adéquate.
+        self.unit_gen_tile_nb_turn_fail = 0
         # Pour les 4 variables suivantes : Gestion des line conquest.
         # Voir fonction Player.process_line_conquest.
         self.tiles_to_roadify = []
         self.tile_to_townify = None
         self.delay_roadify = 0
         self.is_roadify_horiz = False
+        self.bare_tile_move_priorities_from_x_parity = (
+            (self.dir_forw_diag, self.dir_forw_hori, self.dir_forw_verti),
+            (self.dir_forw_diag, self.dir_forw_verti, self.dir_forw_hori),
+        )
 
     def __str__(self):
         return "player_%s" % self.player_id
@@ -898,20 +927,9 @@ class PlayerHandler:
                                 tile_dest.add_unit(self)
                 else:
                     # forward, en mode move.
-                    # TODO : précalculer les possible_direcs et les foutre dans une liste de 2 elems.
-                    # Ou alors, une sous-fonction, parce que là ça imbrique un max.
-                    if tile.x & 1:
-                        possible_direcs = (
-                            self.dir_forw_diag,
-                            self.dir_forw_hori,
-                            self.dir_forw_verti,
-                        )
-                    else:
-                        possible_direcs = (
-                            self.dir_forw_diag,
-                            self.dir_forw_verti,
-                            self.dir_forw_hori,
-                        )
+                    possible_direcs = self.bare_tile_move_priorities_from_x_parity[
+                        tile.x & 1
+                    ]
                     for direction in possible_direcs:
                         tile_dest = tile.adjacencies[direction]
                         if (
@@ -941,7 +959,7 @@ class PlayerHandler:
         # Définition de la tile qui fait le backward. Ça correspond à la town.
         # Pour les towns ayant size > 1, on prend la tile la plus derrière
         # (par rapport à la direction de conquête).
-        self.tile_go_backward = town.get_tile_go_backward_diag()
+        self.tile_go_backward = town.tile_go_backward_diag
         if self.tile_go_backward.adjacencies[self.dir_back_diag] is None:
             # On essaie de backwarder avec une town qui est sur un bord arrière de l'aire de jeu,
             # ça sert à rien. On laisse tomber.
@@ -1022,8 +1040,8 @@ class PlayerHandler:
 
         La nouvelle town récupère les points de génération d'unités de toutes les towns supprimées.
         """
-        # TODO : si la town sélectionnée par Player est dans towns_to_remove,
-        # faut déselectionner.
+        # TODO pour quand je ferais l'interface :
+        # si la town sélectionnée par Player est dans towns_to_remove, faut déselectionner.
         x_new_town = []
         y_new_town = []
         unit_gen_points = 0
@@ -1062,8 +1080,8 @@ class PlayerHandler:
         Comme pour merge_town, on ne fait rien dans les suburbs, car un shatter ne modifie
         pas l'organisation des suburbs.
         """
-        # TODO : si la town sélectionnée par Player est dans towns_to_remove,
-        # faut déselectionner.
+        # TODO pour quand je ferais l'interface :
+        # si la town sélectionnée par Player est dans towns_to_remove, faut déselectionner.
         unit_gen_points_new_towns = town_to_shatter.unit_gen_points // 4
         x_left = town_to_shatter.x_left
         y_up = town_to_shatter.y_up
@@ -1083,6 +1101,45 @@ class PlayerHandler:
                 tile.update_linked_gamobjs()
             new_towns.append(new_town)
         self.add_towns(new_towns)
+
+    def check_town_size_1_merge(self, cur_town):
+        """
+        Renvoie False si il n'y a rien à faire.
+        Renvoie True si on a retenu quelque chose à faire, c'est à dire si on a
+        modifié self.town_to_shatter ou self.towns_to_merge.
+        """
+        tile_of_town = cur_town.tiles_position[0]
+        tiles_aside = [
+            tile_of_town.adjacencies[self.dir_forw_hori],
+            tile_of_town.adjacencies[self.dir_forw_verti],
+            tile_of_town.adjacencies[self.dir_forw_diag],
+        ]
+        if None in tiles_aside:
+            return False
+        towns_aside = [tile.town for tile in tiles_aside]
+        if None in towns_aside:
+            return False
+        if any((town.player_owner != self for town in towns_aside)):
+            return False
+
+        can_modify = True
+        potential_towns_to_shatter = []
+        for town in towns_aside:
+            if town.size != 1:
+                if cur_town.sorting_key < town.sorting_key:
+                    potential_towns_to_shatter.append(town)
+                else:
+                    can_modify = False
+
+        if not can_modify:
+            return False
+
+        if potential_towns_to_shatter:
+            self.town_to_shatter = potential_towns_to_shatter[0]
+            return True
+        else:
+            self.towns_to_merge = [cur_town] + towns_aside
+            return True
 
     def check_town_size_2_merge(self, cur_town):
         """
@@ -1145,7 +1202,7 @@ class PlayerHandler:
         potential_towns_to_shatter = []
         for town in towns_aside:
             if town.size == 4:
-                if self.sort_key_town(cur_town) < self.sort_key_town(town):
+                if cur_town.sorting_key < town.sorting_key:
                     # Il y a une town de taille 4 qui gêne, et elle est placée après.
                     # On pourra peut-être la shatterer.
                     potential_towns_to_shatter.append(town)
@@ -1189,8 +1246,8 @@ class PlayerHandler:
         cycle de vérification, avec TOWN_MERGE_STATE_UNSORTED.
 
         town_merge_state == TOWN_MERGE_STATE_UNSORTED : on trie la liste self.towns, selon l'ordre
-        self.sort_key_town (l'une des fonctions sort_key_xxx), qui permet de savoir quelles towns
-        doivent être mergées en priorité. (voir fonction sort_key_right_down).
+        town.sorting_key (un tuple précalculé pour chaque town), qui permet de savoir quelles towns
+        doivent être mergées en priorité. (voir fonction get_town_infos_right_down).
 
         town_merge_state = TOWN_MERGE_STATE_UNCHECKED : on parcourt toutes les towns.
         Dès qu'on en trouve une qui doit être mergée, ou shatterée, on arrête le parcours,
@@ -1210,7 +1267,7 @@ class PlayerHandler:
         puis on revient à l'étape TOWN_MERGE_STATE_UNSORTED pour refaire le processus.
 
         Cette gestion a la garantie qu'on n'aura jamais de cycle infinie de merge/shatter, grâce
-        au fait qu'on ait ordonné les villes (avec self.sort_key_town).
+        au fait qu'on ait ordonné les villes (avec town.sorting_key).
         Il suffit d'instaurer ces règles :
          - on merge tout ce qu'on peut merger.
          - on shatter une town uniquement si elle empêche un merge, et uniquement si la
@@ -1220,7 +1277,7 @@ class PlayerHandler:
             return
 
         if self.town_merge_state == TOWN_MERGE_STATE_UNSORTED:
-            self.towns.sort(key=self.sort_key_town)
+            self.towns.sort(key=lambda town: town.sorting_key)
             self.town_merge_state = TOWN_MERGE_STATE_UNCHECKED
             return
 
@@ -1237,39 +1294,11 @@ class PlayerHandler:
         if self.town_merge_state == TOWN_MERGE_STATE_UNCHECKED:
             for cur_town in self.towns:
 
-                # --- Vérification des merge/shatter pour les villes ayant une size de 1 ---
+                # Vérification des merge/shatter pour les villes ayant une size de 1
                 if cur_town.size == 1:
-                    # TODO : trop de bordel. Faut que ça aille dans une fonction.
-                    tile_of_town = cur_town.tiles_position[0]
-                    tiles_aside = [
-                        tile_of_town.adjacencies[self.dir_forw_hori],
-                        tile_of_town.adjacencies[self.dir_forw_verti],
-                        tile_of_town.adjacencies[self.dir_forw_diag],
-                    ]
-                    if None in tiles_aside:
-                        continue
-                    towns_aside = [tile.town for tile in tiles_aside]
-                    if None in towns_aside:
-                        continue
-                    if any((town.player_owner != self for town in towns_aside)):
-                        continue
-                    can_modify = True
-                    potential_towns_to_shatter = []
-                    for town in towns_aside:
-                        if town.size != 1:
-                            if self.sort_key_town(cur_town) < self.sort_key_town(town):
-                                potential_towns_to_shatter.append(town)
-                            else:
-                                can_modify = False
-                    if can_modify:
-                        if potential_towns_to_shatter:
-                            self.town_to_shatter = potential_towns_to_shatter[0]
-                            return
-                        else:
-                            self.towns_to_merge = [cur_town] + towns_aside
-                            return
-
-                # --- Vérification des merge/shatter pour les villes ayant une size de 2 ---
+                    if self.check_town_size_1_merge(cur_town):
+                        return
+                # Vérification des merge/shatter pour les villes ayant une size de 2
                 elif cur_town.size == 2:
                     if self.check_town_size_2_merge(cur_town):
                         return
@@ -1291,7 +1320,11 @@ class PlayerHandler:
         """
         if self.unit_gen_tile < UNIT_GEN_TILE_POINT_MAX_CUMUL:
             self.unit_gen_tile += len(self._controlled_tiles)
-        if self.unit_gen_tile >= UNIT_GEN_TILE_POINT_REQUIRED:
+        if self.unit_gen_tile < UNIT_GEN_TILE_POINT_REQUIRED:
+            return
+
+        tile_target = None
+        if self.unit_gen_tile_nb_turn_fail < 10:
             tile_target = random.choice(self._controlled_tiles)
             if tile_target.town is not None or tile_target.nb_unit >= 16:
                 # On peut pas ajouter de unit sur la tile choisie.
@@ -1299,14 +1332,23 @@ class PlayerHandler:
                 # Si la personne qui joue a beaucoup de ville et beaucoup de tile pleine,
                 # elle aura du retard dans la génération de ses units.
                 # C'est son problème. Elle a qu'à gérer mieux son expansion.
-                #
-                # TODO : si, au bout de X tours de jeu, on n'arrive toujours pas à placer
-                # la unit. On cherche une tile où c'est possible et on prend la
-                # première qui va bien. Sinon on va se retrouver à exécuter un random.choice
-                # à chaque tour de jeu, pour rien, et ça va ralentir.
-                return
+                tile_target = None
+        else:
+            # Ça fait 10 tours de jeu qu'on n'arrive pas à placer la unit générée.
+            # Du coup, on cherche une tile où c'est possible et on prend la
+            # première qui va bien. Ça évite de se retrouver à exécuter un random.choice
+            # à chaque tour de jeu pour rien.
+            for pot_tile_target in self._controlled_tiles:
+                if pot_tile_target.town is None and pot_tile_target.nb_unit < 16:
+                    tile_target = pot_tile_target
+                    break
+
+        if tile_target is None:
+            self.unit_gen_tile_nb_turn_fail += 1
+        else:
             tile_target.add_unit(self)
             self.unit_gen_tile -= UNIT_GEN_TILE_POINT_REQUIRED
+            self.unit_gen_tile_nb_turn_fail = 0
 
     def process_unit_gen_tile_bionature(self, turn_index=0):
         """
@@ -1394,8 +1436,9 @@ class PlayerHandler:
          - lancer la construction de la ville. Le reste du code se charge d'amener la construction
            jusqu'au bout, si c'est possible.
 
-        # TODO : faudrait gérer le cas où l'autre Player construit une ville
-        # en plein pendant que Player fait une line conquest.
+        FUTURE : faudrait gérer le cas où l'autre Player construit une ville
+        en plein pendant que Player fait une line conquest.
+        Mais pour l'instant osef. On verra si c'est vraiment important quand on testera à 2.
         """
         if not self.tiles_to_roadify and not self.tile_to_townify:
             return
@@ -1503,12 +1546,12 @@ class Town:
 
         self._compute_unit_gen_tiles()
         self.adjacent_tiles = tuple([tile for tile in self.unit_gen_tiles])
-        # tile_go_backward_diag est la tile de town qui est la plus backward possible.
-        # C'est elle qui sera utilisée pour envoyer les units en backward conquest.
-        # On la calculera que si on en aura besoin.
-        self.tile_go_backward_diag = None
         self.update_unit_gen_tiles()
         self.built_all_adjacent_roads = False
+        x_behind, y_behind, self.sorting_key = self.player_owner.get_town_infos(self)
+        # tile_go_backward_diag est la tile de town qui est la plus backward possible.
+        # C'est elle qui sera utilisée pour envoyer les units lors d'une backward conquest.
+        self.tile_go_backward_diag = self.game_master.game_area[y_behind][x_behind]
         # Détermination de la liste des tiles générant des missiles.
         if self.size == 1:
             self.tiles_gen_missile = self.tiles_position
@@ -1538,30 +1581,6 @@ class Town:
         # Pas besoin de checker les autres ni de vérifier que c'est le même suburb owner pour
         # tout le monde.
         return self.tiles_position[0].suburb_owner
-
-    def get_tile_go_backward_diag(self):
-        """
-        Définit self.tile_go_backward_diag (lazy eval) et la renvoie.
-        On n'a besoin de cette valeur que si la town envoie des unités en backward conquest.
-        """
-        # TODO : c'est le même calcul que les fonctions sort_key_xxx,
-        # et en plus on le fait tout le temps ce calcul, car on s'en sert pour trier les towns.
-        # Donc faut pas du tout le lazy-evaluer, et faut le factoriser !! Andouille !!!
-        if self.tile_go_backward_diag is None:
-            wardnesses = (self.player_owner.rightward, self.player_owner.downward)
-            if wardnesses == (True, False):
-                coord_x, coord_y = self.x_left, self.y_up + self.size - 1
-            elif wardnesses == (False, True):
-                coord_x, coord_y = self.x_left + self.size - 1, self.y_up
-            elif wardnesses == (True, True):
-                coord_x, coord_y = self.x_left, self.y_up
-            elif wardnesses == (False, False):
-                coord_x, coord_y = (
-                    self.x_left + self.size - 1,
-                    self.y_up + self.size - 1,
-                )
-            self.tile_go_backward_diag = self.game_master.game_area[coord_y][coord_x]
-        return self.tile_go_backward_diag
 
     def _apply_coord_offsets_and_filter(self, x_base, y_base, offsets):
         """
@@ -1645,20 +1664,9 @@ class Town:
         La mise à jour de self.unit_gen_tiles ne fait que des suppressions de tiles (pas d'ajout).
         On enlève les tiles au fur et à mesure que des towns adjacentes se construisent.
         """
-        # TODO : virer ça après.
-        todo_debug_mode = False
-        if todo_debug_mode:
-            print("--- town update_unit_gen_tiles")
-            print(self.x_left, self.y_up)
         self.unit_gen_tiles = [
             tile for tile in self.unit_gen_tiles if tile.town is None
         ]
-        if todo_debug_mode:
-            print(
-                "unit_gen_tiles",
-                " ; ".join((f"{tile.x},{tile.y}") for tile in self.unit_gen_tiles),
-            )
-            print("---")
 
         if not self.unit_gen_tiles:
             # La town est entourée de town. Elle ne peut plus générer d'unité.
@@ -1668,8 +1676,6 @@ class Town:
             # Ils seront réutilisés si la town est fusionnée avec d'autres.
             # Et si c'est une town de size max et qu'elle est désactivée, eh bien
             # ces points ne servent plus à rien. Player avait qu'à mieux gérer son urbanisme.
-            if todo_debug_mode:
-                print("TODO desactivation town", self.x_left, self.y_up, self.size)
             self.player_owner.update_active_towns()
             # Il faut updater la liste des gamobjects de chaque tile de la town,
             # car lorsque la town est désactivée, on l'affiche en plus foncée.
@@ -1678,70 +1684,68 @@ class Town:
 
     def process_unit_generation(self):
         """
-        TODO : C'est pourri la manière dont la construction des routes adjacentes est gérée.
-        Si not self.built_all_adjacent_roads:
-        Tous les "self.unit_gen_points % 5", il faut checker si on ne peut pas ajouter une route
-        (une seule à chaque fois). Si toutes les tiles adjacentes qui ont des routes sont
-        contrôlées par Player, et avec au moins 2 unités dessus, alors on peut construire
-        les road horiz et vertic sur une tile adjacente.
-        Ça fera des routes qui se construisent progressivement, c'est toujours rigolo à regarder.
-        Et les routes se construiront assez rapidement dans le cas où Player a déjà plein d'unités
-        autour de la ville.
+        Gère la construction des routes autour d'une town,
+        ainsi que la génération d'unités par les towns.
+        Une town crée de temps en temps une unité, sur une de ses case adjacente.
         """
         self.unit_gen_points += self.unit_gen_speed
         self.unit_gen_points = min(self.unit_gen_points, UNIT_GEN_TOWN_POINT_MAX_CUMUL)
-        if self.unit_gen_points > UNIT_GEN_TOWN_POINT_REQUIRED:
 
-            if not self.built_all_adjacent_roads:
-
+        if not self.built_all_adjacent_roads:
+            if self.unit_gen_points % 5 == 0:
+                all_roads_are_controlled = True
                 # Il faut créer les routes tout autour de la ville.
-                # On en crée une par tour, pas plus.
-                # On ne produit pas forcément l'unité que la ville devrait produire.
-                # Ce n'est pas trop grave, ça décale la production juste pour une fois,
-                # puisque les points de production sont conservés.
+                # On en crée une à chaque fois, pas plus.
+                # Ça fait des routes qui se construisent progressivement,
+                # c'est toujours rigolo à regarder.
                 for tile in self.unit_gen_tiles:
                     if (
-                        (not tile.road_horiz or not tile.road_vertic)
-                        and self.player_owner == tile.player_owner
-                        and tile.nb_unit >= 2
+                        tile.road_horiz
+                        and tile.road_vertic
+                        and self.player_owner != tile.player_owner
                     ):
-                        tile.add_road(True, True)
-                        return
+                        # Toutes les tiles de routes autour de la town
+                        # ne sont pas contrôlées par Player.
+                        all_roads_are_controlled = False
+                        break
 
-                for tile in self.unit_gen_tiles:
-                    if (not tile.road_horiz or not tile.road_vertic) and (
-                        self.player_owner != tile.player_owner or tile.nb_unit < 2
-                    ):
-                        tile.add_unit(self.player_owner)
-                        self.unit_gen_points -= UNIT_GEN_TOWN_POINT_REQUIRED
-                        if tile.nb_unit >= 2:
+                if all_roads_are_controlled:
+                    # On n'a pas encore construit toutes les routes autour de la town,
+                    # mais les cases ayant des routes sont toutes contrôlées par Player.
+                    # On peut donc se permettre de construire une route de plus.
+                    # Ça va automatiquement étendre le suburb de la town, ce qui permettra
+                    # de répartir les unités de Player sur plus de tiles
+                    # (si Player a assez d'unités).
+                    for tile in self.unit_gen_tiles:
+                        if not tile.road_horiz or not tile.road_vertic:
                             tile.add_road(True, True)
-                        return
+                            if all(
+                                [
+                                    tile.road_horiz and tile.road_vertic
+                                    for tile in self.unit_gen_tiles
+                                ]
+                            ):
+                                self.built_all_adjacent_roads = True
+                            # On a construit une route.
+                            # On ne produit pas forcément l'unité que la ville devrait produire.
+                            # Ce n'est pas trop grave, ça décale la production juste pour un tour,
+                            # puisque les points de production unit_gen_points sont conservés.
+                            return
 
-                if all(
-                    [
-                        tile.road_horiz and tile.road_vertic
-                        for tile in self.unit_gen_tiles
-                    ]
-                ):
-                    self.built_all_adjacent_roads = True
+        if self.unit_gen_points > UNIT_GEN_TOWN_POINT_REQUIRED:
+            # On ajoute une unité sur n'importe quelle tile, osef.
+            # Le suburb s'occupera de les répartir comme il faut.
+            for tile in self.unit_gen_tiles:
+                if self.player_owner != tile.player_owner or tile.nb_unit < 16:
+                    tile.add_unit(self.player_owner)
+                    self.unit_gen_points -= UNIT_GEN_TOWN_POINT_REQUIRED
+                    return
 
-            else:
-
-                # Toutes les routes autour sont déjà créées.
-                # On ajoute une unité sur n'importe quelle tile, osef.
-                # Le suburb s'occupera de les répartir comme il faut.
-                for tile in self.unit_gen_tiles:
-                    if self.player_owner != tile.player_owner or tile.nb_unit < 16:
-                        tile.add_unit(self.player_owner)
-                        self.unit_gen_points -= UNIT_GEN_TOWN_POINT_REQUIRED
-                        return
-
-                # Si on est arrivé là, on aurait du générer une unit, mais on n'a aucun
-                # endroit où la placer. Tant pis, on testera au prochain tour.
-                # C'est pour ça qu'on peut cumuler plus de points de génération que le coût de
-                # création d'une unit. Ça permet d'avoir un petit délai dans la génération,
-                # sans perdre de points.
+            # Si on est arrivé à la fin de la boucle, on aurait du générer une unit,
+            # mais on n'a aucun endroit où la placer. Tant pis, on testera au prochain tour.
+            # C'est pour ça qu'on peut cumuler plus de points de génération que le coût de
+            # création d'une unit. Ça permet d'avoir un petit délai dans la génération,
+            # sans perdre de points.
 
 
 class Suburb:
@@ -1875,10 +1879,7 @@ class Suburb:
             # D'où l'intérêt de prendre le plus gros suburb et d'exécuter sa fonction merge,
             # avec le plus petit suburb en paramètre. Et non pas le contraire.
             # Sinon on se retrouve à rechecker plein de connexions déjà annulées.
-            #
-            # TODO : du coup j'appelle une fonction privée depuis une autre classe.
-            # Sémantiquement c'est mal. Faudra régler ça.
-            road_tile._update_all_road_adjacencies()
+            road_tile.update_all_road_adjacencies()
 
         self._update_bounding_rect()
         self.game_master.suburbs.remove(other_suburb)
@@ -1958,9 +1959,6 @@ class Tile:
         Lorsqu'on modifie des éléments d'interface : Player sélectionne une town, on affiche
         la destination d'un missile avant de le lancer, etc. Il ne faut pas modifier le contenu
         de la tile elle-même, donc pas besoin d'appeler cette fonction.
-
-        Cela dit, pour l'instant, on n'affiche que très peu d'éléments d'interface. Donc j'ai
-        pas d'exemple précis. TODO : finir l'interface. Ha ha ha.
         """
 
         if self.player_owner is None:
@@ -2091,7 +2089,7 @@ class Tile:
         # Mise à jour de la connexion opposée, pour la tile adjacente à cette tile.
         other_tile.road_adjacencies_same_player[reversed_direction] = connection_type
 
-    def _update_all_road_adjacencies(self):
+    def update_all_road_adjacencies(self):
         """
         Mise à jour de toutes la liste road_adjacencies_same_player, en fonction
         des roads et des tiles contrôlées.
@@ -2294,7 +2292,7 @@ class Tile:
             # Maintenant qu'on a fait des merges, on met à jour les connexions entre route.
             # On en annulera certaines (on met des "2" dans road_adjacencies_same_player),
             # car ce sont devenues des routes d'un même suburb.
-            self._update_all_road_adjacencies()
+            self.update_all_road_adjacencies()
         self.update_linked_gamobjs()
 
     def _remove_all_roads(self):
@@ -2314,7 +2312,7 @@ class Tile:
             self.game_master.uncontrolled_roads.remove(self)
         else:
             self.player_owner.remove_controlled_road(self)
-        self._update_all_road_adjacencies()
+        self.update_all_road_adjacencies()
         self.update_linked_gamobjs()
 
     def advance_town_building(self):
@@ -2537,6 +2535,7 @@ class Missile:
             return
 
         self.delay_move = Missile.DELAY_MOVE
+        self.duration -= 1
         next_tile = self.tile.adjacencies[self.direction]
         if next_tile is None:
             next_tile = self.tile.adjacencies[self.slide_dir_1]
@@ -2546,7 +2545,6 @@ class Missile:
             return
 
         self.tile = next_tile
-        self.duration -= 1
 
     def define_dest_tiles(self):
         self.dest_tiles = []
@@ -2657,28 +2655,23 @@ class GameMaster:
         # C'est assez rare qu'il y ait des routes inocuppées, mais quand c'est le cas,
         # faut boucler dessus pour voir si on peut y propager des unités.
         self.uncontrolled_roads = []
+        self.players = None
+        self.player_bionature = None
 
-        # Création des PlayerHandler.
-        # TODO : Faut les créer en dehors ces trucs. Et les passer en params.
-        player_0 = PlayerHandler(
-            0, self.w, self.h, "red", self, rightward=True, downward=False
-        )
-        player_1 = PlayerHandler(
-            1, self.w, self.h, "blu", self, rightward=False, downward=True
-        )
-        player_bionature = PlayerHandler(
-            2, self.w, self.h, "grn", self, None, None, is_bionature=True
-        )
-        player_0.init_first_units_and_town()
-        player_1.init_first_units_and_town()
-        self.players = {0: player_0, 1: player_1, 2: player_bionature}
-        self.player_bionature = player_bionature
         self.missiles = []
-        # TODO test.
-        # missile = Missile(player_0, self.game_area[5][3], 1, 10, player_bionature, self)
-        # self.missiles.append(missile)
-        # missile = Missile(player_1, self.game_area[0][25], 5, 4, player_bionature, self)
-        # self.missiles.append(missile)
+
+    def set_all_players(self, real_players, player_bionature):
+        """
+        real_players est une liste contenant tous les "vrais" PlayerHandler, dirigés par des humains.
+        player_bionature est un seul PlayerHandler, dirigé par le jeu.
+        """
+        # Initialisation des PlayerHandler.
+        for player in real_players:
+            player.init_first_units_and_town()
+        self.init_bionature_units(player_bionature)
+        # La variable membre players contient tous les players, y compris la bionature.
+        self.players = real_players + [player_bionature]
+        self.player_bionature = player_bionature
 
     def _make_adjacencies(self, x, y):
         """
@@ -2838,7 +2831,7 @@ class GameMaster:
     def _equilibrate_units_in_one_suburb(self, suburb, turn_index):
         """
         Répartit toutes les unités qui sont présentes dans un même suburb,
-        ou bien élimine des unités différentes si plusieurs Players sont sur ce suburb.
+        ou bien élimine des unités différentes si plusieurs PlayerHandlers sont sur ce suburb.
 
         Quand on répartit les unités, on ne le fait que "ponctuellement". On prend la tile
         qui a le plus d'unités et celle qui en a le moins, on calcule la différence,
@@ -3066,10 +3059,22 @@ class GameModel:
     """
 
     def __init__(self):
-        self.w = TOTAL_GAME_WIDTH
-        self.h = TOTAL_GAME_HEIGHT
+        self.w = WARZONE_WIDTH
+        self.h = WARZONE_HEIGHT
+
         self.game_master = GameMaster(self.w, self.h)
-        self.game_master.init_bionature_units(self.game_master.players[2])
+        self.player_red = PlayerHandler(
+            0, self.w, self.h, "red", self.game_master, rightward=True, downward=False
+        )
+        self.player_blu = PlayerHandler(
+            1, self.w, self.h, "blu", self.game_master, rightward=False, downward=True
+        )
+        self.player_bionature = PlayerHandler(
+            2, self.w, self.h, "grn", self.game_master, None, None, is_bionature=True
+        )
+        self.game_master.set_all_players(
+            [self.player_red, self.player_blu], self.player_bionature
+        )
         self.must_start = True
         self.sandbox_action = False
         self.x_cursor = 0
@@ -3089,7 +3094,7 @@ class GameModel:
             tile = missile.tile
             gamobjs_copy[tile.y][tile.x].append(missile.gamobj)
         gamobjs_copy[self.y_cursor][self.x_cursor].append("red_cursor")
-        for player in self.game_master.players.values():
+        for player in self.game_master.players:
             if player.tile_magnet is not None:
                 # TODO : mettre ce nom de gamobj en cache ? et le go back aussi ?
                 gamobj_magnet = player.color + "_magnet"
@@ -3130,10 +3135,10 @@ class GameModel:
             tile_target = self.game_master.game_area[self.y_cursor][self.x_cursor]
             if sandbox_mode == "add red unit":
                 if tile_target.town is None:
-                    tile_target.add_unit(self.game_master.players[0], 1)
+                    tile_target.add_unit(self.player_red, 1)
             elif sandbox_mode == "add blu unit":
                 if tile_target.town is None:
-                    tile_target.add_unit(self.game_master.players[1], 1)
+                    tile_target.add_unit(self.player_blu, 1)
             elif sandbox_mode == "add horiz road":
                 if tile_target.town is not None:
                     print("Pas de route sur une town")
@@ -3156,17 +3161,17 @@ class GameModel:
                     else:
                         tile_target.player_owner.tile_building_town = tile_target
             elif sandbox_mode == "red magnet":
-                self.game_master.players[0].cancel_all_orders()
-                if self.game_master.players[0].tile_magnet == tile_target:
-                    self.game_master.players[0].tile_magnet = None
+                self.player_red.cancel_all_orders()
+                if self.player_red.tile_magnet == tile_target:
+                    self.player_red.tile_magnet = None
                 else:
-                    self.game_master.players[0].tile_magnet = tile_target
+                    self.player_red.tile_magnet = tile_target
             elif sandbox_mode == "blu magnet":
-                self.game_master.players[1].cancel_all_orders()
-                if self.game_master.players[1].tile_magnet == tile_target:
-                    self.game_master.players[1].tile_magnet = None
+                self.player_blu.cancel_all_orders()
+                if self.player_blu.tile_magnet == tile_target:
+                    self.player_blu.tile_magnet = None
                 else:
-                    self.game_master.players[1].tile_magnet = tile_target
+                    self.player_blu.tile_magnet = tile_target
             elif sandbox_mode == "backward conquest":
                 if tile_target.town is None:
                     print("Il faut sélectionner une ville pour le backward conquest")
@@ -3176,7 +3181,7 @@ class GameModel:
                     player.set_town_backward_conquest(tile_target.town)
             elif sandbox_mode == "add grn unit":
                 if tile_target.town is None:
-                    tile_target.add_unit(self.game_master.players[2], 1)
+                    tile_target.add_unit(self.player_bionature, 1)
             elif sandbox_mode == "conquest up":
                 self._conquest(tile_target, 0)
             elif sandbox_mode == "conquest right":
@@ -3221,15 +3226,15 @@ class GameModel:
             elif sandbox_mode == "describe":
                 print("-----")
                 print(tile_target)
-                print("TODO red", self.game_master.players[0].can_generate_unit())
-                print("TODO blu", self.game_master.players[1].can_generate_unit())
+                print("red can generate units", self.player_red.can_generate_unit())
+                print("blu can generate units", self.player_blu.can_generate_unit())
 
             self.sandbox_action = False
 
         self.game_master.conquest_neutral_roads()
         self.game_master.equilibrate_units_in_suburbs(self.turn_index)
 
-        for _, player in self.game_master.players.items():
+        for player in self.game_master.players:
             if not player.is_bionature:
                 can_generate_unit = player.can_generate_unit()
                 player.move_magnetized_units_on_suburb()
