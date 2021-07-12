@@ -221,7 +221,7 @@ posent les pixels générés, la direction des missiles bactériologiques, l'ord
 merge de town, la direction des backward conquest, etc.
 """
 
-# TODO : arrêt complet de la génération des tiles quand y'a plus que des villes partout.
+# FUTURE : suppression du backward conquest si une town est merge/shatterée.
 
 import random
 
@@ -503,6 +503,8 @@ class PlayerHandler:
         self.rightward = rightward
         self.downward = downward
         self.is_bionature = is_bionature
+        self.gamobj_magnet = self.color + "_magnet"
+        self.gamobj_go_back = self.color + "_go_back"
         (
             self.get_town_infos,
             self.is_behind,
@@ -743,6 +745,7 @@ class PlayerHandler:
 
     def can_generate_unit(self):
         limit_total_units = len(self._controlled_tiles) * RATIO_CONTROLLED_TILE_FOR_GEN
+        limit_total_units = max(16, limit_total_units)
         return self.total_units < limit_total_units
 
     def move_units_on_roads(self, turn_index):
@@ -981,7 +984,6 @@ class PlayerHandler:
             rect_xs[1] + 1,
             rect_ys[1] + 1,
         )
-        print("self.bounding_rect_go_back", self.bounding_rect_go_back)
         self.tile_magnet = self.tile_go_backward
 
     def _process_backward_conquest_town_tile(self, select_tile):
@@ -2351,7 +2353,6 @@ class Tile:
         de vérification des merge/shatter, pour prévenir le game_master qu'il doit relancer
         tout un cycle de vérification.
         """
-        print("start build town")
         if self.player_owner is None:
             raise Exception("Town without owner. Not supposed to happen.")
 
@@ -2389,7 +2390,6 @@ class Tile:
             self.town.get_suburb_owner()
         )
         self.update_linked_gamobjs()
-        print("end build town")
 
 
 class Missile:
@@ -2789,9 +2789,13 @@ class GameMaster:
 
         Il faut donc faire attention à la liste qu'on donne en paramètre.
         """
-        # TODO : faut les trier pour repérer le plus grand.
-        # On merge le plus grand avec les autres,
-        # c'est plus rapide que de merger un petit avec d'autres.
+        # On trie les suburbs, du plus grand au plus petit.
+        # Plus un suburb possède de "real_suburb_tiles", plus il est grand.
+        # Comme ça, on merge le plus grand suburb avec les autres,
+        # C'est plus rapide que de merger un petit suburb avec d'autres.
+        many_suburbs.sort(
+            key=lambda suburb: len(suburb.real_suburb_tiles), reverse=True
+        )
         first_suburb = many_suburbs.pop(0)
         while many_suburbs:
             other_suburb = many_suburbs.pop(0)
@@ -2823,9 +2827,11 @@ class GameMaster:
                     suburbs_to_merge.append(other_suburb)
 
         # Et ensuite on merge tout ce qui doit être mergé.
+        # En commençant par les plus grands, pour optimiser.
+        suburbs_to_merge.sort(
+            key=lambda suburb: len(suburb.real_suburb_tiles), reverse=True
+        )
         for other_suburb in suburbs_to_merge:
-            # TODO Là aussi, faut merger le plus grand avec le plus petit.
-            # C'est plus rapide.
             one_suburb.merge(other_suburb)
 
     def _equilibrate_units_in_one_suburb(self, suburb, turn_index):
@@ -2910,8 +2916,7 @@ class GameMaster:
                             player_tile.move_unit_without_check(
                                 tile_unit_max, tile_unit_min, diff // 2
                             )
-        # elif len(most_unequilibrateds) == 2:
-        else:
+        elif len(most_unequilibrateds) == 2:
             # Il y a plusieurs personnes dans ce suburb. On élimine une unité à chacune,
             # en les prenant à partir de leurs tiles ayant le maximum d'unité.
             tile_extrems = list(most_unequilibrateds.values())
@@ -2921,27 +2926,34 @@ class GameMaster:
             tile_unit_max_2 = tile_extrems_2[1]
             tile_unit_max_1.remove_unit()
             tile_unit_max_2.remove_unit()
-        # else:
-        #     Si on a plus que 2 players, faut déterminer équitablement quelles unités on élimine.
-        #     On éliminera une unité pour 2 players parmi la liste. Mais lesquels ?
-        #     Un round-robin shufflé basé sur le numéro de tour de jeu ?
-        #     TODO.
-        #     for x in range(6):
-        #         a = x % 3
-        #         b = x % 2
-        #         if b >= a:
-        #             b+=1
-        #         print(a,b)
-        #
-        # Même exemple mais autrement.
-        # s = []
-        # for x in range(12):
-        #     a = x % 4
-        #     b = x % 3
-        #     if b >= a:
-        #         b+=1
-        #     print(a,b)
-        #     s+=[(a,b)]
+        else:
+            # Si on a plus que 2 players, il faut déterminer équitablement quelles unités on élimine.
+            # On prend 2 players dans la liste, et on élimine une unité chacun.
+            # Il faut choisir ces players de façons à ce que ce soit équitable : pas tout le temps les 2 mêmes.
+            # (Au tour suivant, faudra prendre le player qui n'a pas été choisi)
+            # Pour faire ça, on fait un espèce de round-robin basé sur le numéro de tour de jeu.
+            sorted_extrems = [
+                (player.player_id, one_tile_extrems)
+                for player, one_tile_extrems in most_unequilibrateds.items()
+            ]
+            sorted_extrems.sort()
+            tile_extrems = [
+                one_tile_extrems for p_id, one_tile_extrems in sorted_extrems
+            ]
+            # Round-robin de la mort.
+            turn_index_mod = turn_index % len(tile_extrems)
+            select_index_1 = turn_index_mod
+            select_index_2 = turn_index_mod % (len(tile_extrems) - 1)
+            if select_index_2 >= select_index_1:
+                select_index_2 += 1
+            # C'est bon, on a round-robiné. Il n'y a plus qu'à prendre les tiles concernées
+            # et on leur enlève une unité chacun.
+            tile_extrems_1 = tile_extrems[select_index_1]
+            tile_extrems_2 = tile_extrems[select_index_2]
+            tile_unit_max_1 = tile_extrems_1[1]
+            tile_unit_max_2 = tile_extrems_2[1]
+            tile_unit_max_1.remove_unit()
+            tile_unit_max_2.remove_unit()
 
     def equilibrate_units_in_suburbs(self, turn_index):
         """
@@ -3061,6 +3073,7 @@ class GameModel:
     def __init__(self):
         self.w = WARZONE_WIDTH
         self.h = WARZONE_HEIGHT
+        self.nb_warzone_tiles = WARZONE_WIDTH * WARZONE_HEIGHT
 
         self.game_master = GameMaster(self.w, self.h)
         self.player_red = PlayerHandler(
@@ -3096,15 +3109,11 @@ class GameModel:
         gamobjs_copy[self.y_cursor][self.x_cursor].append("red_cursor")
         for player in self.game_master.players:
             if player.tile_magnet is not None:
-                # TODO : mettre ce nom de gamobj en cache ? et le go back aussi ?
-                gamobj_magnet = player.color + "_magnet"
-                gamobjs_copy[player.tile_magnet.y][player.tile_magnet.x].append(
-                    gamobj_magnet
-                )
+                tile = player.tile_magnet
+                gamobjs_copy[tile.y][tile.x].append(player.gamobj_magnet)
             if player.tile_go_backward is not None:
-                gamobj_go_back = player.color + "_go_back"
                 tile = player.tile_go_backward
-                gamobjs_copy[tile.y][tile.x].append(gamobj_go_back)
+                gamobjs_copy[tile.y][tile.x].append(player.gamobj_go_back)
         return gamobjs_copy
 
     def _conquest(self, tile_target, direc):
@@ -3233,6 +3242,8 @@ class GameModel:
 
         self.game_master.conquest_neutral_roads()
         self.game_master.equilibrate_units_in_suburbs(self.turn_index)
+        # FUTURE : Ici il faudrait contrôler si toutes les tiles sont des towns.
+        # Si oui, on arrête la génération de units pour tout le monde, et on affiche le score final.
 
         for player in self.game_master.players:
             if not player.is_bionature:
@@ -3261,7 +3272,10 @@ class GameModel:
             self.game_master.missiles.remove(missile_to_rem)
 
         self.turn_index += 1
-        # TODO : calculer approximativement un délai plus ou moins long selon la quantité de trucs à gérer.
+        # FUTURE : calculer approximativement un délai plus ou moins long selon la quantité de trucs à gérer.
+        # Plus on a eu à gérer de trucs durant ce tour, plus on met un délai court.
+        # Mais c'est super chaud à estimer, ou alors faudrait regarder avec la date courante à chaque fois,
+        # et je préfère m'occuper de ça plus tard (ou jamais).
         return (
             """ { "delayed_actions": [ {"name": "process_turn", "delay_ms": 200} ] } """
         )
