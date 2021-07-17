@@ -48,6 +48,8 @@
     "red_town_4x4_23": [8, 28],
     "red_town_4x4_33": [12, 28],
 
+    "red_select_town_1x1": [12, 8],
+
     "red_controls": [64, 0],
     "red_road_horiz": [72, 0],
     "red_road_vertic": [76, 0],
@@ -104,6 +106,8 @@
     "blu_town_4x4_13": [20, 28],
     "blu_town_4x4_23": [24, 28],
     "blu_town_4x4_33": [28, 28],
+
+    "blu_select_town_1x1": [12, 8],
 
     "blu_controls": [64, 4],
     "blu_road_horiz": [72, 4],
@@ -568,9 +572,13 @@ class PlayerHandler:
             (self.dir_forw_diag, self.dir_forw_hori, self.dir_forw_verti),
             (self.dir_forw_diag, self.dir_forw_verti, self.dir_forw_hori),
         )
+        self.player_interface = None
 
     def __str__(self):
         return "player_%s" % self.player_id
+
+    def set_player_interface(self, player_interface):
+        self.player_interface = player_interface
 
     def add_controlled_tile(self, tile):
         # Pas besoin de trier ces tiles dans le sens dans lequel on les résout.
@@ -854,6 +862,8 @@ class PlayerHandler:
             return
 
     def update_active_towns(self):
+        if self.player_interface is not None:
+            self.player_interface.dirtify_town_list()
         self.active_towns = [town for town in self.towns if town.is_active]
 
     def process_unit_generation_town(self):
@@ -3032,7 +3042,84 @@ class GameMaster:
                         tile.add_unit(player_bionature, nb_bionature_unit)
 
 
+class IhmMode:
+
+    MAIN_MENU = 0
+    SELECT_TOWN = 1
+    SELECT_CONQUEST_TILE = 2
+
+
+class PlayerInterface:
+    def __init__(self, game_master, player_me, player_enemy, player_bionature):
+        self.game_master = game_master
+        self.player_me = player_me
+        self.player_enemy = player_enemy
+        self.player_bionature = player_bionature
+        self.color = self.player_me.color
+        self.current_mode = IhmMode.MAIN_MENU
+        self.next_mode = IhmMode.SELECT_TOWN
+        self.selected_town = self.player_me.active_towns[0]
+        self.index_selected_town = 0
+        self.is_town_list_dirty = True
+        self.refresh_town_list()
+
+    def refresh_town_list(self):
+        print("refresh_town_list !!")
+        self.sorted_towns = sorted(
+            self.player_me.active_towns, key=lambda town: (town.x_left, town.y_up)
+        )
+        self.nb_towns = len(self.sorted_towns)
+        print("self.nb_towns", self.nb_towns)
+        # TODO : faut reprendre l'index d'avant, et retrouver le bon,
+        # et si la town n'est plus dans la liste, faut trouver la plus proche qui remplace.
+        self.index_selected_town = 0
+        self.selected_town = self.sorted_towns[self.index_selected_town]
+        self.is_town_list_dirty = False
+
+    def dirtify_town_list(self):
+        self.is_town_list_dirty = True
+
+    def add_interface_gamobjs(self, array_gamobjs):
+        tile_sel_town = self.selected_town.tiles_position[0]
+        array_gamobjs[tile_sel_town.y][tile_sel_town.x].append(
+            self.color + "_select_town_1x1"
+        )
+
+    def on_change_action(self):
+
+        if self.current_mode == IhmMode.MAIN_MENU:
+            if self.next_mode == IhmMode.SELECT_TOWN:
+                self.next_mode = IhmMode.SELECT_CONQUEST_TILE
+                print("next mode conquest tile")
+            else:
+                self.next_mode = IhmMode.SELECT_TOWN
+                print("next mode select town")
+
+        elif self.current_mode == IhmMode.SELECT_TOWN:
+            print(self.color, "change town")
+            if self.is_town_list_dirty:
+                self.refresh_town_list()
+            self.index_selected_town += 1
+            if self.index_selected_town >= self.nb_towns:
+                self.index_selected_town = 0
+            self.selected_town = self.sorted_towns[self.index_selected_town]
+
+        elif self.current_mode == IhmMode.SELECT_CONQUEST_TILE:
+            print(self.color, "selecting conquest tile. TODO")
+
+    def on_activate_action(self):
+        if self.current_mode == IhmMode.MAIN_MENU:
+            self.current_mode = self.next_mode
+        elif self.current_mode == IhmMode.SELECT_TOWN:
+            self.current_mode = IhmMode.MAIN_MENU
+            print("back to main menu")
+        elif self.current_mode == IhmMode.SELECT_CONQUEST_TILE:
+            self.current_mode = IhmMode.MAIN_MENU
+            print("back to main menu")
+
+
 SANDBOX_MODES = [
+    "switch to interface mode",
     "add red unit",
     "add blu unit",
     "add horiz road",
@@ -3089,6 +3176,16 @@ class GameModel:
             [self.player_red, self.player_blu], self.player_bionature
         )
         self.must_start = True
+        self.player_interface_red = PlayerInterface(
+            self.game_master, self.player_red, self.player_blu, self.player_bionature
+        )
+        self.player_red.set_player_interface(self.player_interface_red)
+        self.player_interface_blu = PlayerInterface(
+            self.game_master, self.player_blu, self.player_red, self.player_bionature
+        )
+        self.player_blu.set_player_interface(self.player_interface_blu)
+
+        self.sandboxing = True
         self.sandbox_action = False
         self.x_cursor = 0
         self.y_cursor = 0
@@ -3114,6 +3211,9 @@ class GameModel:
             if player.tile_go_backward is not None:
                 tile = player.tile_go_backward
                 gamobjs_copy[tile.y][tile.x].append(player.gamobj_go_back)
+
+        self.player_interface_red.add_interface_gamobjs(gamobjs_copy)
+        self.player_interface_blu.add_interface_gamobjs(gamobjs_copy)
         return gamobjs_copy
 
     def _conquest(self, tile_target, direc):
@@ -3203,7 +3303,7 @@ class GameModel:
                 if tile_target.town is None:
                     print("Il faut sélectionner une ville pour balancer des missiles.")
                 else:
-                    # On vérifier que y'a pas déjà des missiles en construction pour cette town.
+                    # On vérifie que y'a pas déjà des missiles en construction pour cette town.
                     player_owner_missile = tile_target.town.player_owner
                     tiles_gen_missile = tile_target.town.tiles_gen_missile
                     can_launch_missile = True
@@ -3237,6 +3337,10 @@ class GameModel:
                 print(tile_target)
                 print("red can generate units", self.player_red.can_generate_unit())
                 print("blu can generate units", self.player_blu.can_generate_unit())
+
+            elif sandbox_mode == "switch to interface mode":
+                print("switch to interface")
+                self.sandboxing = False
 
             self.sandbox_action = False
 
@@ -3287,20 +3391,37 @@ class GameModel:
             self.must_start = False
             return """ { "delayed_actions": [ {"name": "process_turn", "delay_ms": 10} ] } """
 
-        if event_name == "action_1":
-            self.sandbox_mode_index += 1
-            if self.sandbox_mode_index >= len(SANDBOX_MODES):
-                self.sandbox_mode_index = 0
-            print("mode actuel :", SANDBOX_MODES[self.sandbox_mode_index])
-            return
-        if event_name == "action_2":
-            self.sandbox_action = True
-            return
-        if event_name in "URDL":
-            x_cursor_new, y_cursor_new = coord_move(
-                self.x_cursor, self.y_cursor, event_name
-            )
-            if 0 <= x_cursor_new < self.w and 0 <= y_cursor_new < self.h:
-                self.x_cursor, self.y_cursor = x_cursor_new, y_cursor_new
-            return
+        if self.sandboxing:
+
+            if event_name == "action_1":
+                self.sandbox_mode_index += 1
+                if self.sandbox_mode_index >= len(SANDBOX_MODES):
+                    self.sandbox_mode_index = 0
+                print("mode actuel :", SANDBOX_MODES[self.sandbox_mode_index])
+                return
+            if event_name == "action_2":
+                self.sandbox_action = True
+                return
+            if event_name in "URDL":
+                x_cursor_new, y_cursor_new = coord_move(
+                    self.x_cursor, self.y_cursor, event_name
+                )
+                if 0 <= x_cursor_new < self.w and 0 <= y_cursor_new < self.h:
+                    self.x_cursor, self.y_cursor = x_cursor_new, y_cursor_new
+                return
+
+        else:
+
+            # TODO : dictionnaire de fonction qui tue.
+            if event_name == "U":
+                print("back to sandboxing")
+                self.sandboxing = True
+            elif event_name == "L":
+                self.player_interface_red.on_change_action()
+            elif event_name == "R":
+                self.player_interface_red.on_activate_action()
+            elif event_name == "action_1":
+                self.player_interface_blu.on_change_action()
+            elif event_name == "action_2":
+                self.player_interface_blu.on_activate_action()
 
