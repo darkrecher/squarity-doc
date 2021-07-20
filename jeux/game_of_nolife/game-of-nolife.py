@@ -49,6 +49,7 @@
     "red_town_4x4_33": [12, 28],
 
     "red_select_town_1x1": [12, 8],
+    "red_selector": [12, 8],
 
     "red_controls": [64, 0],
     "red_road_horiz": [72, 0],
@@ -108,6 +109,7 @@
     "blu_town_4x4_33": [28, 28],
 
     "blu_select_town_1x1": [12, 8],
+    "blu_selector": [12, 8],
 
     "blu_controls": [64, 4],
     "blu_road_horiz": [72, 4],
@@ -450,6 +452,12 @@ def get_town_infos_left_up(town):
     x_behind = town.x_left + town.size - 1
     y_behind = town.y_up + town.size - 1
     return (x_behind, y_behind, (-x_behind - y_behind, -y_behind))
+
+
+# C'est dégueu d'avoir besoin d'une fonction comme ça.
+# Faut vraiment que je fasse des librairies génériques de manipulation de tile et d'arrays.
+def tile_from_coords(array_gamobjs, tile):
+    return array_gamobjs[tile.y][tile.x]
 
 
 # Configuration de tout un tas de variable de Player, en fonction de ses directions de conquête.
@@ -3047,6 +3055,7 @@ class IhmMode:
     MAIN_MENU = 0
     SELECT_TOWN = 1
     SELECT_CONQUEST_TILE = 2
+    SELECT_CONQUEST_DEST = 3
 
 
 class PlayerInterface:
@@ -3058,8 +3067,12 @@ class PlayerInterface:
         self.color = self.player_me.color
         self.current_mode = IhmMode.MAIN_MENU
         self.next_mode = IhmMode.SELECT_TOWN
-        self.selected_town = self.player_me.active_towns[0]
         self.index_selected_town = 0
+        self.selected_town = self.player_me.active_towns[self.index_selected_town]
+        self.index_conquest_start = 0
+        self.tile_selector = None
+        self.index_tile_conquest_dest = None
+        self.tiles_conquest_dest = None
         self.is_town_list_dirty = True
         self.refresh_town_list()
 
@@ -3081,9 +3094,14 @@ class PlayerInterface:
 
     def add_interface_gamobjs(self, array_gamobjs):
         tile_sel_town = self.selected_town.tiles_position[0]
-        array_gamobjs[tile_sel_town.y][tile_sel_town.x].append(
+        # TODO : pas de concaténation de merde avec self.color.
+        tile_from_coords(array_gamobjs, tile_sel_town).append(
             self.color + "_select_town_1x1"
         )
+        if self.tile_selector is not None:
+            tile_from_coords(array_gamobjs, self.tile_selector).append(
+                self.color + "_selector"
+            )
 
     def on_change_action(self):
 
@@ -3105,17 +3123,71 @@ class PlayerInterface:
             self.selected_town = self.sorted_towns[self.index_selected_town]
 
         elif self.current_mode == IhmMode.SELECT_CONQUEST_TILE:
-            print(self.color, "selecting conquest tile. TODO")
+            # On parcourt town.unit_gen_tiles : c'est la liste des tiles adjacentes de la town,
+            # qui sont libres (c'est à dire que y'a pas une autre town dessus).
+            print(self.color, "selecting conquest tile.")
+            conquest_tiles = self.selected_town.unit_gen_tiles
+
+            if self.index_conquest_start is None:
+                self.index_conquest_start = 0
+            else:
+                self.index_conquest_start += 1
+            if self.index_conquest_start >= len(conquest_tiles):
+                self.index_conquest_start = None
+
+            self.tile_selector = (
+                None
+                if self.index_conquest_start is None
+                else conquest_tiles[self.index_conquest_start]
+            )
 
     def on_activate_action(self):
+
         if self.current_mode == IhmMode.MAIN_MENU:
+            self.tile_selector = None
+            print("yohop")
             self.current_mode = self.next_mode
+            if self.current_mode == IhmMode.SELECT_CONQUEST_TILE:
+                self.index_conquest_start = 0
+                conquest_tiles = self.selected_town.unit_gen_tiles
+                self.tile_selector = conquest_tiles[self.index_conquest_start]
+
         elif self.current_mode == IhmMode.SELECT_TOWN:
+            self.tile_selector = None
             self.current_mode = IhmMode.MAIN_MENU
             print("back to main menu")
         elif self.current_mode == IhmMode.SELECT_CONQUEST_TILE:
-            self.current_mode = IhmMode.MAIN_MENU
-            print("back to main menu")
+            if self.tile_selector is None:
+                self.current_mode = IhmMode.MAIN_MENU
+                self.tile_selector = None
+                print("back to main menu")
+            else:
+                print("yohop choose conquest dist.")
+                # Truc dégueulasse : on doit retrouver la direction de conquête en fonction de la town
+                # et de la tile de démarrage de conquête. J'aurais vraiment pu arranger ça mieux, mais zut.
+                for tile in self.selected_town.tiles_position:
+                    dirs = directions_from_pos(tile, self.tile_selector)
+                    if len(dirs) == 1:
+                        conquest_dir = dirs[0]
+                        break
+                else:
+                    raise Exception("Impossible de trouver la conquest dir. Blargh.")
+                print("conquest_dir", conquest_dir)
+                self.tiles_conquest_dest = []
+                current_tile = self.tile_selector
+                for conquest_distance in range(9):
+                    in_conquest_step = conquest_distance in (0, 4, 8)
+                    if in_conquest_step:
+                        self.tiles_conquest_dest.append(current_tile)
+                    next_tile = current_tile.adjacencies[conquest_dir]
+                    if next_tile is None or next_tile.town is not None:
+                        if not in_conquest_step:
+                            self.tiles_conquest_dest.append(current_tile)
+                        break
+                    else:
+                        current_tile = next_tile
+                for tile in self.tiles_conquest_dest:
+                    print("tile conquest", tile.x, tile.y)
 
 
 SANDBOX_MODES = [
