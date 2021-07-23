@@ -50,6 +50,10 @@
 
     "red_select_town_1x1": [12, 8],
     "red_selector": [12, 8],
+    "red_ihm_conquest_vertic": [12, 5],
+    "red_ihm_conquest_horiz": [12, 11],
+    "red_ihm_conquest_dst_pot": [11, 8],
+    "red_ihm_conquest_nxt_town": [10, 8],
 
     "red_controls": [64, 0],
     "red_road_horiz": [72, 0],
@@ -110,6 +114,10 @@
 
     "blu_select_town_1x1": [12, 8],
     "blu_selector": [12, 8],
+    "blu_ihm_conquest_vertic": [12, 5],
+    "blu_ihm_conquest_horiz": [12, 11],
+    "blu_ihm_conquest_dst_pot": [11, 8],
+    "blu_ihm_conquest_nxt_town": [10, 8],
 
     "blu_controls": [64, 4],
     "blu_road_horiz": [72, 4],
@@ -3070,9 +3078,14 @@ class PlayerInterface:
         self.index_selected_town = 0
         self.selected_town = self.player_me.active_towns[self.index_selected_town]
         self.index_conquest_start = 0
+        # TODO : si ça sert qu'à un seul truc (choix du départ de conquête),
+        # faut renommer cette variable.
         self.tile_selector = None
-        self.index_tile_conquest_dest = None
-        self.tiles_conquest_dest = None
+        self.index_conquest_line = 0
+        self.conquest_lines = None
+        self.conquest_dest_pot_tiles = []
+        self.current_conquest_line = None
+        self.tile_next_town = None
         self.is_town_list_dirty = True
         self.refresh_town_list()
 
@@ -3102,6 +3115,25 @@ class PlayerInterface:
             tile_from_coords(array_gamobjs, self.tile_selector).append(
                 self.color + "_selector"
             )
+        for tile in self.conquest_dest_pot_tiles:
+            tile_from_coords(array_gamobjs, tile).append(
+                self.color + "_ihm_conquest_dst_pot"
+            )
+        if self.current_conquest_line:
+            # TODO vertic/horiz, et donc faut retenir la direction de conquête.
+            for tile in self.current_conquest_line[:-1]:
+                tile_from_coords(array_gamobjs, tile).append(
+                    self.color + "_ihm_conquest_vertic"
+                )
+            last_tile = self.current_conquest_line[-1]
+            tile_from_coords(array_gamobjs, last_tile).append(self.color + "_selector")
+        if self.tile_next_town is not None:
+            if self.tile_next_town.town is not None:
+                self.tile_next_town = None
+            else:
+                tile_from_coords(array_gamobjs, self.tile_next_town).append(
+                    self.color + "_ihm_conquest_nxt_town"
+                )
 
     def on_change_action(self):
 
@@ -3132,13 +3164,28 @@ class PlayerInterface:
                 self.index_conquest_start = 0
             else:
                 self.index_conquest_start += 1
-            if self.index_conquest_start >= len(conquest_tiles):
-                self.index_conquest_start = None
+                if self.index_conquest_start >= len(conquest_tiles):
+                    self.index_conquest_start = None
 
             self.tile_selector = (
                 None
                 if self.index_conquest_start is None
                 else conquest_tiles[self.index_conquest_start]
+            )
+
+        elif self.current_mode == IhmMode.SELECT_CONQUEST_DEST:
+            print(self.color, "selecting dest tile")
+            if self.index_conquest_line is None:
+                self.index_conquest_line = 0
+            else:
+                self.index_conquest_line += 1
+                if self.index_conquest_line >= len(self.conquest_lines):
+                    self.index_conquest_line = None
+
+            self.current_conquest_line = (
+                None
+                if self.index_conquest_line is None
+                else self.conquest_lines[self.index_conquest_line]
             )
 
     def on_activate_action(self):
@@ -3159,7 +3206,6 @@ class PlayerInterface:
         elif self.current_mode == IhmMode.SELECT_CONQUEST_TILE:
             if self.tile_selector is None:
                 self.current_mode = IhmMode.MAIN_MENU
-                self.tile_selector = None
                 print("back to main menu")
             else:
                 print("yohop choose conquest dist.")
@@ -3173,21 +3219,55 @@ class PlayerInterface:
                 else:
                     raise Exception("Impossible de trouver la conquest dir. Blargh.")
                 print("conquest_dir", conquest_dir)
-                self.tiles_conquest_dest = []
+                self.conquest_lines = []
+                self.conquest_dest_pot_tiles = []
                 current_tile = self.tile_selector
+                current_conquest_line = []
+                current_conquest_line.append(current_tile)
                 for conquest_distance in range(9):
-                    in_conquest_step = conquest_distance in (0, 4, 8)
-                    if in_conquest_step:
-                        self.tiles_conquest_dest.append(current_tile)
+
                     next_tile = current_tile.adjacencies[conquest_dir]
-                    if next_tile is None or next_tile.town is not None:
-                        if not in_conquest_step:
-                            self.tiles_conquest_dest.append(current_tile)
-                        break
-                    else:
-                        current_tile = next_tile
-                for tile in self.tiles_conquest_dest:
-                    print("tile conquest", tile.x, tile.y)
+                    must_stop_lining = next_tile is None or next_tile.town is not None
+
+                    if conquest_distance in (0, 3, 7) or must_stop_lining:
+                        self.conquest_dest_pot_tiles.append(current_tile)
+                        self.conquest_lines.append(list(current_conquest_line))
+                        if must_stop_lining:
+                            break
+
+                    current_tile = next_tile
+                    current_conquest_line.append(current_tile)
+
+                if not self.conquest_lines:
+                    raise Exception("conquest line empty. Not supposed to happen")
+                self.tile_selector = None
+                self.index_conquest_line = 0
+                self.current_conquest_line = self.conquest_lines[
+                    self.index_conquest_line
+                ]
+                self.tile_selector = None
+                self.current_mode = IhmMode.SELECT_CONQUEST_DEST
+
+                for line in self.conquest_lines:
+                    print("--- conquest line ---")
+                    for tile in line:
+                        print(tile.x, tile.y)
+
+        elif self.current_mode == IhmMode.SELECT_CONQUEST_DEST:
+            self.conquest_dest_pot_tiles = []
+            if self.index_conquest_line is None:
+                self.current_mode = IhmMode.MAIN_MENU
+                print("back to main menu")
+            else:
+                self.player_me.cancel_all_orders()
+                self.player_me.tiles_to_roadify.extend(self.current_conquest_line)
+                self.player_me.tile_to_townify = self.current_conquest_line[-1]
+                self.tile_next_town = self.current_conquest_line[-1]
+                # TODO : la direction vertic/horiz des routes, bordel.
+                self.player_me.is_roadify_horiz = True  # direc in (2, 6)
+                print("launch conquest")
+                self.current_conquest_line = []
+                self.current_mode = IhmMode.MAIN_MENU
 
 
 SANDBOX_MODES = [
