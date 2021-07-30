@@ -3064,6 +3064,9 @@ class IhmMode:
     SELECT_TOWN = 1
     SELECT_CONQUEST_TILE = 2
     SELECT_CONQUEST_DEST = 3
+    BACKWARD_CONQUEST = 4
+    CANCEL_CURRENT_ORDERS = 5
+    LAUNCH_MISSILE = 6
 
 
 class PlayerInterface:
@@ -3083,6 +3086,8 @@ class PlayerInterface:
         self.tile_selector = None
         self.index_conquest_line = 0
         self.conquest_lines = None
+        self.conquest_dir = None
+        self.gamobj_conquest_line = None
         self.conquest_dest_pot_tiles = []
         self.current_conquest_line = None
         self.tile_next_town = None
@@ -3092,7 +3097,7 @@ class PlayerInterface:
     def refresh_town_list(self):
         print("refresh_town_list !!")
         self.sorted_towns = sorted(
-            self.player_me.active_towns, key=lambda town: (town.x_left, town.y_up)
+            self.player_me.active_towns, key=lambda town: (town.y_up, town.x_left)
         )
         self.nb_towns = len(self.sorted_towns)
         print("self.nb_towns", self.nb_towns)
@@ -3120,11 +3125,8 @@ class PlayerInterface:
                 self.color + "_ihm_conquest_dst_pot"
             )
         if self.current_conquest_line:
-            # TODO vertic/horiz, et donc faut retenir la direction de conquête.
             for tile in self.current_conquest_line[:-1]:
-                tile_from_coords(array_gamobjs, tile).append(
-                    self.color + "_ihm_conquest_vertic"
-                )
+                tile_from_coords(array_gamobjs, tile).append(self.gamobj_conquest_line)
             last_tile = self.current_conquest_line[-1]
             tile_from_coords(array_gamobjs, last_tile).append(self.color + "_selector")
         if self.tile_next_town is not None:
@@ -3135,15 +3137,51 @@ class PlayerInterface:
                     self.color + "_ihm_conquest_nxt_town"
                 )
 
+    def launch_missiles(self):
+        # On vérifie que y'a pas déjà des missiles en construction pour cette town.
+        tiles_gen_missile = self.selected_town.tiles_gen_missile
+        for missile in self.game_master.missiles:
+            if (
+                missile.player_owner == self.player_me
+                and missile.current_action == Missile.BUILDING
+                and missile.tile in tiles_gen_missile
+            ):
+                # Il y a un missile en construction. On laisse tomber.
+                return
+
+        print("ok missiles")
+        # TODO : ça va pas être comme ça tout ce bazar. La distance des missiles et tout, faut le changer.
+        missile_delays_from_town_size = {1: [None], 2: [2, 6], 4: [2, 10, 14, 6]}
+        missile_delays = missile_delays_from_town_size[self.selected_town.size]
+        for tile, delay in zip(tiles_gen_missile, missile_delays):
+            missile = Missile(self.player_me, tile, 10, self.game_master, delay)
+            self.game_master.missiles.append(missile)
+
     def on_change_action(self):
 
         if self.current_mode == IhmMode.MAIN_MENU:
-            if self.next_mode == IhmMode.SELECT_TOWN:
-                self.next_mode = IhmMode.SELECT_CONQUEST_TILE
-                print("next mode conquest tile")
-            else:
-                self.next_mode = IhmMode.SELECT_TOWN
-                print("next mode select town")
+            next_modes = {
+                IhmMode.SELECT_TOWN: (
+                    IhmMode.SELECT_CONQUEST_TILE,
+                    "next mode conquest tile",
+                ),
+                IhmMode.SELECT_CONQUEST_TILE: (
+                    IhmMode.BACKWARD_CONQUEST,
+                    "next mode backward conquest",
+                ),
+                IhmMode.BACKWARD_CONQUEST: (IhmMode.LAUNCH_MISSILE, "launch missile"),
+                IhmMode.LAUNCH_MISSILE: (
+                    IhmMode.CANCEL_CURRENT_ORDERS,
+                    "cancel current orders",
+                ),
+                IhmMode.CANCEL_CURRENT_ORDERS: (
+                    IhmMode.SELECT_TOWN,
+                    "next mode select town",
+                ),
+            }
+            next_next_mode, log = next_modes[self.next_mode]
+            self.next_mode = next_next_mode
+            print(log)
 
         elif self.current_mode == IhmMode.SELECT_TOWN:
             print(self.color, "change town")
@@ -3194,10 +3232,39 @@ class PlayerInterface:
             self.tile_selector = None
             print("yohop")
             self.current_mode = self.next_mode
+
             if self.current_mode == IhmMode.SELECT_CONQUEST_TILE:
                 self.index_conquest_start = 0
                 conquest_tiles = self.selected_town.unit_gen_tiles
                 self.tile_selector = conquest_tiles[self.index_conquest_start]
+            elif self.current_mode == IhmMode.BACKWARD_CONQUEST:
+                print("backward conquest !")
+                # TODO : ça c'est du cancel all interface. Faudra le factoriser.
+                self.player_me.cancel_all_orders()
+                self.tile_next_town = None
+                self.current_conquest_line = []
+                self.current_mode = IhmMode.MAIN_MENU
+                self.next_mode = IhmMode.SELECT_TOWN
+                self.player_me.set_town_backward_conquest(self.selected_town)
+                print("back to main menu")
+            elif self.current_mode == IhmMode.LAUNCH_MISSILE:
+                print("missiles !")
+                # TODO : ça c'est du cancel all interface. Faudra le factoriser.
+                self.player_me.cancel_all_orders()
+                self.tile_next_town = None
+                self.current_conquest_line = []
+                self.current_mode = IhmMode.MAIN_MENU
+                self.next_mode = IhmMode.SELECT_TOWN
+                self.launch_missiles()
+                print("back to main menu")
+            elif self.current_mode == IhmMode.CANCEL_CURRENT_ORDERS:
+                # TODO : ça c'est du cancel all interface. Faudra le factoriser.
+                self.player_me.cancel_all_orders()
+                self.tile_next_town = None
+                self.current_conquest_line = []
+                self.current_mode = IhmMode.MAIN_MENU
+                self.next_mode = IhmMode.SELECT_TOWN
+                print("back to main menu")
 
         elif self.current_mode == IhmMode.SELECT_TOWN:
             self.tile_selector = None
@@ -3214,11 +3281,11 @@ class PlayerInterface:
                 for tile in self.selected_town.tiles_position:
                     dirs = directions_from_pos(tile, self.tile_selector)
                     if len(dirs) == 1:
-                        conquest_dir = dirs[0]
+                        self.conquest_dir = dirs[0]
                         break
                 else:
                     raise Exception("Impossible de trouver la conquest dir. Blargh.")
-                print("conquest_dir", conquest_dir)
+                print("conquest_dir", self.conquest_dir)
                 self.conquest_lines = []
                 self.conquest_dest_pot_tiles = []
                 current_tile = self.tile_selector
@@ -3226,7 +3293,7 @@ class PlayerInterface:
                 current_conquest_line.append(current_tile)
                 for conquest_distance in range(9):
 
-                    next_tile = current_tile.adjacencies[conquest_dir]
+                    next_tile = current_tile.adjacencies[self.conquest_dir]
                     must_stop_lining = next_tile is None or next_tile.town is not None
 
                     if conquest_distance in (0, 3, 7) or must_stop_lining:
@@ -3247,6 +3314,13 @@ class PlayerInterface:
                 ]
                 self.tile_selector = None
                 self.current_mode = IhmMode.SELECT_CONQUEST_DEST
+                # Détermination de la direction vertic/horiz des routes.
+                # TODO : c'est dégueux. Faut precalc les deux gamobj.
+                self.gamobj_conquest_line = (
+                    self.color + "_ihm_conquest_horiz"
+                    if self.conquest_dir in (2, 6)
+                    else self.color + "_ihm_conquest_vertic"
+                )
 
                 for line in self.conquest_lines:
                     print("--- conquest line ---")
@@ -3259,12 +3333,12 @@ class PlayerInterface:
                 self.current_mode = IhmMode.MAIN_MENU
                 print("back to main menu")
             else:
+                # TODO : factoriser les cancels.
                 self.player_me.cancel_all_orders()
                 self.player_me.tiles_to_roadify.extend(self.current_conquest_line)
                 self.player_me.tile_to_townify = self.current_conquest_line[-1]
                 self.tile_next_town = self.current_conquest_line[-1]
-                # TODO : la direction vertic/horiz des routes, bordel.
-                self.player_me.is_roadify_horiz = True  # direc in (2, 6)
+                self.player_me.is_roadify_horiz = self.conquest_dir in (2, 6)
                 print("launch conquest")
                 self.current_conquest_line = []
                 self.current_mode = IhmMode.MAIN_MENU
