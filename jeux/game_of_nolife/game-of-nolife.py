@@ -1,11 +1,11 @@
-# https://i.ibb.co/qRHp4WX/game-of-nolife-tileset.png (old)
-# https://i.ibb.co/C84whqp/game-of-nolife-tileset.png
+# https://i.ibb.co/C84whqp/game-of-nolife-tileset.png (old)
+# https://i.postimg.cc/dtSGtZLC/game-of-nolife-tileset.png
 
 """
 {
   "game_area": {
-    "nb_tile_width": 41,
-    "nb_tile_height": 40
+    "nb_tile_width": 60,
+    "nb_tile_height": 38
   },
   "tile_size": 4,
 
@@ -179,11 +179,131 @@
     "missile_build_08": [48, 8],
     "missile_build_09": [52, 8],
 
+    "ihm_background": [44, 20],
+
+    "blu_ihm_btn_select_00": [0, 32],
+    "blu_ihm_btn_select_01": [4, 32],
+    "blu_ihm_btn_select_02": [8, 32],
+    "blu_ihm_btn_select_03": [0, 36],
+    "blu_ihm_btn_select_04": [4, 36],
+    "blu_ihm_btn_select_05": [8, 36],
+    "blu_ihm_btn_select_06": [0, 40],
+    "blu_ihm_btn_select_07": [4, 40],
+    "blu_ihm_btn_select_08": [8, 40],
+    "blu_ihm_btn_conq_00": [12, 32],
+    "blu_ihm_btn_conq_01": [16, 32],
+    "blu_ihm_btn_conq_02": [20, 32],
+    "blu_ihm_btn_conq_03": [12, 36],
+    "blu_ihm_btn_conq_04": [16, 36],
+    "blu_ihm_btn_conq_05": [20, 36],
+    "blu_ihm_btn_conq_06": [12, 40],
+    "blu_ihm_btn_conq_07": [16, 40],
+    "blu_ihm_btn_conq_08": [20, 40],
+    "blu_ihm_btn_backw_00": [24, 32],
+    "blu_ihm_btn_backw_01": [28, 32],
+    "blu_ihm_btn_backw_02": [32, 32],
+    "blu_ihm_btn_backw_03": [24, 36],
+    "blu_ihm_btn_backw_04": [28, 36],
+    "blu_ihm_btn_backw_05": [32, 36],
+    "blu_ihm_btn_backw_06": [24, 40],
+    "blu_ihm_btn_backw_07": [28, 40],
+    "blu_ihm_btn_backw_08": [32, 40],
+    "blu_ihm_btn_missile_00": [36, 32],
+    "blu_ihm_btn_missile_01": [40, 32],
+    "blu_ihm_btn_missile_02": [44, 32],
+    "blu_ihm_btn_missile_03": [36, 36],
+    "blu_ihm_btn_missile_04": [40, 36],
+    "blu_ihm_btn_missile_05": [44, 36],
+    "blu_ihm_btn_missile_06": [36, 40],
+    "blu_ihm_btn_missile_07": [40, 40],
+    "blu_ihm_btn_missile_08": [44, 40],
+    "blu_ihm_btn_conqdir_00": [0, 44],
+    "blu_ihm_btn_conqdir_01": [4, 44],
+    "blu_ihm_btn_conqdir_02": [8, 44],
+    "blu_ihm_btn_conqdir_03": [0, 48],
+    "blu_ihm_btn_conqdir_04": [4, 48],
+    "blu_ihm_btn_conqdir_05": [8, 48],
+    "blu_ihm_btn_conqdir_06": [0, 52],
+    "blu_ihm_btn_conqdir_07": [4, 52],
+    "blu_ihm_btn_conqdir_08": [8, 52],
+    "blu_ihm_btn_conqdist_00": [12, 44],
+    "blu_ihm_btn_conqdist_01": [16, 44],
+    "blu_ihm_btn_conqdist_02": [20, 44],
+    "blu_ihm_btn_conqdist_03": [12, 48],
+    "blu_ihm_btn_conqdist_04": [16, 48],
+    "blu_ihm_btn_conqdist_05": [20, 48],
+    "blu_ihm_btn_conqdist_06": [12, 52],
+    "blu_ihm_btn_conqdist_07": [16, 52],
+    "blu_ihm_btn_conqdist_08": [20, 52],
+    "blu_ihm_btn_cancel_00": [24, 44],
+    "blu_ihm_btn_cancel_01": [28, 44],
+    "blu_ihm_btn_cancel_02": [32, 44],
+    "blu_ihm_btn_cancel_03": [24, 48],
+    "blu_ihm_btn_cancel_04": [28, 48],
+    "blu_ihm_btn_cancel_05": [32, 48],
+    "blu_ihm_btn_cancel_06": [24, 52],
+    "blu_ihm_btn_cancel_07": [28, 52],
+    "blu_ihm_btn_cancel_08": [32, 52],
+    "blu_ihm_btn_noorder_00": [36, 44],
+    "blu_ihm_btn_noorder_01": [40, 44],
+    "blu_ihm_btn_noorder_02": [44, 44],
+    "blu_ihm_btn_noorder_03": [36, 48],
+    "blu_ihm_btn_noorder_04": [40, 48],
+    "blu_ihm_btn_noorder_05": [44, 48],
+    "blu_ihm_btn_noorder_06": [36, 52],
+    "blu_ihm_btn_noorder_07": [40, 52],
+    "blu_ihm_btn_noorder_08": [44, 52],
+    "blu_ihm_btn_sleep_00": [48, 44],
+    "blu_ihm_btn_sleep_01": [52, 44],
+    "blu_ihm_btn_sleep_02": [56, 44],
+    "blu_ihm_btn_sleep_03": [48, 48],
+    "blu_ihm_btn_sleep_04": [52, 48],
+    "blu_ihm_btn_sleep_05": [56, 48],
+    "blu_ihm_btn_sleep_06": [48, 52],
+    "blu_ihm_btn_sleep_07": [52, 52],
+    "blu_ihm_btn_sleep_08": [56, 52],
+
     "bla": [0, 0]
 
   }
 }
 """
+
+
+# TODO : ça va pas du tout là.
+def build_ihm_player(color, start_x, start_y):
+
+    button_definitions = (
+        ("ihm_btn_select", 0, 0),
+        ("ihm_btn_conq", 0, 1),
+        ("ihm_btn_backw", 0, 2),
+        ("ihm_btn_missile", 0, 3),
+        ("ihm_btn_conqdir", 1, 1),
+        ("ihm_btn_conqdist", 2, 1),
+        ("ihm_btn_noorder", 0, 4),
+        ("ihm_btn_noorder", 1, 4),
+        ("ihm_btn_sleep", 1, 5),
+    )
+    array_gamobjs = []
+    for y in range(WARZONE_HEIGHT):
+        line = []
+        for x in range(OFFSET_INTERFACE_X):
+            line.append([])
+        array_gamobjs.append(line)
+
+    for button_name, btn_pos_x, btn_pos_y in button_definitions:
+        index_tile = 0
+        for tile_y in range(3):
+            for tile_x in range(3):
+                final_x = start_x + btn_pos_x * 4 + tile_x
+                final_y = start_y + btn_pos_y * 4 + tile_y
+                gamobj = f"{color}_{button_name}_{index_tile:02d}"
+                # TODO beurk facto.
+                array_gamobjs[final_y][final_x].append("ihm_background")
+                array_gamobjs[final_y][final_x].append(gamobj)
+                index_tile += 1
+    return array_gamobjs
+
 
 """
 
@@ -239,17 +359,20 @@ merge de town, la direction des backward conquest, etc.
 
 import random
 
+
+# Dimensions, en nombre de cases, du jeu 'game of no-life',
+# dans lequel évoluent les unités, les villes, etc.
+WARZONE_WIDTH = 36
+WARZONE_HEIGHT = 36
+# Décalage de l'affichage de la warzone, par rapport à l'interface du jeu
+OFFSET_INTERFACE_X = 12
+OFFSET_INTERFACE_Y = 2
 # TODO : faut faire gaffe à quels endroits on utilise ces constantes.
 # Tant que y'a pas d'interface, osef. Mais ça va changer.
 # Dimensions, en nombre de cases, du jeu Squarity, en comptant les cases dédiées
 # à l'interface, sur les bords.
-TOTAL_GAME_WIDTH = 41
-TOTAL_GAME_HEIGHT = 40
-# Dimensions, en nombre de cases, du jeu 'game of no-life',
-# dans lequel évoluent les unités, les villes, etc.
-WARZONE_WIDTH = 41
-WARZONE_HEIGHT = 40
-
+TOTAL_GAME_WIDTH = WARZONE_WIDTH + 2 * OFFSET_INTERFACE_X
+TOTAL_GAME_HEIGHT = WARZONE_HEIGHT + OFFSET_INTERFACE_Y
 
 # Si Player possède un nombre d'unité supérieur à (RATIO_CONTROLLED_TILE_FOR_GENERATION * nombre de tile contrôlées),
 # la génération d'unité se met en pause (town et tiles). Ça évite de se retrouver avec un gros tas d'unités
@@ -465,7 +588,7 @@ def get_town_infos_left_up(town):
 # C'est dégueu d'avoir besoin d'une fonction comme ça.
 # Faut vraiment que je fasse des librairies génériques de manipulation de tile et d'arrays.
 def tile_from_coords(array_gamobjs, tile):
-    return array_gamobjs[tile.y][tile.x]
+    return array_gamobjs[tile.y + OFFSET_INTERFACE_Y][tile.x + OFFSET_INTERFACE_X]
 
 
 # Configuration de tout un tas de variable de Player, en fonction de ses directions de conquête.
@@ -3004,7 +3127,7 @@ class GameMaster:
         que en min. La quantité d'unité est à chaque fois déterminée au hasard, entre le min et
         le max calculé en tenant compte de la diagonale et des épicentres proches.
         """
-        nb_epicentre = 25
+        nb_epicentre = 15
         min_size = min(self.w, self.h)
         rand_epi = min_size // 5
         epicentres = []
@@ -3254,7 +3377,7 @@ class PlayerInterface:
                 self.tile_next_town = None
                 self.current_conquest_line = []
                 self.current_mode = IhmMode.MAIN_MENU
-                self.next_mode = IhmMode.SELECT_TOWN
+                self.next_mode = IhmMode.LAUNCH_MISSILE
                 self.launch_missiles()
                 print("back to main menu")
             elif self.current_mode == IhmMode.CANCEL_CURRENT_ORDERS:
@@ -3419,24 +3542,43 @@ class GameModel:
         self.turn_index = 0
         print("mode actuel :", SANDBOX_MODES[self.sandbox_mode_index])
 
+        self.ihm_player_red = build_ihm_player("blu", 0, 5)
+
     def export_all_tiles(self):
         gamobjs_source = self.game_master.gamobjs_to_export
         gamobjs_copy = []
-        for line_source in gamobjs_source:
-            line = [list(gamobjs) for gamobjs in line_source]
+        for _ in range(OFFSET_INTERFACE_Y):
+            line = [[]] * TOTAL_GAME_WIDTH
+            gamobjs_copy.append(line)
+        for line_ihm_red, line_source in zip(self.ihm_player_red, gamobjs_source):
+            line = (
+                # [[]] * OFFSET_INTERFACE_X
+                line_ihm_red
+                + [list(gamobjs) for gamobjs in line_source]
+                + [[]] * OFFSET_INTERFACE_X
+            )
             gamobjs_copy.append(line)
 
+        # TODO : C'est dégueulasse tout ces offsets.
         for missile in self.game_master.missiles:
             tile = missile.tile
-            gamobjs_copy[tile.y][tile.x].append(missile.gamobj)
-        gamobjs_copy[self.y_cursor][self.x_cursor].append("red_cursor")
+            gamobjs_copy[tile.y + OFFSET_INTERFACE_Y][
+                tile.x + OFFSET_INTERFACE_X
+            ].append(missile.gamobj)
+        gamobjs_copy[self.y_cursor + OFFSET_INTERFACE_Y][
+            self.x_cursor + OFFSET_INTERFACE_X
+        ].append("red_cursor")
         for player in self.game_master.players:
             if player.tile_magnet is not None:
                 tile = player.tile_magnet
-                gamobjs_copy[tile.y][tile.x].append(player.gamobj_magnet)
+                gamobjs_copy[tile.y + OFFSET_INTERFACE_Y][
+                    tile.x + OFFSET_INTERFACE_X
+                ].append(player.gamobj_magnet)
             if player.tile_go_backward is not None:
                 tile = player.tile_go_backward
-                gamobjs_copy[tile.y][tile.x].append(player.gamobj_go_back)
+                gamobjs_copy[tile.y + OFFSET_INTERFACE_Y][
+                    tile.x + OFFSET_INTERFACE_X
+                ].append(player.gamobj_go_back)
 
         self.player_interface_red.add_interface_gamobjs(gamobjs_copy)
         self.player_interface_blu.add_interface_gamobjs(gamobjs_copy)
@@ -3530,6 +3672,7 @@ class GameModel:
                     print("Il faut sélectionner une ville pour balancer des missiles.")
                 else:
                     # On vérifie que y'a pas déjà des missiles en construction pour cette town.
+                    # TODO : factoriser ce bordel avec la fonction de PlayerIhm.
                     player_owner_missile = tile_target.town.player_owner
                     tiles_gen_missile = tile_target.town.tiles_gen_missile
                     can_launch_missile = True
@@ -3651,3 +3794,5 @@ class GameModel:
             elif event_name == "action_2":
                 self.player_interface_blu.on_activate_action()
 
+
+# TODO : bug dans la conquest line, on peut avoir 4 choix de distance alors qu'on devrait en avoir que 2.
