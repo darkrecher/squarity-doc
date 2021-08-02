@@ -1,5 +1,5 @@
-# https://i.ibb.co/C84whqp/game-of-nolife-tileset.png (old)
-# https://i.postimg.cc/dtSGtZLC/game-of-nolife-tileset.png
+# https://i.postimg.cc/dtSGtZLC/game-of-nolife-tileset.png (old)
+# https://i.postimg.cc/y8FzSPyv/game-of-nolife-tileset.png
 
 """
 {
@@ -181,6 +181,89 @@
 
     "ihm_background": [44, 20],
 
+    "red_ihm_btn_select_00": [0, 56],
+    "red_ihm_btn_select_01": [4, 56],
+    "red_ihm_btn_select_02": [8, 56],
+    "red_ihm_btn_select_03": [0, 60],
+    "red_ihm_btn_select_04": [4, 60],
+    "red_ihm_btn_select_05": [8, 60],
+    "red_ihm_btn_select_06": [0, 64],
+    "red_ihm_btn_select_07": [4, 64],
+    "red_ihm_btn_select_08": [8, 64],
+    "red_ihm_btn_conq_00": [12, 56],
+    "red_ihm_btn_conq_01": [16, 56],
+    "red_ihm_btn_conq_02": [20, 56],
+    "red_ihm_btn_conq_03": [12, 60],
+    "red_ihm_btn_conq_04": [16, 60],
+    "red_ihm_btn_conq_05": [20, 60],
+    "red_ihm_btn_conq_06": [12, 64],
+    "red_ihm_btn_conq_07": [16, 64],
+    "red_ihm_btn_conq_08": [20, 64],
+    "red_ihm_btn_backw_00": [24, 56],
+    "red_ihm_btn_backw_01": [28, 56],
+    "red_ihm_btn_backw_02": [32, 56],
+    "red_ihm_btn_backw_03": [24, 60],
+    "red_ihm_btn_backw_04": [28, 60],
+    "red_ihm_btn_backw_05": [32, 60],
+    "red_ihm_btn_backw_06": [24, 64],
+    "red_ihm_btn_backw_07": [28, 64],
+    "red_ihm_btn_backw_08": [32, 64],
+    "red_ihm_btn_missile_00": [36, 56],
+    "red_ihm_btn_missile_01": [40, 56],
+    "red_ihm_btn_missile_02": [44, 56],
+    "red_ihm_btn_missile_03": [36, 60],
+    "red_ihm_btn_missile_04": [40, 60],
+    "red_ihm_btn_missile_05": [44, 60],
+    "red_ihm_btn_missile_06": [36, 64],
+    "red_ihm_btn_missile_07": [40, 64],
+    "red_ihm_btn_missile_08": [44, 64],
+    "red_ihm_btn_conqdir_00": [0, 68],
+    "red_ihm_btn_conqdir_01": [4, 68],
+    "red_ihm_btn_conqdir_02": [8, 68],
+    "red_ihm_btn_conqdir_03": [0, 72],
+    "red_ihm_btn_conqdir_04": [4, 72],
+    "red_ihm_btn_conqdir_05": [8, 72],
+    "red_ihm_btn_conqdir_06": [0, 76],
+    "red_ihm_btn_conqdir_07": [4, 76],
+    "red_ihm_btn_conqdir_08": [8, 76],
+    "red_ihm_btn_conqdist_00": [12, 68],
+    "red_ihm_btn_conqdist_01": [16, 68],
+    "red_ihm_btn_conqdist_02": [20, 68],
+    "red_ihm_btn_conqdist_03": [12, 72],
+    "red_ihm_btn_conqdist_04": [16, 72],
+    "red_ihm_btn_conqdist_05": [20, 72],
+    "red_ihm_btn_conqdist_06": [12, 76],
+    "red_ihm_btn_conqdist_07": [16, 76],
+    "red_ihm_btn_conqdist_08": [20, 76],
+    "red_ihm_btn_cancel_00": [24, 68],
+    "red_ihm_btn_cancel_01": [28, 68],
+    "red_ihm_btn_cancel_02": [32, 68],
+    "red_ihm_btn_cancel_03": [24, 72],
+    "red_ihm_btn_cancel_04": [28, 72],
+    "red_ihm_btn_cancel_05": [32, 72],
+    "red_ihm_btn_cancel_06": [24, 76],
+    "red_ihm_btn_cancel_07": [28, 76],
+    "red_ihm_btn_cancel_08": [32, 76],
+    "red_ihm_btn_noorder_00": [36, 68],
+    "red_ihm_btn_noorder_01": [40, 68],
+    "red_ihm_btn_noorder_02": [44, 68],
+    "red_ihm_btn_noorder_03": [36, 72],
+    "red_ihm_btn_noorder_04": [40, 72],
+    "red_ihm_btn_noorder_05": [44, 72],
+    "red_ihm_btn_noorder_06": [36, 76],
+    "red_ihm_btn_noorder_07": [40, 76],
+    "red_ihm_btn_noorder_08": [44, 76],
+    "red_ihm_btn_sleep_00": [48, 68],
+    "red_ihm_btn_sleep_01": [52, 68],
+    "red_ihm_btn_sleep_02": [56, 68],
+    "red_ihm_btn_sleep_03": [48, 72],
+    "red_ihm_btn_sleep_04": [52, 72],
+    "red_ihm_btn_sleep_05": [56, 72],
+    "red_ihm_btn_sleep_06": [48, 76],
+    "red_ihm_btn_sleep_07": [52, 76],
+    "red_ihm_btn_sleep_08": [56, 76],
+    "red_ihm_lit_background": [52, 20],
+
     "blu_ihm_btn_select_00": [0, 32],
     "blu_ihm_btn_select_01": [4, 32],
     "blu_ihm_btn_select_02": [8, 32],
@@ -262,47 +345,13 @@
     "blu_ihm_btn_sleep_06": [48, 52],
     "blu_ihm_btn_sleep_07": [52, 52],
     "blu_ihm_btn_sleep_08": [56, 52],
+    "blu_ihm_lit_background": [48, 20],
 
     "bla": [0, 0]
 
   }
 }
 """
-
-
-# TODO : ça va pas du tout là.
-def build_ihm_player(color, start_x, start_y):
-
-    button_definitions = (
-        ("ihm_btn_select", 0, 0),
-        ("ihm_btn_conq", 0, 1),
-        ("ihm_btn_backw", 0, 2),
-        ("ihm_btn_missile", 0, 3),
-        ("ihm_btn_conqdir", 1, 1),
-        ("ihm_btn_conqdist", 2, 1),
-        ("ihm_btn_noorder", 0, 4),
-        ("ihm_btn_noorder", 1, 4),
-        ("ihm_btn_sleep", 1, 5),
-    )
-    array_gamobjs = []
-    for y in range(WARZONE_HEIGHT):
-        line = []
-        for x in range(OFFSET_INTERFACE_X):
-            line.append([])
-        array_gamobjs.append(line)
-
-    for button_name, btn_pos_x, btn_pos_y in button_definitions:
-        index_tile = 0
-        for tile_y in range(3):
-            for tile_x in range(3):
-                final_x = start_x + btn_pos_x * 4 + tile_x
-                final_y = start_y + btn_pos_y * 4 + tile_y
-                gamobj = f"{color}_{button_name}_{index_tile:02d}"
-                # TODO beurk facto.
-                array_gamobjs[final_y][final_x].append("ihm_background")
-                array_gamobjs[final_y][final_x].append(gamobj)
-                index_tile += 1
-    return array_gamobjs
 
 
 """
@@ -3193,11 +3242,46 @@ class IhmMode:
 
 
 class PlayerInterface:
-    def __init__(self, game_master, player_me, player_enemy, player_bionature):
+
+    BUTTON_DEFINITIONS = (
+        ("ihm_btn_select", 0, 0),
+        ("ihm_btn_conq", 0, 1),
+        ("ihm_btn_backw", 0, 2),
+        ("ihm_btn_missile", 0, 3),
+        ("ihm_btn_conqdir", 1, 1),
+        ("ihm_btn_conqdist", 2, 1),
+        ("ihm_btn_noorder", 0, 4),
+        ("ihm_btn_noorder", 1, 4),
+        ("ihm_btn_sleep", 1, 5),
+    )
+
+    INDEX_LIT_BUTTONS = {
+        (IhmMode.MAIN_MENU, IhmMode.SELECT_TOWN): 0,
+        (IhmMode.SELECT_TOWN, IhmMode.SELECT_TOWN): 0,
+        (IhmMode.MAIN_MENU, IhmMode.SELECT_CONQUEST_TILE): 1,
+        (IhmMode.MAIN_MENU, IhmMode.BACKWARD_CONQUEST): 2,
+        (IhmMode.MAIN_MENU, IhmMode.LAUNCH_MISSILE): 3,
+        (IhmMode.MAIN_MENU, IhmMode.CANCEL_CURRENT_ORDERS): 6,
+        # TODO : Ici faudrait du None en next. Là, ça fait bizarre.
+        (IhmMode.SELECT_CONQUEST_TILE, IhmMode.SELECT_CONQUEST_TILE): 4,
+        (IhmMode.SELECT_CONQUEST_DEST, IhmMode.SELECT_CONQUEST_TILE): 5,
+    }
+
+    def __init__(
+        self,
+        game_master,
+        player_me,
+        player_enemy,
+        player_bionature,
+        offset_btn_coords,
+        ihm_right_side,
+    ):
         self.game_master = game_master
         self.player_me = player_me
         self.player_enemy = player_enemy
         self.player_bionature = player_bionature
+        self.offset_btn_x, self.offset_btn_y = offset_btn_coords
+        self.ihm_right_side = ihm_right_side
         self.color = self.player_me.color
         self.current_mode = IhmMode.MAIN_MENU
         self.next_mode = IhmMode.SELECT_TOWN
@@ -3215,7 +3299,29 @@ class PlayerInterface:
         self.current_conquest_line = None
         self.tile_next_town = None
         self.is_town_list_dirty = True
+        self.pre_render_ihm_btn()
         self.refresh_town_list()
+
+    def pre_render_ihm_btn(self):
+
+        array_gamobjs = []
+        for y in range(WARZONE_HEIGHT):
+            line = []
+            for x in range(OFFSET_INTERFACE_X):
+                line.append(())
+            array_gamobjs.append(line)
+
+        for button_name, btn_pos_x, btn_pos_y in PlayerInterface.BUTTON_DEFINITIONS:
+            index_tile = 0
+            for tile_y in range(3):
+                for tile_x in range(3):
+                    final_x = self.offset_btn_x + btn_pos_x * 4 + tile_x
+                    final_y = self.offset_btn_y + btn_pos_y * 4 + tile_y
+                    gamobj = f"{self.color}_{button_name}_{index_tile:02d}"
+                    array_gamobjs[final_y][final_x] = ("ihm_background", gamobj)
+                    index_tile += 1
+        array_gamobjs = [tuple(line) for line in array_gamobjs]
+        self.array_gamobjs_ihm_btn = tuple(array_gamobjs)
 
     def refresh_town_list(self):
         print("refresh_town_list !!")
@@ -3259,6 +3365,15 @@ class PlayerInterface:
                 tile_from_coords(array_gamobjs, self.tile_next_town).append(
                     self.color + "_ihm_conquest_nxt_town"
                 )
+
+        x_lit_upleft, y_lit_upleft = self._get_lit_coordinates()
+        x_lit_upleft += self.ihm_right_side * (WARZONE_WIDTH + OFFSET_INTERFACE_X)
+        for y_lit in range(y_lit_upleft, y_lit_upleft + 3):
+            for x_lit in range(x_lit_upleft, x_lit_upleft + 3):
+                # print("lit", array_gamobjs[y_lit][x_lit])
+                array_gamobjs[y_lit][x_lit][0] = self.color + "_ihm_lit_background"
+                # TODO crap array_gamobjs[y_lit][x_lit].append(self.color + "_ihm_lit_background")
+                pass
 
     def launch_missiles(self):
         # On vérifie que y'a pas déjà des missiles en construction pour cette town.
@@ -3466,6 +3581,17 @@ class PlayerInterface:
                 self.current_conquest_line = []
                 self.current_mode = IhmMode.MAIN_MENU
 
+    def _get_lit_coordinates(self):
+        mode_infos = (self.current_mode, self.next_mode)
+        if mode_infos not in PlayerInterface.INDEX_LIT_BUTTONS:
+            raise Exception(f"TODO fail mode_infos {mode_infos}")
+        index_lit_button = PlayerInterface.INDEX_LIT_BUTTONS[mode_infos]
+        btn_pos_x, btn_pos_y = PlayerInterface.BUTTON_DEFINITIONS[index_lit_button][1:]
+        # TODO : on l'a à deux endroits différents ce calcul à la con.
+        final_x = self.offset_btn_x + btn_pos_x * 4
+        final_y = self.offset_btn_y + btn_pos_y * 4 + OFFSET_INTERFACE_Y
+        return final_x, final_y
+
 
 SANDBOX_MODES = [
     "switch to interface mode",
@@ -3526,11 +3652,21 @@ class GameModel:
         )
         self.must_start = True
         self.player_interface_red = PlayerInterface(
-            self.game_master, self.player_red, self.player_blu, self.player_bionature
+            self.game_master,
+            self.player_red,
+            self.player_blu,
+            self.player_bionature,
+            (0, 5),
+            False,
         )
         self.player_red.set_player_interface(self.player_interface_red)
         self.player_interface_blu = PlayerInterface(
-            self.game_master, self.player_blu, self.player_red, self.player_bionature
+            self.game_master,
+            self.player_blu,
+            self.player_red,
+            self.player_bionature,
+            (1, 5),
+            True,
         )
         self.player_blu.set_player_interface(self.player_interface_blu)
 
@@ -3542,21 +3678,21 @@ class GameModel:
         self.turn_index = 0
         print("mode actuel :", SANDBOX_MODES[self.sandbox_mode_index])
 
-        self.ihm_player_red = build_ihm_player("blu", 0, 5)
-
     def export_all_tiles(self):
         gamobjs_source = self.game_master.gamobjs_to_export
         gamobjs_copy = []
         for _ in range(OFFSET_INTERFACE_Y):
             line = [[]] * TOTAL_GAME_WIDTH
             gamobjs_copy.append(line)
-        for line_ihm_red, line_source in zip(self.ihm_player_red, gamobjs_source):
-            line = (
-                # [[]] * OFFSET_INTERFACE_X
-                line_ihm_red
-                + [list(gamobjs) for gamobjs in line_source]
-                + [[]] * OFFSET_INTERFACE_X
-            )
+        for line_ihm_red, line_source, line_ihm_blu in zip(
+            self.player_interface_red.array_gamobjs_ihm_btn,
+            gamobjs_source,
+            self.player_interface_blu.array_gamobjs_ihm_btn,
+        ):
+            line = [
+                list(gamobjs) for gamobjs in line_ihm_red + line_source + line_ihm_blu
+            ]
+
             gamobjs_copy.append(line)
 
         # TODO : C'est dégueulasse tout ces offsets.
