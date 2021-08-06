@@ -1,5 +1,7 @@
-# https://i.postimg.cc/dtSGtZLC/game-of-nolife-tileset.png (old)
-# https://i.postimg.cc/y8FzSPyv/game-of-nolife-tileset.png
+# https://i.postimg.cc/y8FzSPyv/game-of-nolife-tileset.png (old)
+# https://i.postimg.cc/NMhVVbGt/game-of-nolife-tileset.png (old)
+# https://i.postimg.cc/d0LqYYGp/game-of-nolife-tileset.png
+
 
 """
 {
@@ -48,7 +50,15 @@
     "red_town_4x4_23": [8, 28],
     "red_town_4x4_33": [12, 28],
 
-    "red_select_town_1x1": [12, 8],
+    "red_select_town_1x1": [64, 24],
+    "red_select_town_corner_ul": [60, 20],
+    "red_select_town_line_u": [64, 20],
+    "red_select_town_corner_ur": [68, 20],
+    "red_select_town_line_l": [60, 24],
+    "red_select_town_line_r": [68, 24],
+    "red_select_town_corner_dl": [60, 28],
+    "red_select_town_line_d": [64, 28],
+    "red_select_town_corner_dr": [68, 28],
     "red_selector": [12, 8],
     "red_ihm_conquest_vertic": [12, 5],
     "red_ihm_conquest_horiz": [12, 11],
@@ -112,7 +122,15 @@
     "blu_town_4x4_23": [24, 28],
     "blu_town_4x4_33": [28, 28],
 
-    "blu_select_town_1x1": [12, 8],
+    "blu_select_town_1x1": [76, 24],
+    "blu_select_town_corner_ul": [72, 20],
+    "blu_select_town_line_u": [76, 20],
+    "blu_select_town_corner_ur": [80, 20],
+    "blu_select_town_line_l": [72, 24],
+    "blu_select_town_line_r": [80, 24],
+    "blu_select_town_corner_dl": [72, 28],
+    "blu_select_town_line_d": [76, 28],
+    "blu_select_town_corner_dr": [80, 28],
     "blu_selector": [12, 8],
     "blu_ihm_conquest_vertic": [12, 5],
     "blu_ihm_conquest_horiz": [12, 11],
@@ -1740,8 +1758,8 @@ class Town:
         # Liste des tiles sur lesquelles est placée la town. La première tile est toujours celle
         # du coin supérieur gauche, quel que soit la direction de conquête de Player.
         self.tiles_position = []
-        for x in range(x_left, x_left + size):
-            for y in range(y_up, y_up + size):
+        for y in range(y_up, y_up + size):
+            for x in range(x_left, x_left + size):
                 self.tiles_position.append(self.game_master.game_area[y][x])
 
         self._compute_unit_gen_tiles()
@@ -2637,13 +2655,24 @@ class Missile:
         (2, 4),
     )
 
+    # clé : taille de la town qui va générer le ou les missiles.
+    # valeur : tuple de 2 elems.
+    #  - distance max du missile
+    #  - sous-tuple. nombre de delay des missiles.
+    #    (Le nombre d'elem de la liste donne le nombre de missile à générer)
+    GEN_INFOS_FROM_TOWN_SIZE = {
+        1: (WARZONE_HEIGHT // 2, (2,)),
+        2: (WARZONE_HEIGHT // 1.5, (2, 6)),
+        4: (WARZONE_HEIGHT, (2, 10, 14, 6)),
+    }
+
     def __init__(
         self,
         player_owner,
         tile,
         duration,
         game_master,
-        initial_delay_move=None,
+        initial_delay_move=2,
         direction=None,
         player_to_spawn=None,
     ):
@@ -2699,11 +2728,7 @@ class Missile:
         if self.build_step < Missile.UNIT_COST:
             self.gamobj = f"missile_build_{self.build_step:02}"
         else:
-            self.delay_move = (
-                self.initial_delay_move
-                if self.initial_delay_move is not None
-                else Missile.DELAY_MOVE
-            )
+            self.delay_move = self.initial_delay_move
             self.gamobj = "missile_ur" if self.direction == 1 else "missile_dl"
             self.current_action = Missile.MOVING
 
@@ -2726,6 +2751,14 @@ class Missile:
         self.delay_move -= 1
         if self.delay_move:
             return
+
+        if self.tile.player_owner is not None and self.tile.player_owner not in (
+            self.player_owner,
+            self.player_to_spawn,
+        ):
+            # Le missile survole une case appartenant au Player ennemi.
+            # On explose tout de suite, parce que ça va l'embêter. Ha ha !
+            self.duration = 0
 
         if self.duration == 0:
             self.current_action = Missile.DEFINING_DEST_TILES
@@ -3267,6 +3300,35 @@ class PlayerInterface:
         (IhmMode.SELECT_CONQUEST_DEST, IhmMode.SELECT_CONQUEST_TILE): 5,
     }
 
+    # dict. clé : taille de la town.
+    # valeur : liste de tuple de 2 elems :
+    #  - nom du gamobj à placer pour montrer que la town est sélectionnée
+    #  - index de la tile de town où placer ce gamobj.
+    # faut préfixer avec blu ou red, comme d'hab'.
+    TOWN_SELECTORS = {
+        1: (("select_town_1x1", 0),),
+        2: (
+            ("select_town_corner_ul", 0),
+            ("select_town_corner_ur", 1),
+            ("select_town_corner_dl", 2),
+            ("select_town_corner_dr", 3),
+        ),
+        4: (
+            ("select_town_corner_ul", 0),
+            ("select_town_line_u", 1),
+            ("select_town_line_u", 2),
+            ("select_town_corner_ur", 3),
+            ("select_town_line_l", 4),
+            ("select_town_line_r", 7),
+            ("select_town_line_l", 8),
+            ("select_town_line_r", 11),
+            ("select_town_corner_dl", 12),
+            ("select_town_line_d", 13),
+            ("select_town_line_d", 14),
+            ("select_town_corner_dr", 15),
+        ),
+    }
+
     def __init__(
         self,
         game_master,
@@ -3340,11 +3402,11 @@ class PlayerInterface:
         self.is_town_list_dirty = True
 
     def add_interface_gamobjs(self, array_gamobjs):
-        tile_sel_town = self.selected_town.tiles_position[0]
         # TODO : pas de concaténation de merde avec self.color.
-        tile_from_coords(array_gamobjs, tile_sel_town).append(
-            self.color + "_select_town_1x1"
-        )
+        town_selector_infos = PlayerInterface.TOWN_SELECTORS[self.selected_town.size]
+        for gamobj, index_tile in town_selector_infos:
+            tile = self.selected_town.tiles_position[index_tile]
+            tile_from_coords(array_gamobjs, tile).append(self.color + "_" + gamobj)
         if self.tile_selector is not None:
             tile_from_coords(array_gamobjs, self.tile_selector).append(
                 self.color + "_selector"
@@ -3387,12 +3449,11 @@ class PlayerInterface:
                 # Il y a un missile en construction. On laisse tomber.
                 return
 
-        print("ok missiles")
-        # TODO : ça va pas être comme ça tout ce bazar. La distance des missiles et tout, faut le changer.
-        missile_delays_from_town_size = {1: [None], 2: [2, 6], 4: [2, 10, 14, 6]}
-        missile_delays = missile_delays_from_town_size[self.selected_town.size]
+        duration, missile_delays = Missile.GEN_INFOS_FROM_TOWN_SIZE[
+            self.selected_town.size
+        ]
         for tile, delay in zip(tiles_gen_missile, missile_delays):
-            missile = Missile(self.player_me, tile, 10, self.game_master, delay)
+            missile = Missile(self.player_me, tile, duration, self.game_master, delay)
             self.game_master.missiles.append(missile)
 
     def on_change_action(self):
@@ -3419,10 +3480,9 @@ class PlayerInterface:
             }
             next_next_mode, log = next_modes[self.next_mode]
             self.next_mode = next_next_mode
-            print(log)
+            # print(log) # TODO crap.
 
         elif self.current_mode == IhmMode.SELECT_TOWN:
-            print(self.color, "change town")
             if self.is_town_list_dirty:
                 self.refresh_town_list()
             self.index_selected_town += 1
@@ -3433,7 +3493,6 @@ class PlayerInterface:
         elif self.current_mode == IhmMode.SELECT_CONQUEST_TILE:
             # On parcourt town.unit_gen_tiles : c'est la liste des tiles adjacentes de la town,
             # qui sont libres (c'est à dire que y'a pas une autre town dessus).
-            print(self.color, "selecting conquest tile.")
             conquest_tiles = self.selected_town.unit_gen_tiles
 
             if self.index_conquest_start is None:
@@ -3450,7 +3509,6 @@ class PlayerInterface:
             )
 
         elif self.current_mode == IhmMode.SELECT_CONQUEST_DEST:
-            print(self.color, "selecting dest tile")
             if self.index_conquest_line is None:
                 self.index_conquest_line = 0
             else:
@@ -3468,7 +3526,6 @@ class PlayerInterface:
 
         if self.current_mode == IhmMode.MAIN_MENU:
             self.tile_selector = None
-            print("yohop")
             self.current_mode = self.next_mode
 
             if self.current_mode == IhmMode.SELECT_CONQUEST_TILE:
@@ -3513,7 +3570,6 @@ class PlayerInterface:
                 self.current_mode = IhmMode.MAIN_MENU
                 print("back to main menu")
             else:
-                print("yohop choose conquest dist.")
                 # Truc dégueulasse : on doit retrouver la direction de conquête en fonction de la town
                 # et de la tile de démarrage de conquête. J'aurais vraiment pu arranger ça mieux, mais zut.
                 for tile in self.selected_town.tiles_position:
@@ -3523,7 +3579,6 @@ class PlayerInterface:
                         break
                 else:
                     raise Exception("Impossible de trouver la conquest dir. Blargh.")
-                print("conquest_dir", self.conquest_dir)
                 self.conquest_lines = []
                 self.conquest_dest_pot_tiles = []
                 current_tile = self.tile_selector
@@ -3560,10 +3615,11 @@ class PlayerInterface:
                     else self.color + "_ihm_conquest_vertic"
                 )
 
-                for line in self.conquest_lines:
-                    print("--- conquest line ---")
-                    for tile in line:
-                        print(tile.x, tile.y)
+                # TODO : crap.
+                # for line in self.conquest_lines:
+                #     print("--- conquest line ---")
+                #     for tile in line:
+                #         print(tile.x, tile.y)
 
         elif self.current_mode == IhmMode.SELECT_CONQUEST_DEST:
             self.conquest_dest_pot_tiles = []
