@@ -382,7 +382,7 @@ Pas de doc, pas d'interface, pas d'infos expliquant comment jouer.
 Tout ça viendra plus tard.
 
 
-Petit information concernant les commentaires dans le code.
+Petite information concernant les commentaires dans le code.
 
 J'essaye d'écrire en inclusif, sans pour autant gonfler tout le monde avec des points médians,
 ou des mots à rallonge tel que "le/la joueureuse".
@@ -1258,8 +1258,6 @@ class PlayerHandler:
 
         La nouvelle town récupère les points de génération d'unités de toutes les towns supprimées.
         """
-        # TODO pour quand je ferais l'interface :
-        # si la town sélectionnée par Player est dans towns_to_remove, faut déselectionner.
         x_new_town = []
         y_new_town = []
         unit_gen_points = 0
@@ -1282,6 +1280,10 @@ class PlayerHandler:
         for tile in new_town.tiles_position:
             tile.town = new_town
             tile.update_linked_gamobjs()
+        # Maintenant que tout a été bien fini (suppressions et ajouts de town),
+        # on fait un dernier petit dirtify, pour prévenir l'interface que faut refaire
+        # une dernière fois la vérif de modif éventuelle de la town sélectionnée.
+        self.player_interface.dirtify_town_list()
 
     def shatter_town(self, town_to_shatter, size_new_town):
         """
@@ -1298,8 +1300,6 @@ class PlayerHandler:
         Comme pour merge_town, on ne fait rien dans les suburbs, car un shatter ne modifie
         pas l'organisation des suburbs.
         """
-        # TODO pour quand je ferais l'interface :
-        # si la town sélectionnée par Player est dans towns_to_remove, faut déselectionner.
         unit_gen_points_new_towns = town_to_shatter.unit_gen_points // 4
         x_left = town_to_shatter.x_left
         y_up = town_to_shatter.y_up
@@ -1319,6 +1319,10 @@ class PlayerHandler:
                 tile.update_linked_gamobjs()
             new_towns.append(new_town)
         self.add_towns(new_towns)
+        # Maintenant que tout a été bien fini (suppressions et ajouts de town),
+        # on fait un dernier petit dirtify, pour prévenir l'interface que faut refaire
+        # une dernière fois la vérif de modif éventuelle de la town sélectionnée.
+        self.player_interface.dirtify_town_list()
 
     def check_town_size_1_merge(self, cur_town):
         """
@@ -3386,20 +3390,46 @@ class PlayerInterface:
         self.array_gamobjs_ihm_btn = tuple(array_gamobjs)
 
     def refresh_town_list(self):
-        print("refresh_town_list !!")
+        self.is_town_list_dirty = False
+        selected_tile = self.selected_town.tiles_position[0]
         self.sorted_towns = sorted(
             self.player_me.active_towns, key=lambda town: (town.y_up, town.x_left)
         )
         self.nb_towns = len(self.sorted_towns)
-        print("self.nb_towns", self.nb_towns)
-        # TODO : faut reprendre l'index d'avant, et retrouver le bon,
-        # et si la town n'est plus dans la liste, faut trouver la plus proche qui remplace.
-        self.index_selected_town = 0
-        self.selected_town = self.sorted_towns[self.index_selected_town]
-        self.is_town_list_dirty = False
+        print("refresh_town_list: self.nb_towns", self.nb_towns)
+        if not self.nb_towns:
+            # Cas stupide où on se retrouve avec 0 villes actives pendant un cycle de jeu,
+            # parce que Player a commencé par créer une grosse ville.
+            # On laisse tomber, et cette foncton sera rappelée plus tard.
+            return
+
+        # On retrouve la town qu'on a sélectionné (c'est pas forcément la même, si y'a eu des merge/shatter)
+        # Et à partir de la town sélectionnée, on retrouve son index dans la liste.
+        new_selected_town = selected_tile.town
+
+        if new_selected_town is None:
+            raise Exception("Perte de la sélection de town. Not supposed to happen.")
+
+        try:
+            self.index_selected_town = self.sorted_towns.index(new_selected_town)
+        except ValueError:
+            # Ça arrive si la town qu'on avait sélectionnée avant est devenue désactivée.
+            # Dans ce cas on sait pas trop quoi faire, on reste sur une town désactivée et pis c'est tout.
+            # On réglera ça plus tard, quand Player voudra lancer une action.
+            return
+
+        self.selected_town = new_selected_town
 
     def dirtify_town_list(self):
+        print("Dirtyfication !!")
         self.is_town_list_dirty = True
+        if self.selected_town not in self.player_me.active_towns:
+            # La liste des towns a changée, et en plus, la town actuellement sélectionnée
+            # n'est plus dans la liste des town active. Dans ce cas, on doit immédiatement changer
+            # la town sélectionnée.
+            # Dans le cas contraire, pas besoin de faire ça tout de suite. On le fera lorsque Player
+            # voudra sélectionner une autre town.
+            self.refresh_town_list()
 
     def add_interface_gamobjs(self, array_gamobjs):
         # TODO : pas de concaténation de merde avec self.color.
@@ -3523,6 +3553,9 @@ class PlayerInterface:
             )
 
     def on_activate_action(self):
+
+        # TODO : si on est sur une town désactivée, on se remet à la town 0.
+        # Le cas peut arriver, car on refreshe pas forcément la sélection lors des constructions de towns.
 
         if self.current_mode == IhmMode.MAIN_MENU:
             self.tile_selector = None
@@ -3988,3 +4021,5 @@ class GameModel:
 
 
 # TODO : bug dans la conquest line, on peut avoir 4 choix de distance alors qu'on devrait en avoir que 2.
+
+# TODO : bug qui fait planter le truc en cours lorsqu'on choisit une conquête. (ligne 3508)
