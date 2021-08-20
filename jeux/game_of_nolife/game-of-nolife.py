@@ -3462,10 +3462,25 @@ class PlayerInterface:
         x_lit_upleft += self.ihm_right_side * (WARZONE_WIDTH + OFFSET_INTERFACE_X)
         for y_lit in range(y_lit_upleft, y_lit_upleft + 3):
             for x_lit in range(x_lit_upleft, x_lit_upleft + 3):
-                # print("lit", array_gamobjs[y_lit][x_lit])
                 array_gamobjs[y_lit][x_lit][0] = self.color + "_ihm_lit_background"
-                # TODO crap array_gamobjs[y_lit][x_lit].append(self.color + "_ihm_lit_background")
-                pass
+
+        show_cancel = (
+            self.current_mode == IhmMode.SELECT_CONQUEST_TILE
+            and self.index_conquest_start is None
+        ) or (
+            self.current_mode == IhmMode.SELECT_CONQUEST_DEST
+            and self.index_conquest_line is None
+        )
+        if show_cancel:
+            gamobj_index = 0
+            for y_cancel in range(y_lit_upleft, y_lit_upleft + 3):
+                for x_cancel in range(x_lit_upleft, x_lit_upleft + 3):
+                    # TODO : nan mais c'est dégueulase ça. Rhoooo ....
+                    array_gamobjs[y_cancel][x_cancel][
+                        1
+                    ] = f"{self.color}_ihm_btn_cancel_{gamobj_index:02d}"
+
+                    gamobj_index += 1
 
     def launch_missiles(self):
         # On vérifie que y'a pas déjà des missiles en construction pour cette town.
@@ -3554,8 +3569,15 @@ class PlayerInterface:
 
     def on_activate_action(self):
 
-        # TODO : si on est sur une town désactivée, on se remet à la town 0.
+        # Si on est sur une town désactivée, on se remet à la town 0.
         # Le cas peut arriver, car on refreshe pas forcément la sélection lors des constructions de towns.
+        # C'est bourrin, mais osef.
+        if self.selected_town is None or not self.selected_town.is_active:
+            self.refresh_town_list()
+            self.index_selected_town = 0
+            self.selected_town = self.sorted_towns[self.index_selected_town]
+            print("TODO blargh town desactivée")
+            return
 
         if self.current_mode == IhmMode.MAIN_MENU:
             self.tile_selector = None
@@ -3673,7 +3695,7 @@ class PlayerInterface:
     def _get_lit_coordinates(self):
         mode_infos = (self.current_mode, self.next_mode)
         if mode_infos not in PlayerInterface.INDEX_LIT_BUTTONS:
-            raise Exception(f"TODO fail mode_infos {mode_infos}")
+            raise Exception(f"Fail mode_infos {mode_infos}")
         index_lit_button = PlayerInterface.INDEX_LIT_BUTTONS[mode_infos]
         btn_pos_x, btn_pos_y = PlayerInterface.BUTTON_DEFINITIONS[index_lit_button][1:]
         # TODO : on l'a à deux endroits différents ce calcul à la con.
