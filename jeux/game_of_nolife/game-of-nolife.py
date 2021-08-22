@@ -426,6 +426,20 @@ merge de town, la direction des backward conquest, etc.
 
 import random
 
+# TODO : le mode "zzzz".
+
+# TODO : dessiner un cadre autour de l'aire de jeu, et des chemins le long des boutons d'interface.
+
+# TODO : flèches de conquêtes dessinées mieux que ça.
+
+# TODO : dessiner mieux tous les sprites que j'ai fait à l'arrache.
+
+# TODO : afficher une petite flèche quand on doit choisir un truc dans l'interface.
+
+# TODO : affichage du nombre de cases et villes des deux Players.
+
+# TODO : contrôler vite fait ce que ça donne quand toute l'aire de jeu est complétée, mais si ça plante, osef.
+
 
 # Dimensions, en nombre de cases, du jeu 'game of no-life',
 # dans lequel évoluent les unités, les villes, etc.
@@ -3274,8 +3288,10 @@ class IhmMode:
     SELECT_CONQUEST_TILE = 2
     SELECT_CONQUEST_DEST = 3
     BACKWARD_CONQUEST = 4
-    CANCEL_CURRENT_ORDERS = 5
-    LAUNCH_MISSILE = 6
+    SUBMENU_CANCEL = 5
+    CANCEL_CURRENT_ORDERS = 6
+    SLEEP_MODE = 7
+    LAUNCH_MISSILE = 8
 
 
 class PlayerInterface:
@@ -3298,7 +3314,9 @@ class PlayerInterface:
         (IhmMode.MAIN_MENU, IhmMode.SELECT_CONQUEST_TILE): 1,
         (IhmMode.MAIN_MENU, IhmMode.BACKWARD_CONQUEST): 2,
         (IhmMode.MAIN_MENU, IhmMode.LAUNCH_MISSILE): 3,
-        (IhmMode.MAIN_MENU, IhmMode.CANCEL_CURRENT_ORDERS): 6,
+        (IhmMode.MAIN_MENU, IhmMode.SUBMENU_CANCEL): 6,
+        (IhmMode.SUBMENU_CANCEL, IhmMode.CANCEL_CURRENT_ORDERS): 7,
+        (IhmMode.SUBMENU_CANCEL, IhmMode.SLEEP_MODE): 8,
         # TODO : Ici faudrait du None en next. Là, ça fait bizarre.
         (IhmMode.SELECT_CONQUEST_TILE, IhmMode.SELECT_CONQUEST_TILE): 4,
         (IhmMode.SELECT_CONQUEST_DEST, IhmMode.SELECT_CONQUEST_TILE): 5,
@@ -3514,14 +3532,8 @@ class PlayerInterface:
                     "next mode backward conquest",
                 ),
                 IhmMode.BACKWARD_CONQUEST: (IhmMode.LAUNCH_MISSILE, "launch missile"),
-                IhmMode.LAUNCH_MISSILE: (
-                    IhmMode.CANCEL_CURRENT_ORDERS,
-                    "cancel current orders",
-                ),
-                IhmMode.CANCEL_CURRENT_ORDERS: (
-                    IhmMode.SELECT_TOWN,
-                    "next mode select town",
-                ),
+                IhmMode.LAUNCH_MISSILE: (IhmMode.SUBMENU_CANCEL, "submenu cancel"),
+                IhmMode.SUBMENU_CANCEL: (IhmMode.SELECT_TOWN, "next mode select town"),
             }
             next_next_mode, log = next_modes[self.next_mode]
             self.next_mode = next_next_mode
@@ -3567,6 +3579,14 @@ class PlayerInterface:
                 else self.conquest_lines[self.index_conquest_line]
             )
 
+        elif self.current_mode == IhmMode.SUBMENU_CANCEL:
+            next_modes = {
+                IhmMode.CANCEL_CURRENT_ORDERS: IhmMode.SLEEP_MODE,
+                IhmMode.SLEEP_MODE: IhmMode.CANCEL_CURRENT_ORDERS,
+            }
+            next_next_mode = next_modes[self.next_mode]
+            self.next_mode = next_next_mode
+
     def on_activate_action(self):
 
         # Si on est sur une town désactivée, on se remet à la town 0.
@@ -3607,19 +3627,14 @@ class PlayerInterface:
                 self.next_mode = IhmMode.LAUNCH_MISSILE
                 self.launch_missiles()
                 print("back to main menu")
-            elif self.current_mode == IhmMode.CANCEL_CURRENT_ORDERS:
-                # TODO : ça c'est du cancel all interface. Faudra le factoriser.
-                self.player_me.cancel_all_orders()
-                self.tile_next_town = None
-                self.current_conquest_line = []
-                self.current_mode = IhmMode.MAIN_MENU
-                self.next_mode = IhmMode.SELECT_TOWN
-                print("back to main menu")
+            elif self.current_mode == IhmMode.SUBMENU_CANCEL:
+                self.next_mode = IhmMode.CANCEL_CURRENT_ORDERS
 
         elif self.current_mode == IhmMode.SELECT_TOWN:
             self.tile_selector = None
             self.current_mode = IhmMode.MAIN_MENU
             print("back to main menu")
+
         elif self.current_mode == IhmMode.SELECT_CONQUEST_TILE:
             if self.tile_selector is None:
                 self.current_mode = IhmMode.MAIN_MENU
@@ -3691,6 +3706,18 @@ class PlayerInterface:
                 print("launch conquest")
                 self.current_conquest_line = []
                 self.current_mode = IhmMode.MAIN_MENU
+
+        elif self.current_mode == IhmMode.SUBMENU_CANCEL:
+            if self.next_mode == IhmMode.CANCEL_CURRENT_ORDERS:
+                # TODO : ça c'est du cancel all interface. Faudra le factoriser.
+                self.player_me.cancel_all_orders()
+                self.tile_next_town = None
+                self.current_conquest_line = []
+                self.current_mode = IhmMode.MAIN_MENU
+                self.next_mode = IhmMode.SELECT_TOWN
+                print("back to main menu")
+            else:
+                print("TODO : faire des trucs.")
 
     def _get_lit_coordinates(self):
         mode_infos = (self.current_mode, self.next_mode)
