@@ -426,8 +426,6 @@ merge de town, la direction des backward conquest, etc.
 
 import random
 
-# TODO : le mode "zzzz".
-
 # TODO : dessiner un cadre autour de l'aire de jeu, et des chemins le long des boutons d'interface.
 
 # TODO : flèches de conquêtes dessinées mieux que ça.
@@ -1730,6 +1728,19 @@ class PlayerHandler:
             tile_adj.add_unit(self, 16)
         tile_back = tile_first_town.adjacencies[self.dir_back_diag]
         tile_back.add_unit(self, 14)
+
+    def auto_build_towns(self):
+        if self.tile_building_town is not None:
+            return
+
+        if self.tile_to_townify is not None and self.tile_to_townify.town is not None:
+            self.tile_to_townify = None
+            return
+
+        if self.tile_to_townify is None and self.active_towns:
+            selected_town = random.choice(self.active_towns)
+            if selected_town.unit_gen_tiles:
+                self.tile_to_townify = selected_town.unit_gen_tiles[0]
 
 
 class Town:
@@ -3369,6 +3380,7 @@ class PlayerInterface:
         self.color = self.player_me.color
         self.current_mode = IhmMode.MAIN_MENU
         self.next_mode = IhmMode.SELECT_TOWN
+        self.sleep_mode = False
         self.index_selected_town = 0
         self.selected_town = self.player_me.active_towns[self.index_selected_town]
         self.index_conquest_start = 0
@@ -3414,7 +3426,7 @@ class PlayerInterface:
             self.player_me.active_towns, key=lambda town: (town.y_up, town.x_left)
         )
         self.nb_towns = len(self.sorted_towns)
-        print("refresh_town_list: self.nb_towns", self.nb_towns)
+        # print("TODO refresh_town_list: self.nb_towns", self.nb_towns)
         if not self.nb_towns:
             # Cas stupide où on se retrouve avec 0 villes actives pendant un cycle de jeu,
             # parce que Player a commencé par créer une grosse ville.
@@ -3439,7 +3451,7 @@ class PlayerInterface:
         self.selected_town = new_selected_town
 
     def dirtify_town_list(self):
-        print("Dirtyfication !!")
+        # print("TODO Dirtyfication !!")
         self.is_town_list_dirty = True
         if self.selected_town not in self.player_me.active_towns:
             # La liste des towns a changée, et en plus, la town actuellement sélectionnée
@@ -3483,12 +3495,17 @@ class PlayerInterface:
                 array_gamobjs[y_lit][x_lit][0] = self.color + "_ihm_lit_background"
 
         show_cancel = (
-            self.current_mode == IhmMode.SELECT_CONQUEST_TILE
-            and self.index_conquest_start is None
-        ) or (
-            self.current_mode == IhmMode.SELECT_CONQUEST_DEST
-            and self.index_conquest_line is None
+            (
+                self.current_mode == IhmMode.SELECT_CONQUEST_TILE
+                and self.index_conquest_start is None
+            )
+            or (
+                self.current_mode == IhmMode.SELECT_CONQUEST_DEST
+                and self.index_conquest_line is None
+            )
+            or (self.sleep_mode)
         )
+
         if show_cancel:
             gamobj_index = 0
             for y_cancel in range(y_lit_upleft, y_lit_upleft + 3):
@@ -3521,7 +3538,12 @@ class PlayerInterface:
 
     def on_change_action(self):
 
-        if self.current_mode == IhmMode.MAIN_MENU:
+        if self.sleep_mode:
+            self.current_mode = IhmMode.MAIN_MENU
+            self.next_mode = IhmMode.SELECT_TOWN
+            self.sleep_mode = False
+
+        elif self.current_mode == IhmMode.MAIN_MENU:
             next_modes = {
                 IhmMode.SELECT_TOWN: (
                     IhmMode.SELECT_CONQUEST_TILE,
@@ -3717,7 +3739,9 @@ class PlayerInterface:
                 self.next_mode = IhmMode.SELECT_TOWN
                 print("back to main menu")
             else:
-                print("TODO : faire des trucs.")
+                self.sleep_mode = not self.sleep_mode
+                if self.sleep_mode:
+                    self.player_me.cancel_all_orders()
 
     def _get_lit_coordinates(self):
         mode_infos = (self.current_mode, self.next_mode)
@@ -3992,6 +4016,11 @@ class GameModel:
         # FUTURE : Ici il faudrait contrôler si toutes les tiles sont des towns.
         # Si oui, on arrête la génération de units pour tout le monde, et on affiche le score final.
 
+        all_sleeping = (
+            self.player_interface_red.sleep_mode
+            and self.player_interface_blu.sleep_mode
+        )
+
         for player in self.game_master.players:
             if not player.is_bionature:
                 can_generate_unit = player.can_generate_unit()
@@ -4006,6 +4035,8 @@ class GameModel:
                 if can_generate_unit:
                     player.process_unit_gen_tile()
                 player.process_line_conquest()
+                if all_sleeping:
+                    player.auto_build_towns()
             else:
                 player.process_unit_gen_tile_bionature(self.turn_index)
 
@@ -4023,9 +4054,11 @@ class GameModel:
         # Plus on a eu à gérer de trucs durant ce tour, plus on met un délai court.
         # Mais c'est super chaud à estimer, ou alors faudrait regarder avec la date courante à chaque fois,
         # et je préfère m'occuper de ça plus tard (ou jamais).
-        return (
-            """ { "delayed_actions": [ {"name": "process_turn", "delay_ms": 200} ] } """
-        )
+        # TODO : constants, you stupid.
+        if all_sleeping:
+            return """ { "delayed_actions": [ {"name": "process_turn", "delay_ms": 10} ] } """
+        else:
+            return """ { "delayed_actions": [ {"name": "process_turn", "delay_ms": 200} ] } """
 
     def on_game_event(self, event_name):
         if event_name == "process_turn":
