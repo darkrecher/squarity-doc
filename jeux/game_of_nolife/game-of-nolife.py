@@ -1,6 +1,5 @@
-# https://i.postimg.cc/d0LqYYGp/game-of-nolife-tileset.png (old)
-# https://i.postimg.cc/fy9MD0gh/game-of-nolife-tileset.png
-
+# https://i.postimg.cc/fy9MD0gh/game-of-nolife-tileset.png (old)
+# https://i.postimg.cc/JzQBbzQt/game-of-nolife-tileset.png
 
 """
 {
@@ -200,6 +199,16 @@
     "ihm_border_up": [56, 20],
     "ihm_border_left": [56, 16],
     "ihm_border_right": [60, 16],
+
+    "red_ihm_conquest_up": [32, 28],
+    "red_ihm_conquest_right": [36, 28],
+    "red_ihm_conquest_down": [40, 28],
+    "red_ihm_conquest_left": [44, 28],
+
+    "blu_ihm_conquest_up": [32, 24],
+    "blu_ihm_conquest_right": [36, 24],
+    "blu_ihm_conquest_down": [40, 24],
+    "blu_ihm_conquest_left": [44, 24],
 
     "red_ihm_btn_select_00": [0, 56],
     "red_ihm_btn_select_01": [4, 56],
@@ -517,6 +526,8 @@ REVERSE_DIRS = (4, 5, 6, 7, 0, 1, 2, 3)
 GAMOBJ_NAME_TO_NB_UNIT = tuple(
     "00;01;02;03;04;05;06;07;08;09;10;11;12;13;14;15;16".split(";")
 )
+
+DIRECTION_NAMES = ("up", "", "right", "", "down", "", "left", "")
 
 
 def iterate_on_pseudo_random_boolean():
@@ -3490,9 +3501,9 @@ class PlayerInterface:
             tile = self.selected_town.tiles_position[index_tile]
             tile_from_coords(array_gamobjs, tile).append(self.color + "_" + gamobj)
         if self.tile_selector is not None:
-            tile_from_coords(array_gamobjs, self.tile_selector).append(
-                self.color + "_selector"
-            )
+            suffix_conq_dir = DIRECTION_NAMES[self.conquest_dir]
+            gamobj_conq_dir = f"{self.color}_ihm_conquest_{suffix_conq_dir}"
+            tile_from_coords(array_gamobjs, self.tile_selector).append(gamobj_conq_dir)
         for tile in self.conquest_dest_pot_tiles:
             tile_from_coords(array_gamobjs, tile).append(
                 self.color + "_ihm_conquest_dst_pot"
@@ -3608,6 +3619,19 @@ class PlayerInterface:
                 if self.index_conquest_start is None
                 else conquest_tiles[self.index_conquest_start]
             )
+            if self.tile_selector is None:
+                self.conquest_dir = None
+            else:
+                # TODO : et en plus faut le factoriser.
+                # Truc dégueulasse : on doit retrouver la direction de conquête en fonction de la town
+                # et de la tile de démarrage de conquête. J'aurais vraiment pu arranger ça mieux, mais zut.
+                for tile in self.selected_town.tiles_position:
+                    dirs = directions_from_pos(tile, self.tile_selector)
+                    if len(dirs) == 1:
+                        self.conquest_dir = dirs[0]
+                        break
+                else:
+                    raise Exception("Impossible de trouver la conquest dir. Blargh.")
 
         elif self.current_mode == IhmMode.SELECT_CONQUEST_DEST:
             if self.index_conquest_line is None:
@@ -3651,6 +3675,16 @@ class PlayerInterface:
                 self.index_conquest_start = 0
                 conquest_tiles = self.selected_town.unit_gen_tiles
                 self.tile_selector = conquest_tiles[self.index_conquest_start]
+                # TODO : et en plus faut le factoriser.
+                # Truc dégueulasse : on doit retrouver la direction de conquête en fonction de la town
+                # et de la tile de démarrage de conquête. J'aurais vraiment pu arranger ça mieux, mais zut.
+                for tile in self.selected_town.tiles_position:
+                    dirs = directions_from_pos(tile, self.tile_selector)
+                    if len(dirs) == 1:
+                        self.conquest_dir = dirs[0]
+                        break
+                else:
+                    raise Exception("Impossible de trouver la conquest dir. Blargh.")
             elif self.current_mode == IhmMode.BACKWARD_CONQUEST:
                 print("backward conquest !")
                 # TODO : ça c'est du cancel all interface. Faudra le factoriser.
@@ -3684,15 +3718,6 @@ class PlayerInterface:
                 self.current_mode = IhmMode.MAIN_MENU
                 print("back to main menu")
             else:
-                # Truc dégueulasse : on doit retrouver la direction de conquête en fonction de la town
-                # et de la tile de démarrage de conquête. J'aurais vraiment pu arranger ça mieux, mais zut.
-                for tile in self.selected_town.tiles_position:
-                    dirs = directions_from_pos(tile, self.tile_selector)
-                    if len(dirs) == 1:
-                        self.conquest_dir = dirs[0]
-                        break
-                else:
-                    raise Exception("Impossible de trouver la conquest dir. Blargh.")
                 self.conquest_lines = []
                 self.conquest_dest_pot_tiles = []
                 current_tile = self.tile_selector
@@ -4133,3 +4158,4 @@ class GameModel:
 # TODO : bug dans la conquest line, on peut avoir 4 choix de distance alors qu'on devrait en avoir que 2.
 
 # TODO : bug qui fait planter le truc en cours lorsqu'on choisit une conquête. (ligne 3508)
+# else conquest_tiles[self.index_conquest_start]
