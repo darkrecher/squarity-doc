@@ -1,6 +1,5 @@
-# https://i.postimg.cc/y8FzSPyv/game-of-nolife-tileset.png (old)
-# https://i.postimg.cc/NMhVVbGt/game-of-nolife-tileset.png (old)
-# https://i.postimg.cc/d0LqYYGp/game-of-nolife-tileset.png
+# https://i.postimg.cc/d0LqYYGp/game-of-nolife-tileset.png (old)
+# https://i.postimg.cc/fy9MD0gh/game-of-nolife-tileset.png
 
 
 """
@@ -198,6 +197,9 @@
     "missile_build_09": [52, 8],
 
     "ihm_background": [44, 20],
+    "ihm_border_up": [56, 20],
+    "ihm_border_left": [56, 16],
+    "ihm_border_right": [60, 16],
 
     "red_ihm_btn_select_00": [0, 56],
     "red_ihm_btn_select_01": [4, 56],
@@ -426,8 +428,6 @@ merge de town, la direction des backward conquest, etc.
 
 import random
 
-# TODO : dessiner un cadre autour de l'aire de jeu, et des chemins le long des boutons d'interface.
-
 # TODO : flèches de conquêtes dessinées mieux que ça.
 
 # TODO : dessiner mieux tous les sprites que j'ai fait à l'arrache.
@@ -438,6 +438,7 @@ import random
 
 # TODO : contrôler vite fait ce que ça donne quand toute l'aire de jeu est complétée, mais si ça plante, osef.
 
+# TODO : le curseur de sandbox est uniquement visible en mode sandbox. Et faut changer un booléen pour pouvoir sandboxer.
 
 # Dimensions, en nombre de cases, du jeu 'game of no-life',
 # dans lequel évoluent les unités, les villes, etc.
@@ -3307,16 +3308,18 @@ class IhmMode:
 
 class PlayerInterface:
 
+    # TODO : explain ! (These 2 variables !)
+
     BUTTON_DEFINITIONS = (
-        ("ihm_btn_select", 0, 0),
-        ("ihm_btn_conq", 0, 1),
-        ("ihm_btn_backw", 0, 2),
-        ("ihm_btn_missile", 0, 3),
-        ("ihm_btn_conqdir", 1, 1),
-        ("ihm_btn_conqdist", 2, 1),
-        ("ihm_btn_noorder", 0, 4),
-        ("ihm_btn_noorder", 1, 4),
-        ("ihm_btn_sleep", 1, 5),
+        ("ihm_btn_select", 0, 0, "D"),
+        ("ihm_btn_conq", 0, 1, "DR"),
+        ("ihm_btn_backw", 0, 2, "D"),
+        ("ihm_btn_missile", 0, 3, "D"),
+        ("ihm_btn_conqdir", 1, 1, "R"),
+        ("ihm_btn_conqdist", 2, 1, ""),
+        ("ihm_btn_noorder", 0, 4, "R"),
+        ("ihm_btn_noorder", 1, 4, "D"),
+        ("ihm_btn_sleep", 1, 5, ""),
     )
 
     INDEX_LIT_BUTTONS = {
@@ -3407,15 +3410,34 @@ class PlayerInterface:
                 line.append(())
             array_gamobjs.append(line)
 
-        for button_name, btn_pos_x, btn_pos_y in PlayerInterface.BUTTON_DEFINITIONS:
+        for (name, btn_pos_x, btn_pos_y, link) in PlayerInterface.BUTTON_DEFINITIONS:
             index_tile = 0
             for tile_y in range(3):
                 for tile_x in range(3):
                     final_x = self.offset_btn_x + btn_pos_x * 4 + tile_x
                     final_y = self.offset_btn_y + btn_pos_y * 4 + tile_y
-                    gamobj = f"{self.color}_{button_name}_{index_tile:02d}"
+                    gamobj = f"{self.color}_{name}_{index_tile:02d}"
                     array_gamobjs[final_y][final_x] = ("ihm_background", gamobj)
                     index_tile += 1
+            if "D" in link:
+                final_x = self.offset_btn_x + btn_pos_x * 4 + 1
+                final_y = self.offset_btn_y + btn_pos_y * 4 + 3
+                array_gamobjs[final_y][final_x] = ("ihm_background",)
+            if "R" in link:
+                final_x = self.offset_btn_x + btn_pos_x * 4 + 3
+                final_y = self.offset_btn_y + btn_pos_y * 4 + 1
+                array_gamobjs[final_y][final_x] = ("ihm_background",)
+
+        if self.ihm_right_side:
+            border_x = 0
+            gamobj_border = "ihm_border_right"
+        else:
+            border_x = OFFSET_INTERFACE_X - 1
+            gamobj_border = "ihm_border_left"
+
+        for y in range(WARZONE_HEIGHT):
+            array_gamobjs[y][border_x] = (gamobj_border,)
+
         array_gamobjs = [tuple(line) for line in array_gamobjs]
         self.array_gamobjs_ihm_btn = tuple(array_gamobjs)
 
@@ -3748,7 +3770,7 @@ class PlayerInterface:
         if mode_infos not in PlayerInterface.INDEX_LIT_BUTTONS:
             raise Exception(f"Fail mode_infos {mode_infos}")
         index_lit_button = PlayerInterface.INDEX_LIT_BUTTONS[mode_infos]
-        btn_pos_x, btn_pos_y = PlayerInterface.BUTTON_DEFINITIONS[index_lit_button][1:]
+        btn_pos_x, btn_pos_y = PlayerInterface.BUTTON_DEFINITIONS[index_lit_button][1:3]
         # TODO : on l'a à deux endroits différents ce calcul à la con.
         final_x = self.offset_btn_x + btn_pos_x * 4
         final_y = self.offset_btn_y + btn_pos_y * 4 + OFFSET_INTERFACE_Y
@@ -3843,9 +3865,16 @@ class GameModel:
     def export_all_tiles(self):
         gamobjs_source = self.game_master.gamobjs_to_export
         gamobjs_copy = []
-        for _ in range(OFFSET_INTERFACE_Y):
+        for _ in range(OFFSET_INTERFACE_Y - 1):
             line = [[]] * TOTAL_GAME_WIDTH
             gamobjs_copy.append(line)
+        # TODO : précalculer cette line.
+        line = (
+            [[]] * OFFSET_INTERFACE_X
+            + [["ihm_border_up"]] * WARZONE_WIDTH
+            + [[]] * OFFSET_INTERFACE_X
+        )
+        gamobjs_copy.append(line)
         for line_ihm_red, line_source, line_ihm_blu in zip(
             self.player_interface_red.array_gamobjs_ihm_btn,
             gamobjs_source,
@@ -3854,7 +3883,6 @@ class GameModel:
             line = [
                 list(gamobjs) for gamobjs in line_ihm_red + line_source + line_ihm_blu
             ]
-
             gamobjs_copy.append(line)
 
         # TODO : C'est dégueulasse tout ces offsets.
