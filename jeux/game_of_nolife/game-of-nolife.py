@@ -1,5 +1,6 @@
-# https://i.postimg.cc/fy9MD0gh/game-of-nolife-tileset.png (old)
-# https://i.postimg.cc/JzQBbzQt/game-of-nolife-tileset.png
+# https://i.postimg.cc/JzQBbzQt/game-of-nolife-tileset.png (old)
+# https://i.postimg.cc/8c58xMtR/game-of-nolife-tileset.png (old)
+# https://i.postimg.cc/gctqBbwZ/game-of-nolife-tileset.png
 
 """
 {
@@ -57,19 +58,19 @@
     "red_select_town_corner_dl": [60, 28],
     "red_select_town_line_d": [64, 28],
     "red_select_town_corner_dr": [68, 28],
-    "red_selector": [12, 8],
-    "red_ihm_conquest_vertic": [12, 5],
-    "red_ihm_conquest_horiz": [12, 11],
-    "red_ihm_conquest_dst_pot": [11, 8],
-    "red_ihm_conquest_nxt_town": [10, 8],
+    "red_selector": [64, 32],
+    "red_ihm_conquest_vertic": [56, 32],
+    "red_ihm_conquest_horiz": [52, 32],
+    "red_ihm_conquest_dst_pot": [48, 32],
+    "red_ihm_conquest_nxt_town": [60, 32],
 
     "red_controls": [64, 0],
     "red_road_horiz": [72, 0],
     "red_road_vertic": [76, 0],
     "red_road_both": [80, 0],
     "red_cursor": [4, 2],
-    "red_magnet": [14, 8],
-    "red_go_back": [4, 8],
+    "red_magnet": [68, 32],
+    "red_go_back": [72, 32],
 
     "red_town_build_00": [0, 12],
     "red_town_build_01": [4, 12],
@@ -129,19 +130,19 @@
     "blu_select_town_corner_dl": [72, 28],
     "blu_select_town_line_d": [76, 28],
     "blu_select_town_corner_dr": [80, 28],
-    "blu_selector": [12, 8],
-    "blu_ihm_conquest_vertic": [12, 5],
-    "blu_ihm_conquest_horiz": [12, 11],
-    "blu_ihm_conquest_dst_pot": [11, 8],
-    "blu_ihm_conquest_nxt_town": [10, 8],
+    "blu_selector": [64, 36],
+    "blu_ihm_conquest_vertic": [56, 36],
+    "blu_ihm_conquest_horiz": [52, 36],
+    "blu_ihm_conquest_dst_pot": [48, 36],
+    "blu_ihm_conquest_nxt_town": [60, 36],
 
     "blu_controls": [64, 4],
     "blu_road_horiz": [72, 4],
     "blu_road_vertic": [76, 4],
     "blu_road_both": [80, 4],
     "blu_cursor": [12, 8],
-    "blu_magnet": [14, 8],
-    "blu_go_back": [4, 8],
+    "blu_magnet": [68, 36],
+    "blu_go_back": [72, 36],
 
     "blu_town_build_00": [40, 12],
     "blu_town_build_01": [44, 12],
@@ -184,16 +185,16 @@
     "missile_dl": [36, 16],
     "missile_exploding": [34, 16],
 
-    "missile_build_00": [0, 0],
-    "missile_build_01": [20, 8],
-    "missile_build_02": [24, 8],
-    "missile_build_03": [28, 8],
-    "missile_build_04": [32, 8],
-    "missile_build_05": [36, 8],
-    "missile_build_06": [40, 8],
-    "missile_build_07": [44, 8],
-    "missile_build_08": [48, 8],
-    "missile_build_09": [52, 8],
+    "missile_build_00": [48, 56],
+    "missile_build_01": [52, 56],
+    "missile_build_02": [56, 56],
+    "missile_build_03": [60, 56],
+    "missile_build_04": [64, 56],
+    "missile_build_05": [48, 60],
+    "missile_build_06": [52, 60],
+    "missile_build_07": [56, 60],
+    "missile_build_08": [60, 60],
+    "missile_build_09": [64, 60],
 
     "ihm_background": [44, 20],
     "ihm_border_up": [56, 20],
@@ -436,10 +437,6 @@ merge de town, la direction des backward conquest, etc.
 # FUTURE : suppression du backward conquest si une town est merge/shatterée.
 
 import random
-
-# TODO : flèches de conquêtes dessinées mieux que ça.
-
-# TODO : dessiner mieux tous les sprites que j'ai fait à l'arrache.
 
 # TODO : afficher une petite flèche quand on doit choisir un truc dans l'interface.
 
