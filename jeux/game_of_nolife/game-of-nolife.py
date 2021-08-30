@@ -1,6 +1,6 @@
-# https://i.postimg.cc/JzQBbzQt/game-of-nolife-tileset.png (old)
-# https://i.postimg.cc/8c58xMtR/game-of-nolife-tileset.png (old)
-# https://i.postimg.cc/gctqBbwZ/game-of-nolife-tileset.png
+# https://i.postimg.cc/gctqBbwZ/game-of-nolife-tileset.png (old)
+# https://i.postimg.cc/cJd5HtNd/game-of-nolife-tileset.png (old)
+# https://i.postimg.cc/5yYJx4Hq/game-of-nolife-tileset.png
 
 """
 {
@@ -205,11 +205,15 @@
     "red_ihm_conquest_right": [36, 28],
     "red_ihm_conquest_down": [40, 28],
     "red_ihm_conquest_left": [44, 28],
+    "red_ihm_arrow_to_map_1": [48, 24],
+    "red_ihm_arrow_to_map_2": [48, 28],
 
     "blu_ihm_conquest_up": [32, 24],
     "blu_ihm_conquest_right": [36, 24],
     "blu_ihm_conquest_down": [40, 24],
     "blu_ihm_conquest_left": [44, 24],
+    "blu_ihm_arrow_to_map_1": [52, 24],
+    "blu_ihm_arrow_to_map_2": [52, 28],
 
     "red_ihm_btn_select_00": [0, 56],
     "red_ihm_btn_select_01": [4, 56],
@@ -437,8 +441,6 @@ merge de town, la direction des backward conquest, etc.
 # FUTURE : suppression du backward conquest si une town est merge/shatterée.
 
 import random
-
-# TODO : afficher une petite flèche quand on doit choisir un truc dans l'interface.
 
 # TODO : affichage du nombre de cases et villes des deux Players.
 
@@ -799,6 +801,9 @@ class PlayerHandler:
             (self.dir_forw_diag, self.dir_forw_hori, self.dir_forw_verti),
             (self.dir_forw_diag, self.dir_forw_verti, self.dir_forw_hori),
         )
+        # En mode "dodo", si on ne parvient pas à construire une ville au bout de 50 tours,
+        # c'est qu'il y a eu un problème. On choisit un autre emplacement.
+        self.nb_turn_auto_build_town = 0
         self.player_interface = None
 
     def __str__(self):
@@ -1746,9 +1751,14 @@ class PlayerHandler:
             self.tile_to_townify = None
             return
 
+        self.nb_turn_auto_build_town += 1
+        if self.nb_turn_auto_build_town == 50:
+            self.tile_to_townify = None
+
         if self.tile_to_townify is None and self.active_towns:
             selected_town = random.choice(self.active_towns)
             if selected_town.unit_gen_tiles:
+                self.nb_turn_auto_build_town = 0
                 self.tile_to_townify = selected_town.unit_gen_tiles[0]
 
 
@@ -3388,6 +3398,13 @@ class PlayerInterface:
         self.player_bionature = player_bionature
         self.offset_btn_x, self.offset_btn_y = offset_btn_coords
         self.ihm_right_side = ihm_right_side
+
+        self.arrow_map_y = OFFSET_INTERFACE_Y + self.offset_btn_y + 2
+        if self.ihm_right_side:
+            self.arrow_map_x = OFFSET_INTERFACE_X + WARZONE_WIDTH
+        else:
+            self.arrow_map_x = OFFSET_INTERFACE_X - 1
+
         self.color = self.player_me.color
         self.current_mode = IhmMode.MAIN_MENU
         self.next_mode = IhmMode.SELECT_TOWN
@@ -3546,6 +3563,19 @@ class PlayerInterface:
                     ] = f"{self.color}_ihm_btn_cancel_{gamobj_index:02d}"
 
                     gamobj_index += 1
+
+        show_arrow_to_map = self.current_mode in (
+            IhmMode.SELECT_TOWN,
+            IhmMode.SELECT_CONQUEST_TILE,
+            IhmMode.SELECT_CONQUEST_DEST,
+        )
+        if show_arrow_to_map:
+            array_gamobjs[self.arrow_map_y][self.arrow_map_x].append(
+                f"{self.color}_ihm_arrow_to_map_1"
+            )
+            array_gamobjs[self.arrow_map_y + 1][self.arrow_map_x].append(
+                f"{self.color}_ihm_arrow_to_map_2"
+            )
 
     def launch_missiles(self):
         # On vérifie que y'a pas déjà des missiles en construction pour cette town.
