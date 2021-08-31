@@ -381,6 +381,37 @@
     "blu_ihm_btn_sleep_08": [56, 52],
     "blu_ihm_lit_background": [48, 20],
 
+    "blu_ihm_count_town_rig_1": [64, 40],
+    "blu_ihm_count_town_rig_2": [68, 40],
+    "blu_ihm_count_town_rig_3": [72, 40],
+    "blu_ihm_count_tile_rig_1": [64, 44],
+    "blu_ihm_count_tile_rig_2": [68, 44],
+    "blu_ihm_count_tile_rig_3": [72, 44],
+    "blu_ihm_count_town_lef_1": [64, 48],
+    "blu_ihm_count_town_lef_2": [68, 48],
+    "blu_ihm_count_town_lef_3": [72, 48],
+    "blu_ihm_count_tile_lef_1": [64, 52],
+    "blu_ihm_count_tile_lef_2": [68, 52],
+    "blu_ihm_count_tile_lef_3": [72, 52],
+    "blu_ihm_count_town_full": [76, 40],
+    "blu_ihm_count_tile_full": [76, 44],
+
+    "red_ihm_count_town_rig_1": [64, 64],
+    "red_ihm_count_town_rig_2": [68, 64],
+    "red_ihm_count_town_rig_3": [72, 64],
+    "red_ihm_count_tile_rig_1": [64, 68],
+    "red_ihm_count_tile_rig_2": [68, 68],
+    "red_ihm_count_tile_rig_3": [72, 68],
+    "red_ihm_count_town_lef_1": [64, 72],
+    "red_ihm_count_town_lef_2": [68, 72],
+    "red_ihm_count_town_lef_3": [72, 72],
+    "red_ihm_count_tile_lef_1": [64, 76],
+    "red_ihm_count_tile_lef_2": [68, 76],
+    "red_ihm_count_tile_lef_3": [72, 76],
+    "red_ihm_count_town_full": [76, 64],
+    "red_ihm_count_tile_full": [76, 68],
+
+
     "bla": [0, 0]
 
   }
@@ -527,6 +558,11 @@ GAMOBJ_NAME_TO_NB_UNIT = tuple(
 )
 
 DIRECTION_NAMES = ("up", "", "right", "", "down", "", "left", "")
+
+# Ratio pour la barre de comptage des tiles et towns, affichée en haut de l'aire de jeu.
+# Indique le nombre de tile ou de town contrôlées auquel correspond un pixel de la barre de comptage.
+BAR_COUNT_RATIO = (WARZONE_WIDTH * WARZONE_HEIGHT) // (TOTAL_GAME_WIDTH * 4) + 1
+print("TODO : BAR_COUNT_RATIO", BAR_COUNT_RATIO)
 
 
 def iterate_on_pseudo_random_boolean():
@@ -3423,6 +3459,7 @@ class PlayerInterface:
         self.current_conquest_line = None
         self.tile_next_town = None
         self.is_town_list_dirty = True
+        self.bar_count_tiles = [""] * TOTAL_GAME_WIDTH
         self.pre_render_ihm_btn()
         self.refresh_town_list()
 
@@ -3508,7 +3545,41 @@ class PlayerInterface:
             # voudra sélectionner une autre town.
             self.refresh_town_list()
 
-    def add_interface_gamobjs(self, array_gamobjs):
+    def refresh_bar_count(self):
+        quantity = len(self.player_me._controlled_tiles)
+        nb_pix_bar = quantity // BAR_COUNT_RATIO
+        nb_full_gamobjs = (nb_pix_bar // 8) * 2
+        margin_left = (TOTAL_GAME_WIDTH - nb_full_gamobjs) // 2
+        margin_right = TOTAL_GAME_WIDTH - nb_full_gamobjs - margin_left
+        gamobj_full = self.color + "_ihm_count_tile_full"
+        self.bar_count_tiles = (
+            [""] * margin_left + [gamobj_full] * nb_full_gamobjs + [""] * margin_right
+        )
+        nb_pix_remains = nb_pix_bar - nb_full_gamobjs * 4
+        # TODO : définir ça plus haut.
+        GAMOBJS_SUFFIX_BAR_EXTREMITIES = (
+            ("", ""),
+            ("", "rig_1"),
+            ("lef_1", "rig_1"),
+            ("lef_1", "rig_2"),
+            ("lef_2", "rig_2"),
+            ("lef_2", "rig_3"),
+            ("lef_3", "rig_3"),
+            ("lef_3", "full"),
+        )
+        if nb_pix_remains > len(GAMOBJS_SUFFIX_BAR_EXTREMITIES):
+            raise Exception(
+                "Fail to determine gamobjs for bar_count. Not supposed to happen."
+            )
+        gamobj_left, gamobj_right = GAMOBJS_SUFFIX_BAR_EXTREMITIES[nb_pix_remains]
+        if gamobj_left:
+            gamobj_left = self.color + "_ihm_count_tile_" + gamobj_left
+            self.bar_count_tiles[margin_left - 1] = gamobj_left
+        if gamobj_right:
+            gamobj_right = self.color + "_ihm_count_tile_" + gamobj_right
+            self.bar_count_tiles[margin_left + nb_full_gamobjs] = gamobj_right
+
+    def add_interface_gamobjs(self, array_gamobjs, must_refresh_bar_count):
         # TODO : pas de concaténation de merde avec self.color.
         town_selector_infos = PlayerInterface.TOWN_SELECTORS[self.selected_town.size]
         for gamobj, index_tile in town_selector_infos:
@@ -3576,6 +3647,12 @@ class PlayerInterface:
             array_gamobjs[self.arrow_map_y + 1][self.arrow_map_x].append(
                 f"{self.color}_ihm_arrow_to_map_2"
             )
+
+        if must_refresh_bar_count:
+            self.refresh_bar_count()
+        for x, bar_gamobj in enumerate(self.bar_count_tiles):
+            if bar_gamobj:
+                array_gamobjs[0][x].append(bar_gamobj)
 
     def launch_missiles(self):
         # On vérifie que y'a pas déjà des missiles en construction pour cette town.
@@ -3689,9 +3766,16 @@ class PlayerInterface:
         # C'est bourrin, mais osef.
         if self.selected_town is None or not self.selected_town.is_active:
             self.refresh_town_list()
-            self.index_selected_town = 0
-            self.selected_town = self.sorted_towns[self.index_selected_town]
-            print("TODO blargh town desactivée")
+            if not self.sorted_towns:
+                self.current_mode = IhmMode.SUBMENU_CANCEL
+                self.next_mode = IhmMode.SLEEP_MODE
+                self.sleep_mode = True
+                # TODO : faire une vraie phrase, et garder un booleén pour écrire ce texte qu'une seule fois.
+                print("sleep mode obligatoire, car pas de town active.")
+            else:
+                self.index_selected_town = 0
+                self.selected_town = self.sorted_towns[self.index_selected_town]
+                print("TODO blargh town desactivée")
             return
 
         if self.current_mode == IhmMode.MAIN_MENU:
@@ -3918,7 +4002,7 @@ class GameModel:
         gamobjs_source = self.game_master.gamobjs_to_export
         gamobjs_copy = []
         for _ in range(OFFSET_INTERFACE_Y - 1):
-            line = [[]] * TOTAL_GAME_WIDTH
+            line = [[] for _ in range(TOTAL_GAME_WIDTH)]
             gamobjs_copy.append(line)
         # TODO : précalculer cette line.
         line = (
@@ -3958,8 +4042,9 @@ class GameModel:
                     tile.x + OFFSET_INTERFACE_X
                 ].append(player.gamobj_go_back)
 
-        self.player_interface_red.add_interface_gamobjs(gamobjs_copy)
-        self.player_interface_blu.add_interface_gamobjs(gamobjs_copy)
+        refresh_bar_count = self.turn_index % 10 == 0
+        self.player_interface_red.add_interface_gamobjs(gamobjs_copy, refresh_bar_count)
+        self.player_interface_blu.add_interface_gamobjs(gamobjs_copy, refresh_bar_count)
         return gamobjs_copy
 
     def _conquest(self, tile_target, direc):
