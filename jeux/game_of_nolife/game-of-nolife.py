@@ -473,10 +473,6 @@ merge de town, la direction des backward conquest, etc.
 
 import random
 
-# TODO : affichage du nombre de cases et villes des deux Players.
-
-# TODO : contrôler vite fait ce que ça donne quand toute l'aire de jeu est complétée, mais si ça plante, osef.
-
 # TODO : le curseur de sandbox est uniquement visible en mode sandbox. Et faut changer un booléen pour pouvoir sandboxer.
 
 # Dimensions, en nombre de cases, du jeu 'game of no-life',
@@ -3460,6 +3456,7 @@ class PlayerInterface:
         self.tile_next_town = None
         self.is_town_list_dirty = True
         self.bar_count_tiles = [""] * TOTAL_GAME_WIDTH
+        self.bar_count_towns = [""] * TOTAL_GAME_WIDTH
         self.pre_render_ihm_btn()
         self.refresh_town_list()
 
@@ -3545,14 +3542,13 @@ class PlayerInterface:
             # voudra sélectionner une autre town.
             self.refresh_town_list()
 
-    def refresh_bar_count(self):
-        quantity = len(self.player_me._controlled_tiles)
+    def refresh_bar_count(self, quantity, bar_gamobj_name):
         nb_pix_bar = quantity // BAR_COUNT_RATIO
         nb_full_gamobjs = (nb_pix_bar // 8) * 2
         margin_left = (TOTAL_GAME_WIDTH - nb_full_gamobjs) // 2
         margin_right = TOTAL_GAME_WIDTH - nb_full_gamobjs - margin_left
-        gamobj_full = self.color + "_ihm_count_tile_full"
-        self.bar_count_tiles = (
+        gamobj_full = f"{self.color}_ihm_count_{bar_gamobj_name}_full"
+        bar_count = (
             [""] * margin_left + [gamobj_full] * nb_full_gamobjs + [""] * margin_right
         )
         nb_pix_remains = nb_pix_bar - nb_full_gamobjs * 4
@@ -3568,16 +3564,16 @@ class PlayerInterface:
             ("lef_3", "full"),
         )
         if nb_pix_remains > len(GAMOBJS_SUFFIX_BAR_EXTREMITIES):
-            raise Exception(
-                "Fail to determine gamobjs for bar_count. Not supposed to happen."
-            )
+            # Not supposed to happen, mais on sait jamais.
+            nb_pix_remains = len(GAMOBJS_SUFFIX_BAR_EXTREMITIES)
         gamobj_left, gamobj_right = GAMOBJS_SUFFIX_BAR_EXTREMITIES[nb_pix_remains]
         if gamobj_left:
-            gamobj_left = self.color + "_ihm_count_tile_" + gamobj_left
-            self.bar_count_tiles[margin_left - 1] = gamobj_left
+            gamobj_left = f"{self.color}_ihm_count_{bar_gamobj_name}_{gamobj_left}"
+            bar_count[margin_left - 1] = gamobj_left
         if gamobj_right:
-            gamobj_right = self.color + "_ihm_count_tile_" + gamobj_right
-            self.bar_count_tiles[margin_left + nb_full_gamobjs] = gamobj_right
+            gamobj_right = f"{self.color}_ihm_count_{bar_gamobj_name}_{gamobj_right}"
+            bar_count[margin_left + nb_full_gamobjs] = gamobj_right
+        return bar_count
 
     def add_interface_gamobjs(self, array_gamobjs, must_refresh_bar_count):
         # TODO : pas de concaténation de merde avec self.color.
@@ -3649,10 +3645,21 @@ class PlayerInterface:
             )
 
         if must_refresh_bar_count:
-            self.refresh_bar_count()
-        for x, bar_gamobj in enumerate(self.bar_count_tiles):
-            if bar_gamobj:
-                array_gamobjs[0][x].append(bar_gamobj)
+            tiles_quantity = len(self.player_me._controlled_tiles)
+            self.bar_count_tiles = self.refresh_bar_count(tiles_quantity, "tile")
+            # TODO : foutre ça plus haut.
+            TOWN_NB_TILES = (0, 1, 4, 9, 16)
+            towns_quantity = sum(
+                (TOWN_NB_TILES[town.size] for town in self.player_me.towns)
+            )
+            self.bar_count_towns = self.refresh_bar_count(towns_quantity, "town")
+        for x, (bar_gamobj_tile, bar_gamobj_town) in enumerate(
+            zip(self.bar_count_tiles, self.bar_count_towns)
+        ):
+            if bar_gamobj_tile:
+                array_gamobjs[0][x].append(bar_gamobj_tile)
+            if bar_gamobj_town:
+                array_gamobjs[0][x].append(bar_gamobj_town)
 
     def launch_missiles(self):
         # On vérifie que y'a pas déjà des missiles en construction pour cette town.
@@ -4215,6 +4222,17 @@ class GameModel:
             self.game_master.missiles.remove(missile_to_rem)
 
         self.turn_index += 1
+
+        if self.turn_index & 127:
+            if (
+                self.player_red.town_merge_state == TOWN_MERGE_STATE_STABLE
+                and self.player_blu.town_merge_state == TOWN_MERGE_STATE_STABLE
+                and not self.player_red.active_towns
+                and not self.player_blu.active_towns
+            ):
+                # TODO : compter le nombre de cases contrôlées et indiquer qui a gagné.
+                print("C'est la fin !! YEEEEEEEEEEAAAAAAAAAAAHHHH")
+                return None
         # FUTURE : calculer approximativement un délai plus ou moins long selon la quantité de trucs à gérer.
         # Plus on a eu à gérer de trucs durant ce tour, plus on met un délai court.
         # Mais c'est super chaud à estimer, ou alors faudrait regarder avec la date courante à chaque fois,
