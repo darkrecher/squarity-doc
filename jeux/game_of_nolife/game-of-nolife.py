@@ -473,7 +473,20 @@ merge de town, la direction des backward conquest, etc.
 
 import random
 
-# TODO : le curseur de sandbox est uniquement visible en mode sandbox. Et faut changer un booléen pour pouvoir sandboxer.
+# Remplacer le mot "False" par "True" dans la ligne de code ci-dessous,
+# pour autoriser le mode sandbox.
+# Lorsque ce mode est activé, les boutons des players blue et red ne sont
+# plus utilisable. À la place, vous avez un curseur dans la zone de jeu,
+# que vous pouvez déplacer avec les flèches.
+# Le bouton d'action "1" permet de parcourir les différentes actions,
+# et le bouton "2" d'activer l'action sélectionnée.
+# Par ex: ajouter un pixel rouge, ajouter une route, construire une ville, ...
+# Ce mode sandbox permet de tester différentes situations de jeux et de débugger.
+# Pour revenir au mode normal, sélectionner l'action "switch to play mode"
+# puis activez-là avec le bouton "2".
+# Pour revenir au mode sandbox, appuyez sur la flèche du haut.
+AUTHORIZE_SANDBOX_MODE = False
+
 
 # Dimensions, en nombre de cases, du jeu 'game of no-life',
 # dans lequel évoluent les unités, les villes, etc.
@@ -3921,7 +3934,7 @@ class PlayerInterface:
 
 
 SANDBOX_MODES = [
-    "switch to interface mode",
+    "switch to play mode",
     "add red unit",
     "add blu unit",
     "add horiz road",
@@ -3997,13 +4010,22 @@ class GameModel:
         )
         self.player_blu.set_player_interface(self.player_interface_blu)
 
-        self.sandboxing = True
+        self.sandboxing = AUTHORIZE_SANDBOX_MODE
+        self.can_write_sandboxing_msg = True
         self.sandbox_action = False
         self.x_cursor = 0
         self.y_cursor = 0
-        self.sandbox_mode_index = 0
+        self.sandbox_mode_index = 1
         self.turn_index = 0
-        print("mode actuel :", SANDBOX_MODES[self.sandbox_mode_index])
+
+        if self.sandboxing:
+            print("Sandbox activé.")
+            print("Déplacez votre curseur avec les flèches.")
+            print("Changez de mode avec '1'.")
+            print("Activez l'action avec '2'.")
+            print("Mode actuel du sandbox :", SANDBOX_MODES[self.sandbox_mode_index])
+        else:
+            print("Appuyez sur un bouton pour démarrer.")
 
     def export_all_tiles(self):
         gamobjs_source = self.game_master.gamobjs_to_export
@@ -4034,9 +4056,11 @@ class GameModel:
             gamobjs_copy[tile.y + OFFSET_INTERFACE_Y][
                 tile.x + OFFSET_INTERFACE_X
             ].append(missile.gamobj)
-        gamobjs_copy[self.y_cursor + OFFSET_INTERFACE_Y][
-            self.x_cursor + OFFSET_INTERFACE_X
-        ].append("red_cursor")
+        if self.sandboxing:
+            gamobjs_copy[self.y_cursor + OFFSET_INTERFACE_Y][
+                self.x_cursor + OFFSET_INTERFACE_X
+            ].append("red_cursor")
+        # TODO : ça devrait pas être la player interface qui fait ça ?
         for player in self.game_master.players:
             if player.tile_magnet is not None:
                 tile = player.tile_magnet
@@ -4177,8 +4201,12 @@ class GameModel:
                 print("red can generate units", self.player_red.can_generate_unit())
                 print("blu can generate units", self.player_blu.can_generate_unit())
 
-            elif sandbox_mode == "switch to interface mode":
-                print("switch to interface")
+            elif sandbox_mode == "switch to play mode":
+                print("Mode 'interface de jeu'")
+                print("-" * 10)
+                print("Appuyez sur la flèche du haut")
+                print("pour revenir au mode sandbox")
+                print("-" * 10)
                 self.sandboxing = False
 
             self.sandbox_action = False
@@ -4273,8 +4301,15 @@ class GameModel:
 
             # TODO : dictionnaire de fonction qui tue.
             if event_name == "U":
-                print("back to sandboxing")
-                self.sandboxing = True
+                if AUTHORIZE_SANDBOX_MODE:
+                    print("back to sandboxing")
+                    self.sandboxing = True
+                elif self.can_write_sandboxing_msg:
+                    print("Vous pouvez activer un mode 'sandbox',")
+                    print("en modifiant une ligne dans le code source.")
+                    print("(Le texte affiché à gauche).")
+                    print("Lisez le début du code source pour plus d'infos.")
+                    self.can_write_sandboxing_msg = False
             elif event_name == "L":
                 self.player_interface_red.on_change_action()
             elif event_name == "R":
@@ -4289,3 +4324,21 @@ class GameModel:
 
 # TODO : bug qui fait planter le truc en cours lorsqu'on choisit une conquête. (ligne 3508)
 # else conquest_tiles[self.index_conquest_start]
+
+# TODO : curseur de sandbox plus visible.
+
+# TODO : faire disparaître la sélection en mode dodo.
+
+# TODO : bug au lancement de missile en mode sandbox :
+"""
+Exécution d'un événement process_turn
+Traceback (most recent call last):
+  File "/lib/python3.7/site-packages/pyodide.py", line 45, in eval_code
+    return eval(compile(expr, '<eval>', mode='eval'), ns, ns)
+  File "<eval>", line 1, in <module>
+  File "<exec>", line 4276, in on_game_event
+  File "<exec>", line 4246, in on_process_turn
+  File "<exec>", line 2808, in handle
+  File "<exec>", line 2844, in move
+TypeError: unsupported operand type(s) for -=: 'NoneType' and 'int'
+"""
