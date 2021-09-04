@@ -1,6 +1,5 @@
-# https://i.postimg.cc/gctqBbwZ/game-of-nolife-tileset.png (old)
-# https://i.postimg.cc/cJd5HtNd/game-of-nolife-tileset.png (old)
-# https://i.postimg.cc/5yYJx4Hq/game-of-nolife-tileset.png
+# https://i.postimg.cc/5yYJx4Hq/game-of-nolife-tileset.png (old)
+# https://i.postimg.cc/jSp2nF8y/game-of-nolife-tileset.png
 
 """
 {
@@ -68,7 +67,6 @@
     "red_road_horiz": [72, 0],
     "red_road_vertic": [76, 0],
     "red_road_both": [80, 0],
-    "red_cursor": [4, 2],
     "red_magnet": [68, 32],
     "red_go_back": [72, 32],
 
@@ -140,7 +138,6 @@
     "blu_road_horiz": [72, 4],
     "blu_road_vertic": [76, 4],
     "blu_road_both": [80, 4],
-    "blu_cursor": [12, 8],
     "blu_magnet": [68, 36],
     "blu_go_back": [72, 36],
 
@@ -411,9 +408,7 @@
     "red_ihm_count_town_full": [76, 64],
     "red_ihm_count_tile_full": [76, 68],
 
-
-    "bla": [0, 0]
-
+    "sandbox_cursor": [56, 24]
   }
 }
 """
@@ -495,8 +490,6 @@ WARZONE_HEIGHT = 36
 # Décalage de l'affichage de la warzone, par rapport à l'interface du jeu
 OFFSET_INTERFACE_X = 12
 OFFSET_INTERFACE_Y = 2
-# TODO : faut faire gaffe à quels endroits on utilise ces constantes.
-# Tant que y'a pas d'interface, osef. Mais ça va changer.
 # Dimensions, en nombre de cases, du jeu Squarity, en comptant les cases dédiées
 # à l'interface, sur les bords.
 TOTAL_GAME_WIDTH = WARZONE_WIDTH + 2 * OFFSET_INTERFACE_X
@@ -571,7 +564,6 @@ DIRECTION_NAMES = ("up", "", "right", "", "down", "", "left", "")
 # Ratio pour la barre de comptage des tiles et towns, affichée en haut de l'aire de jeu.
 # Indique le nombre de tile ou de town contrôlées auquel correspond un pixel de la barre de comptage.
 BAR_COUNT_RATIO = (WARZONE_WIDTH * WARZONE_HEIGHT) // (TOTAL_GAME_WIDTH * 4) + 1
-print("TODO : BAR_COUNT_RATIO", BAR_COUNT_RATIO)
 
 
 def iterate_on_pseudo_random_boolean():
@@ -3360,7 +3352,7 @@ class IhmMode:
 
     MAIN_MENU = 0
     SELECT_TOWN = 1
-    SELECT_CONQUEST_TILE = 2
+    SELECT_CONQUEST_LINE = 2
     SELECT_CONQUEST_DEST = 3
     BACKWARD_CONQUEST = 4
     SUBMENU_CANCEL = 5
@@ -3371,8 +3363,15 @@ class IhmMode:
 
 class PlayerInterface:
 
-    # TODO : explain ! (These 2 variables !)
-
+    # Définition des boutons de l'interface. Chaque élément est un sous-tuple de 4 élément :
+    #  - nom de base des gamobjs permettant de dessiner le bouton.
+    #    (il faudra préfixer par la couleur et suffixer par les coordonnée des fragments d'image,
+    #    chaque bouton est représenté par un carré de 3x3 gamobjs.
+    #  - position X du bouton, en "unités de bouton", soit 4 gamobjs (3 pour le bouton, 1 pour la marge).
+    #  - position Y du bouton.
+    #  - indication des liens. "R" : il faut dessiner un lien vers la droite.
+    #    "D" : il faut dessiner un lien vers le bas.
+    #    Les liens sont représentés par un simple gamobj carré de couleur gris foncé.
     BUTTON_DEFINITIONS = (
         ("ihm_btn_select", 0, 0, "D"),
         ("ihm_btn_conq", 0, 1, "DR"),
@@ -3385,25 +3384,31 @@ class PlayerInterface:
         ("ihm_btn_sleep", 1, 5, ""),
     )
 
+    # Dict indiquant quel bouton il faut mettre en surbrillance, selon l'état d'ihm de Player.
+    # clé : tuple de 2 éléments :
+    #  - mode en cours (current_mode)
+    #  - mode suivant (next_mode), ça correspond à peu près au mode
+    #    qui s'activerait dans le cas où Player cliquerait sur le bouton de validation d'action.
+    # valeur : un index dans la liste BUTTON_DEFINITIONS,
+    #          correspondant au bouton à mettre en surbrillance.
     INDEX_LIT_BUTTONS = {
         (IhmMode.MAIN_MENU, IhmMode.SELECT_TOWN): 0,
         (IhmMode.SELECT_TOWN, IhmMode.SELECT_TOWN): 0,
-        (IhmMode.MAIN_MENU, IhmMode.SELECT_CONQUEST_TILE): 1,
+        (IhmMode.MAIN_MENU, IhmMode.SELECT_CONQUEST_LINE): 1,
         (IhmMode.MAIN_MENU, IhmMode.BACKWARD_CONQUEST): 2,
         (IhmMode.MAIN_MENU, IhmMode.LAUNCH_MISSILE): 3,
         (IhmMode.MAIN_MENU, IhmMode.SUBMENU_CANCEL): 6,
         (IhmMode.SUBMENU_CANCEL, IhmMode.CANCEL_CURRENT_ORDERS): 7,
         (IhmMode.SUBMENU_CANCEL, IhmMode.SLEEP_MODE): 8,
-        # TODO : Ici faudrait du None en next. Là, ça fait bizarre.
-        (IhmMode.SELECT_CONQUEST_TILE, IhmMode.SELECT_CONQUEST_TILE): 4,
-        (IhmMode.SELECT_CONQUEST_DEST, IhmMode.SELECT_CONQUEST_TILE): 5,
+        (IhmMode.SELECT_CONQUEST_LINE, IhmMode.SELECT_CONQUEST_DEST): 4,
+        (IhmMode.SELECT_CONQUEST_DEST, IhmMode.MAIN_MENU): 5,
     }
 
     # dict. clé : taille de la town.
     # valeur : liste de tuple de 2 elems :
-    #  - nom du gamobj à placer pour montrer que la town est sélectionnée
+    #  - nom du gamobj à placer pour montrer que la town est sélectionnée.
     #  - index de la tile de town où placer ce gamobj.
-    # faut préfixer avec blu ou red, comme d'hab'.
+    # Il faut préfixer le gamobj avec blu ou red, comme d'hab'.
     TOWN_SELECTORS = {
         1: (("select_town_1x1", 0),),
         2: (
@@ -3623,7 +3628,7 @@ class PlayerInterface:
 
         show_cancel = (
             (
-                self.current_mode == IhmMode.SELECT_CONQUEST_TILE
+                self.current_mode == IhmMode.SELECT_CONQUEST_LINE
                 and self.index_conquest_start is None
             )
             or (
@@ -3646,7 +3651,7 @@ class PlayerInterface:
 
         show_arrow_to_map = self.current_mode in (
             IhmMode.SELECT_TOWN,
-            IhmMode.SELECT_CONQUEST_TILE,
+            IhmMode.SELECT_CONQUEST_LINE,
             IhmMode.SELECT_CONQUEST_DEST,
         )
         if show_arrow_to_map:
@@ -3674,9 +3679,11 @@ class PlayerInterface:
             if bar_gamobj_town:
                 array_gamobjs[0][x].append(bar_gamobj_town)
 
-    def launch_missiles(self):
+    def launch_missiles(self, town_launcher=None):
+        if town_launcher is None:
+            town_launcher = self.selected_town
         # On vérifie que y'a pas déjà des missiles en construction pour cette town.
-        tiles_gen_missile = self.selected_town.tiles_gen_missile
+        tiles_gen_missile = town_launcher.tiles_gen_missile
         for missile in self.game_master.missiles:
             if (
                 missile.player_owner == self.player_me
@@ -3686,9 +3693,7 @@ class PlayerInterface:
                 # Il y a un missile en construction. On laisse tomber.
                 return
 
-        duration, missile_delays = Missile.GEN_INFOS_FROM_TOWN_SIZE[
-            self.selected_town.size
-        ]
+        duration, missile_delays = Missile.GEN_INFOS_FROM_TOWN_SIZE[town_launcher.size]
         for tile, delay in zip(tiles_gen_missile, missile_delays):
             missile = Missile(self.player_me, tile, duration, self.game_master, delay)
             self.game_master.missiles.append(missile)
@@ -3703,10 +3708,10 @@ class PlayerInterface:
         elif self.current_mode == IhmMode.MAIN_MENU:
             next_modes = {
                 IhmMode.SELECT_TOWN: (
-                    IhmMode.SELECT_CONQUEST_TILE,
+                    IhmMode.SELECT_CONQUEST_LINE,
                     "next mode conquest tile",
                 ),
-                IhmMode.SELECT_CONQUEST_TILE: (
+                IhmMode.SELECT_CONQUEST_LINE: (
                     IhmMode.BACKWARD_CONQUEST,
                     "next mode backward conquest",
                 ),
@@ -3726,10 +3731,21 @@ class PlayerInterface:
                 self.index_selected_town = 0
             self.selected_town = self.sorted_towns[self.index_selected_town]
 
-        elif self.current_mode == IhmMode.SELECT_CONQUEST_TILE:
+        elif self.current_mode == IhmMode.SELECT_CONQUEST_LINE:
             # On parcourt town.unit_gen_tiles : c'est la liste des tiles adjacentes de la town,
             # qui sont libres (c'est à dire que y'a pas une autre town dessus).
             conquest_tiles = self.selected_town.unit_gen_tiles
+            if not conquest_tiles:
+                # Cas particulier stupide, où une town s'est construite juste à côté de
+                # la town sélectionnée, ce qui supprime la dernière tile libre de la town.
+                # Dans ce cas, on déselectionne tout et on se barre.
+                # Player doit obligatoirement annuler sa conquête.
+                # Lorsque ce cas arrive, le jeu ne plante pas, mais on se retrouve dans
+                # une situation d'IHM un peu dégueux. Osef, c'est un cas trop particulier
+                # pour que je m'embête à le gérer correctement jusqu'au bout.
+                self.index_conquest_start = None
+                self.index_conquest_start = None
+                return
 
             if self.index_conquest_start is None:
                 self.index_conquest_start = 0
@@ -3802,7 +3818,8 @@ class PlayerInterface:
             self.tile_selector = None
             self.current_mode = self.next_mode
 
-            if self.current_mode == IhmMode.SELECT_CONQUEST_TILE:
+            if self.current_mode == IhmMode.SELECT_CONQUEST_LINE:
+                self.next_mode = IhmMode.SELECT_CONQUEST_DEST
                 self.index_conquest_start = 0
                 conquest_tiles = self.selected_town.unit_gen_tiles
                 self.tile_selector = conquest_tiles[self.index_conquest_start]
@@ -3844,9 +3861,10 @@ class PlayerInterface:
             self.current_mode = IhmMode.MAIN_MENU
             print("back to main menu")
 
-        elif self.current_mode == IhmMode.SELECT_CONQUEST_TILE:
+        elif self.current_mode == IhmMode.SELECT_CONQUEST_LINE:
             if self.tile_selector is None:
                 self.current_mode = IhmMode.MAIN_MENU
+                self.next_mode = IhmMode.SELECT_CONQUEST_LINE
                 print("back to main menu")
             else:
                 self.conquest_lines = []
@@ -3854,7 +3872,7 @@ class PlayerInterface:
                 current_tile = self.tile_selector
                 current_conquest_line = []
                 current_conquest_line.append(current_tile)
-                for conquest_distance in range(9):
+                for conquest_distance in range(8):
 
                     next_tile = current_tile.adjacencies[self.conquest_dir]
                     must_stop_lining = next_tile is None or next_tile.town is not None
@@ -3871,12 +3889,14 @@ class PlayerInterface:
                 if not self.conquest_lines:
                     raise Exception("conquest line empty. Not supposed to happen")
                 self.tile_selector = None
+                self.conquest_lines = self.conquest_lines[::-1]
                 self.index_conquest_line = 0
                 self.current_conquest_line = self.conquest_lines[
                     self.index_conquest_line
                 ]
                 self.tile_selector = None
                 self.current_mode = IhmMode.SELECT_CONQUEST_DEST
+                self.next_mode = IhmMode.MAIN_MENU
                 # Détermination de la direction vertic/horiz des routes.
                 # TODO : c'est dégueux. Faut precalc les deux gamobj.
                 self.gamobj_conquest_line = (
@@ -3885,16 +3905,11 @@ class PlayerInterface:
                     else self.color + "_ihm_conquest_vertic"
                 )
 
-                # TODO : crap.
-                # for line in self.conquest_lines:
-                #     print("--- conquest line ---")
-                #     for tile in line:
-                #         print(tile.x, tile.y)
-
         elif self.current_mode == IhmMode.SELECT_CONQUEST_DEST:
             self.conquest_dest_pot_tiles = []
             if self.index_conquest_line is None:
                 self.current_mode = IhmMode.MAIN_MENU
+                self.next_mode = IhmMode.SELECT_CONQUEST_LINE
                 print("back to main menu")
             else:
                 # TODO : factoriser les cancels.
@@ -3906,6 +3921,7 @@ class PlayerInterface:
                 print("launch conquest")
                 self.current_conquest_line = []
                 self.current_mode = IhmMode.MAIN_MENU
+                self.next_mode = IhmMode.SELECT_CONQUEST_LINE
 
         elif self.current_mode == IhmMode.SUBMENU_CANCEL:
             if self.next_mode == IhmMode.CANCEL_CURRENT_ORDERS:
@@ -4059,7 +4075,7 @@ class GameModel:
         if self.sandboxing:
             gamobjs_copy[self.y_cursor + OFFSET_INTERFACE_Y][
                 self.x_cursor + OFFSET_INTERFACE_X
-            ].append("red_cursor")
+            ].append("sandbox_cursor")
         # TODO : ça devrait pas être la player interface qui fait ça ?
         for player in self.game_master.players:
             if player.tile_magnet is not None:
@@ -4165,36 +4181,10 @@ class GameModel:
                 if tile_target.town is None:
                     print("Il faut sélectionner une ville pour balancer des missiles.")
                 else:
-                    # On vérifie que y'a pas déjà des missiles en construction pour cette town.
-                    # TODO : factoriser ce bordel avec la fonction de PlayerIhm.
-                    player_owner_missile = tile_target.town.player_owner
-                    tiles_gen_missile = tile_target.town.tiles_gen_missile
-                    can_launch_missile = True
-                    for missile in self.game_master.missiles:
-                        if (
-                            missile.player_owner == player_owner_missile
-                            and missile.current_action == Missile.BUILDING
-                            and missile.tile in tiles_gen_missile
-                        ):
-                            can_launch_missile = False
-                            break
-
-                    if can_launch_missile:
-                        # C'est bon, on peut lancer les missiles.
-                        missile_delays_from_town_size = {
-                            1: [None],
-                            2: [2, 6],
-                            4: [2, 10, 14, 6],
-                        }
-                        missile_delays = missile_delays_from_town_size[
-                            tile_target.town.size
-                        ]
-                        for tile, delay in zip(tiles_gen_missile, missile_delays):
-                            missile = Missile(
-                                player_owner_missile, tile, 10, self.game_master, delay
-                            )
-                            self.game_master.missiles.append(missile)
-
+                    if tile_target.town.player_owner == self.player_red:
+                        self.player_interface_red.launch_missiles(tile_target.town)
+                    if tile_target.town.player_owner == self.player_blu:
+                        self.player_interface_blu.launch_missiles(tile_target.town)
             elif sandbox_mode == "describe":
                 print("-----")
                 print(tile_target)
@@ -4320,25 +4310,6 @@ class GameModel:
                 self.player_interface_blu.on_activate_action()
 
 
-# TODO : bug dans la conquest line, on peut avoir 4 choix de distance alors qu'on devrait en avoir que 2.
-
-# TODO : bug qui fait planter le truc en cours lorsqu'on choisit une conquête. (ligne 3508)
-# else conquest_tiles[self.index_conquest_start]
-
-# TODO : curseur de sandbox plus visible.
-
 # TODO : faire disparaître la sélection en mode dodo.
 
-# TODO : bug au lancement de missile en mode sandbox :
-"""
-Exécution d'un événement process_turn
-Traceback (most recent call last):
-  File "/lib/python3.7/site-packages/pyodide.py", line 45, in eval_code
-    return eval(compile(expr, '<eval>', mode='eval'), ns, ns)
-  File "<eval>", line 1, in <module>
-  File "<exec>", line 4276, in on_game_event
-  File "<exec>", line 4246, in on_process_turn
-  File "<exec>", line 2808, in handle
-  File "<exec>", line 2844, in move
-TypeError: unsupported operand type(s) for -=: 'NoneType' and 'int'
-"""
+# TODO : au départ on propose la ligne de conquête la plus grande ou la plus courte ?
