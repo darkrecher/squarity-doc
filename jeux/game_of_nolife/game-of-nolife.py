@@ -57,7 +57,7 @@
     "red_select_town_corner_dl": [60, 28],
     "red_select_town_line_d": [64, 28],
     "red_select_town_corner_dr": [68, 28],
-    "red_selector": [64, 32],
+    "red_ihm_selector": [64, 32],
     "red_ihm_conquest_vertic": [56, 32],
     "red_ihm_conquest_horiz": [52, 32],
     "red_ihm_conquest_dst_pot": [48, 32],
@@ -128,7 +128,7 @@
     "blu_select_town_corner_dl": [72, 28],
     "blu_select_town_line_d": [76, 28],
     "blu_select_town_corner_dr": [80, 28],
-    "blu_selector": [64, 36],
+    "blu_ihm_selector": [64, 36],
     "blu_ihm_conquest_vertic": [56, 36],
     "blu_ihm_conquest_horiz": [52, 36],
     "blu_ihm_conquest_dst_pot": [48, 36],
@@ -464,6 +464,12 @@ posent les pixels générés, la direction des missiles bactériologiques, l'ord
 merge de town, la direction des backward conquest, etc.
 """
 
+# TODO : ajouter des commentaires de code dans les parties non documentées.
+
+# TODO : rédiger la doc expliquant comment jouer.
+# dans la doc, expliquer que des fois il faut appuyer deux fois sur l'activation pour quitter le mode "dodo",
+# à cause d'une mauvaise gestion dans la sélection des villes, mais c'est comme ça.
+
 # FUTURE : suppression du backward conquest si une town est merge/shatterée.
 
 import random
@@ -559,11 +565,12 @@ GAMOBJ_NAME_TO_NB_UNIT = tuple(
     "00;01;02;03;04;05;06;07;08;09;10;11;12;13;14;15;16".split(";")
 )
 
-DIRECTION_NAMES = ("up", "", "right", "", "down", "", "left", "")
-
 # Ratio pour la barre de comptage des tiles et towns, affichée en haut de l'aire de jeu.
 # Indique le nombre de tile ou de town contrôlées auquel correspond un pixel de la barre de comptage.
 BAR_COUNT_RATIO = (WARZONE_WIDTH * WARZONE_HEIGHT) // (TOTAL_GAME_WIDTH * 4) + 1
+
+# Nombre de tile occupée par une town, en fonction de sa taille. Bon c'est juste la taille au carré.
+TOWN_NB_TILES = (0, 1, 4, 9, 16)
 
 
 def iterate_on_pseudo_random_boolean():
@@ -3433,6 +3440,32 @@ class PlayerInterface:
         ),
     }
 
+    # Liste des game objects (à préfixer par la couleur) utilisés pour afficher
+    # la barre indiquant le nombre de tile et de towns d'un player.
+    # Cette barre s'étend à droite et à gauche au fur et à mesure que les quantités à
+    # afficher augmentent.
+    # Toutes les 8 quantités, on insère deux gamobjs de ligne pleine au milieu de la barre.
+    # Cette liste indique les gamobjs à afficher en fonction de "quantité % 8".
+    # Il y a donc 7 éléments. Chacun contient deux éléments :
+    # le gamobj à afficher du côté gauche de la barre, et celui à afficher du côté droit.
+    GAMOBJS_SUFFIX_BAR_EXTREMITIES = (
+        ("", ""),
+        ("", "rig_1"),
+        ("lef_1", "rig_1"),
+        ("lef_1", "rig_2"),
+        ("lef_2", "rig_2"),
+        ("lef_2", "rig_3"),
+        ("lef_3", "rig_3"),
+        ("lef_3", "full"),
+    )
+
+    # Ça c'est juste pour générer les gamobjs d'ihm utilisés pour sélectionner
+    # la direction d'une conquest line.
+    DIRECTION_NAMES = ("up", "", "right", "", "down", "", "left", "")
+
+    BAR_COUNT_TYPE_TILE = 0
+    BAR_COUNT_TYPE_TOWN = 1
+
     def __init__(
         self,
         game_master,
@@ -3462,9 +3495,9 @@ class PlayerInterface:
         self.index_selected_town = 0
         self.selected_town = self.player_me.active_towns[self.index_selected_town]
         self.index_conquest_start = 0
-        # TODO : si ça sert qu'à un seul truc (choix du départ de conquête),
-        # faut renommer cette variable.
-        self.tile_selector = None
+        # Tile adjacente à une town, indiquant le départ d'une conquest line
+        # Si pas de conquest line en cours, cette variable vaut None.
+        self.tile_conquest_start = None
         self.index_conquest_line = 0
         self.conquest_lines = None
         self.conquest_dir = None
@@ -3475,8 +3508,22 @@ class PlayerInterface:
         self.is_town_list_dirty = True
         self.bar_count_tiles = [""] * TOTAL_GAME_WIDTH
         self.bar_count_towns = [""] * TOTAL_GAME_WIDTH
+        self.precalculate_ihm_gamobj_names()
         self.pre_render_ihm_btn()
         self.refresh_town_list()
+
+    def iterate_for_button(array_gamobjs, corner_x, corner_y):
+        """
+        Juste une petite fonction pour itérer sur un carré de 3x3 tiles,
+        à l'intérieur d'un array de tile plus grand.
+        J'en ai besoin pour gérer l'affichage des boutons, qui ont tous cette taille.
+        """
+        index_tile = 0
+        for offset_y in range(3):
+            for offset_x in range(3):
+                tile_current = array_gamobjs[corner_y + offset_y][corner_x + offset_x]
+                index_tile += 1
+                yield index_tile, tile_current
 
     def pre_render_ihm_btn(self):
 
@@ -3525,7 +3572,6 @@ class PlayerInterface:
             self.player_me.active_towns, key=lambda town: (town.y_up, town.x_left)
         )
         self.nb_towns = len(self.sorted_towns)
-        # print("TODO refresh_town_list: self.nb_towns", self.nb_towns)
         if not self.nb_towns:
             # Cas stupide où on se retrouve avec 0 villes actives pendant un cycle de jeu,
             # parce que Player a commencé par créer une grosse ville.
@@ -3550,7 +3596,6 @@ class PlayerInterface:
         self.selected_town = new_selected_town
 
     def dirtify_town_list(self):
-        # print("TODO Dirtyfication !!")
         self.is_town_list_dirty = True
         if self.selected_town not in self.player_me.active_towns:
             # La liste des towns a changée, et en plus, la town actuellement sélectionnée
@@ -3560,71 +3605,94 @@ class PlayerInterface:
             # voudra sélectionner une autre town.
             self.refresh_town_list()
 
-    def refresh_bar_count(self, quantity, bar_gamobj_name):
+    def precalculate_ihm_gamobj_names(self):
+        self.gamobj_bar_base_town = self.color + "_ihm_count_town_"
+        self.gamobj_bar_base_tile = self.color + "_ihm_count_tile_"
+        self.gamobj_bar_full_town = self.color + "_ihm_count_town_full"
+        self.gamobj_bar_full_tile = self.color + "_ihm_count_tile_full"
+        self.gamobjs_conquest_dir = tuple(
+            [
+                self.color + "_ihm_conquest_" + suffix_conq_dir
+                for suffix_conq_dir in PlayerInterface.DIRECTION_NAMES
+            ]
+        )
+
+        self.gamobj_conquest_dst_pot = self.color + "_ihm_conquest_dst_pot"
+        self.gamobj_selector = self.color + "_ihm_selector"
+        self.gamobj_conquest_nxt_town = self.color + "_ihm_conquest_nxt_town"
+        self.gamobj_lit_background = self.color + "_ihm_lit_background"
+        self.gamobj_arrow_to_map_1 = self.color + "_ihm_arrow_to_map_1"
+        self.gamobj_arrow_to_map_2 = self.color + "_ihm_arrow_to_map_2"
+        self.gamobj_conquest_horiz = self.color + "_ihm_conquest_horiz"
+        self.gamobj_conquest_vertic = self.color + "_ihm_conquest_vertic"
+
+    def refresh_bar_count(self, quantity, bar_count_type):
+        if bar_count_type == PlayerInterface.BAR_COUNT_TYPE_TILE:
+            gamobj_bar_base = self.gamobj_bar_base_tile
+            gamobj_bar_full = self.gamobj_bar_full_tile
+        else:
+            gamobj_bar_base = self.gamobj_bar_base_town
+            gamobj_bar_full = self.gamobj_bar_full_town
+
         nb_pix_bar = quantity // BAR_COUNT_RATIO
         nb_full_gamobjs = (nb_pix_bar // 8) * 2
         margin_left = (TOTAL_GAME_WIDTH - nb_full_gamobjs) // 2
         margin_right = TOTAL_GAME_WIDTH - nb_full_gamobjs - margin_left
-        gamobj_full = f"{self.color}_ihm_count_{bar_gamobj_name}_full"
         bar_count = (
-            [""] * margin_left + [gamobj_full] * nb_full_gamobjs + [""] * margin_right
+            [""] * margin_left
+            + [gamobj_bar_full] * nb_full_gamobjs
+            + [""] * margin_right
         )
         nb_pix_remains = nb_pix_bar - nb_full_gamobjs * 4
-        # TODO : définir ça plus haut.
-        GAMOBJS_SUFFIX_BAR_EXTREMITIES = (
-            ("", ""),
-            ("", "rig_1"),
-            ("lef_1", "rig_1"),
-            ("lef_1", "rig_2"),
-            ("lef_2", "rig_2"),
-            ("lef_2", "rig_3"),
-            ("lef_3", "rig_3"),
-            ("lef_3", "full"),
-        )
-        if nb_pix_remains > len(GAMOBJS_SUFFIX_BAR_EXTREMITIES):
+        if nb_pix_remains >= len(PlayerInterface.GAMOBJS_SUFFIX_BAR_EXTREMITIES):
             # Not supposed to happen, mais on sait jamais.
-            nb_pix_remains = len(GAMOBJS_SUFFIX_BAR_EXTREMITIES)
-        gamobj_left, gamobj_right = GAMOBJS_SUFFIX_BAR_EXTREMITIES[nb_pix_remains]
+            nb_pix_remains = len(PlayerInterface.GAMOBJS_SUFFIX_BAR_EXTREMITIES)
+        gamobjs = PlayerInterface.GAMOBJS_SUFFIX_BAR_EXTREMITIES[nb_pix_remains]
+        gamobj_left, gamobj_right = gamobjs
         if gamobj_left:
-            gamobj_left = f"{self.color}_ihm_count_{bar_gamobj_name}_{gamobj_left}"
+            gamobj_left = gamobj_bar_base + gamobj_left
             bar_count[margin_left - 1] = gamobj_left
         if gamobj_right:
-            gamobj_right = f"{self.color}_ihm_count_{bar_gamobj_name}_{gamobj_right}"
+            gamobj_right = gamobj_bar_base + gamobj_right
             bar_count[margin_left + nb_full_gamobjs] = gamobj_right
         return bar_count
 
-    def add_interface_gamobjs(self, array_gamobjs, must_refresh_bar_count):
-        # TODO : pas de concaténation de merde avec self.color.
-        town_selector_infos = PlayerInterface.TOWN_SELECTORS[self.selected_town.size]
-        for gamobj, index_tile in town_selector_infos:
-            tile = self.selected_town.tiles_position[index_tile]
-            tile_from_coords(array_gamobjs, tile).append(self.color + "_" + gamobj)
-        if self.tile_selector is not None:
-            suffix_conq_dir = DIRECTION_NAMES[self.conquest_dir]
-            gamobj_conq_dir = f"{self.color}_ihm_conquest_{suffix_conq_dir}"
-            tile_from_coords(array_gamobjs, self.tile_selector).append(gamobj_conq_dir)
-        for tile in self.conquest_dest_pot_tiles:
-            tile_from_coords(array_gamobjs, tile).append(
-                self.color + "_ihm_conquest_dst_pot"
+    def add_interface_gamobjs(
+        self, array_gamobjs, must_refresh_bar_count, show_selected_town
+    ):
+        if show_selected_town:
+            town_selector_infos = PlayerInterface.TOWN_SELECTORS[
+                self.selected_town.size
+            ]
+            for gamobj, index_tile in town_selector_infos:
+                tile = self.selected_town.tiles_position[index_tile]
+                tile_from_coords(array_gamobjs, tile).append(self.color + "_" + gamobj)
+
+        if self.tile_conquest_start is not None:
+            gamobj_conq_dir = self.gamobjs_conquest_dir[self.conquest_dir]
+            tile_from_coords(array_gamobjs, self.tile_conquest_start).append(
+                gamobj_conq_dir
             )
+        for tile in self.conquest_dest_pot_tiles:
+            tile_from_coords(array_gamobjs, tile).append(self.gamobj_conquest_dst_pot)
         if self.current_conquest_line:
             for tile in self.current_conquest_line[:-1]:
                 tile_from_coords(array_gamobjs, tile).append(self.gamobj_conquest_line)
             last_tile = self.current_conquest_line[-1]
-            tile_from_coords(array_gamobjs, last_tile).append(self.color + "_selector")
+            tile_from_coords(array_gamobjs, last_tile).append(self.gamobj_selector)
         if self.tile_next_town is not None:
             if self.tile_next_town.town is not None:
                 self.tile_next_town = None
             else:
                 tile_from_coords(array_gamobjs, self.tile_next_town).append(
-                    self.color + "_ihm_conquest_nxt_town"
+                    self.gamobj_conquest_nxt_town
                 )
 
         x_lit_upleft, y_lit_upleft = self._get_lit_coordinates()
         x_lit_upleft += self.ihm_right_side * (WARZONE_WIDTH + OFFSET_INTERFACE_X)
         for y_lit in range(y_lit_upleft, y_lit_upleft + 3):
             for x_lit in range(x_lit_upleft, x_lit_upleft + 3):
-                array_gamobjs[y_lit][x_lit][0] = self.color + "_ihm_lit_background"
+                array_gamobjs[y_lit][x_lit][0] = self.gamobj_lit_background
 
         show_cancel = (
             (
@@ -3656,21 +3724,23 @@ class PlayerInterface:
         )
         if show_arrow_to_map:
             array_gamobjs[self.arrow_map_y][self.arrow_map_x].append(
-                f"{self.color}_ihm_arrow_to_map_1"
+                self.gamobj_arrow_to_map_1
             )
             array_gamobjs[self.arrow_map_y + 1][self.arrow_map_x].append(
-                f"{self.color}_ihm_arrow_to_map_2"
+                self.gamobj_arrow_to_map_2
             )
 
         if must_refresh_bar_count:
             tiles_quantity = len(self.player_me._controlled_tiles)
-            self.bar_count_tiles = self.refresh_bar_count(tiles_quantity, "tile")
-            # TODO : foutre ça plus haut.
-            TOWN_NB_TILES = (0, 1, 4, 9, 16)
+            self.bar_count_tiles = self.refresh_bar_count(
+                tiles_quantity, PlayerInterface.BAR_COUNT_TYPE_TILE
+            )
             towns_quantity = sum(
                 (TOWN_NB_TILES[town.size] for town in self.player_me.towns)
             )
-            self.bar_count_towns = self.refresh_bar_count(towns_quantity, "town")
+            self.bar_count_towns = self.refresh_bar_count(
+                towns_quantity, PlayerInterface.BAR_COUNT_TYPE_TOWN
+            )
         for x, (bar_gamobj_tile, bar_gamobj_town) in enumerate(
             zip(self.bar_count_tiles, self.bar_count_towns)
         ):
@@ -3754,19 +3824,19 @@ class PlayerInterface:
                 if self.index_conquest_start >= len(conquest_tiles):
                     self.index_conquest_start = None
 
-            self.tile_selector = (
+            self.tile_conquest_start = (
                 None
                 if self.index_conquest_start is None
                 else conquest_tiles[self.index_conquest_start]
             )
-            if self.tile_selector is None:
+            if self.tile_conquest_start is None:
                 self.conquest_dir = None
             else:
                 # TODO : et en plus faut le factoriser.
                 # Truc dégueulasse : on doit retrouver la direction de conquête en fonction de la town
                 # et de la tile de démarrage de conquête. J'aurais vraiment pu arranger ça mieux, mais zut.
                 for tile in self.selected_town.tiles_position:
-                    dirs = directions_from_pos(tile, self.tile_selector)
+                    dirs = directions_from_pos(tile, self.tile_conquest_start)
                     if len(dirs) == 1:
                         self.conquest_dir = dirs[0]
                         break
@@ -3815,19 +3885,19 @@ class PlayerInterface:
             return
 
         if self.current_mode == IhmMode.MAIN_MENU:
-            self.tile_selector = None
+            self.tile_conquest_start = None
             self.current_mode = self.next_mode
 
             if self.current_mode == IhmMode.SELECT_CONQUEST_LINE:
                 self.next_mode = IhmMode.SELECT_CONQUEST_DEST
                 self.index_conquest_start = 0
                 conquest_tiles = self.selected_town.unit_gen_tiles
-                self.tile_selector = conquest_tiles[self.index_conquest_start]
+                self.tile_conquest_start = conquest_tiles[self.index_conquest_start]
                 # TODO : et en plus faut le factoriser.
                 # Truc dégueulasse : on doit retrouver la direction de conquête en fonction de la town
                 # et de la tile de démarrage de conquête. J'aurais vraiment pu arranger ça mieux, mais zut.
                 for tile in self.selected_town.tiles_position:
-                    dirs = directions_from_pos(tile, self.tile_selector)
+                    dirs = directions_from_pos(tile, self.tile_conquest_start)
                     if len(dirs) == 1:
                         self.conquest_dir = dirs[0]
                         break
@@ -3857,19 +3927,19 @@ class PlayerInterface:
                 self.next_mode = IhmMode.CANCEL_CURRENT_ORDERS
 
         elif self.current_mode == IhmMode.SELECT_TOWN:
-            self.tile_selector = None
+            self.tile_conquest_start = None
             self.current_mode = IhmMode.MAIN_MENU
             print("back to main menu")
 
         elif self.current_mode == IhmMode.SELECT_CONQUEST_LINE:
-            if self.tile_selector is None:
+            if self.tile_conquest_start is None:
                 self.current_mode = IhmMode.MAIN_MENU
                 self.next_mode = IhmMode.SELECT_CONQUEST_LINE
                 print("back to main menu")
             else:
                 self.conquest_lines = []
                 self.conquest_dest_pot_tiles = []
-                current_tile = self.tile_selector
+                current_tile = self.tile_conquest_start
                 current_conquest_line = []
                 current_conquest_line.append(current_tile)
                 for conquest_distance in range(8):
@@ -3888,21 +3958,20 @@ class PlayerInterface:
 
                 if not self.conquest_lines:
                     raise Exception("conquest line empty. Not supposed to happen")
-                self.tile_selector = None
+                self.tile_conquest_start = None
                 self.conquest_lines = self.conquest_lines[::-1]
                 self.index_conquest_line = 0
                 self.current_conquest_line = self.conquest_lines[
                     self.index_conquest_line
                 ]
-                self.tile_selector = None
+                self.tile_conquest_start = None
                 self.current_mode = IhmMode.SELECT_CONQUEST_DEST
                 self.next_mode = IhmMode.MAIN_MENU
                 # Détermination de la direction vertic/horiz des routes.
-                # TODO : c'est dégueux. Faut precalc les deux gamobj.
                 self.gamobj_conquest_line = (
-                    self.color + "_ihm_conquest_horiz"
+                    self.gamobj_conquest_horiz
                     if self.conquest_dir in (2, 6)
-                    else self.color + "_ihm_conquest_vertic"
+                    else self.gamobj_conquest_vertic
                 )
 
         elif self.current_mode == IhmMode.SELECT_CONQUEST_DEST:
@@ -3936,6 +4005,8 @@ class PlayerInterface:
                 self.sleep_mode = not self.sleep_mode
                 if self.sleep_mode:
                     self.player_me.cancel_all_orders()
+                    self.tile_next_town = None
+                    self.current_conquest_line = []
 
     def _get_lit_coordinates(self):
         mode_infos = (self.current_mode, self.next_mode)
@@ -4090,8 +4161,16 @@ class GameModel:
                 ].append(player.gamobj_go_back)
 
         refresh_bar_count = self.turn_index % 10 == 0
-        self.player_interface_red.add_interface_gamobjs(gamobjs_copy, refresh_bar_count)
-        self.player_interface_blu.add_interface_gamobjs(gamobjs_copy, refresh_bar_count)
+        all_sleeping = (
+            self.player_interface_red.sleep_mode
+            and self.player_interface_blu.sleep_mode
+        )
+        self.player_interface_red.add_interface_gamobjs(
+            gamobjs_copy, refresh_bar_count, not all_sleeping
+        )
+        self.player_interface_blu.add_interface_gamobjs(
+            gamobjs_copy, refresh_bar_count, not all_sleeping
+        )
         return gamobjs_copy
 
     def _conquest(self, tile_target, direc):
@@ -4203,8 +4282,6 @@ class GameModel:
 
         self.game_master.conquest_neutral_roads()
         self.game_master.equilibrate_units_in_suburbs(self.turn_index)
-        # FUTURE : Ici il faudrait contrôler si toutes les tiles sont des towns.
-        # Si oui, on arrête la génération de units pour tout le monde, et on affiche le score final.
 
         all_sleeping = (
             self.player_interface_red.sleep_mode
@@ -4242,6 +4319,11 @@ class GameModel:
         self.turn_index += 1
 
         if self.turn_index & 127:
+            # On contrôle si toutes les towns sont désactivées, et qu'il n'y a aucun
+            # merge/shatter de town en cours.
+            # Si oui, ça veut dire que plus aucune town ne peut lancer de conquête,
+            # et donc ça veut dire que toutes les tiles de l'aire de jeu sont des towns.
+            # Dans ce cas, on arrête la génération de units pour tout le monde, et on affiche le score final.
             if (
                 self.player_red.town_merge_state == TOWN_MERGE_STATE_STABLE
                 and self.player_blu.town_merge_state == TOWN_MERGE_STATE_STABLE
@@ -4309,7 +4391,5 @@ class GameModel:
             elif event_name == "action_2":
                 self.player_interface_blu.on_activate_action()
 
-
-# TODO : faire disparaître la sélection en mode dodo.
 
 # TODO : au départ on propose la ligne de conquête la plus grande ou la plus courte ?
