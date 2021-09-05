@@ -572,6 +572,8 @@ BAR_COUNT_RATIO = (WARZONE_WIDTH * WARZONE_HEIGHT) // (TOTAL_GAME_WIDTH * 4) + 1
 # Nombre de tile occupée par une town, en fonction de sa taille. Bon c'est juste la taille au carré.
 TOWN_NB_TILES = (0, 1, 4, 9, 16)
 
+COLOR_NAME = {"red": "Rouge", "blu": "Bleue"}
+
 
 def iterate_on_pseudo_random_boolean():
     # Fonction qui sort des booléens random à l'arrache, à partir d'une liste
@@ -3506,13 +3508,14 @@ class PlayerInterface:
         self.current_conquest_line = None
         self.tile_next_town = None
         self.is_town_list_dirty = True
+        self.must_tell_msg_sleep_mode = True
         self.bar_count_tiles = [""] * TOTAL_GAME_WIDTH
         self.bar_count_towns = [""] * TOTAL_GAME_WIDTH
         self.precalculate_ihm_gamobj_names()
         self.pre_render_ihm_btn()
         self.refresh_town_list()
 
-    def iterate_for_button(array_gamobjs, corner_x, corner_y):
+    def iterate_for_button(self, array_gamobjs, corner_x, corner_y):
         """
         Juste une petite fonction pour itérer sur un carré de 3x3 tiles,
         à l'intérieur d'un array de tile plus grand.
@@ -3522,8 +3525,8 @@ class PlayerInterface:
         for offset_y in range(3):
             for offset_x in range(3):
                 tile_current = array_gamobjs[corner_y + offset_y][corner_x + offset_x]
-                index_tile += 1
                 yield index_tile, tile_current
+                index_tile += 1
 
     def pre_render_ihm_btn(self):
 
@@ -3531,26 +3534,26 @@ class PlayerInterface:
         for y in range(WARZONE_HEIGHT):
             line = []
             for x in range(OFFSET_INTERFACE_X):
-                line.append(())
+                line.append([])
             array_gamobjs.append(line)
 
         for (name, btn_pos_x, btn_pos_y, link) in PlayerInterface.BUTTON_DEFINITIONS:
-            index_tile = 0
-            for tile_y in range(3):
-                for tile_x in range(3):
-                    final_x = self.offset_btn_x + btn_pos_x * 4 + tile_x
-                    final_y = self.offset_btn_y + btn_pos_y * 4 + tile_y
-                    gamobj = f"{self.color}_{name}_{index_tile:02d}"
-                    array_gamobjs[final_y][final_x] = ("ihm_background", gamobj)
-                    index_tile += 1
+            iterator_button_tiles = self.iterate_for_button(
+                array_gamobjs,
+                self.offset_btn_x + btn_pos_x * 4,
+                self.offset_btn_y + btn_pos_y * 4,
+            )
+            for index_tile, tile_current in iterator_button_tiles:
+                gamobj = f"{self.color}_{name}_{index_tile:02d}"
+                tile_current[:] = ["ihm_background", gamobj]
             if "D" in link:
                 final_x = self.offset_btn_x + btn_pos_x * 4 + 1
                 final_y = self.offset_btn_y + btn_pos_y * 4 + 3
-                array_gamobjs[final_y][final_x] = ("ihm_background",)
+                array_gamobjs[final_y][final_x] = ["ihm_background"]
             if "R" in link:
                 final_x = self.offset_btn_x + btn_pos_x * 4 + 3
                 final_y = self.offset_btn_y + btn_pos_y * 4 + 1
-                array_gamobjs[final_y][final_x] = ("ihm_background",)
+                array_gamobjs[final_y][final_x] = ["ihm_background"]
 
         if self.ihm_right_side:
             border_x = 0
@@ -3562,6 +3565,11 @@ class PlayerInterface:
         for y in range(WARZONE_HEIGHT):
             array_gamobjs[y][border_x] = (gamobj_border,)
 
+        # FUTURE : faudra une fonction toute faite pour tuplifier un array,
+        # parce que là c'est dégueu ce que je fais.
+        for y in range(WARZONE_HEIGHT):
+            for x in range(OFFSET_INTERFACE_X):
+                array_gamobjs[y][x] = tuple(array_gamobjs[y][x])
         array_gamobjs = [tuple(line) for line in array_gamobjs]
         self.array_gamobjs_ihm_btn = tuple(array_gamobjs)
 
@@ -3690,9 +3698,11 @@ class PlayerInterface:
 
         x_lit_upleft, y_lit_upleft = self._get_lit_coordinates()
         x_lit_upleft += self.ihm_right_side * (WARZONE_WIDTH + OFFSET_INTERFACE_X)
-        for y_lit in range(y_lit_upleft, y_lit_upleft + 3):
-            for x_lit in range(x_lit_upleft, x_lit_upleft + 3):
-                array_gamobjs[y_lit][x_lit][0] = self.gamobj_lit_background
+        iterator_button_tiles = self.iterate_for_button(
+            array_gamobjs, x_lit_upleft, y_lit_upleft
+        )
+        for _, tile_current in iterator_button_tiles:
+            tile_current[0] = self.gamobj_lit_background
 
         show_cancel = (
             (
@@ -3707,15 +3717,11 @@ class PlayerInterface:
         )
 
         if show_cancel:
-            gamobj_index = 0
-            for y_cancel in range(y_lit_upleft, y_lit_upleft + 3):
-                for x_cancel in range(x_lit_upleft, x_lit_upleft + 3):
-                    # TODO : nan mais c'est dégueulase ça. Rhoooo ....
-                    array_gamobjs[y_cancel][x_cancel][
-                        1
-                    ] = f"{self.color}_ihm_btn_cancel_{gamobj_index:02d}"
-
-                    gamobj_index += 1
+            iterator_button_tiles = self.iterate_for_button(
+                array_gamobjs, x_lit_upleft, y_lit_upleft
+            )
+            for index_tile, tile_current in iterator_button_tiles:
+                tile_current[1] = f"{self.color}_ihm_btn_cancel_{index_tile:02d}"
 
         show_arrow_to_map = self.current_mode in (
             IhmMode.SELECT_TOWN,
@@ -3729,6 +3735,13 @@ class PlayerInterface:
             array_gamobjs[self.arrow_map_y + 1][self.arrow_map_x].append(
                 self.gamobj_arrow_to_map_2
             )
+
+        if self.player_me.tile_magnet is not None:
+            tile = self.player_me.tile_magnet
+            tile_from_coords(array_gamobjs, tile).append(self.player_me.gamobj_magnet)
+        if self.player_me.tile_go_backward is not None:
+            tile = self.player_me.tile_go_backward
+            tile_from_coords(array_gamobjs, tile).append(self.player_me.gamobj_go_back)
 
         if must_refresh_bar_count:
             tiles_quantity = len(self.player_me._controlled_tiles)
@@ -3768,6 +3781,19 @@ class PlayerInterface:
             missile = Missile(self.player_me, tile, duration, self.game_master, delay)
             self.game_master.missiles.append(missile)
 
+    def retrieve_conquest_direction(self):
+        """
+        Fonction un peu dégueulasse : on doit retrouver la direction de conquête en fonction de la town
+        et de la tile de démarrage de conquête. Et on est obligé de faire une boucle pourrie que pour ça.
+        J'aurais vraiment pu arranger ça mieux, mais zut.
+        """
+        for tile in self.selected_town.tiles_position:
+            dirs = directions_from_pos(tile, self.tile_conquest_start)
+            if len(dirs) == 1:
+                return dirs[0]
+        else:
+            raise Exception("Impossible de trouver la conquest dir. Blargh.")
+
     def on_change_action(self):
 
         if self.sleep_mode:
@@ -3777,21 +3803,14 @@ class PlayerInterface:
 
         elif self.current_mode == IhmMode.MAIN_MENU:
             next_modes = {
-                IhmMode.SELECT_TOWN: (
-                    IhmMode.SELECT_CONQUEST_LINE,
-                    "next mode conquest tile",
-                ),
-                IhmMode.SELECT_CONQUEST_LINE: (
-                    IhmMode.BACKWARD_CONQUEST,
-                    "next mode backward conquest",
-                ),
-                IhmMode.BACKWARD_CONQUEST: (IhmMode.LAUNCH_MISSILE, "launch missile"),
-                IhmMode.LAUNCH_MISSILE: (IhmMode.SUBMENU_CANCEL, "submenu cancel"),
-                IhmMode.SUBMENU_CANCEL: (IhmMode.SELECT_TOWN, "next mode select town"),
+                IhmMode.SELECT_TOWN: (IhmMode.SELECT_CONQUEST_LINE),
+                IhmMode.SELECT_CONQUEST_LINE: (IhmMode.BACKWARD_CONQUEST),
+                IhmMode.BACKWARD_CONQUEST: (IhmMode.LAUNCH_MISSILE),
+                IhmMode.LAUNCH_MISSILE: (IhmMode.SUBMENU_CANCEL),
+                IhmMode.SUBMENU_CANCEL: (IhmMode.SELECT_TOWN),
             }
-            next_next_mode, log = next_modes[self.next_mode]
+            next_next_mode = next_modes[self.next_mode]
             self.next_mode = next_next_mode
-            # print(log) # TODO crap.
 
         elif self.current_mode == IhmMode.SELECT_TOWN:
             if self.is_town_list_dirty:
@@ -3832,16 +3851,7 @@ class PlayerInterface:
             if self.tile_conquest_start is None:
                 self.conquest_dir = None
             else:
-                # TODO : et en plus faut le factoriser.
-                # Truc dégueulasse : on doit retrouver la direction de conquête en fonction de la town
-                # et de la tile de démarrage de conquête. J'aurais vraiment pu arranger ça mieux, mais zut.
-                for tile in self.selected_town.tiles_position:
-                    dirs = directions_from_pos(tile, self.tile_conquest_start)
-                    if len(dirs) == 1:
-                        self.conquest_dir = dirs[0]
-                        break
-                else:
-                    raise Exception("Impossible de trouver la conquest dir. Blargh.")
+                self.conquest_dir = self.retrieve_conquest_direction()
 
         elif self.current_mode == IhmMode.SELECT_CONQUEST_DEST:
             if self.index_conquest_line is None:
@@ -3865,6 +3875,11 @@ class PlayerInterface:
             next_next_mode = next_modes[self.next_mode]
             self.next_mode = next_next_mode
 
+    def cancel_orders_and_interface(self):
+        self.player_me.cancel_all_orders()
+        self.tile_next_town = None
+        self.current_conquest_line = []
+
     def on_activate_action(self):
 
         # Si on est sur une town désactivée, on se remet à la town 0.
@@ -3876,12 +3891,14 @@ class PlayerInterface:
                 self.current_mode = IhmMode.SUBMENU_CANCEL
                 self.next_mode = IhmMode.SLEEP_MODE
                 self.sleep_mode = True
-                # TODO : faire une vraie phrase, et garder un booleén pour écrire ce texte qu'une seule fois.
-                print("sleep mode obligatoire, car pas de town active.")
+                if self.must_tell_msg_sleep_mode:
+                    text = COLOR_NAME[self.color] + " : plus aucune ville active."
+                    print(text)
+                    print("Activation du 'mode dodo'.")
+                    self.must_tell_msg_sleep_mode = False
             else:
                 self.index_selected_town = 0
                 self.selected_town = self.sorted_towns[self.index_selected_town]
-                print("TODO blargh town desactivée")
             return
 
         if self.current_mode == IhmMode.MAIN_MENU:
@@ -3893,32 +3910,17 @@ class PlayerInterface:
                 self.index_conquest_start = 0
                 conquest_tiles = self.selected_town.unit_gen_tiles
                 self.tile_conquest_start = conquest_tiles[self.index_conquest_start]
-                # TODO : et en plus faut le factoriser.
-                # Truc dégueulasse : on doit retrouver la direction de conquête en fonction de la town
-                # et de la tile de démarrage de conquête. J'aurais vraiment pu arranger ça mieux, mais zut.
-                for tile in self.selected_town.tiles_position:
-                    dirs = directions_from_pos(tile, self.tile_conquest_start)
-                    if len(dirs) == 1:
-                        self.conquest_dir = dirs[0]
-                        break
-                else:
-                    raise Exception("Impossible de trouver la conquest dir. Blargh.")
+                self.conquest_dir = self.retrieve_conquest_direction()
             elif self.current_mode == IhmMode.BACKWARD_CONQUEST:
                 print("backward conquest !")
-                # TODO : ça c'est du cancel all interface. Faudra le factoriser.
-                self.player_me.cancel_all_orders()
-                self.tile_next_town = None
-                self.current_conquest_line = []
+                self.cancel_orders_and_interface()
                 self.current_mode = IhmMode.MAIN_MENU
                 self.next_mode = IhmMode.SELECT_TOWN
                 self.player_me.set_town_backward_conquest(self.selected_town)
                 print("back to main menu")
             elif self.current_mode == IhmMode.LAUNCH_MISSILE:
                 print("missiles !")
-                # TODO : ça c'est du cancel all interface. Faudra le factoriser.
-                self.player_me.cancel_all_orders()
-                self.tile_next_town = None
-                self.current_conquest_line = []
+                self.cancel_orders_and_interface()
                 self.current_mode = IhmMode.MAIN_MENU
                 self.next_mode = IhmMode.LAUNCH_MISSILE
                 self.launch_missiles()
@@ -3981,7 +3983,6 @@ class PlayerInterface:
                 self.next_mode = IhmMode.SELECT_CONQUEST_LINE
                 print("back to main menu")
             else:
-                # TODO : factoriser les cancels.
                 self.player_me.cancel_all_orders()
                 self.player_me.tiles_to_roadify.extend(self.current_conquest_line)
                 self.player_me.tile_to_townify = self.current_conquest_line[-1]
@@ -3994,19 +3995,14 @@ class PlayerInterface:
 
         elif self.current_mode == IhmMode.SUBMENU_CANCEL:
             if self.next_mode == IhmMode.CANCEL_CURRENT_ORDERS:
-                # TODO : ça c'est du cancel all interface. Faudra le factoriser.
-                self.player_me.cancel_all_orders()
-                self.tile_next_town = None
-                self.current_conquest_line = []
+                self.cancel_orders_and_interface()
                 self.current_mode = IhmMode.MAIN_MENU
                 self.next_mode = IhmMode.SELECT_TOWN
                 print("back to main menu")
             else:
                 self.sleep_mode = not self.sleep_mode
                 if self.sleep_mode:
-                    self.player_me.cancel_all_orders()
-                    self.tile_next_town = None
-                    self.current_conquest_line = []
+                    self.cancel_orders_and_interface()
 
     def _get_lit_coordinates(self):
         mode_infos = (self.current_mode, self.next_mode)
@@ -4014,7 +4010,6 @@ class PlayerInterface:
             raise Exception(f"Fail mode_infos {mode_infos}")
         index_lit_button = PlayerInterface.INDEX_LIT_BUTTONS[mode_infos]
         btn_pos_x, btn_pos_y = PlayerInterface.BUTTON_DEFINITIONS[index_lit_button][1:3]
-        # TODO : on l'a à deux endroits différents ce calcul à la con.
         final_x = self.offset_btn_x + btn_pos_x * 4
         final_y = self.offset_btn_y + btn_pos_y * 4 + OFFSET_INTERFACE_Y
         return final_x, final_y
@@ -4054,9 +4049,7 @@ def coord_move(x, y, direction):
 
 class GameModel:
     """
-    Pas de doc précise concernant cette classe, car il y a sûrement beaucoup de choses
-    qui vont changer.
-    TODO : écrire la doc quand les choses arrêteront de changer.
+    Pour l'instant, pas de doc précise concernant cette classe.
     """
 
     def __init__(self):
@@ -4105,6 +4098,17 @@ class GameModel:
         self.sandbox_mode_index = 1
         self.turn_index = 0
 
+        # La deuxième ligne de tile de l'aire de jeu ne change jamais,
+        # donc on la précalcule.
+        self.tiles_line_interface_up = []
+        for _ in range(OFFSET_INTERFACE_X):
+            self.tiles_line_interface_up.append([])
+        for _ in range(WARZONE_WIDTH):
+            self.tiles_line_interface_up.append(["ihm_border_up"])
+        for _ in range(OFFSET_INTERFACE_X):
+            self.tiles_line_interface_up.append([])
+        self.tiles_line_interface_up = tuple(self.tiles_line_interface_up)
+
         if self.sandboxing:
             print("Sandbox activé.")
             print("Déplacez votre curseur avec les flèches.")
@@ -4120,13 +4124,7 @@ class GameModel:
         for _ in range(OFFSET_INTERFACE_Y - 1):
             line = [[] for _ in range(TOTAL_GAME_WIDTH)]
             gamobjs_copy.append(line)
-        # TODO : précalculer cette line.
-        line = (
-            [[]] * OFFSET_INTERFACE_X
-            + [["ihm_border_up"]] * WARZONE_WIDTH
-            + [[]] * OFFSET_INTERFACE_X
-        )
-        gamobjs_copy.append(line)
+        gamobjs_copy.append(self.tiles_line_interface_up)
         for line_ihm_red, line_source, line_ihm_blu in zip(
             self.player_interface_red.array_gamobjs_ihm_btn,
             gamobjs_source,
@@ -4137,28 +4135,15 @@ class GameModel:
             ]
             gamobjs_copy.append(line)
 
-        # TODO : C'est dégueulasse tout ces offsets.
         for missile in self.game_master.missiles:
             tile = missile.tile
-            gamobjs_copy[tile.y + OFFSET_INTERFACE_Y][
-                tile.x + OFFSET_INTERFACE_X
-            ].append(missile.gamobj)
+            tile_from_coords(gamobjs_copy, tile).append(missile.gamobj)
         if self.sandboxing:
-            gamobjs_copy[self.y_cursor + OFFSET_INTERFACE_Y][
-                self.x_cursor + OFFSET_INTERFACE_X
-            ].append("sandbox_cursor")
-        # TODO : ça devrait pas être la player interface qui fait ça ?
-        for player in self.game_master.players:
-            if player.tile_magnet is not None:
-                tile = player.tile_magnet
-                gamobjs_copy[tile.y + OFFSET_INTERFACE_Y][
-                    tile.x + OFFSET_INTERFACE_X
-                ].append(player.gamobj_magnet)
-            if player.tile_go_backward is not None:
-                tile = player.tile_go_backward
-                gamobjs_copy[tile.y + OFFSET_INTERFACE_Y][
-                    tile.x + OFFSET_INTERFACE_X
-                ].append(player.gamobj_go_back)
+            # J'ai pas de tile pour gérer le sandbox_cursor,
+            # du coup je suis obligé de mettre des offests dégueux. On dira qu'on l'a pas vu.
+            final_x = self.x_cursor + OFFSET_INTERFACE_X
+            final_y = self.y_cursor + OFFSET_INTERFACE_Y
+            gamobjs_copy[final_y][final_x].append("sandbox_cursor")
 
         refresh_bar_count = self.turn_index % 10 == 0
         all_sleeping = (
@@ -4330,8 +4315,19 @@ class GameModel:
                 and not self.player_red.active_towns
                 and not self.player_blu.active_towns
             ):
-                # TODO : compter le nombre de cases contrôlées et indiquer qui a gagné.
-                print("C'est la fin !! YEEEEEEEEEEAAAAAAAAAAAHHHH")
+                nb_tiles_red = len(self.player_red._controlled_tiles)
+                nb_tiles_blu = len(self.player_blu._controlled_tiles)
+                print("-" * 10)
+                print(f"Rouge : {nb_tiles_red}. Bleue : {nb_tiles_blu}")
+                if nb_tiles_red == nb_tiles_blu:
+                    print("Égalité")
+                else:
+                    if nb_tiles_red > nb_tiles_blu:
+                        win = COLOR_NAME["red"]
+                    else:
+                        win = COLOR_NAME["blu"]
+                    print(f"La population {win} a gagné.")
+                print("-" * 10)
                 return None
         # FUTURE : calculer approximativement un délai plus ou moins long selon la quantité de trucs à gérer.
         # Plus on a eu à gérer de trucs durant ce tour, plus on met un délai court.
