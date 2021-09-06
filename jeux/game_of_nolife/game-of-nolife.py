@@ -3912,32 +3912,26 @@ class PlayerInterface:
                 self.tile_conquest_start = conquest_tiles[self.index_conquest_start]
                 self.conquest_dir = self.retrieve_conquest_direction()
             elif self.current_mode == IhmMode.BACKWARD_CONQUEST:
-                print("backward conquest !")
                 self.cancel_orders_and_interface()
                 self.current_mode = IhmMode.MAIN_MENU
                 self.next_mode = IhmMode.SELECT_TOWN
                 self.player_me.set_town_backward_conquest(self.selected_town)
-                print("back to main menu")
             elif self.current_mode == IhmMode.LAUNCH_MISSILE:
-                print("missiles !")
                 self.cancel_orders_and_interface()
                 self.current_mode = IhmMode.MAIN_MENU
                 self.next_mode = IhmMode.LAUNCH_MISSILE
                 self.launch_missiles()
-                print("back to main menu")
             elif self.current_mode == IhmMode.SUBMENU_CANCEL:
                 self.next_mode = IhmMode.CANCEL_CURRENT_ORDERS
 
         elif self.current_mode == IhmMode.SELECT_TOWN:
             self.tile_conquest_start = None
             self.current_mode = IhmMode.MAIN_MENU
-            print("back to main menu")
 
         elif self.current_mode == IhmMode.SELECT_CONQUEST_LINE:
             if self.tile_conquest_start is None:
                 self.current_mode = IhmMode.MAIN_MENU
                 self.next_mode = IhmMode.SELECT_CONQUEST_LINE
-                print("back to main menu")
             else:
                 self.conquest_lines = []
                 self.conquest_dest_pot_tiles = []
@@ -3981,14 +3975,12 @@ class PlayerInterface:
             if self.index_conquest_line is None:
                 self.current_mode = IhmMode.MAIN_MENU
                 self.next_mode = IhmMode.SELECT_CONQUEST_LINE
-                print("back to main menu")
             else:
                 self.player_me.cancel_all_orders()
                 self.player_me.tiles_to_roadify.extend(self.current_conquest_line)
                 self.player_me.tile_to_townify = self.current_conquest_line[-1]
                 self.tile_next_town = self.current_conquest_line[-1]
                 self.player_me.is_roadify_horiz = self.conquest_dir in (2, 6)
-                print("launch conquest")
                 self.current_conquest_line = []
                 self.current_mode = IhmMode.MAIN_MENU
                 self.next_mode = IhmMode.SELECT_CONQUEST_LINE
@@ -3998,7 +3990,6 @@ class PlayerInterface:
                 self.cancel_orders_and_interface()
                 self.current_mode = IhmMode.MAIN_MENU
                 self.next_mode = IhmMode.SELECT_TOWN
-                print("back to main menu")
             else:
                 self.sleep_mode = not self.sleep_mode
                 if self.sleep_mode:
@@ -4051,6 +4042,13 @@ class GameModel:
     """
     Pour l'instant, pas de doc précise concernant cette classe.
     """
+
+    JSON_PROCESS_TURN_SLOW = (
+        """ { "delayed_actions": [ {"name": "process_turn", "delay_ms": 200} ] } """
+    )
+    JSON_PROCESS_TURN_FAST = (
+        """ { "delayed_actions": [ {"name": "process_turn", "delay_ms": 10} ] } """
+    )
 
     def __init__(self):
         self.w = WARZONE_WIDTH
@@ -4108,6 +4106,14 @@ class GameModel:
         for _ in range(OFFSET_INTERFACE_X):
             self.tiles_line_interface_up.append([])
         self.tiles_line_interface_up = tuple(self.tiles_line_interface_up)
+
+        self.ihm_function_from_event_name = {
+            "U": self.try_activate_sandbox_mode,
+            "L": self.player_interface_red.on_change_action,
+            "R": self.player_interface_red.on_activate_action,
+            "action_1": self.player_interface_blu.on_change_action,
+            "action_2": self.player_interface_blu.on_activate_action,
+        }
 
         if self.sandboxing:
             print("Sandbox activé.")
@@ -4202,10 +4208,8 @@ class GameModel:
                     tile_target.add_road(vertic=True)
             elif sandbox_mode == "add town":
                 if tile_target.player_owner is None or tile_target.town is not None:
-                    print(
-                        "On ne peut construire une ville que sur une case sans ville, mais occupée."
-                    )
-                    print("Et la construction avance seulement si il y a 16 unités.")
+                    print("On ne peut construire que sur une case sans ville,")
+                    print("et occupée par 16 pixels.")
                 else:
                     if tile_target.player_owner.tile_building_town is not None:
                         print("Ville déjà en construction pour cette couleur.")
@@ -4243,7 +4247,7 @@ class GameModel:
                 self._conquest(tile_target, 6)
             elif sandbox_mode == "missiles":
                 if tile_target.town is None:
-                    print("Il faut sélectionner une ville pour balancer des missiles.")
+                    print("Il faut sélectionner une ville pour lancer des missiles.")
                 else:
                     if tile_target.town.player_owner == self.player_red:
                         self.player_interface_red.launch_missiles(tile_target.town)
@@ -4333,18 +4337,30 @@ class GameModel:
         # Plus on a eu à gérer de trucs durant ce tour, plus on met un délai court.
         # Mais c'est super chaud à estimer, ou alors faudrait regarder avec la date courante à chaque fois,
         # et je préfère m'occuper de ça plus tard (ou jamais).
-        # TODO : constants, you stupid.
         if all_sleeping:
-            return """ { "delayed_actions": [ {"name": "process_turn", "delay_ms": 10} ] } """
+            return GameModel.JSON_PROCESS_TURN_FAST
         else:
-            return """ { "delayed_actions": [ {"name": "process_turn", "delay_ms": 200} ] } """
+            return GameModel.JSON_PROCESS_TURN_SLOW
+
+    def try_activate_sandbox_mode(self):
+        if AUTHORIZE_SANDBOX_MODE:
+            print("Mode 'sandbox'.")
+            self.sandboxing = True
+        elif self.can_write_sandboxing_msg:
+            print("Vous pouvez activer un mode 'sandbox',")
+            print("en modifiant une ligne dans le code source.")
+            print("(Le texte affiché à gauche).")
+            print("Lisez le début du code source pour plus d'infos.")
+            self.can_write_sandboxing_msg = False
 
     def on_game_event(self, event_name):
+
         if event_name == "process_turn":
             return self.on_process_turn()
         if self.must_start:
             self.must_start = False
-            return """ { "delayed_actions": [ {"name": "process_turn", "delay_ms": 10} ] } """
+            print("C'est parti !!")
+            return GameModel.JSON_PROCESS_TURN_FAST
 
         if self.sandboxing:
 
@@ -4367,25 +4383,5 @@ class GameModel:
 
         else:
 
-            # TODO : dictionnaire de fonction qui tue.
-            if event_name == "U":
-                if AUTHORIZE_SANDBOX_MODE:
-                    print("back to sandboxing")
-                    self.sandboxing = True
-                elif self.can_write_sandboxing_msg:
-                    print("Vous pouvez activer un mode 'sandbox',")
-                    print("en modifiant une ligne dans le code source.")
-                    print("(Le texte affiché à gauche).")
-                    print("Lisez le début du code source pour plus d'infos.")
-                    self.can_write_sandboxing_msg = False
-            elif event_name == "L":
-                self.player_interface_red.on_change_action()
-            elif event_name == "R":
-                self.player_interface_red.on_activate_action()
-            elif event_name == "action_1":
-                self.player_interface_blu.on_change_action()
-            elif event_name == "action_2":
-                self.player_interface_blu.on_activate_action()
-
-
-# TODO : au départ on propose la ligne de conquête la plus grande ou la plus courte ?
+            function_to_call = self.ihm_function_from_event_name[event_name]
+            function_to_call()
