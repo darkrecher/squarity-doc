@@ -420,21 +420,19 @@
 GAME OF NO-LIFE v0.1
 ------------
 
-Pas de doc, pas d'interface, pas d'infos expliquant comment jouer.
-Tout ça viendra plus tard.
-
-
 Petite information concernant les commentaires dans le code.
 
 J'essaye d'écrire en inclusif, sans pour autant gonfler tout le monde avec des points médians,
 ou des mots à rallonge tel que "le/la joueureuse".
 Pour ça, la langue anglaise est assez bien, car la plupart des mots sont neutres.
 (Et la personne qui vient me dire que c'est mal d'angliciser la langue française,
-je lui mets un punch un his/her face).
+je lui mets un punch in his/her face).
 
 Pour désigner la personne qui joue, j'utilise le terme "Player". Et je fais comme si
 c'était son prénom. Vous lirez donc des phrases du genre : "Player doit déplacer ses unités",
 "la town de Player", etc.
+
+Ça règle pas tout, mais c'est déjà ça.
 
 
 Vocabulaire spécifique au jeu :
@@ -443,25 +441,34 @@ unité/pixel : un petit pixel rouge, bleu ou vert, qui peut se déplacer d'une t
 
 tile/case : une case du jeu. Ça fait partie du vocabulaire générique de Squarity
 
-bare tile : une tile sur laquelle il n'y a pas de ville, et aucune route.
+bare tile : une tile sur laquelle il n'y a ni ville ni route.
 Mais il peut y avoir une ou plusieurs unités.
 
 bionature : les pixels verts, qui ne sont pas contrôlés par un humain, mais par le jeu.
 
 town/ville : une ville, de couleur rouge ou bleue. La bionature ne construit pas de ville.
 
-wardness/direction de conquête : deux booléens indiquant vers laquelle Player doit aller :
+merge : fusionner un carré de 2x2 ville pour faire une grosse ville,
+ou bien fusionner un carré de 2x2 grosses villes pour faire une méga-ville,
+
+shatter : séparer une grosse ville en un carré de 2x2 villes,
+ou bien séparer une méga-ville en un carré de 2x2 grosses villes.
+On effectue des shatters pour réorganiser les gros paquets de ville, et espérer
+les refusionner d'une meilleure manière après.
+
+wardness/direction de conquête : deux booléens indiquant la direction
+dans laquelle Player doit aller :
  - rightward : direction horizontale (True:droite, False:gauche)
  - upward : direction verticale (True:bas , False:haut)
-Pour Player red : rightward=True, upward=False. Pour Player blue, c'est inversé.
-
-line conquest : construction, à partir d'une ville existante, d'une ligne de route
-(horizontale ou verticale), sur une distance prédéfinie. Puis construction, au bout
-de cette ligne de route, d'une nouvelle ville.
+Pour red : rightward=True, upward=False. Pour blue, c'est inversé.
 
 La direction de conquête influe sur différents détails : l'ordre des tiles adjacentes où les towns
 posent les pixels générés, la direction des missiles bactériologiques, l'ordre de priorité des
 merge de town, la direction des backward conquest, etc.
+
+line conquest : construction, à partir d'une ville existante, d'une ligne de route
+(horizontale ou verticale), sur une distance prédéfinie. Puis construction, au bout
+de cette ligne de route, d'une nouvelle ville.
 """
 
 # TODO : ajouter des commentaires de code dans les parties non documentées.
@@ -470,34 +477,38 @@ merge de town, la direction des backward conquest, etc.
 # dans la doc, expliquer que des fois il faut appuyer deux fois sur l'activation pour quitter le mode "dodo",
 # à cause d'une mauvaise gestion dans la sélection des villes, mais c'est comme ça.
 
-# FUTURE : suppression du backward conquest si une town est merge/shatterée.
-
-import random
-
 # Remplacer le mot "False" par "True" dans la ligne de code ci-dessous,
 # pour autoriser le mode sandbox.
-# Lorsque ce mode est activé, les boutons des players blue et red ne sont
-# plus utilisable. À la place, vous avez un curseur dans la zone de jeu,
+# Lorsque ce mode est activé, les boutons d'interface des Players ne sont
+# plus utilisables. À la place, vous avez un curseur dans la zone de jeu,
 # que vous pouvez déplacer avec les flèches.
 # Le bouton d'action "1" permet de parcourir les différentes actions,
 # et le bouton "2" d'activer l'action sélectionnée.
 # Par ex: ajouter un pixel rouge, ajouter une route, construire une ville, ...
-# Ce mode sandbox permet de tester différentes situations de jeux et de débugger.
-# Pour revenir au mode normal, sélectionner l'action "switch to play mode"
+# Ce mode sandbox permet de tester différentes situations de jeux,
+# et aussi de débugger, si vous avez envie de modifier ce code.
+# Pour revenir au mode normal, sélectionner l'action "switch to play mode",
 # puis activez-là avec le bouton "2".
 # Pour revenir au mode sandbox, appuyez sur la flèche du haut.
 AUTHORIZE_SANDBOX_MODE = False
 
+# FUTURE : suppression du backward conquest en cours si une town est merge/shatterée.
 
-# Dimensions, en nombre de cases, du jeu 'game of no-life',
+import random
+
+# Dimensions, en nombre de cases, de l'aire de la "warzone", c'est à dire le cadre
 # dans lequel évoluent les unités, les villes, etc.
 WARZONE_WIDTH = 36
 WARZONE_HEIGHT = 36
-# Décalage de l'affichage de la warzone, par rapport à l'interface du jeu
+# Décalage de l'affichage de la warzone, par rapport à l'aire de jeu complète.
+# Il y a deux lignes de cases vide au-dessus, où on affiche les barres
+# rouges et bleus indiquant le nombre de tiles et de towns de chaque Player.
+# Il y a douze colonnes de cases à gauche et à droite,
+# pour afficher les boutons d'interface.
 OFFSET_INTERFACE_X = 12
 OFFSET_INTERFACE_Y = 2
 # Dimensions, en nombre de cases, du jeu Squarity, en comptant les cases dédiées
-# à l'interface, sur les bords.
+# à l'interface.
 TOTAL_GAME_WIDTH = WARZONE_WIDTH + 2 * OFFSET_INTERFACE_X
 TOTAL_GAME_HEIGHT = WARZONE_HEIGHT + OFFSET_INTERFACE_Y
 
@@ -513,12 +524,12 @@ DIST_BACKWARD_CONQUEST = {1: 3, 2: 6, 4: 9}
 # en fonction de la size de la town.
 NB_UNIT_TO_SENT_BACKWARD_CONQUEST = {1: 1, 2: 2, 4: 3}
 
-# Nombre de tour de jeu nécessaire pour construire une town.
+# Nombre de tours de jeu nécessaire pour construire une town.
 NB_TURNS_TOWN_BUILDING = 9
-# Pour qu'une town soit construite, il faut 16 unités sur la tile,
-# durant tous les tours de construction. Si des unités sont supprimés,
+# Pour qu'une town soit construite, il faut conserver les 16 unités sur la tile,
+# durant toute la construction. Si des unités sont supprimées
 # suite à un événement quelconque, la construction est mise en pause.
-# La construction de la town s'annule si elle n'est pas terminé
+# La construction de la town s'annule si elle n'est pas terminée
 # au bout de "NB_TURNS_TOWN_BUILDING_TIMEOUT" tours.
 NB_TURNS_TOWN_BUILDING_TIMEOUT = 25
 # Nombre de points que doit accumuler une ville pour générer un pixel.
@@ -547,8 +558,8 @@ UNIT_GEN_TOWN_POINT_MAX_CUMUL = UNIT_GEN_TOWN_POINT_REQUIRED * 2
 # La super grosse ville me génère un pixel tous les 4,54 tours.
 # L'avantage est encore plus flagrant avec les petites villes et les moyennes villes.
 UNIT_GEN_TILE_POINT_REQUIRED = 900
-# Cumul de points de génération par terrain contrôlé. Pour le cas où a assez de points,
-# mais on ne trouve pas de tile sur laquelle poser le pixel généré.
+# Cumul de points de génération par terrain contrôlé. Pour le cas où on a assez de points
+# mais qu'on ne trouve pas de tile sur laquelle poser le pixel généré.
 UNIT_GEN_TILE_POINT_MAX_CUMUL = UNIT_GEN_TILE_POINT_REQUIRED * 50
 # Nombre de points que la bionature doit avoir pour générer un pixel vert.
 # La bionature gagne un point par tour et par tile contrôlée.
@@ -572,13 +583,16 @@ BAR_COUNT_RATIO = (WARZONE_WIDTH * WARZONE_HEIGHT) // (TOTAL_GAME_WIDTH * 4) + 1
 # Nombre de tile occupée par une town, en fonction de sa taille. Bon c'est juste la taille au carré.
 TOWN_NB_TILES = (0, 1, 4, 9, 16)
 
+# Utile pour les messages affichés dans la console.
 COLOR_NAME = {"red": "Rouge", "blu": "Bleue"}
 
 
 def iterate_on_pseudo_random_boolean():
-    # Fonction qui sort des booléens random à l'arrache, à partir d'une liste
-    # de 1000 valeurs booléennes random prédéfinies. C'est de la merde, mais on n'a pas besoin de plus.
-    # Et ça évitera de faire ralentir le jeu en appelant la vraie fonction random à chaque fois.
+    """
+    Fonction qui sort des booléens random à l'arrache, à partir d'une liste
+    de 1000 valeurs booléennes random prédéfinies. C'est de la merde, mais on n'a pas besoin de plus.
+    Et ça évitera de faire ralentir le jeu en appelant la vraie fonction random à chaque fois.
+    """
     RANDOM_QUANTITY = 1000
     bools = [True] * (RANDOM_QUANTITY // 2) + [False] * (RANDOM_QUANTITY // 2)
     random.shuffle(bools)
@@ -620,6 +634,10 @@ def bounding_rect_overlaps(b_rect_1, b_rect_2):
 
 
 def manhattan_dist(tile_1, tile_2):
+    """
+    "Tout était monstre à tête de chien".
+    (Luke, Manhattan).
+    """
     return abs(tile_1.x - tile_2.x) + abs(tile_1.y - tile_2.y)
 
 
@@ -677,17 +695,16 @@ def get_town_infos_right_down(town):
 
     Les deux premiers éléments correspondent à la coordonnée x, y de la tile la plus
     en arrière, de la town passée en paramètre.
-    Si la town a une taille de 1, la tile la plus arrière est la tile de la town
-    (on n'a pas le choix).
+    Si la town a une taille de 1, on n'a pas le choix, ce sera la tile de la town.
     Si la town est plus étendue, la tile la plus arrière se trouve dans un coin.
     Le coin en question dépend de la direction de conquête de Player.
     C'est pour ça qu'il y a 4 fonctions, une par direction de conquête.
 
-    Le dernier éléent du tuple renvoyé est un sous-tuple de 2 élément.
+    Le dernier élément du tuple renvoyé est un sous-tuple de 2 éléments.
     Il s'agit d'une clé de tri, pour ordonner les villes, en fonction de la direction
     de conquête de Player.
     Les villes doivent être ordonnables, car on doit pouvoir définir une priorité parmi
-    les merge/shatter de ville.
+    les merge/shatter.
     Par exemple, pour Player red, on merge les villes en commençant par le bas et la gauche.
     Les villes qui sont toutes sur la même diagonale ont leur premier index de priorité égal.
     Le deuxième index permet d'ordonner les villes qui sont sur la même diagonale.
@@ -729,12 +746,13 @@ def tile_from_coords(array_gamobjs, tile):
 
 # Configuration de tout un tas de variable de Player, en fonction de ses directions de conquête.
 # Clé : 2 booléens (rightward, downward), définissant les directions de conquête.
-# Valeur : un tuple de 7 éléments :
-# - La fonction sort_by, permettant de trier les towns en partant du point de départ de Player.
+# Valeur : un tuple de 8 éléments :
+# - La fonction get_town_infos, permettant de trier les towns en partant du point de départ de Player.
 # - La fonction is_behind, permettant de savoir si une tile est derrière une autre,
 #   dans la direction de conquête de Player
-# - directions forward en diagonale, forward horizontale, forward verticale
-# - directions backward en diagonale, backward horizontale, backward verticale
+# - directions forward en diagonale, forward horizontale, forward verticale.
+# - directions backward en diagonale, backward horizontale, backward verticale.
+# On a besoin de la dernière clé avec les None pour la bionature.
 CONFIG_FROM_WARDNESSES = {
     (True, True): (get_town_infos_right_down, is_behind_right_down, 3, 2, 4, 7, 6, 0),
     (True, False): (get_town_infos_right_up, is_behind_right_up, 1, 2, 0, 5, 6, 4),
@@ -755,6 +773,10 @@ DELAY_ROADIFY = 10
 
 
 class PlayerHandler:
+    """
+    Gère les pixels et les towns d'un Player (rouge, bleu ou bionature).
+    """
+
     def __init__(
         self,
         player_id,
@@ -795,15 +817,17 @@ class PlayerHandler:
             self.dir_back_verti,
         ) = CONFIG_FROM_WARDNESSES[(self.rightward, self.downward)]
 
-        # Liste de tiles
+        # Liste de tiles contrôlées par Player. Pour contrôler une tile, il faut avoir au moins un pixel dessus,
+        # ou bien une town.
         self._controlled_tiles = []
-        # Liste de tiles aussi.
+        # Liste de tiles contrôlées par Player, et comportant une route.
+        # On a besoin de cette liste pour accélérer les traitements.
         self._controlled_roads = []
         # Liste de tiles aussi. "bare tile" = une tile qui n'a pas de route.
-        # On a besoin de cette liste pour accélérer les traitements. En général, on a plein
+        # On a besoin de cette liste pour accélérer les traitements aussi. En général, on a plein
         # de bare tiles avec une seule unité dessus. Elles ne demandent aucune gestion.
         # Les bare tiles ayant plusieurs unités sont moins nombreuses, mais demandent une gestion.
-        # On bouge les unités supplémentaires forward, ou backward.
+        # On doit bouger les unités supplémentaires, vers le forward ou le backward.
         # C'est donc avantageux de référencer ces tiles particulières, pour les gérer plus vite,
         # plutôt que de parcourir toute les controlled_tiles à chaque fois.
         self.controlled_bare_tiles_with_many_units = []
@@ -815,7 +839,7 @@ class PlayerHandler:
         # La tile sur laquelle se trouve une ville en construction.
         # On ne peut construire qu'une seule ville à la fois.
         self.tile_building_town = None
-        # Nombre de tour écoulé depuis le début de la construction de la ville en cours.
+        # Nombre de tours écoulés depuis le début de la construction de la ville en cours.
         self.building_time = 0
         # La tile vers laquelle toutes les unités doivent aller.
         # Lorsqu'il n'y a pas de magnet, les unités doivent à-peu-près se répartir sur les routes.
@@ -827,6 +851,8 @@ class PlayerHandler:
         # Les unités qui font un backward conquest sont limitées dans un bounding rect.
         # Plus la town ayant lancé la conquest est grande, plus le bounding rect est grand.
         self.bounding_rect_go_back = None
+        # Nombre d'unités que la town doit envoyer en backward conquest, tous les 4 tours de jeu.
+        # Plus la town est grosse, plus elle en envoie d'un seul coup.
         self.nb_unit_to_send_backward = 0
         # Pour les 3 variables suivantes, voir fonction Player.process_town_merging.
         self.town_merge_state = TOWN_MERGE_STATE_STABLE
@@ -837,12 +863,13 @@ class PlayerHandler:
         # Nombre de tours consécutifs durant lesquels on a tenté de placer une unité générée,
         # et qu'on n'a pas pu parce qu'on n'a pas trouvé de tile adéquate.
         self.unit_gen_tile_nb_turn_fail = 0
-        # Pour les 4 variables suivantes : Gestion des line conquest.
+        # Les 4 variables suivantes servent à la gestion des line conquests.
         # Voir fonction Player.process_line_conquest.
         self.tiles_to_roadify = []
         self.tile_to_townify = None
         self.delay_roadify = 0
         self.is_roadify_horiz = False
+        # Ordre de priorité des directions de déplacement, pour les pixels qui sont sur des bare tiles.
         self.bare_tile_move_priorities_from_x_parity = (
             (self.dir_forw_diag, self.dir_forw_hori, self.dir_forw_verti),
             (self.dir_forw_diag, self.dir_forw_verti, self.dir_forw_hori),
@@ -850,6 +877,8 @@ class PlayerHandler:
         # En mode "dodo", si on ne parvient pas à construire une ville au bout de 50 tours,
         # c'est qu'il y a eu un problème. On choisit un autre emplacement.
         self.nb_turn_auto_build_town = 0
+        # Ça y'en a besoin, mais on ne peut que l'initialiser après. Car au moment où on crée l'objet PlayerHandler,
+        # l'objet PlayerInterface n'existe pas encore. On a besoin d'une référence dans les deux sens.
         self.player_interface = None
 
     def __str__(self):
@@ -870,7 +899,9 @@ class PlayerHandler:
 
     def add_towns(self, towns):
         """
-        Référence une town qui vient d'être construite.
+        Référence une ou plusieurs towns qui viennent d'être construite.
+        On ne peut construire qu'une town à la fois. Mais lorsqu'on fait un shatter,
+        ça génère plusieurs petites towns d'un seul coup.
         """
         self.towns += towns
         self.update_active_towns()
@@ -899,7 +930,7 @@ class PlayerHandler:
 
     def move_unit_without_check(self, tile_source, tile_dest, qty=1):
         """
-        Cette fonction n'est à utiliser que quand on est sûr de ce qu'on fait.
+        Cette fonction ne doit être utilisée que quand on est sûr de ce qu'on fait.
         Elle permet de déplacer des unités d'une tile vers une autre.
         Toutes les conditions suivantes doivent être réunies :
          - tile_source et tile_dest sont toutes les deux contrôlées par Player.
@@ -910,7 +941,7 @@ class PlayerHandler:
         Le déplacement d'unités est très rapide, car on ne fait aucun check.
         Pas de mise à jour des listes de tiles
         (_controlled_tiles, _controlled_roads, controlled_bare_tiles_with_many_units).
-        Pas de vérification des owner de tile_source et tile_dest.
+        Pas de vérification des owners de tile_source et tile_dest.
 
         On utilise cette fonction pour équilibrer les unités entre deux routes adjacentes,
         ou entre deux tiles d'un même suburb, contrôlées par Player.
@@ -935,7 +966,7 @@ class PlayerHandler:
 
     def _spread_units_on_one_road(self, tile):
         """
-        Répartit les unités qui sont sur une tile, vers les tiles adjacentes.
+        Répartit les unités qui d'une tile, vers les tiles adjacentes.
         On sort au maximum une seule unité par tile adjacente.
         On sort une unité lorsque les conditions suivantes sont respectées :
          - la tile de départ et la tile adjacente sont connectées par une route.
@@ -956,7 +987,7 @@ class PlayerHandler:
         """
         nb_unit_source = tile.nb_unit
         # On itère sur les 4 cases autour, et non pas sur les 8. On ne fait pas les diagonales.
-        # Y'en n'a pas besoin parce que y'a pas de routes diagonales.
+        # Pas besoin, car pas de routes diagonales.
         for adj_tile, adj_connexion_type in zip(
             tile.adjacencies[::2], tile.road_adjacencies_same_player[::2]
         ):
