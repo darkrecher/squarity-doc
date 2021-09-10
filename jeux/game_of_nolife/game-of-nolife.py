@@ -557,7 +557,7 @@ UNIT_GEN_TOWN_POINT_MAX_CUMUL = UNIT_GEN_TOWN_POINT_REQUIRED * 2
 # UNIT_GEN_TOWN_POINT_REQUIRED / 22 = 4.54.
 # La super grosse ville me génère un pixel tous les 4,54 tours.
 # L'avantage est encore plus flagrant avec les petites villes et les moyennes villes.
-UNIT_GEN_TILE_POINT_REQUIRED = 900
+UNIT_GEN_TILE_POINT_REQUIRED = 850
 # Cumul de points de génération par terrain contrôlé. Pour le cas où on a assez de points
 # mais qu'on ne trouve pas de tile sur laquelle poser le pixel généré.
 UNIT_GEN_TILE_POINT_MAX_CUMUL = UNIT_GEN_TILE_POINT_REQUIRED * 50
@@ -1963,6 +1963,24 @@ class Town:
 
     Les villes sont imprenables et indestructibles (ça simplifie le jeu), mais elles peuvent
     être fusionnées/shatterées avec d'autres villes de la même couleur.
+
+    Lorsqu'une town est créée, elle construit automatiquement des route horizontales + verticales
+    (des croisements) autour d'elle. Ça se passe progressivement :
+    Tous les 5 tours de jeu, on vérifie si toutes les cases adjacentes qui sont des croisements
+    sont contrôlées par Player. Si oui, on construit un croisement supplémentaire,
+    jusqu'à ce que toutes les cases adjacentes comportent des croisements.
+    Ces actions sont effectuées par la fonction process_unit_generation, qui s'occupe également
+    de générer les pixels. C'est pas génial parce qu'une même fonction fait 2 choses.
+    Mais bon c'est comme ça.
+
+    C'est aussi pour ça qu'au début, les towns ne construisent pas forcément leurs croisements.
+    Parce que la génération d'unités est bloquée, car il y a beaucoup d'unités et peu de terrain
+    contrôlée. (Voir constante RATIO_CONTROLLED_TILE_FOR_GEN).
+
+    Le fait de construire un croisement adjacent place automatiquement la tile dans le suburb de
+    la town. Or les unités d'un même suburb se répartissent équitablement. Donc une town qui a
+    suffisamment d'unités autour d'elle va rapidement construire un croisement, en prendre le
+    contrôle, ce qui permet de construire le croisement suivant, et ainsi de suite.
     """
 
     # clé : un tuple. (taille town, rightward, downward)
@@ -1983,6 +2001,13 @@ class Town:
     def __init__(
         self, x_left, y_up, size, player_owner, game_master, create_suburb=True
     ):
+        """
+        Les towns sont toujours intégrées dans un suburb (plus ou moins grand).
+        Lorsqu'on instancie une nouvelle town, il faut créer son suburb.
+
+        Lorsqu'on instancie une town suite à merge ou un shatter, pas besoin de créer
+        de nouveau suburb. Dans ce cas, le param create_suburb est False.
+        """
         # Coordonnées du coin supérieur gauche de la ville.
         self.x_left = x_left
         self.y_up = y_up
@@ -1993,13 +2018,13 @@ class Town:
         # Une town est active si elle a au moins une tile non-town adjacente.
         # C'est à dire qu'elle peut générer des unités et les placer autour d'elle.
         self.is_active = True
-        self.unit_gen_points = UNIT_GEN_TOWN_POINT_REQUIRED - 5
+        self.unit_gen_points = 0
         # Formule compliquée, juste pour dire :
         # size 1 : 1 point de génération. size 2 : 6. size 4 : 22.
         self.unit_gen_speed = size ** 2 + size * 2 * (size > 1)
 
         # Liste des tiles sur lesquelles est placée la town. La première tile est toujours celle
-        # du coin supérieur gauche, quel que soit la direction de conquête de Player.
+        # du coin supérieur gauche, quelle que soit la direction de conquête de Player.
         self.tiles_position = []
         for y in range(y_up, y_up + size):
             for x in range(x_left, x_left + size):
@@ -2028,8 +2053,7 @@ class Town:
             ]
         # Si c'est une town qui vient d'être construite, on lui crée tout de suite son petit suburb
         # (qui sera éventuellement fusionné avec d'autres juste après).
-        # Si c'est une town créée suite à des merge/shatter, on ne crée pas de suburb.
-        # Il y en a déjà un.
+        # Si c'est une town créée suite à des merge/shatter, il y a déjà un suburb.
         if create_suburb:
             suburb_of_this_town = Suburb(self, self.game_master)
 
@@ -2048,6 +2072,8 @@ class Town:
         Renvoie une liste de tile en fonction d'une coordonnée de départ et d'une liste
         d'offset (x, y). Au passage, on filtre : on vérifie que les coordonnées
         ne dépassent pas les bords de l'aire de jeu.
+        Ça pourrait être une fonction plus générique. Mais je m'en sers que dans la town,
+        alors je la laisse là.
         """
         return [
             self.game_master.game_area[y_base + y_offset][x_base + x_offset]
@@ -2063,8 +2089,10 @@ class Town:
         L'ordre est en accord avec la direction de conquête de Player.
         Faudrait faire un schéma, mais pfouuuu...
 
-        Calcule également les listes tiles_cmd_go_backward_horiz et tiles_cmd_go_backward_vertic.
-        Ce sont les listes de tiles à partir desquelles la town envoie ses commandes "go backward".
+        Pour la génération des unités, cet ordre n'est pas si important, puisque ça se
+        répartit automatiquement dans le suburb.
+        Mais on utilise ce même ordre dans l'interface, lorsque Player doit choisir
+        une direction de conquête.
         """
         size = self.size
         wardnesses = (self.player_owner.rightward, self.player_owner.downward)
@@ -2115,14 +2143,12 @@ class Town:
         )
 
         self.unit_gen_tiles = horiz_first + vertic_first + horiz_second + vertic_second
-        self.tiles_cmd_go_backward_horiz = tuple(horiz_second)
-        self.tiles_cmd_go_backward_vertic = tuple(vertic_second)
 
     def update_unit_gen_tiles(self):
         """
         Met à jour la liste self.unit_gen_tiles, ainsi que self.is_active,
         en fonction des towns autour.
-        La mise à jour de self.unit_gen_tiles ne fait que des suppressions de tiles (pas d'ajout).
+        Cette mise à jour ne fait que des suppressions dans self.unit_gen_tiles.
         On enlève les tiles au fur et à mesure que des towns adjacentes se construisent.
         """
         self.unit_gen_tiles = [
@@ -2147,18 +2173,34 @@ class Town:
         """
         Gère la construction des routes autour d'une town,
         ainsi que la génération d'unités par les towns.
-        Une town crée de temps en temps une unité, sur une de ses case adjacente.
+        Une town crée de temps en temps une unité, sur une de ses cases adjacentes.
         """
         self.unit_gen_points += self.unit_gen_speed
         self.unit_gen_points = min(self.unit_gen_points, UNIT_GEN_TOWN_POINT_MAX_CUMUL)
 
         if not self.built_all_adjacent_roads:
             if self.unit_gen_points % 5 == 0:
+
+                if all(
+                    [
+                        tile.road_horiz and tile.road_vertic
+                        for tile in self.unit_gen_tiles
+                    ]
+                ):
+                    # On croyait qu'on n'avait pas construit toutes les routes autour,
+                    # et en fait si. On met à jour le booléen.
+                    # Tout va bien, au prochain tour, on ne passera plus par ces vérifs.
+                    self.built_all_adjacent_roads = True
+                    # On s'en va tout de suite. Ce qui signifie qu'on ne produit pas
+                    # forcément l'unité que la ville devrait produire.
+                    # Ce n'est pas trop grave, ça décale la production juste pour un tour.
+                    # De toutes façons les points de production unit_gen_points sont conservés.
+                    return
+
+                # À la fin du traitement, ce booléen vaudra True si toutes les tiles
+                # adjacentes qui sont des croisements de route sont contrôlées par Player.
+                # on ne vérifie pas les tiles n'ayant pas les deux routes.
                 all_roads_are_controlled = True
-                # Il faut créer les routes tout autour de la ville.
-                # On en crée une à chaque fois, pas plus.
-                # Ça fait des routes qui se construisent progressivement,
-                # c'est toujours rigolo à regarder.
                 for tile in self.unit_gen_tiles:
                     if (
                         tile.road_horiz
@@ -2180,21 +2222,14 @@ class Town:
                     for tile in self.unit_gen_tiles:
                         if not tile.road_horiz or not tile.road_vertic:
                             tile.add_road(True, True)
-                            if all(
-                                [
-                                    tile.road_horiz and tile.road_vertic
-                                    for tile in self.unit_gen_tiles
-                                ]
-                            ):
-                                self.built_all_adjacent_roads = True
-                            # On a construit une route.
-                            # On ne produit pas forcément l'unité que la ville devrait produire.
-                            # Ce n'est pas trop grave, ça décale la production juste pour un tour,
-                            # puisque les points de production unit_gen_points sont conservés.
+                            # On a construit une route. C'est bien assez pour ce tour, on s'en va.
+                            # Même remarque que précédemment, ça peut décaler la production
+                            # d'unité pour un tour, mais juste une seule fois,
+                            # puisque les unit_gen_points sont conservés.
                             return
 
         if self.unit_gen_points > UNIT_GEN_TOWN_POINT_REQUIRED:
-            # On ajoute une unité sur n'importe quelle tile, osef.
+            # On ajoute une unité sur la première tile qui va bien, osef.
             # Le suburb s'occupera de les répartir comme il faut.
             for tile in self.unit_gen_tiles:
                 if self.player_owner != tile.player_owner or tile.nb_unit < 16:
@@ -2211,16 +2246,18 @@ class Town:
 
 class Suburb:
     """
-    Un suburb peut contenir des towns de différents players.
-    Les suburbs sont neutres et sont gérés pas le game_master. Les players n'en on pas besoin.
-    Les suburbs servent uniquement à répartir les units autour.
+    Un suburb est constitué de l'ensemble des tiles ayant une route, adjacentes
+    à des towns qui sont voisines. Un suburb peut englober des towns de différents players.
+    Ils sont neutres et sont gérés pas le game_master. Les Players n'ont aucun contrôle dessus.
+    Les suburbs servent uniquement à répartir les unités sur leurs tiles.
+    Lorsque deux suburbs ont une tile de route en commun, on les fusionne (merge).
 
     Variables membres importantes des suburbs :
      - town_tiles : liste de tiles contenant les towns appartenant à ce suburb.
        une town est toujours dans un et un seul suburb.
-     - real_suburb_tiles : toutes les tiles de roads adjacentes à une town du suburb.
+     - real_suburb_tiles : toutes les tiles ayant une route du suburb.
      - potential_tiles : les tiles non-road et non-ville, adjacentes à une town du suburb.
-       c'est à dire qu'elles sont pas dans le suburb, mais pourraient y être si on construit
+       Elles ne sont pas dans le suburb, mais pourraient y être si on construisait
        une road dessus.
      - bounding_rect : rectangle englobant toutes les tiles et potential tiles du suburb.
        (On s'en sert uniquement pour accélerer les traitements).
@@ -2233,13 +2270,14 @@ class Suburb:
     de un ou plusieurs suburbs. Lorsque c'est le cas, on transfère cette tile de potential à real.
     Si on l'a fait pour plusieurs suburbs, on fusionne tous ces suburbs ensemble.
 
-    On a besoin que de deux choses pour gérer l'évolution des suburbs.
-    La fonction de merge, et une petite fonction, dans la classe Town,
-    qui va créer un mini-suburb de 4 tiles potentielles autour d'une town.
+    On n'a besoin que de deux choses pour gérer l'évolution des suburbs :
+     - la fonction de merge,
+     - une petite fonction, dans la classe Town, qui va créer un mini-suburb de 4 tiles
+       potentielles autour d'elle-même.
 
-    L'intérêt d'un suburb, c'est que les unités se répartissent équitablement entre les
-    real_suburb_tiles du suburb.
-    Et s'il y a des unités de couleurs différentes dans le suburb, elles s'éliminent
+    L'intérêt d'un suburb, c'est que les unités se répartissent équitablement entre ses
+    real_suburb_tiles.
+    S'il y a des unités de couleurs différentes dans le suburb, elles s'éliminent
     automatiquement une par une, jusqu'à ce qu'il ne reste qu'une couleur.
     """
 
@@ -2253,11 +2291,18 @@ class Suburb:
         all_suburb_tiles = [
             tile for tile in initial_town.adjacent_tiles if tile.town is None
         ]
-        # Ici, on ne gère pas le cas de la coupure de connexions entre deux roads qui sont dans
-        # le même suburb. Ça arrive jamais, car les nouveaux suburbs ne sont créés que avec des
-        # towns ayant une size de 1.
-        # Mais si on avait voulu pinailler, il aurait fallu exécuter
-        # transfer_potential_road à chaque tile de route.
+        # Lorsqu'on crée un suburb, normalement, il faut mettre à jour les connexions
+        # de routes entre les tiles
+        # (c'est à dire les variables road_adjacencies_same_player des Tiles).
+        # Car on n'a plus besoin de retenir que deux tiles adjacentes sont connectées
+        # par une route, si elles font partie d'un même suburb.
+        # Ici, on ne fait pas les vérifications de connexions à couper.
+        # Ça n'arrive jamais, car les nouveaux suburbs ne sont créés que avec des
+        # towns ayant une size de 1. Donc ils ne comportent pas de routes adjacentes.
+        # Si on avait voulu pinailler, il aurait fallu exécuter
+        # update_all_road_adjacencies à chaque tile de route.
+        # Dans les faits, il est fort possible que ce mini-suburb soit immédiatement
+        # mergé avec un suburb voisin. Et là on exécutera cette fonction.
         self.real_suburb_tiles = []
         self.potential_tiles = []
         for tile in all_suburb_tiles:
@@ -2271,10 +2316,10 @@ class Suburb:
 
     def _update_bounding_rect(self):
         """
-        Définit self.bounding_rect. Une liste de 4 int. x1, y1, x2, y2.
-        On englobe toutes les tiles du suburb.
+        Définit self.bounding_rect. Une liste de 4 int (x1, y1, x2, y2),
+        qui englobe toutes les tiles du suburb.
         Comme d'hab' en python, le rect s'étend de x1 à x2 - 1, et de y1 à y2 - 1.
-        Comme les ranges.
+        C'est comme la fonction "range".
         """
         all_tiles = self.town_tiles + self.real_suburb_tiles + self.potential_tiles
         xs = [tile.x for tile in all_tiles]
@@ -2293,7 +2338,8 @@ class Suburb:
         self.potential_tiles.remove(tile)
         self.real_suburb_tiles.append(tile)
         tile.suburb_owner = self
-        # Il faudrait mettre des valeurs "2" dans les connexions entre roads du même suburb.
+        # Il faut mettre à jour les connexions de routes entre tiles, c'est à dire
+        # mettre éventuellement la valeur "2" dans road_adjacencies_same_player.
         # C'est la classe Tile qui s'en charge.
 
     def merge(self, other_suburb):
@@ -2304,9 +2350,8 @@ class Suburb:
         roads_other_suburb = other_suburb.real_suburb_tiles
         # On met en commun toutes les tiles des deux suburbs et on en fait une grosse liste.
         # Et ensuite, on répartit ces tiles dans les 3 listes :
-        # town_tiles, real_suburb_tiles, potential_tiles. En fonction de ce qu'il y a dessus.
-        # On élimine bien entendu les doublons.
-        # Et on met à jour les liens suburb_owner dans les tiles.
+        # (town_tiles, real_suburb_tiles, potential_tiles), en fonction de ce qu'il y a dessus.
+        # On élimine les doublons et on met à jour les liens suburb_owner dans les tiles.
         all_tiles_two_suburbs = (
             self.potential_tiles
             + self.real_suburb_tiles
@@ -2334,8 +2379,8 @@ class Suburb:
 
         for road_tile in roads_other_suburb:
             # On met des connexions à 2 entre les routes d'un même suburb.
-            # C'est à dire qu'on coupe ces connexions. Car l'équilibrage des
-            # unités sera géré par le suburb lui-même.
+            # C'est à dire qu'on coupe ces connexions, car la répartition des
+            # unités sera gérée par le suburb lui-même.
             # Il faut checker toutes les routes du suburb mergé.
             # D'où l'intérêt de prendre le plus gros suburb et d'exécuter sa fonction merge,
             # avec le plus petit suburb en paramètre. Et non pas le contraire.
@@ -2359,9 +2404,15 @@ class Suburb:
 
 class Tile:
     """
-    Une tile. Une case dans l'aire de jeu.
+    Une tile. Une case dans la "warzone"
+    (la zone où se passe le jeu, c'est à dire la zone de pas-interface).
+
+    Une Tile est toujours contrôlée par zéro ou un seul Player.
     """
 
+    # Nom des game objects de background à afficher, en fonction
+    # des roads. Il faut ensuite préfixer ces noms par la couleur
+    # de Player ayant le contrôle de la tile.
     GAMOBJ_BACKGROUND_FROM_ROADS = {
         (False, False): "_controls",
         (True, False): "_road_horiz",
@@ -2372,6 +2423,9 @@ class Tile:
     def __init__(self, x, y, linked_gamobjs, game_master):
         self.x = x
         self.y = y
+        # linked_gamobjs est une liste de string. La classe Tile doit en modifier le contenu.
+        # Elle contient les game objects à afficher à l'écran, pour représenter
+        # le contenu de la tile.
         self.linked_gamobjs = linked_gamobjs
         self.game_master = game_master
         # Contiendra des références vers les tiles adjacentes à cette tile.
@@ -2388,16 +2442,17 @@ class Tile:
         #     Dans ce cas, on n'équilibre pas par les routes.
         #     Ça s'équilibre tout seul par le suburb.
         # Dans cette liste, toutes les adjacences diagonales (1, 3, 5, 7) sont toujours à zéro.
-        # Mais je laisse comme ça pour être homogène avec la gestion d'adjacence, qui utilise
+        # Mais je laisse comme ça pour être homogène avec la gestion d'adjacences, qui utilise
         # systématiquement les nombres de 0 à 7.
         self.road_adjacencies_same_player = [0 for _ in range(8)]
+        # Indique si la tile comporte des routes ou pas.
         self.road_vertic = False
         self.road_horiz = False
         # Player qui contrôle la tile.
         self.player_owner = None
         self.nb_unit = 0
         # Référence éventuelle vers la town qui occupe cette tile. Pour les towns de size > 1,
-        # on a alors plusieurs tiles qui ont cette référence vers une même town.
+        # plusieurs tiles auront cette référence vers une même town.
         self.town = None
         # La variable suburb_owner est définie par les Suburb.
         # Soit lors de la création d'un nouveau suburb, soit lors d'un merge.
@@ -2417,15 +2472,15 @@ class Tile:
         en cache, pour pouvoir faire un redraw rapide du jeu à l'écran.
         Trop la classe, on a l'impression de faire du double buffering.
 
-        Lorsqu'on modifie des éléments d'interface : Player sélectionne une town, on affiche
-        la destination d'un missile avant de le lancer, etc. Il ne faut pas modifier le contenu
+        Lorsqu'on modifie des éléments d'interface (Player sélectionne une town,
+        on affiche une line conquest, etc.), il ne faut pas modifier le contenu
         de la tile elle-même, donc pas besoin d'appeler cette fonction.
         """
 
         if self.player_owner is None:
             # détermination du background (avec route ou pas) dans le cas d'une tile contrôlée
-            # par aucun Player. Rien de plus à faire dans ce cas, car si aucun Player
-            # ne contrôle la tile, il n'y a pas grand chose à afficher dessus.
+            # par aucun Player. Pas grand chose à faire dans ce cas, car si aucun Player
+            # ne contrôle la tile, il n'y a que le background à afficher.
             if self.road_horiz or self.road_vertic:
                 gamobj_bg_suffix = Tile.GAMOBJ_BACKGROUND_FROM_ROADS[
                     (self.road_horiz, self.road_vertic)
@@ -2441,12 +2496,15 @@ class Tile:
         if self.town:
             # Détermination du game object de la town.
             # Soit c'est une town de size 1, et on sait tout de suite lequel c'est.
-            # Soit c'est une town plus étendu, et il faut faire un petit calcul pour savoir
+            # Soit c'est une town plus étendu, il faut faire un petit calcul pour savoir
             # où se trouve la tile par rapport au coin supérieur gauche de la town.
             town_size = self.town.size
             if town_size == 1:
                 gamobj_town_suffix = "_town_1x1"
             else:
+                # On met des fonctions "min" juste au cas où.
+                # En réalité y'a pas besoin. Le décalage entre la tile et
+                # le coin supérieur gauche de la town ne dépasse jamais la size.
                 offset_x = min(self.x - self.town.x_left, town_size - 1)
                 offset_y = min(self.y - self.town.y_up, town_size - 1)
                 gamobj_town_suffix = (
@@ -2458,22 +2516,19 @@ class Tile:
         else:
             # Détermination du background (avec route ou pas) dans le cas d'une tile
             # contrôlée par un/une Player.
-            # Puis détermination du game object affichant le nombre d'unités présente sur la tile.
             gamobj_bg_suffix = Tile.GAMOBJ_BACKGROUND_FROM_ROADS[
                 (self.road_horiz, self.road_vertic)
             ]
             gamobj_background = color + gamobj_bg_suffix
             gamobjs.append(gamobj_background)
+            # Détermination du game object affichant le nombre d'unités présentes sur la tile.
             if self.nb_unit:
                 # Il ne devrait jamais y avoir plus de 16 unités sur une même tile,
                 # mais on sait jamais. Donc on met un min.
-                gamobjs.append(
-                    color + "_" + GAMOBJ_NAME_TO_NB_UNIT[min(self.nb_unit, 16)]
-                )
+                str_nb_unit = GAMOBJ_NAME_TO_NB_UNIT[min(self.nb_unit, 16)]
+                gamobjs.append(f"{color}_{str_nb_unit}")
             if self.town_building_step:
-                gamobjs.append(
-                    color + "_town_build_" + str(self.town_building_step).zfill(2)
-                )
+                gamobjs.append(f"{color}_town_build_{self.town_building_step:02d}")
         self.linked_gamobjs[:] = gamobjs
 
     def __str__(self):
@@ -2488,7 +2543,8 @@ class Tile:
     def is_road_connected(self, direction, other_tile):
         """
         Vérifie si deux tiles adjacentes sont connectées par une route.
-        Attention, les paramètres doivent être cohérents entre eux. Il faut le vérifier avant.
+        Attention, les paramètres doivent être cohérents entre eux,
+        ils ne sont pas contrôlés par cette fonction.
         C'est à dire que other_tile doit être la tile adjacente à celle-ci, dans la direction donnée.
         Pour résumer : self.adjacencies[direction] == other_tile
         """
@@ -2509,7 +2565,8 @@ class Tile:
                appartiennent à deux Players différent(e)s.
          - 1 : une route qui connecte, et les deux tiles sont contrôlées par Player.
          - 2 : les deux tiles appartiennent au même suburb. Il y a une connexion,
-               mais on s'en fiche (lorsqu'on effectue des répartitions de pixels sur les routes).
+               mais on s'en fiche. On ne s'occupera pas de cette connexion
+               lorsqu'on effectuera des répartitions de pixels sur les routes.
         """
         other_tile = self.adjacencies[direction]
         if other_tile is None:
