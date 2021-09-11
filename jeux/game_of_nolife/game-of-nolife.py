@@ -2609,7 +2609,7 @@ class Tile:
 
     def update_all_road_adjacencies(self):
         """
-        Mise à jour de toutes la liste road_adjacencies_same_player, en fonction
+        Mise à jour de toute la liste road_adjacencies_same_player, en fonction
         des roads et des tiles contrôlées.
         Pas de mise à jour sur les adjacences diagonales, car pas de routes diagonales.
         """
@@ -2634,8 +2634,8 @@ class Tile:
 
     def add_unit(self, player, qty=1):
         """
-        Ajoute une ou plusieurs unités sur la tile, appartenant à player, indiqué en param.
-        Cette fonction effectue tous les checks nécessaires, et toutes les mises à jour
+        Ajoute une ou plusieurs unités sur la tile, appartenant à Player, indiqué en param.
+        Cette fonction effectue tous les checks nécessaires et toutes les mises à jour
         des listes d'indexation, de comptage, de contrôle, etc.
 
         Si on ajoute des unités de Player A, alors qu'il y a déjà des unités de Player B,
@@ -2658,10 +2658,10 @@ class Tile:
         initial_nb_unit = self.nb_unit
         must_check_road_adjacencies = True
         if self.player_owner == player:
-            # Pas de check pour vérifier que ça dépasse pas 16. Faut le faire avant.
+            # Pas de check pour vérifier que ça dépasse pas 16. Faut l'avoir fait avant.
             self.nb_unit += qty
             player.total_units += qty
-            # On ne fait que ajouter des unités d'une couleur à une tile qui en a déjà.
+            # Même couleur entre les unités déjà sur la tile et celles qu'on ajoute.
             # Ça change rien au niveau des routes, des contrôles, etc.
             must_check_road_adjacencies = False
         elif self.player_owner is None:
@@ -2687,6 +2687,9 @@ class Tile:
                 # car quand on en arrive là, la tile n'est plus contrôlée par personne.
                 self.add_unit(player, qty_unit_left_after)
 
+        # C'est quand même dangereux cette histoire de récursivité. Car le bout de code
+        # ci-dessous s'exécute deux fois, dont une qui n'a jamais d'effet.
+        # Mais bon, euh... ça passe. On laisse comme ça.
         if (
             not self.road_vertic
             and not self.road_horiz
@@ -2708,7 +2711,7 @@ class Tile:
 
     def remove_unit(self, qty=1):
         """
-        Supprime une ou plusieurs unités sur une tile, que que soit Player qui contrôle la tile.
+        Supprime une ou plusieurs unités sur une tile, quel que soit Player qui contrôle la tile.
         Comme pour add_unit, cette fonction effectue tous les checks nécessaires,
         et toutes les mises à jour des listes d'indexation, de comptage, de contrôle, etc.
 
@@ -2743,7 +2746,7 @@ class Tile:
                 self.player_owner.remove_controlled_road(self)
                 self.game_master.uncontrolled_roads.append(self)
             self.player_owner = None
-            # L'ajout d'unité a provoqué un changement important. Il n'y a plus d'owner.
+            # La suppression d'unité a provoqué un changement important. Il n'y a plus d'owner.
             # Il faut donc vérifier tous les contrôles et les adjacences de routes.
             self._update_all_road_adjacencies_with_current_roads()
 
@@ -2751,13 +2754,12 @@ class Tile:
 
     def add_road(self, horiz=False, vertic=False):
         """
-        Ajoute une route horizontale ou verticale ou les deux à la fois sur la tile.
-        Ça fait tous les checks qu'il faut, et ça met à jour toutes les listes et les références.
+        Ajoute une route (horizontale, verticale, ou les deux) sur la tile.
+        Effectue tous les checks qu'il faut et met à jour toutes les listes et les références.
         En particulier, les opérations à faire sur les suburbs.
         La construction d'une route à côté d'une ville fait transférer la tile de
-        "potential_tiles" vers "real_suburb_tiles".
-        Et en plus, ça peut faire fusionner plusieurs suburbs, car la route les
-        connecte entre eux.
+        "potential_tiles" vers "real_suburb_tiles", ce qui peut déclencher la fusion
+        de plusieurs suburbs, car la route les connecte entre eux.
         """
         if not (horiz or vertic):
             return
@@ -2768,10 +2770,13 @@ class Tile:
         ]
         if adj_towns:
             # Si c'est à côté d'une ville, on ajoute obligatoirement les deux routes.
+            # C'est un pouvoir spécial des towns. Elles transforment en croisement
+            # toutes les routes qui passent à côté d'elles.
             horiz = True
             vertic = True
 
         if horiz == self.road_horiz and vertic == self.road_vertic:
+            # Les routes qu'on veut ajouter sont déjà présentes. Pas de changement.
             return
         if self.town is not None:
             raise Exception("Ajout de road sur une town. Not supposed to happen.")
@@ -2840,6 +2845,7 @@ class Tile:
         if self.town_building_step >= NB_TURNS_TOWN_BUILDING:
             return
         self.town_building_step += 1
+        # Faut updater les gamobjs, car on affiche à l'écran la construction en cours.
         self.update_linked_gamobjs()
 
     def cancel_town_building(self):
@@ -2848,7 +2854,7 @@ class Tile:
         Soit à cause d'un timeout, soit parce que Player a donné d'autres ordres, qui annulent
         les diverses actions en cours.
         Une annulation de construction n'a aucune conséquence pour Player. Pas de perte d'unités,
-        ni de tile contrôlée. Player a juste perdu quelques tours à commencer de construire
+        ni de tile contrôlée. Player a juste perdu quelques tours à construire
         une town pour finalement ne pas la terminer.
         """
         self.town_building_step = 0
@@ -2865,9 +2871,9 @@ class Tile:
         Si pas de player_owner, on balance une exception.
 
         La fonction ne fait rien concernant les merge/shatter de town. C'est le game_master
-        qui s'occupe de ça, quand c'est le moment. Mais l'ajout de la town modifie l'état
-        de vérification des merge/shatter, pour prévenir le game_master qu'il doit relancer
-        tout un cycle de vérification.
+        qui s'occupe de ça, quand c'est le moment.
+        Dans cette fonction, on se contente de modifier l'état de vérif des merge/shatter,
+        pour prévenir le game_master qu'il doit relancer tout un cycle de vérification.
         """
         if self.player_owner is None:
             raise Exception("Town without owner. Not supposed to happen.")
@@ -2875,15 +2881,6 @@ class Tile:
         if self in self.player_owner.controlled_bare_tiles_with_many_units:
             self.player_owner.controlled_bare_tiles_with_many_units.remove(self)
         self._remove_all_roads()
-
-        # On transforme toutes les routes sur les tiles adjacentes en routes horiz+vertic.
-        # Il n'y a pas de route droite autour des towns. C'est une règle que j'ai décidée,
-        # car ça simplifie le jeu, et ça évite d'embêter Player, qui n'a pas besoin
-        # de les construire manuellement.
-        for tile_adj in self.adjacencies[::2]:
-            if tile_adj is not None:
-                if int(tile_adj.road_horiz) + int(tile_adj.road_vertic) == 1:
-                    tile_adj.add_road(True, True)
 
         # Pour enlever les units, on aurait dû passer par la fonction remove_unit.
         # Mais on va pas le faire, parce que ça mettrait player_owner à None.
@@ -2910,29 +2907,78 @@ class Tile:
 
 class Missile:
     """
-    Pattern de placement des unités vertes, pour chaque tour.
+    Les missiles se déplacent en diagonale, dans une direction prédéfinie.
+    Ils sont gérés directement par le Game Master et non pas par Player,
+    car une fois qu'un missile est construit, il est (presque) neutre.
+
+    C'est "presque", car un missile possède la variable "player_owner",
+    définissant qui l'a construit. Ce qui permet de déduire l'autre Player.
+
+    Cette classe gère la construction, le déplacement et l'explosion du missile.
+
+    Lorsqu'un missile passe au-dessus d'une tile contrôlée par l'autre Player,
+    il explose. Mais ils ont une portée limitée, et dans tous les cas ils
+    finissent par exploser.
+
+    Les missiles ne détruisent pas les towns, puisque de toutes façons les
+    towns sont invincibles. Mais ils explosent si ils passent au-dessus d'une
+    town ennemie.
+
+    Lorsqu'un missile explose il génère des unités de bionature sur les tiles
+    autour de lui, durant 4 tours, 5 unités à chaque fois.
+    Les unités sont placées selon le pattern suivant :
          |  .  |     |     |
       .  |     |  .. | .   |
     . X. | .X .|  X. | .X  |
          |  .  | .   |  .. |
       .  |     |     |     |
+
+    X correspond à la tile d'explosion (on place une unité dessus à chaque fois),
+    les points correspondent à des tiles autour sur lesquelles on place une unité
+    les "|" sont les séparateurs pour montrer les 4 tours.
+
+    Si une tile ne peut pas prendre une unité de bionature (il y a une town dessus,
+    ou déjà 16 bionature), le missile place l'unité sur la tile suivante dans le
+    rayon d'action. Ça décale tout le pattern de dump, mais c'est pas grave.
+
+    Un missile place donc 20 bionatures au total, sauf si toutes les tiles dans le
+    rayon d'action sont déjà pleines. Dans ce cas les bionature en trop sont perdues.
+
+    C'est assez rentable de lancer des missiles, car ils coûtent 10 unités de Player.
+    10 unités -> 20 bionature, c'est plutôt pas mal.
     """
 
+    # Délai (en nombre de tours) entre deux déplacements du missile,
+    # sauf pour le premier déplacement où le délai peut être différent.
     DELAY_MOVE = 2
+    # Coût de construction en unités.
     UNIT_COST = 10
-    # Nombre de tours avant que la construction du missile soit annulée
-    # Si il y a suffisamment d'unité dans le suburb de la ville où le missile
-    # est en train d'être construit, on ne devrait pas atteindre le timeout.
+    # Nombre de tours total pour construire le missile.
+    # On fait avancer ce temps à chaque tour (que la construction ait avancée ou pas).
+    # Si ce timeout est atteint, la construction est annulée et on remet
+    # dans le suburb les unités qui ont été dépensées.
     TIMEOUT = UNIT_COST * 3
 
+    # -- Les états successifs de la vie du missile. --
+    # En construction
     BUILDING = 0
+    # En train de se déplacer
     MOVING = 1
-    DEFINING_DEST_TILES = 2
+    # Définition des tiles dans lesquelles on peut placer la bionature
+    DEFINING_DUMP_TILES = 2
+    # Explosion, placement des bionatures.
     EXPLODING = 3
+    # Fini, suppression du missile.
     FINISHED = 4
 
-    # J'aime bien Black, mais quand il formate des trucs comme ça, je le trouve relou.
-    DIRECTIONS_DEST_TILES = (
+    # Listes de directions de déplacement, par rapport à la tile où le missile a explosé,
+    # permettant de déduire les tiles où placer la bionature.
+    # Les directions sont définies comme d'habitude : 0:haut, 2:droite, 4:bas, 6 gauche.
+    # Certaines sous-listes sont vides, indiquant qu'il n'y a pas de déplacement à appliquer.
+    # Dans ce cas, ça signifie qu'il faut placer une bionature directement
+    # sur la tile d'explosion.
+    # J'aime bien Black, mais quand il formate du code comme ça, je le trouve relou.
+    DIRECTIONS_DUMP_TILES = (
         (),
         (0,),
         (2,),
@@ -2957,9 +3003,12 @@ class Missile:
 
     # clé : taille de la town qui va générer le ou les missiles.
     # valeur : tuple de 2 elems.
-    #  - distance max du missile
-    #  - sous-tuple. nombre de delay des missiles.
-    #    (Le nombre d'elem de la liste donne le nombre de missile à générer)
+    #  - portée du missile
+    #  - sous-tuple. nombre de tour pour le delay initial des missiles.
+    #    (Le nombre d'eléments de la liste indique le nombre de missiles à générer).
+    #    Le délai initial est différent, car c'est plus amusant de voir des missiles
+    #    partir les uns après les autres depuis une grosse ville,
+    #    plutôt que tous en même temps.
     GEN_INFOS_FROM_TOWN_SIZE = {
         1: (WARZONE_HEIGHT // 2, (2,)),
         2: (WARZONE_HEIGHT // 1.5, (2, 6)),
@@ -2976,17 +3025,27 @@ class Missile:
         direction=None,
         player_to_spawn=None,
     ):
+        # Player qui a généré le missile.
         self.player_owner = player_owner
         self.tile = tile
+        # La portée du missile.
         self.duration = duration
-        self.index_dest_tile = 0
+        # Indique la prochaine tile sur laquelle on doit dumper une bionature.
+        self.index_dump_tile = 0
+        # Nombre d'unités de bionature à dumper.
         self.payload_qty = 20
+        # Quantité que l'on dumpe à chaque tour.
         self.dumps_per_turn = 5
         self.game_master = game_master
+        # Délai avant le premier déplacement.
         self.initial_delay_move = initial_delay_move
+        # La direction du missile correspond à la direction de conquête diagonale
+        # de Player qui le génère.
         self.direction = (
             self.player_owner.dir_forw_diag if direction is None else direction
         )
+        # Indique la couleur des unités dumpées par le missile.
+        # (C'est la bionature, mais on pourrait choisir autre chose si on veut).
         self.player_to_spawn = (
             self.game_master.player_bionature
             if player_to_spawn is None
@@ -2997,26 +3056,53 @@ class Missile:
             raise Exception(
                 "Construction d'un missile sur une zone sans suburb. Not supposed to happen."
             )
+        # Directions de "glissement". Si le missile arrive sur un bord de l'écran,
+        # il va se déplacer horizontalement ou verticalement le long du bord, pour
+        # continuer d'aller le plus loin possible. Éventuellement jusqu'au coin
+        # opposé de l'aire de jeu.
         self.slide_dir_1 = (self.direction + 1) % 8
         self.slide_dir_2 = (self.direction - 1) % 8
+        # Progression de la construction en cours.
         self.build_step = 0
+        # Temps restant pour la construction du missile, avant de l'annuler.
         self.time_before_timeout = Missile.TIMEOUT
         self.current_action = Missile.BUILDING
         self.gamobj = f"missile_build_{self.build_step:02}"
 
     def handle(self):
+        """
+        La fonction principale de gestion du missile.
+        Elle appelle la bonne fonction selon l'état actuel du missile.
+        """
         function_from_action = {
             Missile.BUILDING: self.build,
             Missile.MOVING: self.move,
-            Missile.DEFINING_DEST_TILES: self.define_dest_tiles,
+            Missile.DEFINING_DUMP_TILES: self.define_dump_tiles,
             Missile.EXPLODING: self.dump_payload,
             Missile.FINISHED: self.finished,
         }
         function_from_action[self.current_action]()
 
     def build(self):
+        """
+        Fait avancer la construction du missile, en échange d'unités
+        piochées dans le suburb où se trouve le missile.
+
+        À chaque tour, on prend une unité de chaque tile du suburb, jusqu'à ce que
+        la construction soit atteinte. Ça signifie que les grands suburbs construisent
+        leurs missiles plus vite que les petits. Et c'est un fonctionnement plutôt logique.
+
+        Si une tile de suburb n'a plus qu'une unité, on ne s'en sert pas pour construire
+        le missile, car cela ferait perdre le contrôle de la tile.
+
+        Si pas d'unité dispo dans le suburb, on n'avance pas la construction.
+        Dans tous les cas, on avance le timeout. Si il est atteint,
+        on remet les unités investies dans le suburb, le missile passe directement
+        à l'état FINISHED et il n'est pas construit.
+        """
         self.time_before_timeout -= 1
-        # On enlève une unité du player dans le suburb, pour avancer la construction du missile.
+        # On enlève une unité pour chaque tile du suburb qui peut en donner une.
+        # Chaque unité fait avancer la construction du missile.
         for suburb_tile in self.suburb_owner.real_suburb_tiles:
             if (
                 suburb_tile.player_owner == self.player_owner
@@ -3024,17 +3110,31 @@ class Missile:
             ):
                 suburb_tile.remove_unit(1)
                 self.build_step += 1
+                if self.build_step >= Missile.UNIT_COST:
+                    # Construction terminée. On peut quitter la boucle.
+                    # Plus besoin de prélever d'unités.
+                    break
 
         if self.build_step < Missile.UNIT_COST:
             self.gamobj = f"missile_build_{self.build_step:02}"
         else:
+            # Construction terminée, le missile passe dans l'état "déplacement",
+            # avec tout de même son délai initial avant le premier déplacement.
             self.delay_move = self.initial_delay_move
+            # Détermination du game object représentant le missile, en fonction
+            # de sa direction de déplacement.
+            # Je n'ai pas prévu de sprite pour des missiles qui se déplaceraient
+            # en diagonale bas-droite ou en diagonale haut-gauche. Faites-les vous-même
+            # si vous en avez besoin.
             self.gamobj = "missile_ur" if self.direction == 1 else "missile_dl"
             self.current_action = Missile.MOVING
 
         if not self.time_before_timeout:
-            # Construction du missile fail.
-            # Il faut rendre les unités investies et annuler le missile.
+            # Échec de la construction du missile.
+            # On rend les unités investies, elles sont replacées dans le suburb.
+            # On fait le bourrin, et on remet toutes les unités investies dans
+            # une seule tile du suburb. Elles se répartiront automatiquement
+            # durant les tours suivants, grâce à la gestion des suburbs.
             for suburb_tile in self.suburb_owner.real_suburb_tiles:
                 if (
                     suburb_tile.player_owner != self.player_owner
@@ -3042,64 +3142,112 @@ class Missile:
                 ):
                     suburb_tile.add_unit(self.player_owner, self.build_step)
                     break
-            # Si on a parcourut toutes les tiles sans trouver d'endroit où rendre les unités,
-            # elles sont perdues tant pis. Mais c'est pas censé arriver, car si il y a des unités,
-            # alors on aurait pu avancer la construction du missile.
+            # Il est possible que l'on ait parcouru toutes les tiles, sans en trouver une
+            # ayant suffisameunt peu d'unités pour pouvoir replacer toutes celles investies.
+            # Dans ce cas, elles sont définitivement perdues.
+            # Ce n'est pas censé arriver, car si il y a des unités dans le suburb, alors on aurait
+            # pu avancer la construction du missile et on en serait pas arrivé à là.
             self.current_action = Missile.FINISHED
 
     def move(self):
+        """
+        Déplacement du missile, ou diminution du délai de déplacement.
+        Passage à l'étape suivante (définition des tiles de dump) si on arrive
+        sur une tile contrôlée par Player ennemie.
+        Sinon, passage à l'étape suivante lorsque le missile a atteint sa portée.
+        """
         self.delay_move -= 1
         if self.delay_move:
+            # Pas de déplacement, mais on a diminué le délai actuel.
+            # Il s'agit du délai initial ou bien du délai entre deux déplacements,
+            # c'est géré pareil dans les deux cas.
             return
 
         if self.tile.player_owner is not None and self.tile.player_owner not in (
             self.player_owner,
             self.player_to_spawn,
         ):
-            # Le missile survole une case appartenant au Player ennemi.
-            # On explose tout de suite, parce que ça va l'embêter. Ha ha !
+            # Le missile survole une case appartenant à Player-ennemi.
+            # (Plus précisément, pas Player-owner et pas Player-bionature,
+            # donc forcément Player-ennemie).
+            # On termine la durée de vie du missile pour exploser tout de suite. Ha ha !
             self.duration = 0
 
         if self.duration == 0:
-            self.current_action = Missile.DEFINING_DEST_TILES
+            # Passage à l'étape suivante. C'est pas tout de suite l'explosion.
+            # Il faut une petite étape intermédiaire, qui ne prend qu'un seul tour :
+            # la détermination des tiles dans lesquelles on peut dumper de la bionature.
+            self.current_action = Missile.DEFINING_DUMP_TILES
             self.gamobj = "missile_exploding"
             return
 
+        # Si on est arrivé jusqu'ici, c'est qu'il faut déplacer le missile d'une case.
+        # Rénitialisation du délai de déplacement, diminution de la durée de vie.
         self.delay_move = Missile.DELAY_MOVE
         self.duration -= 1
+        # Déplacement en diagonale dans la direction de conquête, si on peut.
+        # Sinon, déplacement horizontal ou vertical, toujours dans la direction de conquête,
+        # le long d'un bord de l'écran.
         next_tile = self.tile.adjacencies[self.direction]
         if next_tile is None:
             next_tile = self.tile.adjacencies[self.slide_dir_1]
         if next_tile is None:
             next_tile = self.tile.adjacencies[self.slide_dir_2]
         if next_tile is None:
+            # On n'a pas pu faire de déplacement du tout. Ça veut dire qu'on a atteint
+            # le coin opposé de l'écran. Dans ce cas, ce n'est plus la peine de rester
+            # dans l'état MOVING. On met la durée de vie à zéro, et dans quelques tours
+            # le missile passera aux étapes suivantes.
+            self.duration = 0
             return
 
         self.tile = next_tile
 
-    def define_dest_tiles(self):
-        self.dest_tiles = []
-        for direction_sequence in Missile.DIRECTIONS_DEST_TILES:
+    def define_dump_tiles(self):
+        """
+        Petite étape de calcul nécessaire avant de dumper la bionature.
+        On liste les tiles dans le rayon d'action du missile qui sont susceptibles
+        de recevoir de la bionature.
+
+        On vérifie juste que les tiles existent et qu'il n'y a pas de town dessus.
+        On ne vérifie pas qu'il y ait moins de 16 unités de bionature dessus,
+        parce que c'est quelque chose qui peut changer.
+        """
+        self.dump_tiles = []
+        for direction_sequence in Missile.DIRECTIONS_DUMP_TILES:
+            # On part à chaque fois de la tile du missile (là où il a explosé),
+            # on se déplace dans les directions données autant de fois qu'il faut,
+            # et ça donne une tile potentielle appartenant au rayon d'action du missile.
             cur_tile = self.tile
             for direction in direction_sequence:
                 cur_tile = cur_tile.adjacencies[direction]
                 if cur_tile is None:
                     break
             if cur_tile is not None and cur_tile.town is None:
-                self.dest_tiles.append(cur_tile)
+                self.dump_tiles.append(cur_tile)
 
-        if not self.dest_tiles:
-            # Aucune tile de libre sur laquelle on peut poser des unités vertes.
-            # on enlève la payload. Au prochain tour, la fonction dump_payload
+        if not self.dump_tiles:
+            # Il n'y a aucune tile de dispo sur laquelle on pourrait poser de la bionature.
+            # On enlève la payload. Au prochain tour, la fonction dump_payload
             # mettra automatiquement l'état en FINISHED.
             # Je ne met pas directement l'état en FINISHED, comme ça, le dessin du missile
             # qui explose reste un peu plus longtemps. Pour bien montrer que le missile était
             # quand même là, même si il n'a eu aucun effet.
             self.payload_qty = 0
+        # Et on passe tout de suite à l'étape suivante. Cette étape ne dure qu'un tour.
         self.current_action = Missile.EXPLODING
 
     def dump_payload(self):
+        """
+        Balance 5 unités de bionature dans le rayon d'action du missile,
+        là où on peut.
+
+        Si il n'y a plus de place nul part pour mettre la bionature,
+        on passera directement à l'étape suivante, les unités de bionature seront perdues.
+        """
         if not self.payload_qty:
+            # Y'a plus de payload. Soit on a tout dumpé, soit on n'a plus de place
+            # pour dumper. On passe à la dernière étape.
             self.current_action = Missile.FINISHED
             return
 
@@ -3110,29 +3258,47 @@ class Missile:
             and self.payload_qty
             and nb_times_resetted_index <= 2
         ):
-
-            dest_tile = self.dest_tiles[self.index_dest_tile]
-            if dest_tile.town is None and (
-                dest_tile.player_owner != self.player_to_spawn or dest_tile.nb_unit < 16
+            # On avance dans les self.dump_tiles. À chaque fois qu'on en trouve une de dispo
+            # on y met une unité de bionature et on diminue la payload.
+            # Si on dumpe la quantité prévue pour chaque tour, on s'arrête et on continuera
+            # au tour suivant.
+            # Si on arrive au bout de la liste de self.dump_tiles, on revient au début. Ça
+            # permet de dumper toute la payload sur les tiles disponible.
+            # Si on revient plusieurs fois au début de la liste dans le même tour, il y a eu
+            # un problème, il n'y a plus de place, faudra annuler le dumping.
+            dump_tile = self.dump_tiles[self.index_dump_tile]
+            if dump_tile.town is None and (
+                dump_tile.player_owner != self.player_to_spawn or dump_tile.nb_unit < 16
             ):
-                dest_tile.add_unit(self.player_to_spawn)
+                # On a trouvé une tile de disponible. On dumpe une bionature dessus.
+                dump_tile.add_unit(self.player_to_spawn)
                 self.payload_qty -= 1
                 self.dumps_made += 1
 
-            self.index_dest_tile += 1
-            if self.index_dest_tile >= len(self.dest_tiles):
-                self.index_dest_tile = 0
+            self.index_dump_tile += 1
+            if self.index_dump_tile >= len(self.dump_tiles):
+                self.index_dump_tile = 0
                 nb_times_resetted_index += 1
                 if nb_times_resetted_index == 2 and self.dumps_made == 0:
                     # Ça fait deux fois qu'on repasse par l'index numéro 0.
                     # Ça veut dire qu'on a fait le tour du compteur (et même un peu plus)
                     # sans avoir réussi à placer une seule unité verte.
                     # C'est pas la peine d'essayer d'en replacer d'autres. Il n'y a plus
-                    # de tile disponible (elles sont peut-être déjà toute remplie de vert)
-                    # On termine le missile, même si il avait encore de la payload. Tant pis !
+                    # de tile disponible (elles sont peut-être déjà toute remplie de vert).
+                    # On annule la payload, , même si il en restait à dumper. Tant pis !
                     self.payload_qty = 0
 
     def finished(self):
+        """
+        Lorsque le missile est dans l'état FINISHED, il n'y a plus rien à faire.
+        Le Game Master s'occupe de supprimer tous les missiles qui sont dans cet état.
+
+        On est quand même obligé de définir une fonction pour ça, car il faut mettre
+        quelque chose dans le dictionnaire de correspondance entre l'état du missile et
+        la fonction à exécuter.
+        J'aurais pu mettre une lambda à l'arrache qui ne fait rien. Mais je trouve ça
+        un peu plus classe de définir une vraie fonction.
+        """
         pass
 
 
