@@ -3307,8 +3307,8 @@ class GameMaster:
     Le maître du jeu. La classe qui dirige tout le bazar, qui contient les Players, l'aire de jeu,
     qui ordonnance les actions, etc.
 
-    C'est aussi le GameMaster qui gère les suburb (merge, équilibrage des unités), car les suburbs
-    sont neutres.
+    Le GameMaster gère aussi les suburbs (merge, équilibrage des unités), et les missiles,
+    car ce sont des éléments neutres du jeu.
     """
 
     def __init__(self, w, h):
@@ -3317,7 +3317,7 @@ class GameMaster:
         # Tableau à 2 dimensions contenant des objets Tile
         self.game_area = []
         # Tableau à 2 dimensions contenant des game_objects (c'est à dire des listes de strings)
-        # Lorsqu'on veut rafraîchir ce qui est affiché à l'écran, on prend une ou plusieurs tiles
+        # Lorsqu'on veut rafraîchir ce qui est affiché à l'écran, on prend des tiles
         # de game_area, on update leurs game_objects, et on les mets dans
         # les cases correspondantes de gamobjs_to_export.
         # De cette manière, on n'a pas besoin de recalculer les apparences de toutes les tiles
@@ -3346,33 +3346,34 @@ class GameMaster:
                 adjacencies = self._make_adjacencies(x, y)
                 self.game_area[y][x].adjacencies = adjacencies
 
-        # Tous les objets Suburb de l'aire de jeu.
+        # Tous les objets Suburbs de l'aire de jeu.
         self.suburbs = []
-        # J'ai besoin de ça pour savoir si il faut checker des conquêtes de roads.
-        # C'est assez rare qu'il y ait des routes inocuppées, mais quand c'est le cas,
+        # On a besoin de ça pour savoir où vérifier les conquêtes de roads.
+        # C'est assez rare qu'il y ait des routes inoccupées, mais quand c'est le cas,
         # faut boucler dessus pour voir si on peut y propager des unités.
         self.uncontrolled_roads = []
+        # Les Players (rouge, bleu, bionature)
         self.players = None
+        # Player spécifique qui gère la bionature (les pixels verts).
         self.player_bionature = None
-
         self.missiles = []
 
-    def set_all_players(self, real_players, player_bionature):
+    def init_all_players(self, real_players, player_bionature):
         """
-        real_players est une liste contenant tous les "vrais" PlayerHandler, dirigés par des humains.
+        real_players est une liste contenant tous les "vrais" PlayerHandlers,
+        dirigés par des humains.
         player_bionature est un seul PlayerHandler, dirigé par le jeu.
         """
         # Initialisation des PlayerHandler.
         for player in real_players:
             player.init_first_units_and_town()
         self.init_bionature_units(player_bionature)
-        # La variable membre players contient tous les players, y compris la bionature.
         self.players = real_players + [player_bionature]
         self.player_bionature = player_bionature
 
     def _make_adjacencies(self, x, y):
         """
-        Renvoie les tiles adjacentes à la tile aux coordonnées x, y.
+        Renvoie les tiles adjacentes à la tile située aux coordonnées x, y.
         On renvoie toujours une liste de 8 éléments (les 8 directions), mais certains éléments
         peuvent être None, si les coordonnées x, y sont sur un bord de l'aire de jeu.
         """
@@ -3402,25 +3403,28 @@ class GameMaster:
         # car elle risque de changer pendant qu'on boucle dessus.
         uncontrolled_roads_copy = list(self.uncontrolled_roads)
         for tile in uncontrolled_roads_copy:
+
             # Liste des tiles adjacentes qui pourraient conquérir cette tile non contrôlée.
             conqueror_tiles = []
-            # Liste des Players qui pourraient conquérer cette tile.
+            # Liste des Players qui pourraient conquérir cette tile.
             conqueror_players = set()
+
             if tile.road_vertic:
                 for adj_tile in (tile.adjacencies[0], tile.adjacencies[4]):
                     if (
                         adj_tile is not None
                         and adj_tile.player_owner is not None
                         # Si Player a fait une magnetisation, il/elle ne conquiert
-                        # pas les routes neutres. (En fait si, mais pas via cette fonction).
+                        # pas les routes neutres, du moins, pas via cette fonction.
                         # Player va automatiquement conquérir les routes
-                        # qui lui permettent d'accéder à la tile magnetisée.
+                        # qui lui permettent d'accéder à sa tile magnetisée.
                         and adj_tile.player_owner.tile_magnet is None
                         and adj_tile.nb_unit > 1
                         and adj_tile.road_vertic
                     ):
                         conqueror_tiles.append(adj_tile)
                         conqueror_players.add(adj_tile.player_owner)
+
             if tile.road_horiz:
                 for adj_tile in (tile.adjacencies[2], tile.adjacencies[6]):
                     if (
@@ -3449,11 +3453,13 @@ class GameMaster:
         """
         Renvoie True ou False, selon que les deux suburbs passés en paramètre doivent être
         mergés, ou pas.
+
         On merge si la town d'un suburb se trouve sur n'importe quelle tile de l'autre suburb
         (potential tile, real tile, town tile).
-        On merge aussi si la real tile d'un suburb se trouve dans les real tile de l'autre suburb.
-        (Ce serait le cas où on a construit une route entre deux villes, qui merge les
-        suburb de ces deux villes).
+
+        On merge aussi si les deux suburbs ont une real tile en commun.
+        Ce cas arrive si on construit une route entre deux villes, qui merge les
+        suburb de ces deux villes.
         """
         suburb_1_all_tiles = (
             suburb_1.town_tiles + suburb_1.real_suburb_tiles + suburb_1.potential_tiles
@@ -3465,6 +3471,7 @@ class GameMaster:
         )
         if not set(suburb_2_all_tiles).isdisjoint(set(suburb_1.town_tiles)):
             return True
+
         if not set(suburb_2.real_suburb_tiles).isdisjoint(
             set(suburb_1.real_suburb_tiles)
         ):
@@ -3484,7 +3491,7 @@ class GameMaster:
         A+B et C+D, mais pas A+B+C+D : la fonction ne va pas savoir gérer ça, et les
         actions effectuées seront plus ou moins n'importe quoi.
 
-        Il faut donc faire attention à la liste qu'on donne en paramètre.
+        Il faut donc faire attention à ce qu'on a mis dans many_suburbs.
         """
         # On trie les suburbs, du plus grand au plus petit.
         # Plus un suburb possède de "real_suburb_tiles", plus il est grand.
@@ -3517,13 +3524,15 @@ class GameMaster:
         for other_suburb in self.suburbs:
             if one_suburb == other_suburb:
                 continue
+            # Une première vérif rapide, en utilisat les bounding rect.
             if bounding_rect_overlaps(
                 one_suburb.bounding_rect, other_suburb.bounding_rect
             ):
+                # Et ensuite la vraie vérif qui prend un peu plus de temps.
                 if self.check_two_suburbs_merge(one_suburb, other_suburb):
                     suburbs_to_merge.append(other_suburb)
 
-        # Et ensuite on merge tout ce qui doit être mergé.
+        # On merge tout ce qui doit être mergé.
         # En commençant par les plus grands, pour optimiser.
         suburbs_to_merge.sort(
             key=lambda suburb: len(suburb.real_suburb_tiles), reverse=True
@@ -3534,20 +3543,20 @@ class GameMaster:
     def _equilibrate_units_in_one_suburb(self, suburb, turn_index):
         """
         Répartit toutes les unités qui sont présentes dans un même suburb,
-        ou bien élimine des unités différentes si plusieurs PlayerHandlers sont sur ce suburb.
+        ou bien élimine des unités différentes si plusieurs Players ont des unités sur ce suburb.
 
         Quand on répartit les unités, on ne le fait que "ponctuellement". On prend la tile
-        qui a le plus d'unités et celle qui en a le moins, on calcule la différence,
+        qui en a le plus et celle qui en a le moins, on calcule la différence,
         et on transfère la moitié de la différence de la plus peuplée à la moins peuplée.
 
         Ça ne fait pas une répartition parfaite. Mais au prochain tour de jeu, on refera
-        la même petite action ponctuelle. Et progressivement, ça finit par se répartir
-        équitablement. On applique toujours le même principe : ça fait moins de traitement
+        la même petite action ponctuelle. Progressivement, ça finira par se répartir
+        équitablement. Ça fait moins de traitement
         à exécuter à chaque tour, et ça montre à l'écran la répartition progressive.
 
-        Même chose lorsqu'il y a des unités de différentes couleurs. On en élimine que deux,
-        (une de chaque couleur). On élimine pas tout d'un coup. Ça finit par se nettoyer
-        tout seul au fur et à mesure des tours de jeux.
+        On applique la même idée de "progressivitude" lorsqu'il y a des unités
+        de différentes couleurs. On n'en élimine que deux, une de chaque couleur.
+        On élimine pas tout d'un coup. Ça finit par se nettoyer tout seul tour après tour.
         """
         # most_unequilibrateds est un dictionnaire enregistrant les tiles les plus déséquilibrées
         # (en nombre d'unités)
@@ -3559,7 +3568,7 @@ class GameMaster:
         # Ça peut rester None si toutes les tiles sont contrôlées.
         un_owned_tile = None
         func_get_unit = lambda tile: tile.nb_unit
-        # Définition de most_unequilibrateds et un_owned_tile
+        # Définition des variables most_unequilibrateds et un_owned_tile
         for tile in suburb.real_suburb_tiles:
             player_tile = tile.player_owner
             if player_tile is None:
@@ -3589,11 +3598,11 @@ class GameMaster:
             if tile_unit_max.nb_unit > 2:
                 if un_owned_tile:
                     # Il y a une tile non contrôlée dans le suburb. C'est plus prioritaire
-                    # de contrôler toutes les tiles que de se répartir dans les tiles
-                    # qu'on contrôle. Donc on prend une unité de la tile où on en a le plus,
-                    # et on la met sur la tile non contrôlée.
-                    # Il y a peut-être d'autres tiles non contrôlée, mais on ne s'en occupe pas.
-                    # Ça se fera tout seul au prochain tour.
+                    # de contrôler toutes les tiles que de se répartir dans celles
+                    # qu'on contrôle. Donc on déplace une unité de la tile où on en a le plus,
+                    # vers la tile non contrôlée.
+                    # Il y a peut-être d'autres tiles non contrôlées,
+                    # on s'en occupera au prochain tour.
                     tile_unit_max.remove_unit()
                     un_owned_tile.add_unit(player_tile)
                 else:
@@ -3603,13 +3612,15 @@ class GameMaster:
                         player_tile.tile_magnet is not None
                         and player_tile.tile_magnet.suburb_owner == suburb
                     ):
-                        # Si la tile magnétisée de Player est dans ce suburb, on ne répartit pas
-                        # les unités. Player veut rassembler toutes ses unités au même endroit,
-                        # si on fait une répartition, ça va gêner le rassemblement.
+                        # La tile magnétisée de Player est dans ce suburb, on ne répartit rien.
+                        # Player veut rassembler toutes ses unités au même endroit,
+                        # si on fait une répartition, ça va gêner ce rassemblement.
                         pass
                     else:
                         diff = tile_unit_max.nb_unit - tile_unit_min.nb_unit
                         if diff > 1:
+                            # Maintenant qu'on a tout vérifié, et qu'on sait qu'une répartition
+                            # est nécessaire, on peut vraiment la faire.
                             player_tile.move_unit_without_check(
                                 tile_unit_max, tile_unit_min, diff // 2
                             )
@@ -3617,25 +3628,24 @@ class GameMaster:
             # Il y a plusieurs personnes dans ce suburb. On élimine une unité à chacune,
             # en les prenant à partir de leurs tiles ayant le maximum d'unité.
             tile_extrems = list(most_unequilibrateds.values())
-            tile_extrems_1 = tile_extrems[0]
-            tile_extrems_2 = tile_extrems[1]
+            tile_extrems_1, tile_extrems_2 = tile_extrems
             tile_unit_max_1 = tile_extrems_1[1]
             tile_unit_max_2 = tile_extrems_2[1]
             tile_unit_max_1.remove_unit()
             tile_unit_max_2.remove_unit()
         else:
-            # Si on a plus que 2 players, il faut déterminer équitablement quelles unités on élimine.
-            # On prend 2 players dans la liste, et on élimine une unité chacun.
-            # Il faut choisir ces players de façons à ce que ce soit équitable : pas tout le temps les 2 mêmes.
-            # (Au tour suivant, faudra prendre le player qui n'a pas été choisi)
+            # Il y a plus que 2 players, il faut déterminer équitablement quelles unités on élimine.
+            # On prend 2 players dans la liste, à qui on élimine une unité.
+            # Il faut choisir ces 2 Players de façons à ce que ce soit équitable :
+            # on ne doit pas prendre les 2 mêmes à chaque tour.
             # Pour faire ça, on fait un espèce de round-robin basé sur le numéro de tour de jeu.
-            sorted_extrems = [
+            id_and_tile_extrems = [
                 (player.player_id, one_tile_extrems)
                 for player, one_tile_extrems in most_unequilibrateds.items()
             ]
-            sorted_extrems.sort()
             tile_extrems = [
-                one_tile_extrems for p_id, one_tile_extrems in sorted_extrems
+                one_tile_extrems
+                for p_id, one_tile_extrems in sorted(id_and_tile_extrems)
             ]
             # Round-robin de la mort.
             turn_index_mod = turn_index % len(tile_extrems)
@@ -3644,7 +3654,7 @@ class GameMaster:
             if select_index_2 >= select_index_1:
                 select_index_2 += 1
             # C'est bon, on a round-robiné. Il n'y a plus qu'à prendre les tiles concernées
-            # et on leur enlève une unité chacun.
+            # et leur enlever une unité à chacune.
             tile_extrems_1 = tile_extrems[select_index_1]
             tile_extrems_2 = tile_extrems[select_index_2]
             tile_unit_max_1 = tile_extrems_1[1]
@@ -3661,19 +3671,21 @@ class GameMaster:
 
     def init_bionature_units(self, player_bionature):
         """
-        Place les unités d'une bionature dans l'aire de jeu, au début d'une partie.
+        Place les unités de la bionature dans l'aire de jeu, au début d'une partie.
 
-        On en place systématiquement 2 le long de la diagonale qui va de haut-gauche à bas-droit,
-        et aussi à quelques cases de distance de cette diagonale, pour en faire une "plus épaisse".
-        On en place systématiquement 1 à quelques cases de distance plus grande de cette diagonale.
+        On place deux unités sur toutes les tiles de la diagonale qui va de haut-gauche à bas-droit,
+        et une à quelques cases de distance de cette diagonale.
+        On en place également à quelques cases de distance plus grande de cette diagonale.
         Pour que ça transitionne doucment de 0 vers 1 puis 1 vers 2 au fur et à mesure qu'on est
         proche de la diagonale.
 
-        En plus de ça, on place quelques "épicentres" le long de cette diagonale, à quelques cases
-        de distance (avec un peu de random).
-        Les tiles ayant des épicentres proche d'elle peuvent avoir plus d'unités, aussi bien en max
-        que en min. La quantité d'unité est à chaque fois déterminée au hasard, entre le min et
-        le max calculé en tenant compte de la diagonale et des épicentres proches.
+        En plus de ça, on place quelques "épicentres" au hasard, à quelques cases de distance
+        de cette diagonale. On peut avoir plusieurs épicentres sur une même tile.
+
+        Ensuite, on détermine, pour chaque tile, un min et un max d'unités de bionature.
+        Plus on est proche de la diagonale, et plus on est proche des épicentres, plus
+        le min et le max augmente.
+        Pour finir, on choisit au hasard le nombre d'unités de bionature entre ce min et ce max.
         """
         nb_epicentre = 15
         min_size = min(self.w, self.h)
@@ -3684,7 +3696,7 @@ class GameMaster:
             # D'abord on le place au hasard sur la diagonale.
             x_epi = random.randint(0, min_size)
             y_epi = x_epi
-            # Et ensuite on le déplace un peu à côté, avec du hasard.
+            # Et ensuite on le déplace un peu, avec du hasard.
             x_epi += random.randint(-rand_epi, rand_epi)
             y_epi += random.randint(-rand_epi, rand_epi)
             epicentres.append((x_epi, y_epi))
@@ -3716,12 +3728,10 @@ class GameMaster:
                 # Dans ce cas, on redéfinit max_unit.
                 max_unit = max(min_unit, max_unit)
 
-                # Et finalement, on choisit le nombre d'unité au hasard entre le min et le max,
+                # Finalement, on choisit un nombre d'unité au hasard entre le min et le max,
                 # et on pose ça sur la tile.
                 if max_unit > 0:
-                    min_unit = int(min_unit)
-                    max_unit = int(max_unit)
-                    nb_bionature_unit = random.randint(min_unit, max_unit)
+                    nb_bionature_unit = random.randint(int(min_unit), int(max_unit))
                     if nb_bionature_unit > 16:
                         nb_bionature_unit = 16
                     tile = self.game_area[y][x]
@@ -3730,27 +3740,57 @@ class GameMaster:
 
 
 class IhmMode:
+    """
+    Les différents états de l'IHM de Player.
+    """
 
+    # En train de sélectionner une option dans le menu principal
     MAIN_MENU = 0
+    # Sélection d'une ville
     SELECT_TOWN = 1
+    # Sélection d'un point de départ (adjacent à la ville sélectionnée)
+    # et d'une direction, pour la prochaine conquest line.
     SELECT_CONQUEST_LINE = 2
+    # Sélection de la longueur de la prochaine conquest line.
     SELECT_CONQUEST_DEST = 3
+    # Activation d'une "backward conquest" à partir de la town sélectionnée.
     BACKWARD_CONQUEST = 4
+    # En train de sélectionner une sous-option dans le sous-menu des annulations.
     SUBMENU_CANCEL = 5
+    # Annulation du dernier ordre donné (conquest line ou backward conquest)
     CANCEL_CURRENT_ORDERS = 6
+    # Activation du mode "dodo".
     SLEEP_MODE = 7
+    # Lancement d'un ou plusieurs missiles à partir de la town sélectionnée.
     LAUNCH_MISSILE = 8
 
 
 class PlayerInterface:
+    """
+    Interface Human-Machine permettant à un Player de jouer.
+    Chaque PlayerHandler humain possède sa propre PlayerInterface.
+
+    Cette classe s'occupe des choses suivantes :
+     - Afficher les boutons sur un bord de l'aire de jeu,
+       et du bouton actuellement sélectionné.
+     - Afficher les éléments de sélection dans la warzone
+       (highlight de la ville sélectionnée, choix de la conquest line,
+       indicateur de backward conquest, ...).
+     - Prendre en compte les ordres envoyés par Player. Il n'y a que
+       deux ordres possibles :
+        * changement du choix actuel (flèche gauche ou bouton "1"),
+        * validation du choix actuel (flèche droite ou bouton "2").
+    """
 
     # Définition des boutons de l'interface. Chaque élément est un sous-tuple de 4 élément :
     #  - nom de base des gamobjs permettant de dessiner le bouton.
-    #    (il faudra préfixer par la couleur et suffixer par les coordonnée des fragments d'image,
+    #    Il faudra préfixer par la couleur et suffixer par les coordonnée des fragments d'image,
     #    chaque bouton est représenté par un carré de 3x3 gamobjs.
-    #  - position X du bouton, en "unités de bouton", soit 4 gamobjs (3 pour le bouton, 1 pour la marge).
-    #  - position Y du bouton.
-    #  - indication des liens. "R" : il faut dessiner un lien vers la droite.
+    #  - position X du bouton, en "unités de bouton".
+    #    une unité de bouton = 4 gamobjs (3 pour le bouton, 1 pour la marge).
+    #  - position Y, en unités de bouton.
+    #  - indication des liens.
+    #    "R" : il faut dessiner un lien vers la droite.
     #    "D" : il faut dessiner un lien vers le bas.
     #    Les liens sont représentés par un simple gamobj carré de couleur gris foncé.
     BUTTON_DEFINITIONS = (
@@ -3765,7 +3805,7 @@ class PlayerInterface:
         ("ihm_btn_sleep", 1, 5, ""),
     )
 
-    # Dict indiquant quel bouton il faut mettre en surbrillance, selon l'état d'ihm de Player.
+    # Dictionnaire indiquant le bouton à mettre en surbrillance, selon l'état d'ihm de Player.
     # clé : tuple de 2 éléments :
     #  - mode en cours (current_mode)
     #  - mode suivant (next_mode), ça correspond à peu près au mode
@@ -3833,10 +3873,12 @@ class PlayerInterface:
         ("lef_3", "full"),
     )
 
-    # Ça c'est juste pour générer les gamobjs d'ihm utilisés pour sélectionner
+    # Ces noms permettent de générer les gamobjs d'ihm utilisés pour sélectionner
     # la direction d'une conquest line.
     DIRECTION_NAMES = ("up", "", "right", "", "down", "", "left", "")
 
+    # Type des barre d'interface affichant le nombre de tile contrôlée et
+    # le nombre de town en haut de l'aire de jeu.
     BAR_COUNT_TYPE_TILE = 0
     BAR_COUNT_TYPE_TOWN = 1
 
@@ -3849,13 +3891,31 @@ class PlayerInterface:
         offset_btn_coords,
         ihm_right_side,
     ):
+        # Le Game Master et tous les Player.
         self.game_master = game_master
+        # Player géré par cette classe PlayerInterface
         self.player_me = player_me
+        # L'autre Player, qui n'est pas géré par cette classe.
         self.player_enemy = player_enemy
+        # Player qui gère la bionature.
         self.player_bionature = player_bionature
+        # Position, en nombre de tile, du coin supérieur gauche dans l'aire de jeu,
+        # indiquant où il faut dessiner les boutons de ce PlayerInterface.
         self.offset_btn_x, self.offset_btn_y = offset_btn_coords
+        # Est-ce que les boutons d'interface sont à droite, ou pas.
+        # (Ça change certains détails dans les affichages de certains éléments d'interface).
         self.ihm_right_side = ihm_right_side
 
+        # "arrow_map" est un triangle affiché dans l'interface,
+        # à côté du bouton de sélection d'une town.
+        # Il est visible lorsque Player est en train de sélectionner une nouvele town.
+        # Il permet d'indiquer aux personnes qui ne connaissent pas très bien le jeu
+        # de déduire que dans cet état, c'est la warzone qu'il faut regarder,
+        # et pas les boutons.
+        # Cet arrow_map permet de différencier l'état où on est dans le menu
+        # principal, avec le bouton "select_town" sélectionné, et l'état où en a activé
+        # ce mode "select_town", et où on est en train de faire cycler les différentes
+        # town que l'on possède.
         self.arrow_map_y = OFFSET_INTERFACE_Y + self.offset_btn_y + 2
         if self.ihm_right_side:
             self.arrow_map_x = OFFSET_INTERFACE_X + WARZONE_WIDTH
@@ -3863,26 +3923,67 @@ class PlayerInterface:
             self.arrow_map_x = OFFSET_INTERFACE_X - 1
 
         self.color = self.player_me.color
+        # current_mode et next_mode permettent de savoir où on en est dans l'interface.
         self.current_mode = IhmMode.MAIN_MENU
         self.next_mode = IhmMode.SELECT_TOWN
         self.sleep_mode = False
+        # Index de la town sélectionnée, dans la liste self.sorted_towns.
         self.index_selected_town = 0
+        # Sauf qu'on n'a pas encore initialisée self.sorted_towns, alors
+        # on prend la town sélectionnée directement à partir de Player.
+        # De toutes façons au début du jeu il n'y a qu'une seule ville, on ne peut
+        # pas se tromper.
         self.selected_town = self.player_me.active_towns[self.index_selected_town]
+
+        # -- Toutes les variables ci-dessous servent à gérer la conquest line. --
+        # Index, dans la liste des tiles adjacentes à la town sélectionnée,
+        # de la tile sélectionnée pour faire la prochaine conquest line.
         self.index_conquest_start = 0
-        # Tile adjacente à une town, indiquant le départ d'une conquest line
+        # Tile adjacente à une town, indiquant le départ d'une conquest line.
         # Si pas de conquest line en cours, cette variable vaut None.
         self.tile_conquest_start = None
-        self.index_conquest_line = 0
+        # Les différentes conquest lines que l'on peut choisir à partir de
+        # self.tile_conquest_start. En général il y en a 3. Une qui s'arrête
+        # à la tile juste après, une 3 tiles plus loin et une 7 tiles plus loin.
+        # Mais si il y a une autre town qui barre le chemin, on peut avoir
+        # moins de conquest lines possibles.
         self.conquest_lines = None
+        # Index dans self.conquest_lines de la conquest line sélectionnée
+        self.index_conquest_line = 0
+        # Direction de la conquest line.
         self.conquest_dir = None
+        # Game object utilisé pour afficher le choix de conquest line dans la warzone.
+        # Ce sont les traits pointillés orange ou cyan foncé.
+        # Pour une couleur donnée, il y en a 2 possibles, selon que la conquest line
+        # est horizontale ou verticale.
         self.gamobj_conquest_line = None
+        # Les tiles d'arrivée des différentes conquest lines de self.conquest_lines.
+        # On s'en sert pour afficher, dans la warzone, un petit carré orange ou cyan,
+        # sur chacun d'elles.
         self.conquest_dest_pot_tiles = []
+        # La conquest line en cours, une fois qu'elle a été entièrement sélectionnée
+        # (direction et distance).
         self.current_conquest_line = None
+        # Tile d'arrivée de la conquest line actuelle. On s'en sert pour afficher
+        # un petit game object dans la warzone, pour indiquer où la conquest line
+        # va s'arrêter
         self.tile_next_town = None
+
+        # Indique si la liste des towns est "dirty". C'est à dire si il y a eu des changements
+        # dans cette liste causée par le jeu (construction, merge, shatter).
+        # Lorsque ça arrive, la classe PlayerHandler doit avertir PlayerInterface.
+        # Car il y a des choses à faire : retrier la liste sorted_towns, vérifier que
+        # la town sélectionnée existe toujours (elle a peut-être été mergée ou shatterée),
+        # etc.
         self.is_town_list_dirty = True
+        # Juste un pauvre booléen pour afficher une seule fois
+        # le message d'explication dans la console, à propos du mode "dodo".
         self.must_tell_msg_sleep_mode = True
+        # Liste des game objects utilisés pour afficher les deux barres de comptage
+        # en haut de l'aire de jeu : nombre de tiles contrôlées, nombre de towns.
         self.bar_count_tiles = [""] * TOTAL_GAME_WIDTH
         self.bar_count_towns = [""] * TOTAL_GAME_WIDTH
+
         self.precalculate_ihm_gamobj_names()
         self.pre_render_ihm_btn()
         self.refresh_town_list()
@@ -4205,7 +4306,6 @@ class PlayerInterface:
                 # une situation d'IHM un peu dégueux. Osef, c'est un cas trop particulier
                 # pour que je m'embête à le gérer correctement jusqu'au bout.
                 self.index_conquest_start = None
-                self.index_conquest_start = None
                 return
 
             if self.index_conquest_start is None:
@@ -4437,7 +4537,7 @@ class GameModel:
         self.player_bionature = PlayerHandler(
             2, self.w, self.h, "grn", self.game_master, None, None, is_bionature=True
         )
-        self.game_master.set_all_players(
+        self.game_master.init_all_players(
             [self.player_red, self.player_blu], self.player_bionature
         )
         self.must_start = True
