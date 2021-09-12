@@ -415,27 +415,172 @@
 
 
 """
+            -------- GAME OF NOLIFE --------
+              Inspiré du "Game of Life" de John Conway.
 
-------------
-GAME OF NO-LIFE v0.1
-------------
+Lien pour jouer : https://tinyurl.com/GAME_OF_NOLIFE
 
-Petite information concernant les commentaires dans le code.
+Un mini-jeu de stratégie en temps réel qui se joue à 2,
+avec seulement 4 boutons (2 pour chaque).
 
-J'essaye d'écrire en inclusif, sans pour autant gonfler tout le monde avec des points médians,
-ou des mots à rallonge tel que "le/la joueureuse".
-Pour ça, la langue anglaise est assez bien, car la plupart des mots sont neutres.
-(Et la personne qui vient me dire que c'est mal d'angliciser la langue française,
-je lui mets un punch in his/her face).
+La personne qui joue les pixels rouges utilise la flèche
+de gauche et la flèche de droite.
+La personne qui joue les bleus utilise les boutons "1" et "2".
 
-Pour désigner la personne qui joue, j'utilise le terme "Player". Et je fais comme si
-c'était son prénom. Vous lirez donc des phrases du genre : "Player doit déplacer ses unités",
-"la town de Player", etc.
+Vous pouvez utiliser les chiffres "1" et "2" du pavé numérique
+ou ceux à gauche de votre clavier.
 
-Ça règle pas tout, mais c'est déjà ça.
+Ces deux boutons permettent de naviguer dans votre menu de jeu,
+affiché sur le côté de la carte. Rouge à gauche, bleu à droite.
+Le premier bouton permet de passer à l'option suivante,
+le deuxième permet de confirmer l'option sélectionnée.
 
 
-Vocabulaire spécifique au jeu :
+-- Description des options du menu de jeu --
+
+*) Sélection de la ville
+   (icône de carré contenant une ville)
+
+Lorsque cette option est activée, le bouton de changement permet
+de sélectionner une autre de vos villes. Le bouton de confirmation
+valide la sélection et vous ramène au menu de jeu.
+Ce bouton n'a pas d'utilité en début de partie, puisque vous
+n'avez qu'une seule ville.
+
+*) Démarrage d'une "ligne de conquête"
+   (icône avec une flèche horizontale)
+
+   - sélection de la direction.
+Un marqueur apparaît sur la carte, à côté de la ville sélectionnée
+Le bouton de changement déplace ce marqueur autour de la ville,
+vous permettant de choisir la direction de votre ligne
+de conquête. Le bouton de confirmation valide la sélection
+et vous amène à l'étape suivante de la conquête.
+
+   - sélection de la distance
+D'autres marqueurs apparaissent sur la carte. Le bouton de
+changement permet de définir la longueur de la ligne de conquête :
+8 cases, 4 cases, ou juste à côté.
+Le bouton de confirmation valide la ligne de conquête.
+Vos pixels se déplacent automatiquement sur cette ligne en
+construisant une route. Arrivés au bout, ils construisent une ville.
+
+Il faut 2 pixels pour une case de route, 16 pixels pour une ville.
+Si vous démarrez une conquête alors que la précédente n'est pas
+terminée, celle-ci est annulée.
+
+Un carré de 2x2 villes fusionne automatiquement en une grosse ville.
+Un carré de 2x2 grosses villes fusionne en une méga-ville.
+
+*) Conquête du terrain en arrière.
+   (icône avec une flèche diagonale en arrière)
+
+La ville sélectionnée envoie les pixels environnants sur les cases
+en diagonale, derrière elle, afin de conquérir du terrain.
+Plus vous possédez de terrain, plus vous générerez automatiquement
+des pixels, qui vous permettront de vous étendre encore plus.
+Pour stopper la conquête arrière, vous pouvez démarrer une nouvelle
+ligne de conquête, ou une conquête arrière dans une autre ville.
+
+Les grosses villes et les méga-villes envoient les pixels plus loin
+et plus rapidement lors des conquêtes arrières.
+
+*) Missile
+   (icône avec un missile)
+
+La ville sélectionnée construit un missile, qui part en diagonale
+vers la couleur ennemie. Le missile a une portée limitée, mais il
+explose dès qu'il arrive sur une case de la couleur ennemie.
+
+Lorsqu'un missile explose, il génère des pixels neutres, de couleur
+verte. Pour contrôler une case, il faut d'abord enlever les pixels
+des autres couleurs qui sont dessus (ennemis et neutres).
+
+Les grosses villes et les méga-villes envoient plusieurs missiles
+avec des portées plus longues.
+La construction d'un missile coûte 10 pixels, son explosion génère
+20 pixels verts.
+
+*) Sous-menu annulation
+   (icône avec une croix)
+
+Dans ce sous menu, le bouton de changement permet de choisir la
+sous-option, et le bouton de confirmation permet de la valider.
+
+   - annulation de l'ordre en cours
+     (deuxième icône avec une croix)
+Annule la ligne de conquête ou la conquête arrière en cours,
+et revient au menu principal.
+
+   - passage en mode "dodo".
+     (icône avec les Z)
+Ce mode peut être activé lorsque les deux personnes qui jouent
+veulent arrêter, mais qu'elles veulent quand même voir l'issue
+de la partie en cours.
+Lorsqu'une seule personne active le mode dodo, rien ne se passe.
+Ce mode peut être quitté en appuyant sur l'un des deux boutons
+(il faut parfois appuyer deux fois à cause d'un bug, mais c'est
+pas grave).
+Lorsque les deux personnes activent leur mode dodo, le jeu se
+déroule en accéléré. Les villes se construisent automatiquement,
+au hasard, à côté des villes existantes, jusqu'à ce que
+toute la carte soit remplie de villes.
+
+
+-- Description du fonctionnement, conseils stratégiques --
+
+Des pixels sont générés automatiquement en fonction de la quantité
+de terrain que vous contrôlez, et aussi de la quantité de ville.
+
+Mais il n'y a aucune génération de pixels si vous en possédez trop
+par rapport à la quantité de terrain contrôlé. En début de partie,
+comme vous avez beaucoup de pixels de réserve, vous ne générez rien.
+Il est conseillé de faire des premières conquêtes, ou de
+construire une première grosse ville, le plus vite possible.
+
+9 cases de terrain contrôlé génèreront plus de pixels qu'une ville
+(qui coûte 16 à construire). N'hésitez pas à faire des conquêtes
+arrière pour prendre plus de terrain.
+
+Un grosse ville génère plus de pixels que 4 villes séparées,
+une méga-ville génère plus de pixels que 4 grosses villes séparées.
+
+Les villes ne peuvent pas être détruites. C'est dommage, mais ça
+permet de garantir qu'une partie puisse se terminer.
+Vous pouvez bloquer momentanément les conquêtes partant de villes
+adverses en envoyant des missiles dessus pour les entourer de pixels
+verts.
+Vous pouvez bloquer définitivement une ville adverse en construisant
+vos villes autour d'elle.
+
+Si une ville est entourée par d'autres villes, elle est désactivée.
+Elle s'affiche en foncé, ne génère plus de pixels et vous ne pouvez
+plus la sélectioner. C'est à vous de penser correctement vos
+constructions de manière à ne pas désactiver vos propres villes.
+Cependant, les cases d'une ville désactivée comptent toujours pour
+la génération de pixels par le nombre de cases contrôlées.
+
+Les pixels se déplacent automatiquement vers les ordres de conquête
+que vous donnez. Mais ils peuvent se retrouver bloqués car ils
+ne savent pas faire les détours. Ils ne font pas de recherches
+de chemin. Ils se déplacent juste de case en case, sur les routes,
+vers la conquête en cours.
+C'est à vous d'organiser correctement votre réseau routier pour
+que les pixels puissent se déplacer d'un point à un autre sans
+être bloqués.
+
+Les villes construisent automatiquement des routes autour d'elle,
+et les pixels se déplacent plus rapidement sur les routes entourant
+une ville.
+
+Amusez-vous bien !!
+
+La suite de ce texte contient des explications sur le code du jeu,
+la manière dont il est programmé, etc. Vous n'avez pas besoin de le
+lire si vous souhaitez juste jouer.
+
+
+-- Vocabulaire spécifique au jeu --
 
 unité/pixel : un petit pixel rouge, bleu ou vert, qui peut se déplacer d'une tile à l'autre.
 
@@ -469,15 +614,26 @@ merge de town, la direction des backward conquest, etc.
 line conquest : construction, à partir d'une ville existante, d'une ligne de route
 (horizontale ou verticale), sur une distance prédéfinie. Puis construction, au bout
 de cette ligne de route, d'une nouvelle ville.
+
+
+-- Petite information concernant les commentaires dans le code. --
+
+J'essaye d'écrire en inclusif, sans pour autant gonfler tout le monde avec des points médians,
+ou des mots à rallonge tel que "le/la joueureuse".
+Pour ça, la langue anglaise est assez bien, car la plupart des mots sont neutres.
+(Et la personne qui vient me dire que c'est mal d'angliciser la langue française,
+je lui mets un punch in his/her face).
+
+Pour désigner la personne qui joue, j'utilise le terme "Player". Et je fais comme si
+c'était son prénom. Vous lirez donc des phrases du genre : "Player doit déplacer ses unités",
+"la town de Player", etc.
+
+Ça règle pas tout, mais c'est déjà ça.
 """
 
 # TODO : ajouter des commentaires de code dans les parties non documentées.
 
-# TODO : rédiger la doc expliquant comment jouer.
-# dans la doc, expliquer que des fois il faut appuyer deux fois sur l'activation pour quitter le mode "dodo",
-# à cause d'une mauvaise gestion dans la sélection des villes, mais c'est comme ça.
-
-# Remplacer le mot "False" par "True" dans la ligne de code ci-dessous,
+# Vous pouvez remplacer le mot "False" par "True" dans la ligne de code ci-dessous,
 # pour autoriser le mode sandbox.
 # Lorsque ce mode est activé, les boutons d'interface des Players ne sont
 # plus utilisables. À la place, vous avez un curseur dans la zone de jeu,
@@ -491,8 +647,6 @@ de cette ligne de route, d'une nouvelle ville.
 # puis activez-là avec le bouton "2".
 # Pour revenir au mode sandbox, appuyez sur la flèche du haut.
 AUTHORIZE_SANDBOX_MODE = False
-
-# FUTURE : suppression du backward conquest en cours si une town est merge/shatterée.
 
 import random
 
@@ -583,7 +737,7 @@ BAR_COUNT_RATIO = (WARZONE_WIDTH * WARZONE_HEIGHT) // (TOTAL_GAME_WIDTH * 4) + 1
 # Nombre de tile occupée par une town, en fonction de sa taille. Bon c'est juste la taille au carré.
 TOWN_NB_TILES = (0, 1, 4, 9, 16)
 
-# Utile pour les messages affichés dans la console.
+# Pour les messages affichés dans la console.
 COLOR_NAME = {"red": "Rouge", "blu": "Bleue"}
 
 
@@ -1390,6 +1544,8 @@ class PlayerHandler:
         toujours une, les tiles n'en ayant pas n'en ont toujours pas.
 
         La nouvelle town récupère les points de génération d'unités de toutes les towns supprimées.
+
+        Suppression du backward conquest en cours si une town est merge/shatterée.
         """
         x_new_town = []
         y_new_town = []
