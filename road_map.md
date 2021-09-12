@@ -12,11 +12,12 @@ Square map :
 
 le milieu : document "fondateur" expliquant pourquoi je fais ce jeu. Et un autre mini-document expliquant comment je vais fonctionner avec cette road map
 
-Toute la description doit être en json, avec les niveaux suivants :
+Toute la description doit être en YAML, avec les niveaux suivants :
 
  - zones : 8 zones + le milieu
    - sous-zones : des petites zones ayant une taille de quelques cases
      - tâches : un objet ponctuel, avec une descrip. On peut en avoir plusieurs sur une même case. Certaines peuvent contenir un lien vers une tâche Trello.
+     - spec détaillée : un lien vers un doc (sur github ou ailleurs), décrivant tout ce qu'on veut faire pour cette sous-zones.
 
 Avec ce json, on construit (automatiquement via un petit script) :
  - un document markdown, versionné dans github-doc.
@@ -26,6 +27,8 @@ Avec ce json, on construit (automatiquement via un petit script) :
 
 Ça fait une dépendance de Squarity à github-doc, mais c'est pas grave. Si ça pète, tout le reste fonctionnera quand même. Et comme ça je met à jour plus facilement. C'est un simple commit vers github-doc.
 
+Toutes les tâches Trello doivent rentrer dans l'une de ces 8 zones.
+
 Le document fondateur contiendra en bas tous les liens vers tous les trucs :
  - les githubs
  - discord, mastodon
@@ -34,30 +37,42 @@ Le document fondateur contiendra en bas tous les liens vers tous les trucs :
  - les trellos
 
 
-## Environnement de développement
+## IDE, Environnement de développement
 
-Affichage des erreurs dans le json, en indiquant la ligne et le caractère en rouge.
+Détecter les erreurs de la config json
+ - Afficher le message catché par-dessus l'aire de jeu
+ - Montrer la ligne d'erreur dans la config
+ - Détecter et proposer des corrections : On ajoute une virgule ou un guillement à l'endroit de l'erreur, on teste si ça fait un json valide, si oui on propose la correction.
 
-Essayer de corriger le json en ajoutant un ou deux caractères (une virgule, un guillemet, ...). Si je json corrigé est valide, proposer la correction.
+Permettre une config écrite en YAML : c'est un peu plus human-readable, et on peut mettre des commentaires. Ça veut dire que dans les gists, faudra indiquer quelque part si c'est du YAML ou du JSON. Ou alors on l'auto-détecte à la bourrin.
 
-Barre horizontale entre la fenêtre json et le game code, pour agrandir l'une des deux fenêtre au max.
+Améliorer la page web
+ - Placer une slide-bar horizontale entre la conf et le game code : pour partager comme on veut l'espace entre les deux fenêtres.
+ - Ajouter un bouton pour maximiser l'espace conf et l'espace game code.
 
-Mode debug : debug, tracking, replay, variables watch, profiling.
+Faciliter le débuggage : exécution pas-à-pas, tracking, replay, variables watch, profiling, time-line d'exécution, avec les callbacks, la situation du jeu, etc. Tout cela est encore très flou. Il faudra aussi faciliter le débuggage du super-langage de pattern qui est prévu d'ajouter mais pour lequel on n'a encore rien décidé.
 
-truc à la jupyter. coloration syntaxique. tests unitaires.
+Améliorer la fenêtre de code : ajout automatique d'espace en début de ligne, coloration syntaxique, multi-curseurs. Il faut essayer de trouver quelque chose de tout fait. Et s'inspirer de CodinGame, Jupyter et autres plate-formes.
 
-binding avec un fichier texte, si il existe des extensions de nav pour ça.
+Ajouter un framework de test unitaire : des tests unitaire de code pur, mais aussi du jeux. Simulation d'inputs, vérification du résultat affiché dans le jeu.
 
-debug avec le langage de pattern.
+Documenter des solutions pour utiliser un IDE externe.
+ - documenter la technique du serveur local et du bout de javascript dans le game code qui interroge ce serveur.
+ - chercher des extensions de nav qui associent fichier texte - zone de texte.
 
-timeline d'exécution, avec les callbacks, la situation de la map, etc.
+Faciliter le stockage du game code
+ - Permettre l'importation de libs de code stockées dans un github : on indique l'adresse du répertoire ou des fichiers dans le github, puis on importe. Je ne sais pas si on peut faire une instruction "import", ou si on les prends directement.
+ - Aller chercher le code principal sur un github : en plus des gists.
+ - Aller chercher le code principal sur un pastebin : pastebin est relou à cause des CORS. Faudra trouver un moyen d'arranger ça. C'est le serveur qui fera la requête.
+
+(task) Ajouter un bouton pour reloader l'image et les libs de code.
 
 
 ## Level design
 
-éditeur de niveaux.
+Créer un éditeur de niveaux.
 
-séparer les niveaux des jeux.
+Permettre de définir les niveaux dans la conf : ça permettra à des personnes qui ne codent pas de créer des niveaux dans les jeux fait par d'autres personnes. Ça veut dire aussi qu'il faut des bouts d'API pour gérer ça : start_level, is_level_ended -> (no, win, lost). Et ce serait bien que, même avec ces bouts d'API, on puisse coder un jeu principal qui ne se contente pas d'enchainer les niveaux les uns après les autres.
 
 fonction de préparation d'un niveau (placer automatiquement des gamobjs selon certains patterns d'autres gamobjs).
 
@@ -84,15 +99,13 @@ Afficher du texte sous forme de bulle.
 
 Afficher des éléments d'interface : des nombres, des barres de mana, des couleurs, une mini-map, ... Mais pas trop, parce qu'il faut que ça reste simple.
 
-Fonctions python helpers, classe BoardModel de base.
+Fonctions python helpers, classe BoardModel de base. Des classes qui gèrent des array 2D, en matrice normale et en matrice creuse.
 
 Règles de pattern matching. On doit pouvoir faire un jeu complet rien qu'avec ces règles. À la PuzzleScript.
 
 Gamobj simples (pour du décor qui ne bouge pas trop) et gamobj plus compliqués, avec des fonctions associées genre move().
 
 Réagir au clic de souris. En mode "sur une case", ou en mode "direction déduite à partir d'un gamobj spécifique".
-
-Responsive design.
 
 "Gestures" pour smartphone.
 
@@ -102,24 +115,30 @@ sandboxer le jeu, car on fait de l'exécution de code arbitraire sur des navigat
 
 Zoom/dézoom
 
+changer les dimensions de l'aire de jeu pendant une partie.
+
 Jeux à deux sur un même poste.
 
 Jeux à deux à distance (turn-based).
 
-Sauvegarder les jeux.
+Sauvegarder sa partie. Lier les sauvegardes au compte, pour pouvoir continuer une partie sur une autre machine.
+
+boutons configurables.
 
 
 ## "Effets spéciaux"
 
 Du son, de la musique. Où est-ce qu'on va stocker ces trucs ? Ça prend toujours plein de place.
 
-Animation de transition (déplacements, shake, disparition/apparition, fade)
+Animation de transition (déplacements, rotations, shake, disparition/apparition, fade)
 
 Objets animés. Par exemple un personnage qui marche.
 
 Shaders, webGL. Mais pour l'instant j'y connais rien.
 
 Effets de lumière, moteurs de particules.
+
+animation globale, et animation d'un gamobj.
 
 
 ## Tutoriels, manuels, conseils, ...
@@ -184,3 +203,7 @@ Auto-formation à Vue, à Django, au CSS, etc.
 
 Tests unitaires automatisés avec Selenium.
 
+Héberger une instance peertube pour y mettre les démos de jeu.
+
+
+La distrib dans itch.io, ça va dans quelle catégorie ?
