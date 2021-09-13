@@ -418,7 +418,7 @@
             -------- GAME OF NOLIFE --------
               Inspiré du "Game of Life" de John Conway.
 
-Lien pour jouer : https://tinyurl.com/GAME_OF_NOLIFE
+Lien pour jouer : https://tinyurl.com/thegameofnolife
 
 Un mini-jeu de stratégie en temps réel qui se joue à 2,
 avec seulement 4 boutons (2 pour chaque).
@@ -4158,7 +4158,22 @@ class PlayerInterface:
                 index_tile += 1
 
     def pre_render_ihm_btn(self):
+        """
+        Précalcule un table de game objects de constantes (un tuple de tuple de tuple),
+        définissant tous les boutons d'interface de Player, à afficher sur l'un des bords
+        de l'aire de jeu.
+        Le tableau est enregistré dans self.array_gamobjs_ihm_btn.
 
+        Les boutons d'interface changent d'apparence durant le jeu (changement de l'option
+        sélectionnée, affichage de l'annulation d'une conquête, ...).
+        Ces changements ne sont pas gérés ici.
+
+        Le système de rendu prend cette table constante et la copie dans une table plus
+        grande, contenant tous les game objects du rendu final.
+        Cette grande table est modifiable, on effectue les changements d'interface dedans.
+        """
+
+        # Cet array de constantes a une taille de x = OFFSET_INTERFACE_X, y = WARZONE_HEIGHT.
         array_gamobjs = []
         for y in range(WARZONE_HEIGHT):
             line = []
@@ -4167,6 +4182,7 @@ class PlayerInterface:
             array_gamobjs.append(line)
 
         for (name, btn_pos_x, btn_pos_y, link) in PlayerInterface.BUTTON_DEFINITIONS:
+            # Placement d'un bouton d'interface, avec son background.
             iterator_button_tiles = self.iterate_for_button(
                 array_gamobjs,
                 self.offset_btn_x + btn_pos_x * 4,
@@ -4175,6 +4191,9 @@ class PlayerInterface:
             for index_tile, tile_current in iterator_button_tiles:
                 gamobj = f"{self.color}_{name}_{index_tile:02d}"
                 tile_current[:] = ["ihm_background", gamobj]
+            # Placement des éventuels liens entre bouton d'interface.
+            # Ils sont représentés par de simple carré gris,
+            # comme le background de boutons.
             if "D" in link:
                 final_x = self.offset_btn_x + btn_pos_x * 4 + 1
                 final_y = self.offset_btn_y + btn_pos_y * 4 + 3
@@ -4184,6 +4203,8 @@ class PlayerInterface:
                 final_y = self.offset_btn_y + btn_pos_y * 4 + 1
                 array_gamobjs[final_y][final_x] = ["ihm_background"]
 
+        # Placement des game objects dessinant la bordure verticale de 1 pixel de large,
+        # entre les boutons d'interface et la warzone.
         if self.ihm_right_side:
             border_x = 0
             gamobj_border = "ihm_border_right"
@@ -4196,6 +4217,7 @@ class PlayerInterface:
 
         # FUTURE : faudra une fonction toute faite pour tuplifier un array,
         # parce que là c'est dégueu ce que je fais.
+        # J'ai une liste de liste de liste, je la transforme en en un tuple de tuple de tuple.
         for y in range(WARZONE_HEIGHT):
             for x in range(OFFSET_INTERFACE_X):
                 array_gamobjs[y][x] = tuple(array_gamobjs[y][x])
@@ -4203,7 +4225,22 @@ class PlayerInterface:
         self.array_gamobjs_ihm_btn = tuple(array_gamobjs)
 
     def refresh_town_list(self):
+        """
+        Met à jour la liste interne des towns (self.sorted_towns), suite à un changement
+        provoqué par des éléments externes (ajout ou suppr de towns).
+
+        Modifie en conséquence les variables membres définissant la town actuellement sélectionnée
+        dans l'interface (self.index_selected_town, self.selected_town), de façon à
+        rester à peu près sur la même sélection.
+
+        C'est pas tout le temps possible, par exemple si la town qu'on avait sélectionnée
+        devient désactivée. Mais on fait au mieux.
+        """
         self.is_town_list_dirty = False
+        # On garde en mémoire la sélection, mais sous forme d'une tile sélectionnée,
+        # et non pas d'une town.
+        # Dans le cas où c'était une grosse ville, on ne sait pas trop quelle tile choisir,
+        # alors arbitrairement on prend toujours la première.
         selected_tile = self.selected_town.tiles_position[0]
         self.sorted_towns = sorted(
             self.player_me.active_towns, key=lambda town: (town.y_up, town.x_left)
@@ -4212,7 +4249,7 @@ class PlayerInterface:
         if not self.nb_towns:
             # Cas stupide où on se retrouve avec 0 villes actives pendant un cycle de jeu,
             # parce que Player a commencé par créer une grosse ville.
-            # On laisse tomber, et cette foncton sera rappelée plus tard.
+            # On laisse tomber. Cette foncton de refresh sera rappelée plus tard.
             return
 
         # On retrouve la town qu'on a sélectionné (c'est pas forcément la même, si y'a eu des merge/shatter)
@@ -4226,27 +4263,39 @@ class PlayerInterface:
             self.index_selected_town = self.sorted_towns.index(new_selected_town)
         except ValueError:
             # Ça arrive si la town qu'on avait sélectionnée avant est devenue désactivée.
-            # Dans ce cas on sait pas trop quoi faire, on reste sur une town désactivée et pis c'est tout.
+            # Dans ce cas on sait pas trop quoi faire. On reste sur une town désactivée et tant pis.
             # On réglera ça plus tard, quand Player voudra lancer une action.
             return
-
         self.selected_town = new_selected_town
 
     def dirtify_town_list(self):
         self.is_town_list_dirty = True
         if self.selected_town not in self.player_me.active_towns:
             # La liste des towns a changée, et en plus, la town actuellement sélectionnée
-            # n'est plus dans la liste des town active. Dans ce cas, on doit immédiatement changer
+            # n'est plus dans la liste des towns actives. Dans ce cas, on doit immédiatement changer
             # la town sélectionnée.
             # Dans le cas contraire, pas besoin de faire ça tout de suite. On le fera lorsque Player
             # voudra sélectionner une autre town.
             self.refresh_town_list()
 
     def precalculate_ihm_gamobj_names(self):
+        """
+        Définition de plein de variables membres "self.gamobj_xxx", contenant des noms
+        de game objects à afficher.
+
+        La plupart des noms de game object d'interface sont préfixés de la couleur de Player,
+        c'est ça qu'on précalcule.
+        """
         self.gamobj_bar_base_town = self.color + "_ihm_count_town_"
         self.gamobj_bar_base_tile = self.color + "_ihm_count_tile_"
         self.gamobj_bar_full_town = self.color + "_ihm_count_town_full"
         self.gamobj_bar_full_tile = self.color + "_ihm_count_tile_full"
+        # Liste de 8 éléments (un par direction), contenant les game objects permettant
+        # de sélectionner la direction de la prochaine conquest line. Ces game objects
+        # sont les petits marqueurs affichés sur une case adjacente à la ville sélectionnée,
+        # lorsqu'on définit une conquest line.
+        # Comme très souvent, 4 éléments de cette liste sont vides (les 4 diagonales),
+        # les 4 autres sont définis (haut, bas, gauche, droite).
         self.gamobjs_conquest_dir = tuple(
             [
                 self.color + "_ihm_conquest_" + suffix_conq_dir
@@ -4264,6 +4313,15 @@ class PlayerInterface:
         self.gamobj_conquest_vertic = self.color + "_ihm_conquest_vertic"
 
     def refresh_bar_count(self, quantity, bar_count_type):
+        """
+        Renvoit une liste de string, ayant la même largeur que l'aire de jeu (TOTAL_GAME_WIDTH).
+        Chaque string est, soit vide, soit le nom d'un game object.
+        Cette liste correspond à une barre graphique, affichant la quantité passée en paramètre.
+        (quantity).
+        bar_count_type doit être une valeur PlayerInterface.BAR_COUNT_TYPE_xxx
+        Cette fonction est utilisée pour afficher en haut de l'aire de jeu, la quantité
+        de terrains contrôlés et la quantité de towns.
+        """
         if bar_count_type == PlayerInterface.BAR_COUNT_TYPE_TILE:
             gamobj_bar_base = self.gamobj_bar_base_tile
             gamobj_bar_full = self.gamobj_bar_full_tile
@@ -4271,21 +4329,31 @@ class PlayerInterface:
             gamobj_bar_base = self.gamobj_bar_base_town
             gamobj_bar_full = self.gamobj_bar_full_town
 
+        # nb_pix_bar indique la longueur de la barre graphique, en pixels.
         nb_pix_bar = quantity // BAR_COUNT_RATIO
+        # la majeure partie de la barre est constituée par les gamobj "full",
+        # qui sont des traits horizontaux complets. On les affiche par paire.
+        # Chaque paire de gamobj full correspond donc à 8 pixels de nb_pix_bar.
         nb_full_gamobjs = (nb_pix_bar // 8) * 2
         margin_left = (TOTAL_GAME_WIDTH - nb_full_gamobjs) // 2
         margin_right = TOTAL_GAME_WIDTH - nb_full_gamobjs - margin_left
+        # On place ces gamobj full au milieu de la liste.
         bar_count = (
             [""] * margin_left
             + [gamobj_bar_full] * nb_full_gamobjs
             + [""] * margin_right
         )
+        # Il restera quelques pixels à représenter. On les répartit de part et d'autres
+        # de la barre graphique.
         nb_pix_remains = nb_pix_bar - nb_full_gamobjs * 4
         if nb_pix_remains >= len(PlayerInterface.GAMOBJS_SUFFIX_BAR_EXTREMITIES):
             # Not supposed to happen, mais on sait jamais.
             nb_pix_remains = len(PlayerInterface.GAMOBJS_SUFFIX_BAR_EXTREMITIES)
+        # On récupère les deux gamobjs à afficher aux deux extrémités de la barre,
+        # à l'aide d'un dictionnaire qui stocke toutes les possibilités.
         gamobjs = PlayerInterface.GAMOBJS_SUFFIX_BAR_EXTREMITIES[nb_pix_remains]
         gamobj_left, gamobj_right = gamobjs
+        # Placement de ces deux gamobjs dans la liste à renvoyer.
         if gamobj_left:
             gamobj_left = gamobj_bar_base + gamobj_left
             bar_count[margin_left - 1] = gamobj_left
@@ -4297,6 +4365,16 @@ class PlayerInterface:
     def add_interface_gamobjs(
         self, array_gamobjs, must_refresh_bar_count, show_selected_town
     ):
+        """
+        Ajoute tous les gamobjs d'interface dans le tableau de gamobjs passé en paramètre.
+        Le tableau de gamobjs représente l'aire de jeu total, et non pas juste la warzone.
+        Ce tableau doit déjà contenir les boutons d'interface pré-rendus, sur les parties
+        gauche et droite de l'aire de jeu.
+
+        Cette fonction peut ajouter ou remplacer des gamobjs, aussi bien dans la warzone
+        que dans l'interface sur le côté.
+        """
+        # Affichage de la sélection de town (le cadre jaune ou cyan autour de la town)
         if show_selected_town:
             town_selector_infos = PlayerInterface.TOWN_SELECTORS[
                 self.selected_town.size
@@ -4305,26 +4383,39 @@ class PlayerInterface:
                 tile = self.selected_town.tiles_position[index_tile]
                 tile_from_coords(array_gamobjs, tile).append(self.color + "_" + gamobj)
 
+        # Affichage du marqueur indiquant le début de la conquest line que Player est
+        # en train de définir (si il y en a une).
         if self.tile_conquest_start is not None:
             gamobj_conq_dir = self.gamobjs_conquest_dir[self.conquest_dir]
             tile_from_coords(array_gamobjs, self.tile_conquest_start).append(
                 gamobj_conq_dir
             )
+        # Affichage des marqueurs lorsque Player est en train de définir la longueur de
+        # la conquest line.
+        # Les emplacements potentiels de la town en bout de conquest line.
         for tile in self.conquest_dest_pot_tiles:
             tile_from_coords(array_gamobjs, tile).append(self.gamobj_conquest_dst_pot)
+        # Le trait pointillé affichant la distance actuellement sélectionnée de la conquest line.
         if self.current_conquest_line:
             for tile in self.current_conquest_line[:-1]:
                 tile_from_coords(array_gamobjs, tile).append(self.gamobj_conquest_line)
             last_tile = self.current_conquest_line[-1]
             tile_from_coords(array_gamobjs, last_tile).append(self.gamobj_selector)
+        # L'emplacement potentiel de town, qui est actuellement sélectionné pour la conquest line.
         if self.tile_next_town is not None:
             if self.tile_next_town.town is not None:
+                # Il y a une town déjà existante sur l'emplacement potentiel de town.
+                # (Ça peut arriver si une town vient de se construire juste à cet endroit).
+                # Dans ce cas on supprime la town potentiel. (Euh... J'aurais dit que y'a besoin
+                # de faire plus de choses que ça, mais on va laisser ainsi, parce que voilà).
                 self.tile_next_town = None
             else:
                 tile_from_coords(array_gamobjs, self.tile_next_town).append(
                     self.gamobj_conquest_nxt_town
                 )
 
+        # Modification du background de l'option d'interface actuellement sélectionnée,
+        # pour la mettre en surbrillance et montrer que c'est celle là qui est sélectionnée.
         x_lit_upleft, y_lit_upleft = self._get_lit_coordinates()
         x_lit_upleft += self.ihm_right_side * (WARZONE_WIDTH + OFFSET_INTERFACE_X)
         iterator_button_tiles = self.iterate_for_button(
@@ -4333,15 +4424,27 @@ class PlayerInterface:
         for _, tile_current in iterator_button_tiles:
             tile_current[0] = self.gamobj_lit_background
 
+        # Modification éventuelle de l'image de l'option d'interface actuellement sélectionnée,
+        # dans le cas où Player veut annuler son action actuelle.
+        # Par ex : annuler une line conquest.
+        # C'est toujours l'option actuellement sélectionnée que l'on change ainsi.
+        # L'image affichée en cas d'annulation d'une action est une flèche vers l'arrière,
+        # comme dans plein d'autres logiciels et jeux.
         show_cancel = (
             (
+                # Sélection en cours du marqueur de départ de la conquest line.
+                # Mais on veut l'annuler et ne pas faire de conquest line.
                 self.current_mode == IhmMode.SELECT_CONQUEST_LINE
                 and self.index_conquest_start is None
             )
             or (
+                # Sélection en cours du marqueur d'arrivée de la conquest line.
+                # Mais on veut l'annuler et ne pas faire de conquest line.
                 self.current_mode == IhmMode.SELECT_CONQUEST_DEST
                 and self.index_conquest_line is None
             )
+            # Mode dodo activé. L'image de l'option affiche une annulation,
+            # pour montrer qu'on peut annuler le mode dodo.
             or (self.sleep_mode)
         )
 
@@ -4352,6 +4455,8 @@ class PlayerInterface:
             for index_tile, tile_current in iterator_button_tiles:
                 tile_current[1] = f"{self.color}_ihm_btn_cancel_{index_tile:02d}"
 
+        # Affichage éventuel de la petite flèche, sur le bord de la warzone,
+        # indiquant qu'il faut sélectionner quelque chose dans la warzone.
         show_arrow_to_map = self.current_mode in (
             IhmMode.SELECT_TOWN,
             IhmMode.SELECT_CONQUEST_LINE,
@@ -4365,24 +4470,36 @@ class PlayerInterface:
                 self.gamobj_arrow_to_map_2
             )
 
+        # Affichage éventuel de la tile magnetisée (tous les pixels essaient d'aller
+        # vers cette tile).
         if self.player_me.tile_magnet is not None:
             tile = self.player_me.tile_magnet
             tile_from_coords(array_gamobjs, tile).append(self.player_me.gamobj_magnet)
+        # Affichage éventuel d'un marqueur montrant la town qui fait une backward conquest.
         if self.player_me.tile_go_backward is not None:
             tile = self.player_me.tile_go_backward
             tile_from_coords(array_gamobjs, tile).append(self.player_me.gamobj_go_back)
 
+        # On ne rafraichit pas systématiquement les barres graphiques, car c'est un peu long.
+        # donc on le fera tous les X tours, avec le paramètre must_refresh_bar_count.
         if must_refresh_bar_count:
+            # Barres de couleur foncée, affichant le nombre de tiles contrôlées.
             tiles_quantity = len(self.player_me._controlled_tiles)
             self.bar_count_tiles = self.refresh_bar_count(
                 tiles_quantity, PlayerInterface.BAR_COUNT_TYPE_TILE
             )
+            # Barres de couleur claires, affichée par-dessus la première barre.
+            # Elle affiche le nombre de town de Player.
             towns_quantity = sum(
                 (TOWN_NB_TILES[town.size] for town in self.player_me.towns)
             )
             self.bar_count_towns = self.refresh_bar_count(
                 towns_quantity, PlayerInterface.BAR_COUNT_TYPE_TOWN
             )
+        # Recopie des gamobjs des barres de graphique dans le array_gamobjs final.
+        # On fait cette action à chaque tour, sinon on ne verrait pas les barres.
+        # Ces barres ne sont pas rafraichies à chaque tour, donc les quantités qu'elles
+        # affichent peuvent dater un peu, mais ça ne gêne pas trop.
         for x, (bar_gamobj_tile, bar_gamobj_town) in enumerate(
             zip(self.bar_count_tiles, self.bar_count_towns)
         ):
@@ -4392,6 +4509,11 @@ class PlayerInterface:
                 array_gamobjs[0][x].append(bar_gamobj_town)
 
     def launch_missiles(self, town_launcher=None):
+        """
+        Lance la construction de un ou plusieurs missiles, par rapport à la town
+        passée en paramètre. En mode interface normal, c'est la town sélectionnées.
+        # En mode sandbox, c'est la town sur laquelle se trouve le curseur.
+        """
         if town_launcher is None:
             town_launcher = self.selected_town
         # On vérifie que y'a pas déjà des missiles en construction pour cette town.
@@ -4405,6 +4527,9 @@ class PlayerInterface:
                 # Il y a un missile en construction. On laisse tomber.
                 return
 
+        # Instanciation de un ou plusieurs objets Missile (en fonction de la taille de la town).
+        # Transmission de ces missiles au game master, qui s'occupera de les gérer
+        # (construction, paiement des pixels, déplacement, explosion, ...)
         duration, missile_delays = Missile.GEN_INFOS_FROM_TOWN_SIZE[town_launcher.size]
         for tile, delay in zip(tiles_gen_missile, missile_delays):
             missile = Missile(self.player_me, tile, duration, self.game_master, delay)
@@ -4419,6 +4544,10 @@ class PlayerInterface:
         for tile in self.selected_town.tiles_position:
             dirs = directions_from_pos(tile, self.tile_conquest_start)
             if len(dirs) == 1:
+                # Il n'y a qu'une direction entre les deux tiles. Ça veut dire que
+                # c'est pas une diagonale. Donc on a bien trouvé une tile de town qui est bien
+                # alignée avec la tile de départ de conquête. La direction trouvée correspond
+                # à la directino (tile de town -> tile de départ de conquête).
                 return dirs[0]
         else:
             raise Exception("Impossible de trouver la conquest dir. Blargh.")
