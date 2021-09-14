@@ -631,8 +631,6 @@ c'était son prénom. Vous lirez donc des phrases du genre : "Player doit dépl
 Ça règle pas tout, mais c'est déjà ça.
 """
 
-# TODO : ajouter des commentaires de code dans les parties non documentées.
-
 # Vous pouvez remplacer le mot "False" par "True" dans la ligne de code ci-dessous,
 # pour autoriser le mode sandbox.
 # Lorsque ce mode est activé, les boutons d'interface des Players ne sont
@@ -4906,163 +4904,76 @@ class PlayerInterface:
         return final_x, final_y
 
 
-SANDBOX_MODES = [
-    "switch to play mode",
-    "add red unit",
-    "add blu unit",
-    "add horiz road",
-    "add vertic road",
-    "add town",
-    "red magnet",
-    "blu magnet",
-    "backward conquest",
-    "add grn unit",
-    "conquest up",
-    "conquest right",
-    "conquest down",
-    "conquest left",
-    "missiles",
-    "describe",
-]
-
-# Utile uniquement pour le mode sandbox.
-def coord_move(x, y, direction):
-    if direction == "R":
-        x += 1
-    elif direction == "L":
-        x -= 1
-    if direction == "D":
-        y += 1
-    if direction == "U":
-        y -= 1
-    return (x, y)
-
-
-class GameModel:
+class SandboxHandler:
     """
-    Pour l'instant, pas de doc précise concernant cette classe.
+    La classe qui gère le mode "sandbox".
+
+    Je ne vais pas la documenter en détail, désolé.
+    Le code de cette classe est moche, c'est pas le code le plus indispensable du jeu,
+    et je commence à fatigruer. Je vous laisse explorer ce code par vous-même !
     """
 
-    JSON_PROCESS_TURN_SLOW = (
-        """ { "delayed_actions": [ {"name": "process_turn", "delay_ms": 200} ] } """
-    )
-    JSON_PROCESS_TURN_FAST = (
-        """ { "delayed_actions": [ {"name": "process_turn", "delay_ms": 10} ] } """
-    )
+    SANDBOX_MODES = [
+        "switch to play mode",
+        "add red unit",
+        "add blu unit",
+        "add horiz road",
+        "add vertic road",
+        "add town",
+        "red magnet",
+        "blu magnet",
+        "backward conquest",
+        "add grn unit",
+        "conquest up",
+        "conquest right",
+        "conquest down",
+        "conquest left",
+        "missiles",
+        "describe",
+    ]
 
-    def __init__(self):
-        self.w = WARZONE_WIDTH
-        self.h = WARZONE_HEIGHT
-        self.nb_warzone_tiles = WARZONE_WIDTH * WARZONE_HEIGHT
+    def __init__(self, game_master, player_red, player_blu, player_bionature):
+        self.game_master = game_master
+        self.player_red = player_red
+        self.player_blu = player_blu
+        self.player_bionature = player_bionature
 
-        self.game_master = GameMaster(self.w, self.h)
-        self.player_red = PlayerHandler(
-            0, self.w, self.h, "red", self.game_master, rightward=True, downward=False
-        )
-        self.player_blu = PlayerHandler(
-            1, self.w, self.h, "blu", self.game_master, rightward=False, downward=True
-        )
-        self.player_bionature = PlayerHandler(
-            2, self.w, self.h, "grn", self.game_master, None, None, is_bionature=True
-        )
-        self.game_master.init_all_players(
-            [self.player_red, self.player_blu], self.player_bionature
-        )
-        self.must_start = True
-        self.player_interface_red = PlayerInterface(
-            self.game_master,
-            self.player_red,
-            self.player_blu,
-            self.player_bionature,
-            (0, 5),
-            False,
-        )
-        self.player_red.set_player_interface(self.player_interface_red)
-        self.player_interface_blu = PlayerInterface(
-            self.game_master,
-            self.player_blu,
-            self.player_red,
-            self.player_bionature,
-            (1, 5),
-            True,
-        )
-        self.player_blu.set_player_interface(self.player_interface_blu)
-
-        self.sandboxing = AUTHORIZE_SANDBOX_MODE
-        self.can_write_sandboxing_msg = True
-        self.sandbox_action = False
+        self.sandboxing_enabled = AUTHORIZE_SANDBOX_MODE
+        self.w = self.game_master.w
+        self.h = self.game_master.h
+        self.must_perform_sandbox_action = False
         self.x_cursor = 0
         self.y_cursor = 0
         self.sandbox_mode_index = 1
-        self.turn_index = 0
+        self.can_write_sandboxing_msg = True
 
-        # La deuxième ligne de tile de l'aire de jeu ne change jamais,
-        # donc on la précalcule.
-        self.tiles_line_interface_up = []
-        for _ in range(OFFSET_INTERFACE_X):
-            self.tiles_line_interface_up.append([])
-        for _ in range(WARZONE_WIDTH):
-            self.tiles_line_interface_up.append(["ihm_border_up"])
-        for _ in range(OFFSET_INTERFACE_X):
-            self.tiles_line_interface_up.append([])
-        self.tiles_line_interface_up = tuple(self.tiles_line_interface_up)
+    def print_sandbox_initial_message(self):
+        print("Sandbox activé.")
+        print("Déplacez votre curseur avec les flèches.")
+        print("Changez de mode avec '1'.")
+        print("Activez l'action avec '2'.")
+        sandbox_mode_name = SandboxHandler.SANDBOX_MODES[self.sandbox_mode_index]
+        print("Mode actuel du sandbox :", sandbox_mode_name)
 
-        self.ihm_function_from_event_name = {
-            "U": self.try_activate_sandbox_mode,
-            "L": self.player_interface_red.on_change_action,
-            "R": self.player_interface_red.on_activate_action,
-            "action_1": self.player_interface_blu.on_change_action,
-            "action_2": self.player_interface_blu.on_activate_action,
-        }
+    def add_gamobjs(self, gamobjs_copy):
+        # J'ai pas de tile pour gérer le sandbox_cursor,
+        # du coup je suis obligé de mettre des offests dégueux. On dira qu'on l'a pas vu.
+        final_x = self.x_cursor + OFFSET_INTERFACE_X
+        final_y = self.y_cursor + OFFSET_INTERFACE_Y
+        gamobjs_copy[final_y][final_x].append("sandbox_cursor")
 
-        if self.sandboxing:
-            print("Sandbox activé.")
-            print("Déplacez votre curseur avec les flèches.")
-            print("Changez de mode avec '1'.")
-            print("Activez l'action avec '2'.")
-            print("Mode actuel du sandbox :", SANDBOX_MODES[self.sandbox_mode_index])
-        else:
-            print("Appuyez sur un bouton pour démarrer.")
-
-    def export_all_tiles(self):
-        gamobjs_source = self.game_master.gamobjs_to_export
-        gamobjs_copy = []
-        for _ in range(OFFSET_INTERFACE_Y - 1):
-            line = [[] for _ in range(TOTAL_GAME_WIDTH)]
-            gamobjs_copy.append(line)
-        gamobjs_copy.append(self.tiles_line_interface_up)
-        for line_ihm_red, line_source, line_ihm_blu in zip(
-            self.player_interface_red.array_gamobjs_ihm_btn,
-            gamobjs_source,
-            self.player_interface_blu.array_gamobjs_ihm_btn,
-        ):
-            line = [
-                list(gamobjs) for gamobjs in line_ihm_red + line_source + line_ihm_blu
-            ]
-            gamobjs_copy.append(line)
-
-        for missile in self.game_master.missiles:
-            tile = missile.tile
-            tile_from_coords(gamobjs_copy, tile).append(missile.gamobj)
-        if self.sandboxing:
-            # J'ai pas de tile pour gérer le sandbox_cursor,
-            # du coup je suis obligé de mettre des offests dégueux. On dira qu'on l'a pas vu.
-            final_x = self.x_cursor + OFFSET_INTERFACE_X
-            final_y = self.y_cursor + OFFSET_INTERFACE_Y
-            gamobjs_copy[final_y][final_x].append("sandbox_cursor")
-
-        refresh_bar_count = self.turn_index % 10 == 0
-        all_sleeping = (
-            self.player_interface_red.sleep_mode
-            and self.player_interface_blu.sleep_mode
-        )
-        self.player_interface_red.add_interface_gamobjs(
-            gamobjs_copy, refresh_bar_count, not all_sleeping
-        )
-        self.player_interface_blu.add_interface_gamobjs(
-            gamobjs_copy, refresh_bar_count, not all_sleeping
-        )
-        return gamobjs_copy
+    def try_activate_sandbox_mode(self):
+        if AUTHORIZE_SANDBOX_MODE:
+            print("Mode 'sandbox'.")
+            self.sandboxing_enabled = True
+        elif self.can_write_sandboxing_msg:
+            print("-" * 10)
+            print("Vous pouvez activer un mode 'sandbox',")
+            print("en modifiant une ligne dans le code source.")
+            print("(Le texte affiché à gauche).")
+            print("Lisez le début du code source pour plus d'infos.")
+            print("-" * 10)
+            self.can_write_sandboxing_msg = False
 
     def _conquest(self, tile_target, direc):
         if tile_target.town is None:
@@ -5086,92 +4997,285 @@ class GameModel:
             player.tile_to_townify = cur_tile
         player.is_roadify_horiz = direc in (2, 6)
 
+    def perform_action(self):
+        if not self.must_perform_sandbox_action:
+            return
+
+        sandbox_mode = SandboxHandler.SANDBOX_MODES[self.sandbox_mode_index]
+        tile_target = self.game_master.game_area[self.y_cursor][self.x_cursor]
+        if sandbox_mode == "add red unit":
+            if tile_target.town is None:
+                tile_target.add_unit(self.player_red, 1)
+        elif sandbox_mode == "add blu unit":
+            if tile_target.town is None:
+                tile_target.add_unit(self.player_blu, 1)
+        elif sandbox_mode == "add horiz road":
+            if tile_target.town is not None:
+                print("Pas de route sur une town")
+            else:
+                tile_target.add_road(horiz=True)
+        elif sandbox_mode == "add vertic road":
+            if tile_target.town is not None:
+                print("Pas de route sur une town")
+            else:
+                tile_target.add_road(vertic=True)
+        elif sandbox_mode == "add town":
+            if tile_target.player_owner is None or tile_target.town is not None:
+                print("On ne peut construire que sur une case sans ville,")
+                print("et occupée par 16 pixels.")
+            else:
+                if tile_target.player_owner.tile_building_town is not None:
+                    print("Ville déjà en construction pour cette couleur.")
+                else:
+                    tile_target.player_owner.tile_building_town = tile_target
+        elif sandbox_mode == "red magnet":
+            self.player_red.cancel_all_orders()
+            if self.player_red.tile_magnet == tile_target:
+                self.player_red.tile_magnet = None
+            else:
+                self.player_red.tile_magnet = tile_target
+        elif sandbox_mode == "blu magnet":
+            self.player_blu.cancel_all_orders()
+            if self.player_blu.tile_magnet == tile_target:
+                self.player_blu.tile_magnet = None
+            else:
+                self.player_blu.tile_magnet = tile_target
+        elif sandbox_mode == "backward conquest":
+            if tile_target.town is None:
+                print("Il faut sélectionner une ville pour le backward conquest")
+            else:
+                player = tile_target.player_owner
+                player.cancel_all_orders()
+                player.set_town_backward_conquest(tile_target.town)
+        elif sandbox_mode == "add grn unit":
+            if tile_target.town is None:
+                tile_target.add_unit(self.player_bionature, 1)
+        elif sandbox_mode == "conquest up":
+            self._conquest(tile_target, 0)
+        elif sandbox_mode == "conquest right":
+            self._conquest(tile_target, 2)
+        elif sandbox_mode == "conquest down":
+            self._conquest(tile_target, 4)
+        elif sandbox_mode == "conquest left":
+            self._conquest(tile_target, 6)
+        elif sandbox_mode == "missiles":
+            if tile_target.town is None:
+                print("Il faut sélectionner une ville pour lancer des missiles.")
+            else:
+                target_player_interface = tile_target.town.player_owner.player_interface
+                target_player_interface.launch_missiles(tile_target.town)
+
+        elif sandbox_mode == "describe":
+            print("-----")
+            print(tile_target)
+            print("red can generate units", self.player_red.can_generate_unit())
+            print("blu can generate units", self.player_blu.can_generate_unit())
+
+        elif sandbox_mode == "switch to play mode":
+            print("Mode 'interface de jeu'")
+            print("-" * 10)
+            print("Appuyez sur la flèche du haut")
+            print("pour revenir au mode sandbox")
+            print("-" * 10)
+            self.sandboxing_enabled = False
+
+        self.must_perform_sandbox_action = False
+
+    def coord_move(self, x, y, direction):
+        """
+        Ça c'est juste pour le déplacement du curseur de sandbox.
+        """
+        if direction == "R":
+            x += 1
+        elif direction == "L":
+            x -= 1
+        if direction == "D":
+            y += 1
+        if direction == "U":
+            y -= 1
+        return (x, y)
+
+    def on_game_event(self, event_name):
+
+        if event_name == "action_1":
+            self.sandbox_mode_index += 1
+            if self.sandbox_mode_index >= len(SandboxHandler.SANDBOX_MODES):
+                self.sandbox_mode_index = 0
+            sandbox_mode_name = SandboxHandler.SANDBOX_MODES[self.sandbox_mode_index]
+            print("mode actuel :", sandbox_mode_name)
+
+        elif event_name == "action_2":
+            self.must_perform_sandbox_action = True
+
+        elif event_name in "URDL":
+            x_cursor_new, y_cursor_new = self.coord_move(
+                self.x_cursor, self.y_cursor, event_name
+            )
+            if 0 <= x_cursor_new < self.w and 0 <= y_cursor_new < self.h:
+                self.x_cursor, self.y_cursor = x_cursor_new, y_cursor_new
+
+
+class GameModel:
+    """
+    La classe principale, qui gère tout le jeu, et qui définit les fonctions de
+    callback appelées par le moteur Squarity.
+    """
+
+    # La string a renvoyer pour indiquer au moteur de jeu qu'il faut relancer
+    # automatiquement un event "process_turn".
+    # Il y a deux string, une pour la vitesse de jeu lente (mode de jeu normal)
+    # et une pour la vitesse rapide (première initialisation et mode dodo).
+    JSON_PROCESS_TURN_SLOW = (
+        """ { "delayed_actions": [ {"name": "process_turn", "delay_ms": 200} ] } """
+    )
+    JSON_PROCESS_TURN_FAST = (
+        """ { "delayed_actions": [ {"name": "process_turn", "delay_ms": 10} ] } """
+    )
+
+    def __init__(self):
+        self.w = WARZONE_WIDTH
+        self.h = WARZONE_HEIGHT
+        self.nb_warzone_tiles = WARZONE_WIDTH * WARZONE_HEIGHT
+
+        # Initialisation des objets principaux du jeu :
+        # les PlayerHandlers, les PlayerInterfaces, le GameMaster.
+        self.game_master = GameMaster(self.w, self.h)
+        self.player_red = PlayerHandler(
+            0, self.w, self.h, "red", self.game_master, rightward=True, downward=False
+        )
+        self.player_blu = PlayerHandler(
+            1, self.w, self.h, "blu", self.game_master, rightward=False, downward=True
+        )
+        self.player_bionature = PlayerHandler(
+            2, self.w, self.h, "grn", self.game_master, None, None, is_bionature=True
+        )
+        self.game_master.init_all_players(
+            [self.player_red, self.player_blu], self.player_bionature
+        )
+        self.must_start = True
+        self.player_interface_red = PlayerInterface(
+            self.game_master,
+            self.player_red,
+            self.player_blu,
+            self.player_bionature,
+            (0, 5),
+            False,
+        )
+        # Cross-reference entre le PlayerHandler et son PlayerInterface.
+        self.player_red.set_player_interface(self.player_interface_red)
+        self.player_interface_blu = PlayerInterface(
+            self.game_master,
+            self.player_blu,
+            self.player_red,
+            self.player_bionature,
+            (1, 5),
+            True,
+        )
+        self.player_blu.set_player_interface(self.player_interface_blu)
+
+        self.sandbox_handler = SandboxHandler(
+            self.game_master, self.player_red, self.player_blu, self.player_bionature
+        )
+        self.turn_index = 0
+
+        # Pré-clcul de la deuxième ligne de tile de l'aire de jeu.
+        # Elle ne change jamais, donc on peut faire ça au début.
+        self.tiles_line_interface_up = []
+        for _ in range(OFFSET_INTERFACE_X):
+            self.tiles_line_interface_up.append([])
+        for _ in range(WARZONE_WIDTH):
+            self.tiles_line_interface_up.append(["ihm_border_up"])
+        for _ in range(OFFSET_INTERFACE_X):
+            self.tiles_line_interface_up.append([])
+        self.tiles_line_interface_up = tuple(self.tiles_line_interface_up)
+
+        # Mapping entre les noms d'events correspondant aux appuis sur des boutons,
+        # et la fonction à exécuter.
+        self.ihm_function_from_event_name = {
+            "U": self.sandbox_handler.try_activate_sandbox_mode,
+            "L": self.player_interface_red.on_change_action,
+            "R": self.player_interface_red.on_activate_action,
+            "action_1": self.player_interface_blu.on_change_action,
+            "action_2": self.player_interface_blu.on_activate_action,
+        }
+
+        if self.sandbox_handler.sandboxing_enabled:
+            self.sandbox_handler.print_sandbox_initial_message()
+        else:
+            print("Appuyez sur un bouton pour démarrer.")
+
+    def export_all_tiles(self):
+        """
+        Fonction de callback appelée par le moteur Squarity.
+        La fonction doit renvoyer un grand tableau contenant tous les game objects
+        de la totalité de l'aire de jeu.
+        """
+        # Création du tableau en rassemblant le tableau de game objects du game master
+        # (qui affiche la warzone), et les deux tableaux de constantes des game objects
+        # d'interface, sur les deux côtés de l'aire de jeu.
+        gamobjs_source = self.game_master.gamobjs_to_export
+        gamobjs_copy = []
+        # La première ligne du tableau est vide au départ (on la remplit un peu plus loin).
+        for _ in range(OFFSET_INTERFACE_Y - 1):
+            line = [[] for _ in range(TOTAL_GAME_WIDTH)]
+            gamobjs_copy.append(line)
+        # La seconde ligne du tableau de change jamais.
+        gamobjs_copy.append(self.tiles_line_interface_up)
+        for line_ihm_red, line_source, line_ihm_blu in zip(
+            self.player_interface_red.array_gamobjs_ihm_btn,
+            gamobjs_source,
+            self.player_interface_blu.array_gamobjs_ihm_btn,
+        ):
+            # Chaque ligne, aplès les deux premières, est constituée
+            # d'une ligne de l'interface du joueur rouge, d'une ligne de warzone
+            # et d'une ligne de l'interface du joueur bleu.
+            line = [
+                list(gamobjs) for gamobjs in line_ihm_red + line_source + line_ihm_blu
+            ]
+            gamobjs_copy.append(line)
+
+        # Ajout des game objects représentant les missiles (c'est le game master qui gère
+        # les missiles, mais il ne les met pas dans la warzone dès le départ).
+        for missile in self.game_master.missiles:
+            tile = missile.tile
+            tile_from_coords(gamobjs_copy, tile).append(missile.gamobj)
+        # Ajout des game objects du sandbox handler. Il ajoute juste le curseur de sélection,
+        # si le sandboxing est activé.
+        if self.sandbox_handler.sandboxing_enabled:
+            self.sandbox_handler.add_gamobjs(gamobjs_copy)
+
+        # Tous les 10 tours de jeu, on réactualise les barres graphiques en haut de l'aire de jeu,
+        # affichant le nombre de tile contrôlées et le nombre de town de chaque Player.
+        refresh_bar_count = self.turn_index % 10 == 0
+        all_sleeping = (
+            self.player_interface_red.sleep_mode
+            and self.player_interface_blu.sleep_mode
+        )
+        # Recopie des barres graphiques dans le tableau final (que ça ait été réactualisé ou pas).
+        self.player_interface_red.add_interface_gamobjs(
+            gamobjs_copy, refresh_bar_count, not all_sleeping
+        )
+        self.player_interface_blu.add_interface_gamobjs(
+            gamobjs_copy, refresh_bar_count, not all_sleeping
+        )
+        # Renvoi du gros tableau final contenant tous les game objects.
+        return gamobjs_copy
+
     def on_process_turn(self):
-        if self.sandbox_action:
-            sandbox_mode = SANDBOX_MODES[self.sandbox_mode_index]
-            tile_target = self.game_master.game_area[self.y_cursor][self.x_cursor]
-            if sandbox_mode == "add red unit":
-                if tile_target.town is None:
-                    tile_target.add_unit(self.player_red, 1)
-            elif sandbox_mode == "add blu unit":
-                if tile_target.town is None:
-                    tile_target.add_unit(self.player_blu, 1)
-            elif sandbox_mode == "add horiz road":
-                if tile_target.town is not None:
-                    print("Pas de route sur une town")
-                else:
-                    tile_target.add_road(horiz=True)
-            elif sandbox_mode == "add vertic road":
-                if tile_target.town is not None:
-                    print("Pas de route sur une town")
-                else:
-                    tile_target.add_road(vertic=True)
-            elif sandbox_mode == "add town":
-                if tile_target.player_owner is None or tile_target.town is not None:
-                    print("On ne peut construire que sur une case sans ville,")
-                    print("et occupée par 16 pixels.")
-                else:
-                    if tile_target.player_owner.tile_building_town is not None:
-                        print("Ville déjà en construction pour cette couleur.")
-                    else:
-                        tile_target.player_owner.tile_building_town = tile_target
-            elif sandbox_mode == "red magnet":
-                self.player_red.cancel_all_orders()
-                if self.player_red.tile_magnet == tile_target:
-                    self.player_red.tile_magnet = None
-                else:
-                    self.player_red.tile_magnet = tile_target
-            elif sandbox_mode == "blu magnet":
-                self.player_blu.cancel_all_orders()
-                if self.player_blu.tile_magnet == tile_target:
-                    self.player_blu.tile_magnet = None
-                else:
-                    self.player_blu.tile_magnet = tile_target
-            elif sandbox_mode == "backward conquest":
-                if tile_target.town is None:
-                    print("Il faut sélectionner une ville pour le backward conquest")
-                else:
-                    player = tile_target.player_owner
-                    player.cancel_all_orders()
-                    player.set_town_backward_conquest(tile_target.town)
-            elif sandbox_mode == "add grn unit":
-                if tile_target.town is None:
-                    tile_target.add_unit(self.player_bionature, 1)
-            elif sandbox_mode == "conquest up":
-                self._conquest(tile_target, 0)
-            elif sandbox_mode == "conquest right":
-                self._conquest(tile_target, 2)
-            elif sandbox_mode == "conquest down":
-                self._conquest(tile_target, 4)
-            elif sandbox_mode == "conquest left":
-                self._conquest(tile_target, 6)
-            elif sandbox_mode == "missiles":
-                if tile_target.town is None:
-                    print("Il faut sélectionner une ville pour lancer des missiles.")
-                else:
-                    if tile_target.town.player_owner == self.player_red:
-                        self.player_interface_red.launch_missiles(tile_target.town)
-                    if tile_target.town.player_owner == self.player_blu:
-                        self.player_interface_blu.launch_missiles(tile_target.town)
-            elif sandbox_mode == "describe":
-                print("-----")
-                print(tile_target)
-                print("red can generate units", self.player_red.can_generate_unit())
-                print("blu can generate units", self.player_blu.can_generate_unit())
+        """
+        Fonction exécutée périodiquement, qui gère tout ce qu'il faut faire durant un tour de jeu.
+        Les déplacement d'unités de chaque Player, la génération d'unités,
+        l'avancement de construction des villes, ...
+        """
+        # Réalisation de l'action actuellement activée par le sandbox_handles, si nécessaire.
+        if self.sandbox_handler.sandboxing_enabled:
+            self.sandbox_handler.perform_action()
 
-            elif sandbox_mode == "switch to play mode":
-                print("Mode 'interface de jeu'")
-                print("-" * 10)
-                print("Appuyez sur la flèche du haut")
-                print("pour revenir au mode sandbox")
-                print("-" * 10)
-                self.sandboxing = False
-
-            self.sandbox_action = False
-
+        # Action "neutres", à gérer directement par le game master.
         self.game_master.conquest_neutral_roads()
         self.game_master.equilibrate_units_in_suburbs(self.turn_index)
 
+        # Vérification si les deux Players ont activé leur mode dodo.
         all_sleeping = (
             self.player_interface_red.sleep_mode
             and self.player_interface_blu.sleep_mode
@@ -5179,6 +5283,7 @@ class GameModel:
 
         for player in self.game_master.players:
             if not player.is_bionature:
+                # Réalisation des actions spécifique aux Players humains.
                 can_generate_unit = player.can_generate_unit()
                 player.move_magnetized_units_on_suburb()
                 player.process_town_building()
@@ -5191,13 +5296,17 @@ class GameModel:
                 if can_generate_unit:
                     player.process_unit_gen_tile()
                 player.process_line_conquest()
+                # Construction automatique des villes, si les deux Players
+                # ont activé le mode dodo.
                 if all_sleeping:
                     player.auto_build_towns()
             else:
+                # Réalisation spécifique au Player bionature. Il n'y a pas grand chose à faire,
+                # sinon générer des unités.
                 player.process_unit_gen_tile_bionature(self.turn_index)
 
+        # Gestion des missiles, suppression des missiles qui ont terminé leur cycle de vie.
         missiles_to_remove = []
-
         for missile in self.game_master.missiles:
             missile.handle()
             if missile.current_action == Missile.FINISHED:
@@ -5205,6 +5314,7 @@ class GameModel:
         for missile_to_rem in missiles_to_remove:
             self.game_master.missiles.remove(missile_to_rem)
 
+        # Le nombre total de tour joués depuis le début de la partie.
         self.turn_index += 1
 
         if self.turn_index & 127:
@@ -5212,7 +5322,8 @@ class GameModel:
             # merge/shatter de town en cours.
             # Si oui, ça veut dire que plus aucune town ne peut lancer de conquête,
             # et donc ça veut dire que toutes les tiles de l'aire de jeu sont des towns.
-            # Dans ce cas, on arrête la génération de units pour tout le monde, et on affiche le score final.
+            # Dans ce cas, on arrête la génération d'unités pour tout le monde,
+            # et on affiche le score final.
             if (
                 self.player_red.town_merge_state == TOWN_MERGE_STATE_STABLE
                 and self.player_blu.town_merge_state == TOWN_MERGE_STATE_STABLE
@@ -5232,28 +5343,23 @@ class GameModel:
                         win = COLOR_NAME["blu"]
                     print(f"La population {win} a gagné.")
                 print("-" * 10)
+                # On renvoie None, ça veut dire qu'on ne re-exécutera plus
+                # la fonction "on_process_turn". C'est normal, il n'y a plus rien à faire
+                # durant les tours de jeu.
                 return None
-        # FUTURE : calculer approximativement un délai plus ou moins long selon la quantité de trucs à gérer.
-        # Plus on a eu à gérer de trucs durant ce tour, plus on met un délai court.
-        # Mais c'est super chaud à estimer, ou alors faudrait regarder avec la date courante à chaque fois,
-        # et je préfère m'occuper de ça plus tard (ou jamais).
+
+        # Jeu rapide si les deux Players sont en mode dodo, sinon jeu normal.
         if all_sleeping:
             return GameModel.JSON_PROCESS_TURN_FAST
         else:
             return GameModel.JSON_PROCESS_TURN_SLOW
 
-    def try_activate_sandbox_mode(self):
-        if AUTHORIZE_SANDBOX_MODE:
-            print("Mode 'sandbox'.")
-            self.sandboxing = True
-        elif self.can_write_sandboxing_msg:
-            print("Vous pouvez activer un mode 'sandbox',")
-            print("en modifiant une ligne dans le code source.")
-            print("(Le texte affiché à gauche).")
-            print("Lisez le début du code source pour plus d'infos.")
-            self.can_write_sandboxing_msg = False
-
     def on_game_event(self, event_name):
+        """
+        Fonction de callback, appelée par le moteur pour gérer les événements.
+        On gère le déroulement d'un tour (process_turn) et les appuis sur les
+        touches/boutons de la page web (les 4 directions et les 2 boutons d'actions).
+        """
 
         if event_name == "process_turn":
             return self.on_process_turn()
@@ -5262,26 +5368,9 @@ class GameModel:
             print("C'est parti !!")
             return GameModel.JSON_PROCESS_TURN_FAST
 
-        if self.sandboxing:
-
-            if event_name == "action_1":
-                self.sandbox_mode_index += 1
-                if self.sandbox_mode_index >= len(SANDBOX_MODES):
-                    self.sandbox_mode_index = 0
-                print("mode actuel :", SANDBOX_MODES[self.sandbox_mode_index])
-                return
-            if event_name == "action_2":
-                self.sandbox_action = True
-                return
-            if event_name in "URDL":
-                x_cursor_new, y_cursor_new = coord_move(
-                    self.x_cursor, self.y_cursor, event_name
-                )
-                if 0 <= x_cursor_new < self.w and 0 <= y_cursor_new < self.h:
-                    self.x_cursor, self.y_cursor = x_cursor_new, y_cursor_new
-                return
-
+        if self.sandbox_handler.sandboxing_enabled:
+            self.sandbox_handler.on_game_event(event_name)
         else:
-
-            function_to_call = self.ihm_function_from_event_name[event_name]
-            function_to_call()
+            function_to_call = self.ihm_function_from_event_name.get(event_name)
+            if function_to_call is not None:
+                function_to_call()
