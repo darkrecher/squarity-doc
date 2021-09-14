@@ -4229,6 +4229,13 @@ class PlayerInterface:
         Met à jour la liste interne des towns (self.sorted_towns), suite à un changement
         provoqué par des éléments externes (ajout ou suppr de towns).
 
+        L'ordre des towns dans sorted_towns correspond à l'ordre de sélection dans l'interface.
+        Lorsque Player est en mode sélection de town et que Player appuie sur le bouton de
+        changement, on cycle sur la liste de sorted_towns.
+        Cette liste est triée dans l'ordre de lecture (de haut en bas et de gauche à droite),
+        en se basant sur le coin supérieur gauche des towns.
+        C'est, à priori, ce qui est le plus logique pour des humains.
+
         Modifie en conséquence les variables membres définissant la town actuellement sélectionnée
         dans l'interface (self.index_selected_town, self.selected_town), de façon à
         rester à peu près sur la même sélection.
@@ -4553,13 +4560,26 @@ class PlayerInterface:
             raise Exception("Impossible de trouver la conquest dir. Blargh.")
 
     def on_change_action(self):
+        """
+        Grosse fonction qui s'exécute lorsque Player appuie sur son bouton de changement.
+        C'est à dire la flèche de gauche pour red, le bouton "1" pour blu.
+
+        Cette fonction utilise beaucoup (en lecture et écriture) les variables
+        self.current_mode et self.next_mode, qui résument l'état actuel de l'interface.
+
+        Ça fait plein de choses, on va plutôt détailler dans les commentaires.
+        """
 
         if self.sleep_mode:
+            # -- Désactivation du mode dodo si on était en mode dodo. --
             self.current_mode = IhmMode.MAIN_MENU
             self.next_mode = IhmMode.SELECT_TOWN
             self.sleep_mode = False
 
         elif self.current_mode == IhmMode.MAIN_MENU:
+            # -- Navigation dans les options du menu principal. --
+            # On avance d'une option, ou bien on revient à l'option du début.
+            # L'option actuellement sélectionnée est stockée dans self.next_mode.
             next_modes = {
                 IhmMode.SELECT_TOWN: (IhmMode.SELECT_CONQUEST_LINE),
                 IhmMode.SELECT_CONQUEST_LINE: (IhmMode.BACKWARD_CONQUEST),
@@ -4571,28 +4591,40 @@ class PlayerInterface:
             self.next_mode = next_next_mode
 
         elif self.current_mode == IhmMode.SELECT_TOWN:
+            # -- Changement de la town sélectionnée. --
+            # Réactualisation de la liste sorted_town, si il y a eu des changements de towns.
             if self.is_town_list_dirty:
                 self.refresh_town_list()
+            # Cyclage dans sorted_town. On prend la suivante, et si on est arrivé au bout
+            # on revient au début.
             self.index_selected_town += 1
             if self.index_selected_town >= self.nb_towns:
                 self.index_selected_town = 0
             self.selected_town = self.sorted_towns[self.index_selected_town]
 
         elif self.current_mode == IhmMode.SELECT_CONQUEST_LINE:
-            # On parcourt town.unit_gen_tiles : c'est la liste des tiles adjacentes de la town,
-            # qui sont libres (c'est à dire que y'a pas une autre town dessus).
+            # -- Changement de direction de la conquest line qui est en cours de définition. --
+            # On peut faire partir une conquest line à partir d'une tile de town.unit_gen_tiles.
+            # Il s'agit de la liste des tiles adjacentes de la town, qui sont libres
+            # (c'est à dire celles où il n'y a pas une autre town dessus).
             conquest_tiles = self.selected_town.unit_gen_tiles
             if not conquest_tiles:
-                # Cas particulier stupide, où une town s'est construite juste à côté de
-                # la town sélectionnée, ce qui supprime la dernière tile libre de la town.
+                # Cas particulier stupide, où entre temps, une town s'est construite juste à côté
+                # de la town sélectionnée, ce qui supprime la dernière tile libre de la town.
                 # Dans ce cas, on déselectionne tout et on se barre.
-                # Player doit obligatoirement annuler sa conquête.
+                # Player doit obligatoirement annuler sa conquest line.
                 # Lorsque ce cas arrive, le jeu ne plante pas, mais on se retrouve dans
                 # une situation d'IHM un peu dégueux. Osef, c'est un cas trop particulier
                 # pour que je m'embête à le gérer correctement jusqu'au bout.
                 self.index_conquest_start = None
                 return
 
+            # Cyclage sur la liste conquest_tiles, avec la variable self.index_conquest_start.
+            # Mais lorsqu'on arrive à la fin de la liste, on ne revient pas tout de suite
+            # à l'index 0. On passe par l'état None.
+            # Dans cet état, aucune tile de départ de conquest line n'est sélectionnée. Il s'agit
+            # du choix correspondant à une annulation. Si Player valide ce choix, la conquest line
+            # n'est pas démarré, et on revient au menu principal.
             if self.index_conquest_start is None:
                 self.index_conquest_start = 0
             else:
@@ -4600,17 +4632,27 @@ class PlayerInterface:
                 if self.index_conquest_start >= len(conquest_tiles):
                     self.index_conquest_start = None
 
-            self.tile_conquest_start = (
-                None
-                if self.index_conquest_start is None
-                else conquest_tiles[self.index_conquest_start]
-            )
-            if self.tile_conquest_start is None:
+            # Détermination de la tile de départ de la conquest line et de sa direction.
+            # (Sauf si on est dans l'état None).
+            if self.index_conquest_start is None:
+                self.tile_conquest_start = None
                 self.conquest_dir = None
             else:
+                self.tile_conquest_start = conquest_tiles[self.index_conquest_start]
                 self.conquest_dir = self.retrieve_conquest_direction()
 
         elif self.current_mode == IhmMode.SELECT_CONQUEST_DEST:
+            # -- Changement de la longueur de la conquest line en cours de définition. --
+            # Pareil que pour self.index_conquest_start. On cycle sur toutes
+            # les valeurs possibles, mais on passe un petit coup par la valeur None
+            # avant de revenir à la valeur d'index 0.
+            # Cette valeur None représente le choix d'annulation. Si Player valide
+            # lorsque c'est None, la conquest line n'est pas démarrée et on revient au
+            # menu principal.
+            # La variable self.conquest_lines contient toutes les possibilités de
+            # conquest line, pour la direction précédemment choisie. (Il y en a 3 au maximum,,
+            # avec des longueurs différentes). conquest_lines a été initialisée au moment
+            # où Player a sélectionné la tile de départ de la conquest line.
             if self.index_conquest_line is None:
                 self.index_conquest_line = 0
             else:
@@ -4618,6 +4660,8 @@ class PlayerInterface:
                 if self.index_conquest_line >= len(self.conquest_lines):
                     self.index_conquest_line = None
 
+            # Détermination de self.current_conquest_line on fonction de l'index.
+            # (Sauf si on est dans l'état None).
             self.current_conquest_line = (
                 None
                 if self.index_conquest_line is None
@@ -4625,6 +4669,10 @@ class PlayerInterface:
             )
 
         elif self.current_mode == IhmMode.SUBMENU_CANCEL:
+            # -- Navigation dans les options du sous-menu d'annulation. --
+            # Il n'y a que deux sous-options possibles. On passe de l'une à l'autre
+            # avec le bouton de changement, et c'est tout.
+            # La sous-option actuellement sélectionnée est dans self.next_mode.
             next_modes = {
                 IhmMode.CANCEL_CURRENT_ORDERS: IhmMode.SLEEP_MODE,
                 IhmMode.SLEEP_MODE: IhmMode.CANCEL_CURRENT_ORDERS,
@@ -4633,18 +4681,37 @@ class PlayerInterface:
             self.next_mode = next_next_mode
 
     def cancel_orders_and_interface(self):
+        """
+        Envoie une annulation de tous les ordres au PlayerHandler.
+        Réinitialise toutes les variables affichant des marqueurs et autres éléments d'interface
+        dans la warzone.
+        """
         self.player_me.cancel_all_orders()
         self.tile_next_town = None
         self.current_conquest_line = []
 
     def on_activate_action(self):
+        """
+        Grosse fonction qui s'exécute lorsque Player appuie sur son bouton de confirmation.
+        C'est à dire la flèche de droite pour red, le bouton "2" pour blu.
 
-        # Si on est sur une town désactivée, on se remet à la town 0.
-        # Le cas peut arriver, car on refreshe pas forcément la sélection lors des constructions de towns.
-        # C'est bourrin, mais osef.
+        Détails en commentaires.
+        """
         if self.selected_town is None or not self.selected_town.is_active:
+            # La town actuellement sélectionnée est désactivée (ou même inexistante)
+            # Dans ce cas, on se remet à la town d'index 0. Et on n'effectue pas
+            # l'action demandée par Player (qui n'aura qu'à la relancer).
+            # Ça peut arriver, car on refreshe pas forcément la sélection
+            # lors des constructions de towns. C'est bourrin, mais osef.
             self.refresh_town_list()
-            if not self.sorted_towns:
+            if self.sorted_towns:
+                self.index_selected_town = 0
+                self.selected_town = self.sorted_towns[self.index_selected_town]
+            else:
+                # Il n'y a plus du tout de town active. Ça veut dire que toutes
+                # les towns de Player se sont fait entourée par d'autres towns.
+                # Player passe automatiquement en mode dodo, et ne peut plus rien faire.
+                # lorsque Player appuiera sur ses boutons, ça restera en mode dodo.
                 self.current_mode = IhmMode.SUBMENU_CANCEL
                 self.next_mode = IhmMode.SLEEP_MODE
                 self.sleep_mode = True
@@ -4653,28 +4720,39 @@ class PlayerInterface:
                     print(text)
                     print("Activation du 'mode dodo'.")
                     self.must_tell_msg_sleep_mode = False
-            else:
-                self.index_selected_town = 0
-                self.selected_town = self.sorted_towns[self.index_selected_town]
             return
 
         if self.current_mode == IhmMode.MAIN_MENU:
+            # -- Confirmation de l'option de menu principal actuellement sélectionnée. --
+
+            # Il faut réinitialiser la tile de départ de la conquest line.
+            # Euh... je sais plus trop pourquoi on a besoin de faire ça là. Désolé.
             self.tile_conquest_start = None
             self.current_mode = self.next_mode
 
             if self.current_mode == IhmMode.SELECT_CONQUEST_LINE:
+                # Définition d'une nouvelle conquest line.
+                # on sélectionne la première tile de départ de conquest line.
+                # Ça affichera le marqueur sur la carte, que Player pourra ensuite déplacer.
                 self.next_mode = IhmMode.SELECT_CONQUEST_DEST
                 self.index_conquest_start = 0
                 conquest_tiles = self.selected_town.unit_gen_tiles
                 self.tile_conquest_start = conquest_tiles[self.index_conquest_start]
                 self.conquest_dir = self.retrieve_conquest_direction()
             elif self.current_mode == IhmMode.BACKWARD_CONQUEST:
+                # Lancement d'une backward conquest, depuis la town sélectionnée.
                 self.cancel_orders_and_interface()
+                # Retour à la première option du menu principal, car le backward conquest
+                # est une action qui ne nécessite pas de choix supplémentaires.
                 self.current_mode = IhmMode.MAIN_MENU
                 self.next_mode = IhmMode.SELECT_TOWN
                 self.player_me.set_town_backward_conquest(self.selected_town)
             elif self.current_mode == IhmMode.LAUNCH_MISSILE:
+                # Lancement de missile(s), depuis la town sélectionnée.
                 self.cancel_orders_and_interface()
+                # Retour au menu principal. On reste sur l'option des missiles, au cas où
+                # Player voudrait s'amuser à lancer plein de missiles d'un coup.
+                # Ce qui est quand même rigolo.
                 self.current_mode = IhmMode.MAIN_MENU
                 self.next_mode = IhmMode.LAUNCH_MISSILE
                 self.launch_missiles()
@@ -4682,25 +4760,55 @@ class PlayerInterface:
                 self.next_mode = IhmMode.CANCEL_CURRENT_ORDERS
 
         elif self.current_mode == IhmMode.SELECT_TOWN:
+            # -- Confirmation de la sélection de la town --
+            # Rien de spécial à faire, la variable self.selected_town a déjà été mise à jour.
             self.tile_conquest_start = None
             self.current_mode = IhmMode.MAIN_MENU
 
         elif self.current_mode == IhmMode.SELECT_CONQUEST_LINE:
+            # -- Confirmation de la tile de départ de la conquest line en cours de définition. --
             if self.tile_conquest_start is None:
+                # En fait c'est pas une confirmation. Player veut annuler la définition
+                # actuelle de la conquest line. On revient au menu principal,
+                # en restant sur l'option de conquest line.
                 self.current_mode = IhmMode.MAIN_MENU
                 self.next_mode = IhmMode.SELECT_CONQUEST_LINE
             else:
+                # Il faut définir self.conquest_lines et self.conquest_dest_pot_tiles.
+                # self.conquest_lines est une liste contenant toutes les conquest lines
+                # que peut choisir Player, à partir de la tile self.tile_conquest_start
+                # préalablement choisie.
+                # Dans cette liste, chaque conquest line est représentée par une sous-liste
+                # de tile. La première tile est toujours self.tile_conquest_start.
+                # La dernière tile est celle sur laquelle il faudra construire la ville
+                # lorsque le chemin de route aura été construit.
+                # La première conquest line n'a qu'une seule tile. C'est à dire qu'elle correspond
+                # à une construction d'une nouvelle town juste à côté de la town sélectionnée,
+                # sans faire aucune route.
                 self.conquest_lines = []
+                # self.conquest_dest_pot_tiles est une liste de tile, contenant autant d'élément
+                # que self.conquest_lines. Elle contient la dernière tile de chaque conquest line.
+                # On s'en sert juste pour afficher des marqueurs dans la warzone, indiquant où
+                # se placeraient les towns de chaque conquest line.
                 self.conquest_dest_pot_tiles = []
                 current_tile = self.tile_conquest_start
                 current_conquest_line = []
                 current_conquest_line.append(current_tile)
+                # On avance de tile en tile, depuis self.tile_conquest_start, dans la direction
+                # de la conquest line (self.conquest_dir)
                 for conquest_distance in range(8):
 
                     next_tile = current_tile.adjacencies[self.conquest_dir]
+                    # must_stop_lining devient True si on arrive sur les bords de l'écran,
+                    # ou si on rencontre une town existante.
+                    # Dans ce cas, on proposera une dernière line conquest, qui aboutira
+                    # à la tile juste avant le bord ou la town existante.
                     must_stop_lining = next_tile is None or next_tile.town is not None
 
                     if conquest_distance in (0, 3, 7) or must_stop_lining:
+                        # On crée des conquest lines à des distance de 0, 3 et 7
+                        # (si on arrive jusqu'à ces distances).
+                        # Le 0 au début garantit qu'on créera au moins une line conquest.
                         self.conquest_dest_pot_tiles.append(current_tile)
                         self.conquest_lines.append(list(current_conquest_line))
                         if must_stop_lining:
@@ -4712,15 +4820,22 @@ class PlayerInterface:
                 if not self.conquest_lines:
                     raise Exception("conquest line empty. Not supposed to happen")
                 self.tile_conquest_start = None
+                # On inverse conquest_lines, ce qui permet de proposer au départ la conquest line
+                # la plus longue. Ça me semble plus pratique comme ça. Et ça permet de montrer
+                # à une personne qui découvre le jeu une première conquest line la plus
+                # représentative possible.
                 self.conquest_lines = self.conquest_lines[::-1]
+                # Or donc, sélection par défaut de la première conquest line de la liste.
                 self.index_conquest_line = 0
                 self.current_conquest_line = self.conquest_lines[
                     self.index_conquest_line
                 ]
                 self.tile_conquest_start = None
+                # On passe à l'option d'interface suivante : sélection finale de la conquest line.
                 self.current_mode = IhmMode.SELECT_CONQUEST_DEST
                 self.next_mode = IhmMode.MAIN_MENU
-                # Détermination de la direction vertic/horiz des routes.
+                # Détermination de la direction vertic/horiz des routes à construire
+                # pendant la conquest.
                 self.gamobj_conquest_line = (
                     self.gamobj_conquest_horiz
                     if self.conquest_dir in (2, 6)
@@ -4728,36 +4843,64 @@ class PlayerInterface:
                 )
 
         elif self.current_mode == IhmMode.SELECT_CONQUEST_DEST:
+            # -- Confirmation et lancement de la conquest line sélectionnée. --
             self.conquest_dest_pot_tiles = []
             if self.index_conquest_line is None:
+                # En fait c'est pas une confirmation. Player veut annuler
+                # la conquest line sélectionnée. On revient au menu principal,
+                # en restant sur l'option de conquest line.
                 self.current_mode = IhmMode.MAIN_MENU
                 self.next_mode = IhmMode.SELECT_CONQUEST_LINE
             else:
+                # Envoi de la conquest line au PlayerHandler.
                 self.player_me.cancel_all_orders()
+                # Il faut lui envoyer en deux morceaux : la liste des routes à construire,
+                # (en incluant la dernière tile sur laquelle on fera la town),
+                # puis la town à construire.
                 self.player_me.tiles_to_roadify.extend(self.current_conquest_line)
                 self.player_me.tile_to_townify = self.current_conquest_line[-1]
+                # Petit marqueur à afficher dans la warzone, qui permet de garder
+                # l'indication de où se finira la conquest line.
                 self.tile_next_town = self.current_conquest_line[-1]
+                # Route à construire horizontale ou verticale.
                 self.player_me.is_roadify_horiz = self.conquest_dir in (2, 6)
                 self.current_conquest_line = []
+                # Retour au menu principal, on reste sur l'option de définition
+                # de conquest line, au cas où on veut en relancer une autre tout de suite après.
                 self.current_mode = IhmMode.MAIN_MENU
                 self.next_mode = IhmMode.SELECT_CONQUEST_LINE
 
         elif self.current_mode == IhmMode.SUBMENU_CANCEL:
+            # -- Confirmation de l'option du sous-menu d'annulation actuellement sélectionnée. --
             if self.next_mode == IhmMode.CANCEL_CURRENT_ORDERS:
+                # Menu d'annulation des ordres en cours.
                 self.cancel_orders_and_interface()
+                # Retour à la première option du menu principal.
                 self.current_mode = IhmMode.MAIN_MENU
                 self.next_mode = IhmMode.SELECT_TOWN
             else:
+                # Menu d'activation/désactivation du mode dodo.
+                # Si mode dodo, on annule les ordres en cours.
                 self.sleep_mode = not self.sleep_mode
                 if self.sleep_mode:
                     self.cancel_orders_and_interface()
 
     def _get_lit_coordinates(self):
+        """
+        Renvoie les coordonnées du coin supérieur gauche de l'option de menu qu'il faut mettre
+        en surbrillance, en fonction des variables self.current_mode et self.next_mode, qui
+        indiquent où on en est dans l'interface.
+        """
         mode_infos = (self.current_mode, self.next_mode)
         if mode_infos not in PlayerInterface.INDEX_LIT_BUTTONS:
             raise Exception(f"Fail mode_infos {mode_infos}")
+        # Récupération de l'index de l'option de menu à mettre en surbrillance, dans la liste
+        # contenant toutes les options de menu.
         index_lit_button = PlayerInterface.INDEX_LIT_BUTTONS[mode_infos]
+        # Récupération des coordonnées.
         btn_pos_x, btn_pos_y = PlayerInterface.BUTTON_DEFINITIONS[index_lit_button][1:3]
+        # Ajustement des coordonnées selon l'endroit où est affiché le menu
+        # (du côté gauche ou du côté droit de l'aire de jeu).
         final_x = self.offset_btn_x + btn_pos_x * 4
         final_y = self.offset_btn_y + btn_pos_y * 4 + OFFSET_INTERFACE_Y
         return final_x, final_y
