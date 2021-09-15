@@ -1,5 +1,4 @@
-# https://i.postimg.cc/5yYJx4Hq/game-of-nolife-tileset.png (old)
-# https://i.postimg.cc/jSp2nF8y/game-of-nolife-tileset.png
+# https://raw.githubusercontent.com/darkrecher/squarity-doc/master/jeux/game_of_nolife/game-of-nolife-tileset.png
 
 """
 {
@@ -419,6 +418,7 @@
               Inspiré du "Game of Life" de John Conway.
 
 Lien pour jouer : https://tinyurl.com/thegameofnolife
+Vidéo de démo : https://www.youtube.com/watch?v=-I8D6GN44x4
 
 Un mini-jeu de stratégie en temps réel qui se joue à 2,
 avec seulement 4 boutons (2 pour chaque).
