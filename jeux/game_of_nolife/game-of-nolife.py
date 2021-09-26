@@ -435,6 +435,7 @@ affiché sur le côté de la carte. Rouge à gauche, bleu à droite.
 Le premier bouton permet de passer à l'option suivante,
 le deuxième permet de confirmer l'option sélectionnée.
 
+v1.1 : correction du bug sur les bare tiles with many units.
 
 -- Description des options du menu de jeu --
 
@@ -1369,6 +1370,22 @@ class PlayerHandler:
         déplacent en diagonales ! On aurait eu des grands déplacements qui auraient
         ressemblé à de la téléportation.
         """
+        # De temps en temps, on met à jour la liste des controlled_bare_tiles_with_many_units.
+        # Parce qu'apparemment, j'ai un bug tout pourri qui fait que cette liste
+        # est mal maintenue.
+        if turn_index & 127 == self.player_id:
+            self.controlled_bare_tiles_with_many_units = [
+                tile
+                for tile in self._controlled_tiles
+                if (
+                    tile.player_owner == self
+                    and tile.town is None
+                    and not tile.road_vertic
+                    and not tile.road_horiz
+                    and tile.nb_unit > 1
+                )
+            ]
+
         select_tile = turn_index & 3
         for tile in self.controlled_bare_tiles_with_many_units:
             # Le y est multiplié par 2, pour pouvoir faire le "ABCD / CDAB" décrit en docstring.
@@ -1402,6 +1419,13 @@ class PlayerHandler:
         Il est possible que les unités se déplaçant de cette manière se retrouvent coincées
         dans un cul de sac. C'est le problème de Player, qui n'a qu'à bien gérer ses terrains.
         """
+
+        # Stupide check préalable, car il semblerait que j'ai un bug dans la liste
+        # controlled_bare_tiles_with_many_units. Elle peut contenir des éléments qui
+        # devraient pas y être.
+        if tile.player_owner is None or tile.nb_unit <= 1:
+            return
+
         check_go_back = self.bounding_rect_go_back is not None
         if check_go_back and pos_in_bounding_rect(
             self.bounding_rect_go_back, tile.x, tile.y
