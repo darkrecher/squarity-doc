@@ -7,8 +7,8 @@ Ce sera des road squares.
 Square map :
 
 7:effets_spéciaux 0:moteur 1:IDE
-6:tutos -1:(le milieu) 2:level_design
-5:contenu_promotion 4:social 3:meta
+6:tutos_doc -1:(le milieu) 2:edition_de_level
+5:contenu_promotion 4:social 3:autoformation_optimisation_prod
 
 le milieu : document "fondateur" expliquant pourquoi je fais ce jeu. Et un autre mini-document expliquant comment je vais fonctionner avec cette road map
 
@@ -16,18 +16,23 @@ Toute la description doit être en YAML, avec les niveaux suivants :
 
  - zones : 8 zones + le milieu
    - sous-zones : des petites zones ayant une taille de quelques cases
-     - tâches : un objet ponctuel, avec une descrip. On peut en avoir plusieurs sur une même case. Certaines peuvent contenir un lien vers une tâche Trello.
-     - spec détaillée : un lien vers un doc (sur github ou ailleurs), décrivant tout ce qu'on veut faire pour cette sous-zones.
+     - tâches : un objet ponctuel, avec une descrip. On peut en avoir plusieurs sur une même case. Certaines peuvent contenir un lien vers une tâche Trello (ou pas, parce qu'on va pas se prendre la tête à connecter tout le bordel que je fous dans Trello avec la road-map).
+     - spec détaillée : un lien vers un doc (sur github ou ailleurs), décrivant tout ce qu'on veut faire pour cette sous-zone.
+     - une "vision"
+
+On peut noter des tâches et des sous-zones comme "terminées".
+
+On peut avoir des tâches, des spec et des visions directement dans la zone, sans sous-zone.
 
 Avec ce json, on construit (automatiquement via un petit script) :
  - un document markdown, versionné dans github-doc.
- - un jeu Squarity, versionné dans github-doc aussi, et le code va le chercher via une url.
- - le json en lui-même, dans github-doc. Et dans le code, on a une page web qui va le chercher pour construire la roadmap sous forme de grosse page statique
+ - un jeu Squarity, versionné dans github-doc aussi. On intègre directement le json dans le jeu, et c'est le code python du jeu qui le parse.
+ - une page html statique avec tout le bazar dedans.
  - si possible, une image, qu'on pourra poster un peu où on veut.
 
 Ça fait une dépendance de Squarity à github-doc, mais c'est pas grave. Si ça pète, tout le reste fonctionnera quand même. Et comme ça je met à jour plus facilement. C'est un simple commit vers github-doc.
 
-Toutes les tâches Trello doivent rentrer dans l'une de ces 8 zones.
+Toutes les tâches Trello doivent rentrer dans l'une de ces 8 zones, et si possible, dans une sous-zone. Mais on ne les fait pas apparaître dans la road-map, parce que ça mettrait trop de bazar. Trop de tâches détaillées.
 
 Le document fondateur contiendra en bas tous les liens vers tous les trucs :
  - les githubs
@@ -36,13 +41,16 @@ Le document fondateur contiendra en bas tous les liens vers tous les trucs :
  - comment je vais fonctionner avec la roadmap, et que il y a les annonces dans Discord.
  - les trellos
 
+Il faut montrer des "visions". Un écran d'exemple et un récit d'utilisation d'une feature de Squarity. Pour montrer aux personnes interessés ce que je compte faire avec cet outil. Même si c'est très résumé et très flou. Ça donnera une idée globale.
+
+Si possible, au moins une vision par zone.
 
 ## IDE, Environnement de développement
 
-Détecter les erreurs de la config json
+Détecter les erreurs de la config json/yaml
  - Afficher le message catché par-dessus l'aire de jeu
  - Montrer la ligne d'erreur dans la config
- - Détecter et proposer des corrections : On ajoute une virgule ou un guillement à l'endroit de l'erreur, on teste si ça fait un json valide, si oui on propose la correction.
+ - Détecter et proposer des corrections : On ajoute une virgule ou un guillemet à l'endroit de l'erreur, on teste si ça fait un texte valide, si oui on propose la correction.
 
 Permettre une config écrite en YAML : c'est un peu plus human-readable, et on peut mettre des commentaires. Ça veut dire que dans les gists, faudra indiquer quelque part si c'est du YAML ou du JSON. Ou alors on l'auto-détecte à la bourrin.
 
@@ -54,7 +62,7 @@ Faciliter le débuggage : exécution pas-à-pas, tracking, replay, variables wat
 
 Améliorer la fenêtre de code : ajout automatique d'espace en début de ligne, coloration syntaxique, multi-curseurs. Il faut essayer de trouver quelque chose de tout fait. Et s'inspirer de CodinGame, Jupyter et autres plate-formes.
 
-Ajouter un framework de test unitaire : des tests unitaire de code pur, mais aussi du jeux. Simulation d'inputs, vérification du résultat affiché dans le jeu.
+Ajouter un framework de test unitaire : des tests unitaires de code pur, mais aussi du jeu. Simulation d'inputs, vérification du résultat affiché dans le jeu.
 
 Documenter des solutions pour utiliser un IDE externe.
  - documenter la technique du serveur local et du bout de javascript dans le game code qui interroge ce serveur.
@@ -68,7 +76,7 @@ Faciliter le stockage du game code
 (task) Ajouter un bouton pour reloader l'image et les libs de code.
 
 
-## Level design
+## Éditeur de niveaux
 
 Créer un éditeur de niveaux.
 
@@ -206,4 +214,7 @@ Tests unitaires automatisés avec Selenium.
 Héberger une instance peertube pour y mettre les démos de jeu.
 
 
-La distrib dans itch.io, ça va dans quelle catégorie ?
+Le bouton magique : "publier dans itch.io", ça va dans la catégorie "IDE, environnement de dev".
+(Si tant est qu'on puisse créer un bouton magique de ce genre, car c'est pas gagné).
+
+
