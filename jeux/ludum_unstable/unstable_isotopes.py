@@ -48,6 +48,7 @@ un jeu genre Aqua Splash (sur KadoKado). Le truc avec les boules d'eau. Sauf que
 """
 
 import random
+import json
 
 GAME_SIZE_W = 7
 GAME_SIZE_H = 7
@@ -61,10 +62,10 @@ DIR_INT_FROM_STR = {
 
 
 class MovingNeutron:
-    def __init__(self, direction, step):
+    def __init__(self, direction, step, has_moved):
         self.direction = direction
         self.step = step
-        self.has_moved = False
+        self.has_moved = has_moved
 
     def __str__(self):
         str_dirs = {
@@ -84,14 +85,6 @@ class Tile:
         self.nb_neutron = nb_neutron
         self.moving_neutrons = []
         self.adjacencies = None
-        # TODO : test à l'arrache :
-        if y == 3:
-            if x == 2:
-                self.nb_neutron = 2
-                self.moving_neutrons.append(MovingNeutron(0, 2))
-                self.moving_neutrons.append(MovingNeutron(2, 2))
-                self.moving_neutrons.append(MovingNeutron(4, 2))
-                self.moving_neutrons.append(MovingNeutron(6, 2))
 
     def get_gamobjs(self):
         if self.nb_neutron > 6:
@@ -104,6 +97,7 @@ class Tile:
 
 
 class GameModel:
+
     def __init__(self):
         self.w = GAME_SIZE_W
         self.h = GAME_SIZE_H
@@ -111,8 +105,7 @@ class GameModel:
         for y in range(self.h):
             line = []
             for x in range(self.w):
-                isot = random.randint(0, 3)
-                new_tile = Tile(x, y, isot)
+                new_tile = Tile(x, y, 0)
                 line.append(new_tile)
             self.tiles.append(line)
 
@@ -125,8 +118,11 @@ class GameModel:
         self.tile_cursor = self.tiles[y_cursor][x_cursor]
         self.taking_isotope = False
         self.gamobj_cursor = "cursor_normal"
-
+        self.doing_chain_reaction = False
+        self.chain_reaction_duration = 0
         self.told_msg_no_iso = False
+        self.level = 0
+        self.spawn_isotopes()
 
     def _make_adjacencies(self, x, y):
         """
@@ -145,6 +141,16 @@ class GameModel:
             self.tiles[y - 1][x - 1] if 0 <= y - 1 and 0 <= x - 1 else None,
         )
         return adjacencies
+
+    def compute_delayed_action_chain_react(self):
+        # On diminue progressivement le delay. Sinon c'est relou d'attendre que les neutrons se déplacent et etc.
+        delay_ms = 150 - self.chain_reaction_duration*5
+        delay_ms = max(delay_ms, 80)
+        delayed_action_chain_reaction = {
+            "delayed_actions": [{"name": "chain_reaction", "delay_ms": delay_ms}]
+        }
+        return json.dumps(delayed_action_chain_reaction)
+
 
     def handle_neutron_move(self, initial_tile, neutron):
         if neutron.has_moved:
@@ -173,7 +179,10 @@ class GameModel:
         # Le neutron avance d'une tile dans sa direction.
         next_tile.moving_neutrons.append(neutron)
 
-    def move_neutrons(self):
+    def process_chain_reaction(self):
+
+        did_something = False
+
         # C'est moche parce que je fais deux fois de suite
         # la triple-boucle pour parcourir tous les neutrons,
         # mais osef.
@@ -182,11 +191,67 @@ class GameModel:
                 for neutron in tile.moving_neutrons:
                     neutron.has_moved = False
 
+        # Séparation des isotopes ayant 4 neutrons ou plus.
+        for line in self.tiles:
+            for tile in line:
+                if tile.nb_neutron >= 4:
+                    tile.nb_neutron -= 4
+                    new_neutrons = [
+                        MovingNeutron(0, 2, True),
+                        MovingNeutron(2, 2, True),
+                        MovingNeutron(4, 2, True),
+                        MovingNeutron(6, 2, True),
+                    ]
+                    tile.moving_neutrons.extend(new_neutrons)
+                    did_something = True
+
         for line in self.tiles:
             for tile in line:
                 copy_neutrons = list(tile.moving_neutrons)
                 for neutron in copy_neutrons:
                     self.handle_neutron_move(tile, neutron)
+                    did_something = True
+
+        return did_something
+
+    def spawn_isotopes(self):
+        """
+        Rajoute des isotopes dans l'aire de jeu, en fonction de self.level.
+        Plus le niveau est bas, plus c'est facile, plus on ajoute des isotopes ayant déjà 3 neutrons.
+        Plus le niveau est haut, plus on ajoute des isotopes n'ayant que 1 neutron.
+        """
+        nb_total_tiles = self.w * self.h
+        nb_tile_iso_3 = nb_total_tiles // 3 - self.level * 2
+        nb_tile_iso_3 = max(1, nb_tile_iso_3)
+        nb_tile_iso_2 = nb_total_tiles // 3 - self.level
+        nb_tile_iso_2 = max(2, nb_tile_iso_2)
+        nb_tile_iso_1 = min(self.level, nb_total_tiles // 3)
+
+        nb_tile_iso_3 += random.randint(0, 6)
+        nb_tile_iso_2 += random.randint(0, 4)
+        nb_tile_iso_1 += random.randint(0, 2)
+        choices_isotopes = (
+            [3] * nb_tile_iso_3 + [2] * nb_tile_iso_2 + [1] * nb_tile_iso_1
+        )
+        random.shuffle(choices_isotopes)
+        all_tiles = []
+        for line in self.tiles:
+            all_tiles.extend(line)
+        random.shuffle(all_tiles)
+
+        for tile, iso_type in zip(all_tiles, choices_isotopes):
+            # Il peut y avoir déjà des neutrons sur la tile.
+            # Par exemple, lorsqu'il en reste des niveaux précédents.
+            # Dans ce cas, on passe simplement cette tile. Ça ajoute un petit peu plus d'aléatoiritude au spawnage des isotopes.
+            if not tile.nb_neutron:
+                tile.nb_neutron = iso_type
+
+    def count_neutrons(self):
+        total_neutrons = 0
+        for line in self.tiles:
+            for tile in line:
+                total_neutrons += tile.nb_neutron
+        return total_neutrons
 
     def export_all_tiles(self):
         tiles_to_export = []
@@ -194,30 +259,55 @@ class GameModel:
             line_to_export = [tile.get_gamobjs() for tile in self.tiles[y]]
             tiles_to_export.append(line_to_export)
 
-        x_cursor = self.tile_cursor.x
-        y_cursor = self.tile_cursor.y
-        gamobjs_cursor = tiles_to_export[y_cursor][x_cursor]
-        gamobjs_cursor.append(self.gamobj_cursor)
+        if not self.doing_chain_reaction:
+            x_cursor = self.tile_cursor.x
+            y_cursor = self.tile_cursor.y
+            gamobjs_cursor = tiles_to_export[y_cursor][x_cursor]
+            gamobjs_cursor.append(self.gamobj_cursor)
         return tiles_to_export
 
     def on_game_event(self, event_name):
+
+        if event_name == "chain_reaction":
+            continue_chain = self.process_chain_reaction()
+            if continue_chain:
+                self.chain_reaction_duration += 1
+                return self.compute_delayed_action_chain_react()
+            else:
+                self.doing_chain_reaction = False
+                self.chain_reaction_duration = 0
+                if self.count_neutrons() < 4:
+                    self.level += 1
+                    print(f"Next level : {self.level}")
+                    self.spawn_isotopes()
+                return None
+
+        if self.doing_chain_reaction:
+            # Il y a une réaction en chaîne en cours.
+            # On ne prend en compte aucun input de boutons.
+            return None
 
         move_dir = DIR_INT_FROM_STR.get(event_name)
         if move_dir is not None:
             new_tile_cursor = self.tile_cursor.adjacencies[move_dir]
             if new_tile_cursor is None:
-                return
+                return None
             if self.taking_isotope:
                 if new_tile_cursor.nb_neutron:
                     if new_tile_cursor.nb_neutron > 3:
-                        return
+                        return None
                     self.taking_isotope = False
                     self.gamobj_cursor = "cursor_normal"
                 nb_iso_to_move = self.tile_cursor.nb_neutron
                 self.tile_cursor.nb_neutron = 0
                 new_tile_cursor.nb_neutron += nb_iso_to_move
+                if new_tile_cursor.nb_neutron >= 4:
+                    self.doing_chain_reaction = True
             self.tile_cursor = new_tile_cursor
-            return
+            if self.doing_chain_reaction:
+                return self.compute_delayed_action_chain_react()
+            else:
+                return None
 
         if event_name == "action_1":
             if self.taking_isotope:
@@ -232,8 +322,4 @@ class GameModel:
                     if not iso_on_cursor and not self.told_msg_no_iso:
                         print("You must be on a tile containing some isotopes.")
                         self.told_msg_no_iso = True
-            return
-
-        # TODO test
-        if event_name == "action_2":
-            self.move_neutrons()
+            return None
