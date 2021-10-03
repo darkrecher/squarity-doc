@@ -1,4 +1,4 @@
-# https://i.postimg.cc/dtjWPy50/unstable-isotope.png
+# https://i.postimg.cc/DZ65tWQG/unstable-isotope.png
 
 # https://github.com/darkrecher/squarity-doc/blob/master/jeux/ludum_unstable/unstable_isotopes.py
 
@@ -12,9 +12,9 @@
 
   "img_coords": {
     "cursor_normal": [0, 0],
-    "cursor_select_01": [64, 0],
-    "cursor_select_02": [64, 0],
-    "cursor_select_03": [64, 0],
+    "cursor_select_01": [64, 128],
+    "cursor_select_02": [192, 0],
+    "cursor_select_03": [256, 0],
     "background": [128, 0],
     "isot_01": [0, 64],
     "isot_02": [64, 64],
@@ -109,10 +109,19 @@
 """
 
 """
-Le thème c'est "Unstable".
+Unstable Isotopes
 
-un jeu genre Aqua Splash (sur KadoKado). Le truc avec les boules d'eau. Sauf que ce sera des isotopes instables.
+Ludum Dare 49 - Made by Réchèr, on Squarity.
 
+Inspired from the game AquaSplash, on the website "KadoKado".
+
+Move your cursor with the arrows, select an isotope with the button "1", then move it on another isotope to launch a chain reaction.
+
+Moving costs more and more energy, but the cost resets on chain reactions. Bigger isotopes need more energy.
+
+Making longer chain reactions gives you more energy.
+
+Try to completely clean a level to gain a little energy bonus.
 """
 
 START_ENERGY = 20
@@ -395,7 +404,8 @@ class GameModel:
                     print(f"Your final score is : {self.score}")
                     self.game_ended = True
             else:
-                print("Not enough energy. Try to move a smaller isotope.")
+                if not self.game_ended:
+                    print("Not enough energy. Try to move a smaller isotope.")
             return False
 
     def on_game_event(self, event_name):
