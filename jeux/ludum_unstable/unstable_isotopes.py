@@ -1,5 +1,7 @@
 # https://i.postimg.cc/155hbHMf/unstable-isotope.png
 
+# https://github.com/darkrecher/squarity-doc/blob/master/jeux/ludum_unstable/unstable_isotopes.py
+
 """
 {
   "game_area": {
@@ -42,10 +44,25 @@
 
 """
 Le thème c'est "Unstable".
-Qu'est-ce qu'on va bien pouvoir faire avec ça ?
 
 un jeu genre Aqua Splash (sur KadoKado). Le truc avec les boules d'eau. Sauf que ce sera des isotopes instables.
+
+Gestion de l'énergie.
+Un déplacement d'un neutron coûte un point d'énergie, puis 2, puis 3, etc.
+L'accumulation se remet à zéro lorsqu'on casse un isotope de 4 neutrons.
+
+Ça s'applique aussi pour les déplacements d'isotope ayant plusieurs neutrons.
+Par exemple, je déplace un isotope de 3 neutrons d'une seule case. Ça me coûte 1+2+3 = 6 énergies.
+Je le redéplace d'une autre case, ça me coûte 4+5+6 = 15 énergies supplémentaires.
+
+On gagne de l'énergie avec les réactions en chaînes. La première explosion d'un isotope rapporte 1, la suivante 2, etc.
+
+Lorsqu'on termine un niveau, on gagne autant d'énergie que le numéro du niveau. +1 au niveau 1, +2 au niveau 2, etc.
+
+Et un bonus de +10 énergies lorsqu'on finit vide complètement un niveau.
 """
+
+START_ENERGY = 20
 
 import random
 import json
@@ -97,7 +114,6 @@ class Tile:
 
 
 class GameModel:
-
     def __init__(self):
         self.w = GAME_SIZE_W
         self.h = GAME_SIZE_H
@@ -122,6 +138,9 @@ class GameModel:
         self.chain_reaction_duration = 0
         self.told_msg_no_iso = False
         self.level = 0
+        self.energy = START_ENERGY
+        self.cumulative_cost = 0
+        self.cumulative_isotope_break = 0
         self.spawn_isotopes()
 
     def _make_adjacencies(self, x, y):
@@ -144,13 +163,12 @@ class GameModel:
 
     def compute_delayed_action_chain_react(self):
         # On diminue progressivement le delay. Sinon c'est relou d'attendre que les neutrons se déplacent et etc.
-        delay_ms = 150 - self.chain_reaction_duration*5
+        delay_ms = 150 - self.chain_reaction_duration * 5
         delay_ms = max(delay_ms, 80)
         delayed_action_chain_reaction = {
             "delayed_actions": [{"name": "chain_reaction", "delay_ms": delay_ms}]
         }
         return json.dumps(delayed_action_chain_reaction)
-
 
     def handle_neutron_move(self, initial_tile, neutron):
         if neutron.has_moved:
@@ -203,6 +221,9 @@ class GameModel:
                         MovingNeutron(6, 2, True),
                     ]
                     tile.moving_neutrons.extend(new_neutrons)
+                    self.cumulative_isotope_break += 1
+                    self.energy += int(self.cumulative_isotope_break ** 0.25)
+                    # print("TODO paf", self.energy, self.cumulative_isotope_break, )
                     did_something = True
 
         for line in self.tiles:
@@ -221,9 +242,9 @@ class GameModel:
         Plus le niveau est haut, plus on ajoute des isotopes n'ayant que 1 neutron.
         """
         nb_total_tiles = self.w * self.h
-        nb_tile_iso_3 = nb_total_tiles // 3 - self.level * 2
+        nb_tile_iso_3 = nb_total_tiles // 3 - self.level * 4
         nb_tile_iso_3 = max(1, nb_tile_iso_3)
-        nb_tile_iso_2 = nb_total_tiles // 3 - self.level
+        nb_tile_iso_2 = nb_total_tiles // 3 - self.level * 2
         nb_tile_iso_2 = max(2, nb_tile_iso_2)
         nb_tile_iso_1 = min(self.level, nb_total_tiles // 3)
 
@@ -266,6 +287,29 @@ class GameModel:
             gamobjs_cursor.append(self.gamobj_cursor)
         return tiles_to_export
 
+    def pay_energy(self, nb_neutron_to_move):
+        if nb_neutron_to_move == 0:
+            return True
+
+        cumul_add = 1
+        cost = self.cumulative_cost + cumul_add
+        if nb_neutron_to_move > 1:
+            cumul_add += 1
+            cost += self.cumulative_cost + cumul_add
+        if nb_neutron_to_move > 2:
+            cumul_add += 1
+            cost += self.cumulative_cost + cumul_add
+
+        if self.energy >= cost:
+            self.energy -= cost
+            self.cumulative_cost += cumul_add
+            return True
+        else:
+            # TODO : checker si d'autres mouvements sont possibles.
+            # Si non, terminer le jeu.
+            print("Not enough energy")
+            return False
+
     def on_game_event(self, event_name):
 
         if event_name == "chain_reaction":
@@ -276,10 +320,17 @@ class GameModel:
             else:
                 self.doing_chain_reaction = False
                 self.chain_reaction_duration = 0
-                if self.count_neutrons() < 4:
+                self.cumulative_isotope_break = 0
+                nb_neutron = self.count_neutrons()
+                if nb_neutron < 4:
                     self.level += 1
                     print(f"Next level : {self.level}")
+                    self.energy += self.level
+                    if nb_neutron == 0:
+                        # Bonus de 10 si on nettoie complètement l'aire de jeu.
+                        self.energy += 10
                     self.spawn_isotopes()
+                print("TODO energy :", self.energy)
                 return None
 
         if self.doing_chain_reaction:
@@ -292,17 +343,22 @@ class GameModel:
             new_tile_cursor = self.tile_cursor.adjacencies[move_dir]
             if new_tile_cursor is None:
                 return None
+
             if self.taking_isotope:
                 if new_tile_cursor.nb_neutron:
                     if new_tile_cursor.nb_neutron > 3:
                         return None
                     self.taking_isotope = False
                     self.gamobj_cursor = "cursor_normal"
-                nb_iso_to_move = self.tile_cursor.nb_neutron
+                nb_neutron_to_move = self.tile_cursor.nb_neutron
+                if not self.pay_energy(nb_neutron_to_move):
+                    return None
                 self.tile_cursor.nb_neutron = 0
-                new_tile_cursor.nb_neutron += nb_iso_to_move
+                new_tile_cursor.nb_neutron += nb_neutron_to_move
                 if new_tile_cursor.nb_neutron >= 4:
                     self.doing_chain_reaction = True
+                    self.cumulative_cost = 0
+                print("TODO. energy :", self.energy)
             self.tile_cursor = new_tile_cursor
             if self.doing_chain_reaction:
                 return self.compute_delayed_action_chain_react()
