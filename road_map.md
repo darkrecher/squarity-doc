@@ -7,7 +7,7 @@ Ce sera des road squares.
 Square map :
 
 7:effets_spéciaux 0:moteur 1:IDE
-6:tutos_doc -1:(le milieu) 2:edition_de_level
+6:tutos_doc -1:(le milieu) 2:edition_de_level_et_tileset
 5:contenu_promotion 4:social 3:autoformation_optimisation_prod
 
 le milieu : document "fondateur" expliquant pourquoi je fais ce jeu. Et un autre mini-document expliquant comment je vais fonctionner avec cette road map
@@ -47,6 +47,10 @@ Si possible, au moins une vision par zone.
 
 ## IDE, Environnement de développement
 
+Vision : une console en live, et de la coloration syntaxique.
+
+Vision : timeline de debug, avec un zoom sur la timeline. Les valeurs de quelques variables. Des mini-screenshots dans la timeline montrant l'état du jeu à différentes étapes.
+
 Détecter les erreurs de la config json/yaml
  - Afficher le message catché par-dessus l'aire de jeu
  - Montrer la ligne d'erreur dans la config
@@ -69,14 +73,20 @@ Documenter des solutions pour utiliser un IDE externe.
  - chercher des extensions de nav qui associent fichier texte - zone de texte.
 
 Faciliter le stockage du game code
- - Permettre l'importation de libs de code stockées dans un github : on indique l'adresse du répertoire ou des fichiers dans le github, puis on importe. Je ne sais pas si on peut faire une instruction "import", ou si on les prends directement.
+ - Permettre l'importation de libs de code stockées dans un github : on indique l'adresse du répertoire ou des fichiers dans le github, puis on importe. Je ne sais pas si on peut faire une instruction "import", ou si on les prend directement.
  - Aller chercher le code principal sur un github : en plus des gists.
  - Aller chercher le code principal sur un pastebin : pastebin est relou à cause des CORS. Faudra trouver un moyen d'arranger ça. C'est le serveur qui fera la requête.
+ - Ajouter un bouton pour reloader l'image et les libs de code.
 
-(task) Ajouter un bouton pour reloader l'image et les libs de code.
+Voir si on peut core-dumper toutes les valeurs des variables python, pour avoir un état global de la mémoire au moment où a eu lieu une exception non gérée.
 
+## Éditeur de niveaux, gestion des tilesets
 
-## Éditeur de niveaux
+Vision : une gif où on place des éléments de H2O, et ça met automatiquement les bonnes images.
+
+Vision : construction d'un tileset en piochant des images de plusieurs tilesets existants. Certaines images sont des animations. D'autres sont toutes les possibilités de connexions d'une route.
+
+Vision : édition d'un pack de niveaux, avec des liens entre les niveaux.
 
 Créer un éditeur de niveaux.
 
@@ -99,7 +109,13 @@ Utilisation d'éditeur 2D (LDtk, mapeditor) dans le cadre de Squarity. Convertis
 
 ## Moteur du jeu
 
-Au lieu de répéter les coordonnées des sprites, on donne un point (x, y) de départ, une suite de nom, et ça crée tous les sprites à la suite.
+Vision : des personnages et du texte qui apparaît par dessus, pour faire des "visual novel".
+
+Vision : édition de pattern à la puzzlescript, pour créer un jeu.
+
+Vision : gif animée. on clique sur un sort "create monsters", on fait un rectangle de sélection, ça crée 4 monstres qui tombent. Puis ils tournent et retombent. Et ils disent "ouch" dans une minibulle.
+
+Pour la config : au lieu de répéter les coordonnées des sprites, on donne un point (x, y) de départ, une suite de nom, et ça crée tous les sprites à la suite.
 
 Gamobj qui dépassent de leur tile.
 
@@ -133,8 +149,13 @@ Sauvegarder sa partie. Lier les sauvegardes au compte, pour pouvoir continuer un
 
 boutons configurables.
 
+des layers de différents types : tableau 2D, liste d'objets avec leurs coordonnées, layers statiques qu'on n'a plus besoin de renvoyer mais qu'on peut supprimer après, ...
 
 ## "Effets spéciaux"
+
+Vision : screenshot de drod, avec éclairage et déplacement progressif.
+
+Vision : des effets spéciaux (éclair, explosion, distortion, ...)
 
 Du son, de la musique. Où est-ce qu'on va stocker ces trucs ? Ça prend toujours plein de place.
 
@@ -151,6 +172,8 @@ animation globale, et animation d'un gamobj.
 
 ## Tutoriels, manuels, conseils, ...
 
+Vision : un site genre un blog, avec des articles : "recensement des jeux de type soko-ban", "transitions entre types de terrain", "les objets squarity.layer"
+
 Des tutoriels, texte ou vidéo.
 
 Définir un vocabulaire spécifique : arena, tile, gamobj, sprite. Mais "gamobj" c'est pourri comme mot.
@@ -164,6 +187,8 @@ CMS pour mettre tout ce bazar là-dedans. Tester SocialHome.
 
 ## Contenu et promotion
 
+Vision : une liste avec plein de jeux comme dans Youtube. Squarenigma, Match-conquest, Footnotes, ...
+
 Participer au Ludum Dare et à d'autres game jams.
 
 Créer des jeux pour une personne ou une organisation spécifique, pour faire connaître Squarity.
@@ -174,6 +199,10 @@ Live coding (Twitch, Youtube, ...)
 
 
 ## Social
+
+Vision : un jeu, avec des avis en dessous, dont un avis de résumé. Des icônes ESRB. Une liste de sources (tileset, levels, jeux original, ...).
+
+Vision : le profil d'une personne. Les badges gagnés. Les scores. Les jeux favoris. Les suggestions de jeux.
 
 Création de comptes sur le site, pour enregistrer ses jeux et commenter ceux des autres.
 
@@ -202,6 +231,8 @@ Organisation de game jams.
 
 
 ## Meta
+
+Vision : une image avec une cervelle qui explose et puis c'est tout.
 
 Documenter le projet, son architecture, les choix d'architecture et d'outils techniques.
 
