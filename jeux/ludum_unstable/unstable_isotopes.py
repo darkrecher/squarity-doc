@@ -122,6 +122,8 @@ Moving costs more and more energy, but the cost resets on chain reactions. Bigge
 Making longer chain reactions gives you more energy.
 
 Try to completely clean a level to gain a little energy bonus.
+
+When you have not enough energy, push the button "2" to restart a game.
 """
 
 START_ENERGY = 20
@@ -400,8 +402,10 @@ class GameModel:
             min_isotope = self.get_min_isotope()
             if min_isotope == nb_neutron_to_move:
                 if not self.game_ended:
+                    print("-----")
                     print("You can not move any isotope.")
                     print(f"Your final score is : {self.score}")
+                    print("Push the button '2' to restart a game.")
                     self.game_ended = True
             else:
                 if not self.game_ended:
@@ -479,3 +483,24 @@ class GameModel:
                         print("You must be on a tile containing some isotopes.")
                         self.told_msg_no_iso = True
             return None
+
+        if event_name == "action_2":
+            if not self.game_ended:
+                return None
+            print("----")
+            print("Restart at level 0.")
+            self.taking_isotope = False
+            self.gamobj_cursor = "cursor_normal"
+            for line in self.tiles:
+                for tile in line:
+                    tile.nb_neutron = 0
+            self.doing_chain_reaction = False
+            self.chain_reaction_duration = 0
+            self.told_msg_no_iso = False
+            self.level = 0
+            self.energy = START_ENERGY
+            self.cumulative_cost = 0
+            self.cumulative_isotope_break = 0
+            self.score = 0
+            self.game_ended = False
+            self.spawn_isotopes()
