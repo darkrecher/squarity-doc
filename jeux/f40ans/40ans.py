@@ -1,5 +1,4 @@
-# https://i.ibb.co/9yJ24hV/sprites.png
-# https://i.ibb.co/WVg7xnB/sprites.png
+# https://i.ibb.co/NnxW98T/sprites.png
 
 
 """
@@ -30,10 +29,19 @@
     "pote_legs_shake": [0, 223],
 
     "me_head": [288, 70],
-    "me_torso": [288, 134],
+    "me_torso_norm": [288, 134],
+    "me_torso_offer_1": [224, 134],
+    "me_torso_offer_2": [160, 134],
     "me_legs": [288, 198],
 
-    "inv_gift_mcdo": [1, 910],
+    "shop_table_plank": [753, 900],
+    "shop_table_pole": [817, 900],
+
+    "buffoon_cap_centered": [81, 888],
+    "buffoon_cap_1": [81, 928],
+    "buffoon_cap_2": [81, 864],
+
+    "gift_mcdo_centered": [1, 910],
     "gift_mcdo_1": [1, 928],
     "gift_mcdo_2": [1, 864],
     "gift_mcdo_1_shake": [1, 948],
@@ -488,6 +496,52 @@ class Background(SceneObject):
                 func_get_tile(x, y).append(self.array_gamobjs[y][x])
 
 
+class ShopTable(SceneObject):
+
+    GAMOBJS_NORMAL = (
+        ("shop_table_pole", 0, 0),
+        ("shop_table_plank", 1, 0),
+        ("shop_table_pole", 2, 0),
+    )
+
+    def __init__(self, x, y):
+        super().__init__(x, y, "shop_table")
+        self.current_gamobjs = ShopTable.GAMOBJS_NORMAL
+
+
+class TakeableObject(SceneObject):
+    pass
+
+
+class BuffoonCap(TakeableObject):
+
+    GAMOBJS_LAID = (("buffoon_cap_centered", 0, 0),)
+
+    GAMOBJS_HELD = (
+        ("buffoon_cap_1", 0, 0),
+        ("buffoon_cap_2", 0, -1),
+    )
+
+    def __init__(self, x, y):
+        super().__init__(x, y, "buffoon_cap")
+        self.visible = False
+        self.gamobjs_laid = BuffoonCap.GAMOBJS_LAID
+        self.gamobjs_held = BuffoonCap.GAMOBJS_HELD
+        self.hold()
+
+    def _update_gamobjs(self):
+        self.current_gamobjs = self.gamobjs_laid if self.is_laid else self.gamobjs_held
+
+    def lay(self):
+        self.is_laid = True
+        self.visible = True
+        self._update_gamobjs()
+
+    def hold(self):
+        self.is_laid = False
+        self._update_gamobjs()
+
+
 class SchoolPole(SceneObject):
 
     GAMOBJS_NORMAL = (
@@ -539,13 +593,28 @@ class CharacterMe(SceneObject):
 
     GAMOBJS_NORMAL = (
         ("me_head", 0, -2),
-        ("me_torso", 0, -1),
+        ("me_torso_norm", 0, -1),
+        ("me_legs", 0, 0),
+    )
+
+    GAMOBJS_OFFER = (
+        ("me_head", 0, -2),
+        ("me_torso_offer_1", 0, -1),
+        ("me_torso_offer_2", -1, -1),
         ("me_legs", 0, 0),
     )
 
     def __init__(self, x, y):
         super().__init__(x, y, "me")
-        self.current_gamobjs = CharacterMe.GAMOBJS_NORMAL
+        self.set_offer(False)
+
+    def set_offer(self, is_offering):
+        self.is_offering = is_offering
+        self.current_gamobjs = (
+            CharacterMe.GAMOBJS_OFFER
+            if self.is_offering
+            else CharacterMe.GAMOBJS_NORMAL
+        )
 
 
 class CharacterPote(SceneObject):
@@ -678,6 +747,15 @@ class CharacterMonsieurR(SceneObject):
         self._set_current_gamobjs()
 
 
+class Inventory(SceneObject):
+    def __init__(self, x, y):
+        super().__init__(x, y, "inventory")
+        self.held_object_name = None
+
+    def set_held_object_name(self, held_object_name):
+        self.held_object_name = held_object_name
+
+
 class GameModel:
 
     FADE_TO_BLACK_QTY = 5
@@ -725,8 +803,8 @@ class GameModel:
         self.init_all_scenes()
 
         # TODO : debug.
-        # self.current_scene = self.scenes["outside"]
-        self.current_scene = self.scenes["school"]
+        self.current_scene = self.scenes["shop"]
+        # self.current_scene = self.scenes["school"]
 
         self.next_scene = None
         self.special_effect_fade_to_black = 0
@@ -741,6 +819,7 @@ class GameModel:
         scene_outside = Scene("outside", outside_connectors)
         scene_outside.add_object(Background("outside"))
         scene_outside.add_object(CharacterMe(4, 5))
+        scene_outside.add_object(BuffoonCap(0, 0))
         scene_outside.set_focused_object("me")
 
         party_connectors = (
@@ -752,12 +831,19 @@ class GameModel:
         scene_party.add_object(Background("party"))
         scene_party.add_object(CharacterMe(7, 5))
         scene_party.add_object(CharacterPote(1, 5))
+        scene_party.add_object(BuffoonCap(0, 0))
         scene_party.set_focused_object("me")
 
         shop_connectors = ((4, 3, "U", "outside"),)
         scene_shop = Scene("shop", shop_connectors)
         scene_shop.add_object(Background("shop"))
-        scene_shop.add_object(CharacterMe(4, 3))
+        # TODO : unvariabilize.
+        character_me = CharacterMe(4, 3)
+        scene_shop.add_object(character_me)
+        scene_shop.add_object(ShopTable(0, 6))
+        buffoon_cap = BuffoonCap(1, 5)
+        buffoon_cap.hold()
+        scene_shop.add_object(buffoon_cap)
         scene_shop.set_focused_object("me")
 
         scene_school = Scene("school")
@@ -771,6 +857,9 @@ class GameModel:
         scene_school.add_object(CharacterMonsieurR(9, 5))
         scene_school.add_object(SchoolPole(6, 6))
         scene_school.set_focused_object("pote")
+
+        self.inventory = Inventory(0, 0)
+        self.inventory.set_held_object_name("buffoon_cap")
 
         scenes = (scene_outside, scene_party, scene_shop, scene_school)
         self.scenes = {scene.name: scene for scene in scenes}
@@ -886,6 +975,26 @@ class GameModel:
             if pote.x >= 0:
                 return GameModel.DA_POTE_FLEES
 
+    def set_offer_me(self, focused_obj, is_offering):
+        if is_offering == focused_obj.is_offering:
+            return
+
+        if self.inventory.held_object_name is None:
+            return
+        held_object = self.current_scene.indexed_scene_objects.get(
+            self.inventory.held_object_name
+        )
+        if held_object is None:
+            return
+
+        focused_obj.set_offer(is_offering)
+        if is_offering:
+            held_object.visible = True
+            held_object.x = focused_obj.x - 1
+            held_object.y = focused_obj.y - 1
+        else:
+            held_object.visible = False
+
     def on_game_event(self, event_name):
         # Toute la gestion de la game logic est en dur là dedans, à l'arrache.
         # Pas le temps de faire mieux.
@@ -898,6 +1007,10 @@ class GameModel:
         if move_coords is not None:
 
             if focused_obj is not None:
+
+                if focused_obj.name == "me":
+                    self.set_offer_me(focused_obj, False)
+
                 next_scene_name = self.current_scene.get_connected_scene(event_name)
                 if next_scene_name is not None:
                     self.next_scene = self.scenes[next_scene_name]
@@ -905,15 +1018,15 @@ class GameModel:
                 else:
                     focused_obj.move(*move_coords)
 
-            if self.current_scene.name == "school":
-                if focused_obj.name == "monsieur_R":
-                    if focused_obj.trigger_shake:
-                        # Ouh le vilain code super crade !
-                        if pote is not None and pote.x == focused_obj.x:
-                            pote.move(-1, 0)
-                            return GameModel.DA_SHAKE_START_POTE_FLEES
-                        else:
-                            return focused_obj.trigger_shake
+                if self.current_scene.name == "school":
+                    if focused_obj.name == "monsieur_R":
+                        if focused_obj.trigger_shake:
+                            # Ouh le vilain code super crade !
+                            if pote is not None and pote.x == focused_obj.x:
+                                pote.move(-1, 0)
+                                return GameModel.DA_SHAKE_START_POTE_FLEES
+                            else:
+                                return focused_obj.trigger_shake
 
         elif event_name == "action_1":
             if self.current_scene.name == "school":
@@ -925,6 +1038,10 @@ class GameModel:
                                 pote.set_offer(False)
                     elif focused_obj.name == "pote":
                         focused_obj.set_offer(not focused_obj.is_offering)
+            else:
+                if focused_obj is not None:
+                    is_offering_new = not focused_obj.is_offering
+                    self.set_offer_me(focused_obj, is_offering_new)
 
         elif event_name == "action_2":
             if self.current_scene.name == "school":
