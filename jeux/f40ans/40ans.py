@@ -594,6 +594,19 @@ class PlasticSword(TakeableObject):
         )
 
 
+class BuffoonCapOnHead(SceneObject):
+
+    GAMOBJS_NORMAL = (
+        ("buffoon_cap_1", 0, 0),
+        ("buffoon_cap_2", 0, -1),
+    )
+
+    def __init__(self, x, y):
+        super().__init__(x, y, "buffoon_cap_on_head")
+        self.current_gamobjs = BuffoonCapOnHead.GAMOBJS_NORMAL
+        self.visible = False
+
+
 class SchoolPole(SceneObject):
 
     GAMOBJS_NORMAL = (
@@ -873,10 +886,7 @@ class GameModel:
 
         self.init_all_scenes()
 
-        # TODO : debug.
-        self.current_scene = self.scenes["shop"]
-        # self.current_scene = self.scenes["school"]
-
+        self.current_scene = self.scenes["outside"]
         self.next_scene = None
         self.special_effect_fade_to_black = 0
         self.special_effect_shake = False
@@ -910,24 +920,17 @@ class GameModel:
         scene_party.add_object(BuffoonCap(0, 0))
         scene_party.add_object(BuffoonScepter(0, 0))
         scene_party.add_object(PlasticSword(0, 0))
+        scene_party.add_object(BuffoonCapOnHead(1, 3))
         scene_party.set_focused_object("me")
 
         shop_connectors = ((4, 3, "U", "outside"),)
         scene_shop = Scene("shop", shop_connectors)
         scene_shop.add_object(Background("shop"))
-        # TODO : unvariabilize.
-        character_me = CharacterMe(4, 3)
-        scene_shop.add_object(character_me)
+        scene_shop.add_object(CharacterMe(4, 3))
         scene_shop.add_object(ShopTable(0, 6))
-        buffoon_cap = BuffoonCap(1, 5)
-        buffoon_cap.lay()
-        scene_shop.add_object(buffoon_cap)
-        buffoon_scepter = BuffoonScepter(2, 5)
-        buffoon_scepter.lay()
-        scene_shop.add_object(buffoon_scepter)
-        plastic_sword = PlasticSword(3, 5)
-        plastic_sword.lay()
-        scene_shop.add_object(plastic_sword)
+        scene_shop.add_object(BuffoonCap(1, 5))
+        scene_shop.add_object(BuffoonScepter(1, 5))
+        scene_shop.add_object(PlasticSword(1, 5))
         scene_shop.set_focused_object("me")
 
         scene_school = Scene("school")
@@ -948,7 +951,10 @@ class GameModel:
         self.scenes = {scene.name: scene for scene in scenes}
         self.restart_story = False
 
+        self.global_advancement = 0
         self.state_give_gift = 0
+        self.dance_counter = 0
+        self.apply_global_advancement()
 
     def is_gamobj_shakable(self, gamobj_name):
         authorized_prefixes = [
@@ -1090,6 +1096,8 @@ class GameModel:
         if self.state_give_gift <= 3:
             return GameModel.DA_GIVE_GIFT_TO_POTE
         else:
+            self.global_advancement += 1
+            print("Validated", self.global_advancement)
             return None
 
     def set_offer_me(self, focused_obj, is_offering):
@@ -1112,6 +1120,60 @@ class GameModel:
         else:
             held_object.visible = False
 
+    def apply_global_advancement(self):
+
+        if self.global_advancement == 6:
+            self.next_scene = self.scenes["school"]
+            return GameModel.DA_CHANGE_SCENE_DOING
+
+        if self.global_advancement in (0, 2, 4):
+
+            obj_names_to_lay = {
+                0: "buffoon_cap",
+                2: "buffoon_scepter",
+                4: "plastic_sword",
+            }
+            obj_names_to_hide = {
+                0: None,
+                2: "buffoon_cap",
+                4: "buffoon_scepter",
+            }
+            obj_name_to_lay = obj_names_to_lay[self.global_advancement]
+            # Pas de fonction dict.get. Je récupère directement les infos.
+            # Si les objets sont pas présents sur la scène, ça plantera. Osef.
+            obj_to_lay = self.scenes["shop"].indexed_scene_objects[obj_name_to_lay]
+            obj_to_lay.lay()
+
+            obj_name_to_hide = obj_names_to_hide[self.global_advancement]
+            if obj_name_to_hide is not None:
+                for scene_name in ("shop", "outside", "party"):
+                    obj_to_hide = self.scenes[scene_name].indexed_scene_objects[
+                        obj_name_to_hide
+                    ]
+                    obj_to_hide.visible = False
+
+            me_outside = self.scenes["outside"].indexed_scene_objects["me"]
+            me_outside.x = 4
+            me_outside.y = 5
+            me_party = self.scenes["party"].indexed_scene_objects["me"]
+            me_party.x = 7
+            me_party.y = 5
+            pote = self.scenes["party"].indexed_scene_objects["pote"]
+            pote.set_smile(True)
+            pote.set_offer(False)
+
+            self.state_give_gift = 0
+            self.dance_counter = 0
+
+            if self.global_advancement == 2:
+                buffoon_cap_on_head = self.scenes["party"].indexed_scene_objects[
+                    "buffoon_cap_on_head"
+                ]
+                buffoon_cap_on_head.visible = True
+
+            self.next_scene = self.scenes["outside"]
+            return GameModel.DA_CHANGE_SCENE_DOING
+
     def on_game_event(self, event_name):
         # Toute la gestion de la game logic est en dur là dedans, à l'arrache.
         # Pas le temps de faire mieux.
@@ -1122,6 +1184,14 @@ class GameModel:
             pote = self.current_scene.indexed_scene_objects.get("pote")
 
         if move_coords is not None:
+
+            if self.global_advancement in (1, 3, 5):
+                if move_coords == [0, -1]:
+                    self.dance_counter += 1
+                    if self.dance_counter == 4:
+                        self.dance_counter = 0
+                        self.global_advancement += 1
+                        return self.apply_global_advancement()
 
             if focused_obj is not None:
 
