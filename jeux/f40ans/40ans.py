@@ -1,5 +1,4 @@
-# https://i.ibb.co/d2vjsdk/sprites.png
-# https://zippyimage.com/images/2021/12/03/e58c0c7bd72cb30441f6af395493b85c.png
+# https://i.ibb.co/7CMfqmZ/sprites.png
 
 
 """
@@ -11,32 +10,77 @@
   "tile_size": 64,
 
   "img_coords": {
-    "pote_over_head": [0, 225],
-    "pote_head": [0, 20],
-    "pote_torso": [0, 84],
-    "pote_legs": [0, 148],
+    "pote_over_head": [0, 6],
+    "pote_head_smile": [0, 70],
+    "pote_head": [64, 70],
+    "pote_torso": [0, 134],
+    "pote_legs": [0, 198],
 
-    "pote_head": [0, 20],
-    "pote_torso": [0, 84],
-    "pote_legs": [0, 148],
+    "pote_over_head_shake": [0, 31],
+    "pote_head_smile_shake": [0, 95],
+    "pote_head_shake": [64, 95],
+    "pote_torso_shake": [0, 159],
+    "pote_legs_shake": [0, 223],
 
+    "me_head": [288, 70],
+    "me_torso": [288, 134],
+    "me_legs": [288, 198],
 
-    "me_head": [288, 20],
-    "me_torso": [288, 84],
-    "me_legs": [288, 148],
+    "R_norm_00_00": [0, 325],
+    "R_norm_00_01": [0, 389],
+    "R_norm_00_02": [0, 453],
+    "R_norm_00_03": [0, 517],
+    "R_norm_00_04": [0, 581],
+    "R_norm_00_05": [0, 645],
+    "R_norm_01_00": [64, 325],
+    "R_norm_01_01": [64, 389],
+    "R_norm_01_02": [64, 453],
+    "R_norm_01_03": [64, 517],
+    "R_norm_01_04": [64, 581],
+    "R_norm_01_05": [64, 645],
 
-    "R_norm_00_00": [0, 275],
-    "R_norm_00_01": [0, 339],
-    "R_norm_00_02": [0, 403],
-    "R_norm_00_03": [0, 467],
-    "R_norm_00_04": [0, 531],
-    "R_norm_00_05": [0, 595],
-    "R_norm_01_00": [64, 275],
-    "R_norm_01_01": [64, 339],
-    "R_norm_01_02": [64, 403],
-    "R_norm_01_03": [64, 467],
-    "R_norm_01_04": [64, 531],
-    "R_norm_01_05": [64, 595],
+    "R_norm_00_00_shake": [0, 345],
+    "R_norm_00_01_shake": [0, 409],
+    "R_norm_00_02_shake": [0, 473],
+    "R_norm_00_03_shake": [0, 537],
+    "R_norm_00_04_shake": [0, 601],
+    "R_norm_00_05_shake": [0, 665],
+    "R_norm_01_00_shake": [64, 345],
+    "R_norm_01_01_shake": [64, 409],
+    "R_norm_01_02_shake": [64, 473],
+    "R_norm_01_03_shake": [64, 537],
+    "R_norm_01_04_shake": [64, 601],
+    "R_norm_01_05_shake": [64, 665],
+
+    "R_angry_00_00": [128, 261],
+    "R_angry_00_01": [128, 325],
+    "R_angry_00_02": [128, 389],
+    "R_angry_00_03": [128, 453],
+    "R_angry_00_04": [128, 517],
+    "R_angry_00_05": [128, 581],
+    "R_angry_00_06": [128, 645],
+    "R_angry_01_00": [192, 261],
+    "R_angry_01_01": [192, 325],
+    "R_angry_01_02": [192, 389],
+    "R_angry_01_03": [192, 453],
+    "R_angry_01_04": [192, 517],
+    "R_angry_01_05": [192, 581],
+    "R_angry_01_06": [192, 645],
+
+    "R_angry_00_00_shake": [128, 281],
+    "R_angry_00_01_shake": [128, 345],
+    "R_angry_00_02_shake": [128, 409],
+    "R_angry_00_03_shake": [128, 473],
+    "R_angry_00_04_shake": [128, 537],
+    "R_angry_00_05_shake": [128, 601],
+    "R_angry_00_06_shake": [128, 665],
+    "R_angry_01_00_shake": [192, 281],
+    "R_angry_01_01_shake": [192, 345],
+    "R_angry_01_02_shake": [192, 409],
+    "R_angry_01_03_shake": [192, 473],
+    "R_angry_01_04_shake": [192, 537],
+    "R_angry_01_05_shake": [192, 601],
+    "R_angry_01_06_shake": [192, 665],
 
     "bg_outside_00_00": [369, 1],
     "bg_outside_00_01": [369, 65],
@@ -359,21 +403,28 @@ class Scene:
         self.connectors = connectors
         self.ordered_scene_objects = []
         self.indexed_scene_objects = {}
+        self.focused_scene_object = None
 
     def add_object(self, scene_object):
         self.ordered_scene_objects.append(scene_object)
-        name_obj = scene_object.name
-        if name_obj in self.indexed_scene_objects:
+        obj_name = scene_object.name
+        if obj_name in self.indexed_scene_objects:
             raise Exception(
-                f"Ajout de plusieurs scene objets ayant le même nom, not supposed to happen. {name_obj}"
+                f"Ajout de plusieurs scene objets ayant le même nom, not supposed to happen. {obj_name}"
             )
-        self.indexed_scene_objects[name_obj] = scene_object
+        self.indexed_scene_objects[obj_name] = scene_object
 
-    def get_connected_scene_for_me(self, move_dir):
-        scene_obj_me = self.indexed_scene_objects.get("me")
-        if scene_obj_me is None:
+    def set_focused_object(self, obj_name):
+        if obj_name not in self.indexed_scene_objects:
+            raise Exception(
+                f"Scene object non présent dans la scène. Not supposed to happen. {obj_name}"
+            )
+        self.focused_scene_object = self.indexed_scene_objects[obj_name]
+
+    def get_connected_scene(self, move_dir):
+        if self.focused_scene_object is None:
             return None
-        check_tuple = scene_obj_me.x, scene_obj_me.y, move_dir
+        check_tuple = self.focused_scene_object.x, self.focused_scene_object.y, move_dir
         for conn_x, conn_y, expected_dir, conn_dest in self.connectors:
             if check_tuple == (conn_x, conn_y, expected_dir):
                 return conn_dest
@@ -412,14 +463,22 @@ class CharacterMe(SceneObject):
 class CharacterPote(SceneObject):
 
     GAMOBJS_NORMAL = (
-        ("pote_head", 0, -2),
+        ("pote_over_head", 0, -3),
+        ("pote_head_smile", 0, -2),
         ("pote_torso", 0, -1),
         ("pote_legs", 0, 0),
     )
 
     def __init__(self, x, y):
         super().__init__(x, y, "pote")
-        self.current_gamobjs = CharacterPote.GAMOBJS_NORMAL
+        self.current_gamobjs = list(CharacterPote.GAMOBJS_NORMAL)
+        self.is_smiling = True
+
+    def toggle_smile(self):
+        self.is_smiling = not self.is_smiling
+        # TODO : bug visuel quand le pote ne smile pas et que ça shake. Pas le temps de corriger.
+        gamobj_head = ["pote_head", "pote_head_smile"][int(self.is_smiling)]
+        self.current_gamobjs[1] = (gamobj_head, 0, -2)
 
 
 class CharacterMonsieurR(SceneObject):
@@ -439,11 +498,35 @@ class CharacterMonsieurR(SceneObject):
         ("R_norm_01_05", 1, 0),
     )
 
+    GAMOBJS_ANGRY = (
+        ("R_angry_00_00", 0, -6),
+        ("R_angry_00_01", 0, -5),
+        ("R_angry_00_02", 0, -4),
+        ("R_angry_00_03", 0, -3),
+        ("R_angry_00_04", 0, -2),
+        ("R_angry_00_05", 0, -1),
+        ("R_angry_00_06", 0, 0),
+        ("R_angry_01_00", 1, -6),
+        ("R_angry_01_01", 1, -5),
+        ("R_angry_01_02", 1, -4),
+        ("R_angry_01_03", 1, -3),
+        ("R_angry_01_04", 1, -2),
+        ("R_angry_01_05", 1, -1),
+        ("R_angry_01_06", 1, 0),
+    )
+
     def __init__(self, x, y):
         super().__init__(x, y, "monsieur_R")
-        self.current_gamobjs = CharacterMonsieurR.GAMOBJS_NORMAL
         self.is_flying = False
         self.trigger_shake = False
+        self.is_angry = False
+        self._set_current_gamobjs()
+
+    def _set_current_gamobjs(self):
+        self.current_gamobjs = [
+            CharacterMonsieurR.GAMOBJS_NORMAL,
+            CharacterMonsieurR.GAMOBJS_ANGRY,
+        ][int(self.is_angry)]
 
     def move(self, move_x, move_y):
         if not self.is_flying:
@@ -458,6 +541,10 @@ class CharacterMonsieurR(SceneObject):
                     self.trigger_shake = GameModel.DA_SHAKE_DOING
                 else:
                     self.trigger_shake = GameModel.DA_SHAKE_START
+
+    def toggle_angry(self):
+        self.is_angry = not self.is_angry
+        self._set_current_gamobjs()
 
 
 class GameModel:
@@ -517,6 +604,7 @@ class GameModel:
         scene_outside = Scene("outside", outside_connectors)
         scene_outside.add_object(Background("outside"))
         scene_outside.add_object(CharacterMe(4, 5))
+        scene_outside.set_focused_object("me")
 
         party_connectors = (
             (7, 6, "R", "outside"),
@@ -527,23 +615,26 @@ class GameModel:
         scene_party.add_object(Background("party"))
         scene_party.add_object(CharacterMe(7, 5))
         scene_party.add_object(CharacterPote(1, 5))
+        scene_party.set_focused_object("me")
 
         shop_connectors = ((4, 3, "U", "outside"),)
         scene_shop = Scene("shop", shop_connectors)
         scene_shop.add_object(Background("shop"))
         scene_shop.add_object(CharacterMe(4, 3))
+        scene_shop.set_focused_object("me")
 
         scene_school = Scene("school")
         scene_school.add_object(Background("school"))
         scene_school.add_object(CharacterPote(1, 5))
         scene_school.add_object(CharacterMonsieurR(5, 5))
+        scene_school.set_focused_object("monsieur_R")
 
         scenes = (scene_outside, scene_party, scene_shop, scene_school)
         self.scenes = {scene.name: scene for scene in scenes}
         self.restart_story = False
 
     def is_gamobj_shakable(self, gamobj_name):
-        authorized_prefixes = ["bg_school_"]
+        authorized_prefixes = ["bg_school_", "pote_", "R_norm_", "R_angry_"]
         for prefix in authorized_prefixes:
             if gamobj_name.startswith(prefix):
                 return True
@@ -636,29 +727,42 @@ class GameModel:
         # Toute la gestion de la game logic est en dur là dedans, à l'arrache.
         # Pas le temps de faire mieux.
         move_coords = squarity.MOVE_FROM_DIR.get(event_name)
+        focused_obj = self.current_scene.focused_scene_object
+
         if move_coords is not None:
 
-            if self.current_scene.name != "school":
-                next_scene_name = self.current_scene.get_connected_scene_for_me(
-                    event_name
-                )
+            if focused_obj is not None:
+                next_scene_name = self.current_scene.get_connected_scene(event_name)
                 if next_scene_name is not None:
                     self.next_scene = self.scenes[next_scene_name]
                     return GameModel.DA_CHANGE_SCENE_DOING
                 else:
-                    self.current_scene.indexed_scene_objects["me"].move(*move_coords)
-            else:
-                monsieur_r = self.current_scene.indexed_scene_objects.get("monsieur_R")
-                if monsieur_r is not None:
-                    monsieur_r.move(*move_coords)
-                    if monsieur_r.trigger_shake:
-                        return monsieur_r.trigger_shake
+                    focused_obj.move(*move_coords)
+
+            if self.current_scene.name == "school":
+                if focused_obj.name == "monsieur_R":
+                    if focused_obj.trigger_shake:
+                        return focused_obj.trigger_shake
+
+        elif event_name == "action_1":
+            if self.current_scene.name == "school":
+                if focused_obj is not None:
+                    if focused_obj.name == "monsieur_R":
+                        focused_obj.toggle_angry()
+                    elif focused_obj.name == "pote":
+                        focused_obj.toggle_smile()
+
+        elif event_name == "action_2":
+            if self.current_scene.name == "school":
+                if focused_obj.name == "pote":
+                    next_focus = "monsieur_R"
+                else:
+                    next_focus = "pote"
+            self.current_scene.set_focused_object(next_focus)
+            # TODO : afficher un truc en dessous du nouveau personnage contrôlé.
 
         elif event_name == "change_scene":
             return self.handle_change_scene()
 
         elif event_name == "shake":
             return self.handle_shake()
-
-        elif event_name == "action_2":
-            self.special_effect_shake = not self.special_effect_shake
