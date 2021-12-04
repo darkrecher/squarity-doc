@@ -1,4 +1,4 @@
-# https://i.ibb.co/7CMfqmZ/sprites.png
+# https://i.ibb.co/9yJ24hV/sprites.png
 
 
 """
@@ -13,18 +13,30 @@
     "pote_over_head": [0, 6],
     "pote_head_smile": [0, 70],
     "pote_head": [64, 70],
-    "pote_torso": [0, 134],
+    "pote_torso_norm": [0, 134],
+    "pote_torso_offer_1": [64, 134],
+    "pote_torso_offer_2a": [128, 134],
+    "pote_torso_offer_2b": [128, 70],
     "pote_legs": [0, 198],
 
     "pote_over_head_shake": [0, 31],
     "pote_head_smile_shake": [0, 95],
     "pote_head_shake": [64, 95],
-    "pote_torso_shake": [0, 159],
+    "pote_torso_norm_shake": [0, 159],
+    "pote_torso_offer_1_shake": [64, 159],
+    "pote_torso_offer_2a_shake": [128, 159],
+    "pote_torso_offer_2b_shake": [128, 95],
     "pote_legs_shake": [0, 223],
 
     "me_head": [288, 70],
     "me_torso": [288, 134],
     "me_legs": [288, 198],
+
+    "inv_gift_mcdo": [1, 910],
+    "gift_mcdo_1": [1, 928],
+    "gift_mcdo_2": [1, 864],
+    "gift_mcdo_1_shake": [1, 948],
+    "gift_mcdo_2_shake": [1, 884],
 
     "R_norm_00_00": [0, 325],
     "R_norm_00_01": [0, 389],
@@ -386,7 +398,8 @@ class SceneObject:
         self.current_gamobjs = []
         self.visible = True
 
-    def move(self, move_x, move_y):
+    def move(self, move_x, move_y, passable_coords=None):
+        # TODO : check passable coords.
         self.x += move_x
         self.y += move_y
 
@@ -447,6 +460,19 @@ class Background(SceneObject):
                 func_get_tile(x, y).append(self.array_gamobjs[y][x])
 
 
+class GiftMcDo(SceneObject):
+
+    GAMOBJS_NORMAL = (
+        ("gift_mcdo_1", 0, 0),
+        ("gift_mcdo_2", 0, -1),
+    )
+
+    def __init__(self, x, y):
+        super().__init__(x, y, "gift_mcdo")
+        self.current_gamobjs = GiftMcDo.GAMOBJS_NORMAL
+        self.visible = False
+
+
 class CharacterMe(SceneObject):
 
     GAMOBJS_NORMAL = (
@@ -465,20 +491,63 @@ class CharacterPote(SceneObject):
     GAMOBJS_NORMAL = (
         ("pote_over_head", 0, -3),
         ("pote_head_smile", 0, -2),
-        ("pote_torso", 0, -1),
+        ("pote_torso_norm", 0, -1),
+        ("pote_legs", 0, 0),
+    )
+
+    GAMOBJS_OFFER = (
+        ("pote_over_head", 0, -3),
+        ("pote_head_smile", 0, -2),
+        ("pote_torso_offer_1", 0, -1),
+        ("pote_torso_offer_2a", 1, -1),
+        ("pote_torso_offer_2b", 1, -2),
         ("pote_legs", 0, 0),
     )
 
     def __init__(self, x, y):
         super().__init__(x, y, "pote")
         self.current_gamobjs = list(CharacterPote.GAMOBJS_NORMAL)
+        # Et zut. Obligé de définir cette variable à cause de dépendance circulaire. Tant pis.
         self.is_smiling = True
+        self.held_object = None
+        self.set_offer(False)
+        self.set_smile(True)
 
-    def toggle_smile(self):
-        self.is_smiling = not self.is_smiling
-        # TODO : bug visuel quand le pote ne smile pas et que ça shake. Pas le temps de corriger.
-        gamobj_head = ["pote_head", "pote_head_smile"][int(self.is_smiling)]
+    def _update_smile(self):
+        # TODO : bug visuel quand le pote ne smile pas, n'offre pas, et que ça shake.
+        # Et aussi que le pote smile, offre, et que ça shake. Pas le temps de corriger.
+        gamobj_head = "pote_head_smile" if self.is_smiling else "pote_head"
         self.current_gamobjs[1] = (gamobj_head, 0, -2)
+
+    def move(self, move_x, move_y, passable_coords=[]):
+        if self.is_offering:
+            self.set_offer(False)
+        super().move(move_x, move_y, passable_coords)
+
+    def set_held_object(self, held_object):
+        self.held_object = held_object
+
+    def set_offer(self, is_offering):
+        self.is_offering = is_offering
+        gamobjs = (
+            CharacterPote.GAMOBJS_OFFER
+            if self.is_offering
+            else CharacterPote.GAMOBJS_NORMAL
+        )
+        self.current_gamobjs = list(gamobjs)
+        self._update_smile()
+
+        if self.held_object is not None:
+            if self.is_offering:
+                self.held_object.visible = True
+                self.held_object.x = self.x + 1
+                self.held_object.y = self.y - 1
+            else:
+                self.held_object.visible = False
+
+    def set_smile(self, is_smiling):
+        self.is_smiling = is_smiling
+        self._update_smile()
 
 
 class CharacterMonsieurR(SceneObject):
@@ -567,6 +636,12 @@ class GameModel:
     DA_SHAKE_DONE_CHANGE_SCENE = """
         { "delayed_actions": [ {"name": "change_scene", "delay_ms": 70} ], "player_locks": ["change_scene"], "player_unlocks": ["shake"] }
     """
+    DA_SHAKE_START_POTE_FLEES = """
+        { "delayed_actions": [ {"name": "shake", "delay_ms": 200}, {"name": "pote_flees", "delay_ms": 300} ], "player_locks": ["shake"] }
+    """
+    DA_POTE_FLEES = """
+        { "delayed_actions": [ {"name": "pote_flees", "delay_ms": 300} ] }
+    """
 
     def get_tile(self, x, y):
         if 0 <= x < self.w and 0 <= y < self.h:
@@ -625,16 +700,26 @@ class GameModel:
 
         scene_school = Scene("school")
         scene_school.add_object(Background("school"))
-        scene_school.add_object(CharacterPote(1, 5))
-        scene_school.add_object(CharacterMonsieurR(5, 5))
-        scene_school.set_focused_object("monsieur_R")
+        gift_mcdo = GiftMcDo(0, 0)
+        scene_school.add_object(gift_mcdo)
+        pote = CharacterPote(0, 5)
+        scene_school.add_object(pote)
+        pote.set_held_object(gift_mcdo)
+        scene_school.add_object(CharacterMonsieurR(9, 5))
+        scene_school.set_focused_object("pote")
 
         scenes = (scene_outside, scene_party, scene_shop, scene_school)
         self.scenes = {scene.name: scene for scene in scenes}
         self.restart_story = False
 
     def is_gamobj_shakable(self, gamobj_name):
-        authorized_prefixes = ["bg_school_", "pote_", "R_norm_", "R_angry_"]
+        authorized_prefixes = [
+            "bg_school_",
+            "pote_",
+            "R_norm_",
+            "R_angry_",
+            "gift_mcdo",
+        ]
         for prefix in authorized_prefixes:
             if gamobj_name.startswith(prefix):
                 return True
@@ -723,11 +808,21 @@ class GameModel:
                     self.restart_story = True
                     return GameModel.DA_SHAKE_DONE_CHANGE_SCENE
 
+    def handle_pote_flees(self):
+        pote = self.current_scene.indexed_scene_objects.get("pote")
+        if pote is not None:
+            pote.move(-1, 0)
+            if pote.x >= 0:
+                return GameModel.DA_POTE_FLEES
+
     def on_game_event(self, event_name):
         # Toute la gestion de la game logic est en dur là dedans, à l'arrache.
         # Pas le temps de faire mieux.
         move_coords = squarity.MOVE_FROM_DIR.get(event_name)
         focused_obj = self.current_scene.focused_scene_object
+
+        if self.current_scene.name == "school":
+            pote = self.current_scene.indexed_scene_objects.get("pote")
 
         if move_coords is not None:
 
@@ -742,15 +837,24 @@ class GameModel:
             if self.current_scene.name == "school":
                 if focused_obj.name == "monsieur_R":
                     if focused_obj.trigger_shake:
-                        return focused_obj.trigger_shake
+                        # Ouh le vilain code super crade !
+                        if pote is not None and pote.x == focused_obj.x:
+                            print("I must fleee !!")
+                            pote.move(-1, 0)
+                            return GameModel.DA_SHAKE_START_POTE_FLEES
+                        else:
+                            return focused_obj.trigger_shake
 
         elif event_name == "action_1":
             if self.current_scene.name == "school":
                 if focused_obj is not None:
                     if focused_obj.name == "monsieur_R":
                         focused_obj.toggle_angry()
+                        if focused_obj.is_angry:
+                            if pote is not None:
+                                pote.set_offer(False)
                     elif focused_obj.name == "pote":
-                        focused_obj.toggle_smile()
+                        focused_obj.set_offer(not focused_obj.is_offering)
 
         elif event_name == "action_2":
             if self.current_scene.name == "school":
@@ -766,3 +870,7 @@ class GameModel:
 
         elif event_name == "shake":
             return self.handle_shake()
+
+        elif event_name == "pote_flees":
+            print("I am fleeing !")
+            return self.handle_pote_flees()
