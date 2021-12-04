@@ -1,4 +1,5 @@
 # https://i.ibb.co/9yJ24hV/sprites.png
+# https://i.ibb.co/WVg7xnB/sprites.png
 
 
 """
@@ -37,6 +38,25 @@
     "gift_mcdo_2": [1, 864],
     "gift_mcdo_1_shake": [1, 948],
     "gift_mcdo_2_shake": [1, 884],
+
+    "school_pole_0": [279, 709],
+    "school_pole_1": [279, 645],
+    "school_pole_2": [279, 581],
+    "school_pole_3": [279, 517],
+    "school_pole_4": [279, 453],
+
+    "school_pole_0_shake": [279, 729],
+    "school_pole_1_shake": [279, 665],
+    "school_pole_2_shake": [279, 601],
+    "school_pole_3_shake": [279, 537],
+    "school_pole_4_shake": [279, 473],
+
+    "url_ads_0": [369, 900],
+    "url_ads_1": [433, 900],
+    "url_ads_2": [497, 900],
+    "url_ads_3": [561, 900],
+    "url_ads_4": [625, 900],
+    "url_ads_5": [689, 900],
 
     "R_norm_00_00": [0, 325],
     "R_norm_00_01": [0, 389],
@@ -386,6 +406,14 @@
 }
 """
 
+"""
+
+Cadeau pour les 40 ans de mon super-pote.
+
+Lien direct : http://squarity.fr#fetchez_githubgist_darkrecher/f095db4921d6b6c18229a3497bd908df/raw/f40ans
+Lien moins direct : https://tinyurl.com/f40ans
+
+"""
 SCENE_WIDTH = 8
 SCENE_HEIGHT = 7
 
@@ -458,6 +486,40 @@ class Background(SceneObject):
         for y in range(SCENE_HEIGHT):
             for x in range(SCENE_WIDTH):
                 func_get_tile(x, y).append(self.array_gamobjs[y][x])
+
+
+class SchoolPole(SceneObject):
+
+    GAMOBJS_NORMAL = (
+        ("school_pole_0", 0, 0),
+        ("school_pole_1", 0, -1),
+        ("school_pole_2", 0, -2),
+        ("school_pole_3", 0, -3),
+        ("school_pole_4", 0, -4),
+        ("school_pole_4", 0, -5),
+        ("school_pole_4", 0, -6),
+    )
+
+    def __init__(self, x, y):
+        super().__init__(x, y, "school_pole")
+        self.current_gamobjs = SchoolPole.GAMOBJS_NORMAL
+
+
+class UrlAds(SceneObject):
+
+    GAMOBJS_NORMAL = (
+        ("url_ads_0", 0, 0),
+        ("url_ads_1", 1, 0),
+        ("url_ads_2", 2, 0),
+        ("url_ads_3", 3, 0),
+        ("url_ads_4", 4, 0),
+        ("url_ads_5", 5, 0),
+    )
+
+    def __init__(self, x, y):
+        super().__init__(x, y, "url_ads")
+        self.current_gamobjs = UrlAds.GAMOBJS_NORMAL
+        self.visible = False
 
 
 class GiftMcDo(SceneObject):
@@ -700,12 +762,14 @@ class GameModel:
 
         scene_school = Scene("school")
         scene_school.add_object(Background("school"))
+        scene_school.add_object(UrlAds(1, 0))
         gift_mcdo = GiftMcDo(0, 0)
         scene_school.add_object(gift_mcdo)
         pote = CharacterPote(0, 5)
         scene_school.add_object(pote)
         pote.set_held_object(gift_mcdo)
         scene_school.add_object(CharacterMonsieurR(9, 5))
+        scene_school.add_object(SchoolPole(6, 6))
         scene_school.set_focused_object("pote")
 
         scenes = (scene_outside, scene_party, scene_shop, scene_school)
@@ -718,7 +782,8 @@ class GameModel:
             "pote_",
             "R_norm_",
             "R_angry_",
-            "gift_mcdo",
+            "gift_mcdo_",
+            "school_pole_",
         ]
         for prefix in authorized_prefixes:
             if gamobj_name.startswith(prefix):
@@ -785,6 +850,12 @@ class GameModel:
         monsieur_r = self.current_scene.indexed_scene_objects.get("monsieur_R")
         if monsieur_r is not None and monsieur_r.is_flying:
             monsieur_r.move(0, 1)
+            # Truc qui devrait pas être là parce que cette fonction ne devrait gérer que le shake,
+            # et pas monsieur R. Mais pas le temps.
+            if monsieur_r.x == 1:
+                url_ads = self.current_scene.indexed_scene_objects.get("url_ads")
+                if url_ads is not None:
+                    url_ads.visible = True
             return GameModel.DA_SHAKE_DOING
 
         self.shake_counter += 1
@@ -800,7 +871,7 @@ class GameModel:
                 if monsieur_r is not None:
                     monsieur_r.trigger_shake = None
                 # Vérif spéciale pour recommencer tout le jeu à zéro.
-                # Ça devrait pas être ici, mais j'ai pas le temps de faire plus propre.
+                # Ça non plus, ça ne devrait pas être ici, pas le temps de faire plus propre.
                 if monsieur_r.x >= -1:
                     return GameModel.DA_SHAKE_DONE
                 else:
@@ -839,7 +910,6 @@ class GameModel:
                     if focused_obj.trigger_shake:
                         # Ouh le vilain code super crade !
                         if pote is not None and pote.x == focused_obj.x:
-                            print("I must fleee !!")
                             pote.move(-1, 0)
                             return GameModel.DA_SHAKE_START_POTE_FLEES
                         else:
@@ -862,8 +932,8 @@ class GameModel:
                     next_focus = "monsieur_R"
                 else:
                     next_focus = "pote"
-            self.current_scene.set_focused_object(next_focus)
-            # TODO : afficher un truc en dessous du nouveau personnage contrôlé.
+                self.current_scene.set_focused_object(next_focus)
+                # TODO : afficher un truc en dessous du nouveau personnage contrôlé.
 
         elif event_name == "change_scene":
             return self.handle_change_scene()
@@ -872,5 +942,4 @@ class GameModel:
             return self.handle_shake()
 
         elif event_name == "pote_flees":
-            print("I am fleeing !")
             return self.handle_pote_flees()
