@@ -34,12 +34,22 @@
     "me_torso_offer_2": [160, 134],
     "me_legs": [288, 198],
 
+    "inventory_interface": [1072, 964],
+
     "shop_table_plank": [753, 900],
     "shop_table_pole": [817, 900],
 
     "buffoon_cap_centered": [81, 888],
     "buffoon_cap_1": [81, 928],
     "buffoon_cap_2": [81, 864],
+
+    "buffoon_scepter_centered": [231, 888],
+    "buffoon_scepter_1": [231, 928],
+    "buffoon_scepter_2": [231, 864],
+
+    "plastic_sword_centered": [152, 888],
+    "plastic_sword_1": [152, 928],
+    "plastic_sword_2": [152, 864],
 
     "gift_mcdo_centered": [1, 910],
     "gift_mcdo_1": [1, 928],
@@ -510,23 +520,11 @@ class ShopTable(SceneObject):
 
 
 class TakeableObject(SceneObject):
-    pass
-
-
-class BuffoonCap(TakeableObject):
-
-    GAMOBJS_LAID = (("buffoon_cap_centered", 0, 0),)
-
-    GAMOBJS_HELD = (
-        ("buffoon_cap_1", 0, 0),
-        ("buffoon_cap_2", 0, -1),
-    )
-
-    def __init__(self, x, y):
-        super().__init__(x, y, "buffoon_cap")
+    def __init__(self, x, y, name, gamobj_laid, gamobj_held):
+        super().__init__(x, y, name)
         self.visible = False
-        self.gamobjs_laid = BuffoonCap.GAMOBJS_LAID
-        self.gamobjs_held = BuffoonCap.GAMOBJS_HELD
+        self.gamobjs_laid = gamobj_laid
+        self.gamobjs_held = gamobj_held
         self.hold()
 
     def _update_gamobjs(self):
@@ -539,7 +537,61 @@ class BuffoonCap(TakeableObject):
 
     def hold(self):
         self.is_laid = False
+        self.visible = False
         self._update_gamobjs()
+
+
+class BuffoonCap(TakeableObject):
+
+    GAMOBJS_LAID = (("buffoon_cap_centered", 0, 0),)
+
+    GAMOBJS_HELD = (
+        ("buffoon_cap_1", 0, 0),
+        ("buffoon_cap_2", 0, -1),
+    )
+
+    def __init__(self, x, y):
+        super().__init__(
+            x, y, "buffoon_cap", BuffoonCap.GAMOBJS_LAID, BuffoonCap.GAMOBJS_HELD
+        )
+
+
+class BuffoonScepter(TakeableObject):
+
+    GAMOBJS_LAID = (("buffoon_scepter_centered", 0, 0),)
+
+    GAMOBJS_HELD = (
+        ("buffoon_scepter_1", 0, 0),
+        ("buffoon_scepter_2", 0, -1),
+    )
+
+    def __init__(self, x, y):
+        super().__init__(
+            x,
+            y,
+            "buffoon_scepter",
+            BuffoonScepter.GAMOBJS_LAID,
+            BuffoonScepter.GAMOBJS_HELD,
+        )
+
+
+class PlasticSword(TakeableObject):
+
+    GAMOBJS_LAID = (("plastic_sword_centered", 0, 0),)
+
+    GAMOBJS_HELD = (
+        ("plastic_sword_1", 0, 0),
+        ("plastic_sword_2", 0, -1),
+    )
+
+    def __init__(self, x, y):
+        super().__init__(
+            x,
+            y,
+            "plastic_sword",
+            PlasticSword.GAMOBJS_LAID,
+            PlasticSword.GAMOBJS_HELD,
+        )
 
 
 class SchoolPole(SceneObject):
@@ -748,12 +800,28 @@ class CharacterMonsieurR(SceneObject):
 
 
 class Inventory(SceneObject):
+
+    GAMOBJ_FROM_HELD_OBJECT_NAME = {
+        "buffoon_cap": "buffoon_cap_centered",
+        "buffoon_scepter": "buffoon_scepter_centered",
+        "plastic_sword": "plastic_sword_centered",
+    }
+
     def __init__(self, x, y):
         super().__init__(x, y, "inventory")
         self.held_object_name = None
 
     def set_held_object_name(self, held_object_name):
         self.held_object_name = held_object_name
+
+    def remove_held_object(self):
+        self.held_object_name = None
+
+    def draw(self, func_get_tile):
+        if self.held_object_name is not None:
+            gamobj = Inventory.GAMOBJ_FROM_HELD_OBJECT_NAME[self.held_object_name]
+            func_get_tile(self.x, self.y).append("inventory_interface")
+            func_get_tile(self.x, self.y).append(gamobj)
 
 
 class GameModel:
@@ -781,6 +849,9 @@ class GameModel:
     """
     DA_POTE_FLEES = """
         { "delayed_actions": [ {"name": "pote_flees", "delay_ms": 300} ] }
+    """
+    DA_GIVE_GIFT_TO_POTE = """
+        { "delayed_actions": [ {"name": "give_gift_to_pote", "delay_ms": 800} ] }
     """
 
     def get_tile(self, x, y):
@@ -819,7 +890,12 @@ class GameModel:
         scene_outside = Scene("outside", outside_connectors)
         scene_outside.add_object(Background("outside"))
         scene_outside.add_object(CharacterMe(4, 5))
+        # On est obligé de créer les 3 objets prenables, dans chacune des scènes.
+        # Ça fait 9 objets. Car c'est le seul moyen pour pouvoir sortir l'objet de sa poche
+        # depuis n'importe quelle scène. C'est tout pourri, mais pas le temps.
         scene_outside.add_object(BuffoonCap(0, 0))
+        scene_outside.add_object(BuffoonScepter(0, 0))
+        scene_outside.add_object(PlasticSword(0, 0))
         scene_outside.set_focused_object("me")
 
         party_connectors = (
@@ -832,6 +908,8 @@ class GameModel:
         scene_party.add_object(CharacterMe(7, 5))
         scene_party.add_object(CharacterPote(1, 5))
         scene_party.add_object(BuffoonCap(0, 0))
+        scene_party.add_object(BuffoonScepter(0, 0))
+        scene_party.add_object(PlasticSword(0, 0))
         scene_party.set_focused_object("me")
 
         shop_connectors = ((4, 3, "U", "outside"),)
@@ -842,8 +920,14 @@ class GameModel:
         scene_shop.add_object(character_me)
         scene_shop.add_object(ShopTable(0, 6))
         buffoon_cap = BuffoonCap(1, 5)
-        buffoon_cap.hold()
+        buffoon_cap.lay()
         scene_shop.add_object(buffoon_cap)
+        buffoon_scepter = BuffoonScepter(2, 5)
+        buffoon_scepter.lay()
+        scene_shop.add_object(buffoon_scepter)
+        plastic_sword = PlasticSword(3, 5)
+        plastic_sword.lay()
+        scene_shop.add_object(plastic_sword)
         scene_shop.set_focused_object("me")
 
         scene_school = Scene("school")
@@ -859,11 +943,12 @@ class GameModel:
         scene_school.set_focused_object("pote")
 
         self.inventory = Inventory(0, 0)
-        self.inventory.set_held_object_name("buffoon_cap")
 
         scenes = (scene_outside, scene_party, scene_shop, scene_school)
         self.scenes = {scene.name: scene for scene in scenes}
         self.restart_story = False
+
+        self.state_give_gift = 0
 
     def is_gamobj_shakable(self, gamobj_name):
         authorized_prefixes = [
@@ -892,6 +977,8 @@ class GameModel:
         for scene_obj in self.current_scene.ordered_scene_objects:
             if scene_obj.visible:
                 scene_obj.draw(self.get_tile)
+
+        self.inventory.draw(self.get_tile)
 
         if self.special_effect_shake:
             for y in range(self.h):
@@ -975,6 +1062,36 @@ class GameModel:
             if pote.x >= 0:
                 return GameModel.DA_POTE_FLEES
 
+    def handle_give_gift_to_pote(self):
+        if self.state_give_gift == 0:
+            pote = self.current_scene.indexed_scene_objects.get("pote")
+            if pote is not None:
+                pote.set_offer(True)
+
+        if self.state_give_gift == 1:
+            gift_name = self.inventory.held_object_name
+            gift = self.current_scene.indexed_scene_objects.get(gift_name)
+            if gift is not None:
+                gift.move(-1, 0)
+            self.inventory.remove_held_object()
+
+        if self.state_give_gift == 2:
+            pote = self.current_scene.indexed_scene_objects.get("pote")
+            if pote is not None:
+                pote.set_smile(False)
+
+        if self.state_give_gift == 3:
+            obj_me = self.current_scene.indexed_scene_objects.get("me")
+            if obj_me is not None:
+                obj_me.set_offer(False)
+            print("Validated !")
+
+        self.state_give_gift += 1
+        if self.state_give_gift <= 3:
+            return GameModel.DA_GIVE_GIFT_TO_POTE
+        else:
+            return None
+
     def set_offer_me(self, focused_obj, is_offering):
         if is_offering == focused_obj.is_offering:
             return
@@ -1040,8 +1157,26 @@ class GameModel:
                         focused_obj.set_offer(not focused_obj.is_offering)
             else:
                 if focused_obj is not None:
-                    is_offering_new = not focused_obj.is_offering
-                    self.set_offer_me(focused_obj, is_offering_new)
+                    if self.inventory.held_object_name is None:
+                        for scene_object in self.current_scene.ordered_scene_objects:
+                            if (
+                                isinstance(scene_object, TakeableObject)
+                                and scene_object.is_laid
+                                and scene_object.x == focused_obj.x
+                                and scene_object.y == focused_obj.y - 1
+                            ):
+                                self.inventory.set_held_object_name(scene_object.name)
+                                scene_object.hold()
+                    else:
+                        is_offering_new = not focused_obj.is_offering
+                        self.set_offer_me(focused_obj, is_offering_new)
+                        if (
+                            is_offering_new
+                            and self.current_scene.name == "party"
+                            and focused_obj.x == 4
+                            and focused_obj.y == 5
+                        ):
+                            return GameModel.DA_GIVE_GIFT_TO_POTE
 
         elif event_name == "action_2":
             if self.current_scene.name == "school":
@@ -1060,3 +1195,6 @@ class GameModel:
 
         elif event_name == "pote_flees":
             return self.handle_pote_flees()
+
+        elif event_name == "give_gift_to_pote":
+            return self.handle_give_gift_to_pote()
