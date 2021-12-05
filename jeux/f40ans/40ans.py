@@ -1,4 +1,4 @@
-# https://i.ibb.co/NnxW98T/sprites.png
+# https://i.ibb.co/P1pmTN5/sprites.png
 
 
 """
@@ -46,6 +46,7 @@
     "buffoon_scepter_centered": [231, 888],
     "buffoon_scepter_1": [231, 928],
     "buffoon_scepter_2": [231, 864],
+    "buffoon_scepter_dark": [231, 738],
 
     "plastic_sword_centered": [152, 888],
     "plastic_sword_1": [152, 928],
@@ -131,6 +132,28 @@
     "R_angry_01_04_shake": [192, 537],
     "R_angry_01_05_shake": [192, 601],
     "R_angry_01_06_shake": [192, 665],
+
+    "bg_black": [858, 1029],
+
+    "text_one_year_0": [304, 964],
+    "text_one_year_1": [368, 964],
+    "text_one_year_2": [432, 964],
+    "text_later_0": [496, 964],
+    "text_later_1": [560, 964],
+    "text_later_2": [624, 964],
+    "text_later_3": [688, 964],
+    "text_earlier_0": [752, 964],
+    "text_earlier_1": [816, 964],
+    "text_earlier_2": [880, 964],
+    "text_earlier_3": [944, 964],
+    "text_many_years_0": [304, 1029],
+    "text_many_years_1": [368, 1029],
+    "text_many_years_2": [432, 1029],
+    "text_many_years_3": [496, 1029],
+    "text_many_years_4": [560, 1029],
+    "text_many_years_5": [624, 1029],
+    "text_many_years_6": [688, 1029],
+    "text_many_years_7": [752, 1029],
 
     "bg_outside_00_00": [369, 1],
     "bg_outside_00_01": [369, 65],
@@ -506,6 +529,28 @@ class Background(SceneObject):
                 func_get_tile(x, y).append(self.array_gamobjs[y][x])
 
 
+class BackBlack(SceneObject):
+    def __init__(self, name):
+        super().__init__(0, 0, name)
+
+    def draw(self, func_get_tile):
+        for y in range(SCENE_HEIGHT):
+            for x in range(SCENE_WIDTH):
+                func_get_tile(x, y).append("bg_black")
+
+
+class Text(SceneObject):
+    def __init__(self, x, y, text_name, tile_length):
+        super().__init__(x, y, "text_" + text_name)
+        self.tile_length = tile_length
+
+    def draw(self, func_get_tile):
+        for index_tile in range(self.tile_length):
+            func_get_tile(self.x + index_tile, self.y).append(
+                f"{self.name}_{index_tile}"
+            )
+
+
 class ShopTable(SceneObject):
 
     GAMOBJS_NORMAL = (
@@ -604,6 +649,16 @@ class BuffoonCapOnHead(SceneObject):
     def __init__(self, x, y):
         super().__init__(x, y, "buffoon_cap_on_head")
         self.current_gamobjs = BuffoonCapOnHead.GAMOBJS_NORMAL
+        self.visible = False
+
+
+class BuffoonScepterDark(SceneObject):
+
+    GAMOBJS_NORMAL = (("buffoon_scepter_dark", 0, 0),)
+
+    def __init__(self, x, y):
+        super().__init__(x, y, "buffoon_scepter_dark")
+        self.current_gamobjs = BuffoonScepterDark.GAMOBJS_NORMAL
         self.visible = False
 
 
@@ -863,6 +918,7 @@ class GameModel:
     DA_POTE_FLEES = """
         { "delayed_actions": [ {"name": "pote_flees", "delay_ms": 300} ] }
     """
+    # TODO : block the inputs while giving gift, you stupid !!
     DA_GIVE_GIFT_TO_POTE = """
         { "delayed_actions": [ {"name": "give_gift_to_pote", "delay_ms": 800} ] }
     """
@@ -915,6 +971,7 @@ class GameModel:
         )
         scene_party = Scene("party", party_connectors)
         scene_party.add_object(Background("party"))
+        scene_party.add_object(BuffoonScepterDark(5, 4))
         scene_party.add_object(CharacterMe(7, 5))
         scene_party.add_object(CharacterPote(1, 5))
         scene_party.add_object(BuffoonCap(0, 0))
@@ -945,9 +1002,16 @@ class GameModel:
         scene_school.add_object(SchoolPole(6, 6))
         scene_school.set_focused_object("pote")
 
+        scene_text = Scene("text")
+        scene_text.add_object(BackBlack("black"))
+        scene_text.add_object(Text(2, 2, "one_year", 3))
+        scene_text.add_object(Text(2, 3, "earlier", 4))
+        scene_text.add_object(Text(2, 3, "later", 4))
+        scene_text.add_object(Text(0, 2, "many_years", 8))
+
         self.inventory = Inventory(0, 0)
 
-        scenes = (scene_outside, scene_party, scene_shop, scene_school)
+        scenes = (scene_outside, scene_party, scene_shop, scene_school, scene_text)
         self.scenes = {scene.name: scene for scene in scenes}
         self.restart_story = False
 
@@ -1090,14 +1154,12 @@ class GameModel:
             obj_me = self.current_scene.indexed_scene_objects.get("me")
             if obj_me is not None:
                 obj_me.set_offer(False)
-            print("Validated !")
 
         self.state_give_gift += 1
         if self.state_give_gift <= 3:
             return GameModel.DA_GIVE_GIFT_TO_POTE
         else:
             self.global_advancement += 1
-            print("Validated", self.global_advancement)
             return None
 
     def set_offer_me(self, focused_obj, is_offering):
@@ -1122,21 +1184,17 @@ class GameModel:
 
     def apply_global_advancement(self):
 
-        if self.global_advancement == 6:
-            self.next_scene = self.scenes["school"]
-            return GameModel.DA_CHANGE_SCENE_DOING
-
-        if self.global_advancement in (0, 2, 4):
+        if self.global_advancement in (0, 3, 6):
 
             obj_names_to_lay = {
                 0: "buffoon_cap",
-                2: "buffoon_scepter",
-                4: "plastic_sword",
+                3: "buffoon_scepter",
+                6: "plastic_sword",
             }
             obj_names_to_hide = {
                 0: None,
-                2: "buffoon_cap",
-                4: "buffoon_scepter",
+                3: "buffoon_cap",
+                6: "buffoon_scepter",
             }
             obj_name_to_lay = obj_names_to_lay[self.global_advancement]
             # Pas de fonction dict.get. Je récupère directement les infos.
@@ -1165,18 +1223,47 @@ class GameModel:
             self.state_give_gift = 0
             self.dance_counter = 0
 
-            if self.global_advancement == 2:
+            if self.global_advancement == 3:
                 buffoon_cap_on_head = self.scenes["party"].indexed_scene_objects[
                     "buffoon_cap_on_head"
                 ]
                 buffoon_cap_on_head.visible = True
 
+            if self.global_advancement == 6:
+                buffoon_scepter_dark = self.scenes["party"].indexed_scene_objects[
+                    "buffoon_scepter_dark"
+                ]
+                buffoon_scepter_dark.visible = True
+
             self.next_scene = self.scenes["outside"]
+            return GameModel.DA_CHANGE_SCENE_DOING
+
+        elif self.global_advancement in (2, 5, 8):
+
+            scene_text = self.scenes["text"]
+
+            all_text_names = ("one_year", "earlier", "later", "many_years")
+            visible_texts_per_advancement = {
+                2: ("one_year", "later"),
+                5: ("many_years", "later"),
+                8: ("many_years", "earlier"),
+            }
+            visible_texts = visible_texts_per_advancement[self.global_advancement]
+            for text_name in all_text_names:
+                visible = text_name in visible_texts
+                scene_text.indexed_scene_objects["text_" + text_name].visible = visible
+
+            self.next_scene = scene_text
+            return GameModel.DA_CHANGE_SCENE_DOING
+
+        if self.global_advancement == 9:
+            self.next_scene = self.scenes["school"]
             return GameModel.DA_CHANGE_SCENE_DOING
 
     def on_game_event(self, event_name):
         # Toute la gestion de la game logic est en dur là dedans, à l'arrache.
         # Pas le temps de faire mieux.
+
         move_coords = squarity.MOVE_FROM_DIR.get(event_name)
         focused_obj = self.current_scene.focused_scene_object
 
@@ -1185,7 +1272,11 @@ class GameModel:
 
         if move_coords is not None:
 
-            if self.global_advancement in (1, 3, 5):
+            if self.current_scene.name == "text":
+                self.global_advancement += 1
+                return self.apply_global_advancement()
+
+            if self.global_advancement in (1, 4, 7):
                 if move_coords == [0, -1]:
                     self.dance_counter += 1
                     if self.dance_counter == 4:
