@@ -1,4 +1,4 @@
-# https://i.ibb.co/P1pmTN5/sprites.png
+# https://i.ibb.co/Lr2khQ9/sprites.png
 
 
 """
@@ -52,19 +52,21 @@
     "plastic_sword_1": [152, 928],
     "plastic_sword_2": [152, 864],
 
-    "gift_mcdo_centered": [1, 910],
+    "candle_pink": [38, 717],
+    "candle_blue": [20, 718],
+    "candle_grn": [152, 717],
+
+    "gift_mcdo_centered": [1, 897],
     "gift_mcdo_1": [1, 928],
     "gift_mcdo_2": [1, 864],
     "gift_mcdo_1_shake": [1, 948],
     "gift_mcdo_2_shake": [1, 884],
 
-    "school_pole_0": [279, 709],
     "school_pole_1": [279, 645],
     "school_pole_2": [279, 581],
     "school_pole_3": [279, 517],
     "school_pole_4": [279, 453],
 
-    "school_pole_0_shake": [279, 729],
     "school_pole_1_shake": [279, 665],
     "school_pole_2_shake": [279, 601],
     "school_pole_3_shake": [279, 537],
@@ -564,6 +566,16 @@ class ShopTable(SceneObject):
         self.current_gamobjs = ShopTable.GAMOBJS_NORMAL
 
 
+class SimpleObjectOneSquare(SceneObject):
+    def __init__(self, x, y, name, gamobj_name=None, visible=True):
+        super().__init__(x, y, name)
+        self.visible = visible
+        if gamobj_name is None:
+            gamobj_name = name
+        gamobjs_normal = ((gamobj_name, 0, 0),)
+        self.current_gamobjs = gamobjs_normal
+
+
 class TakeableObject(SceneObject):
     def __init__(self, x, y, name, gamobj_laid, gamobj_held):
         super().__init__(x, y, name)
@@ -652,26 +664,15 @@ class BuffoonCapOnHead(SceneObject):
         self.visible = False
 
 
-class BuffoonScepterDark(SceneObject):
-
-    GAMOBJS_NORMAL = (("buffoon_scepter_dark", 0, 0),)
-
-    def __init__(self, x, y):
-        super().__init__(x, y, "buffoon_scepter_dark")
-        self.current_gamobjs = BuffoonScepterDark.GAMOBJS_NORMAL
-        self.visible = False
-
-
 class SchoolPole(SceneObject):
 
     GAMOBJS_NORMAL = (
-        ("school_pole_0", 0, 0),
-        ("school_pole_1", 0, -1),
-        ("school_pole_2", 0, -2),
-        ("school_pole_3", 0, -3),
+        ("school_pole_1", 0, 0),
+        ("school_pole_2", 0, -1),
+        ("school_pole_3", 0, -2),
+        ("school_pole_4", 0, -3),
         ("school_pole_4", 0, -4),
         ("school_pole_4", 0, -5),
-        ("school_pole_4", 0, -6),
     )
 
     def __init__(self, x, y):
@@ -873,6 +874,7 @@ class Inventory(SceneObject):
         "buffoon_cap": "buffoon_cap_centered",
         "buffoon_scepter": "buffoon_scepter_centered",
         "plastic_sword": "plastic_sword_centered",
+        "gift_mcdo": "gift_mcdo_centered",
     }
 
     def __init__(self, x, y):
@@ -971,7 +973,12 @@ class GameModel:
         )
         scene_party = Scene("party", party_connectors)
         scene_party.add_object(Background("party"))
-        scene_party.add_object(BuffoonScepterDark(5, 4))
+        scene_party.add_object(
+            SimpleObjectOneSquare(5, 4, "buffoon_scepter_dark", visible=False)
+        )
+        scene_party.add_object(SimpleObjectOneSquare(3, 4, "candle_blue", visible=True))
+        scene_party.add_object(SimpleObjectOneSquare(2, 4, "candle_pink", visible=True))
+        scene_party.add_object(SimpleObjectOneSquare(3, 4, "candle_grn", visible=True))
         scene_party.add_object(CharacterMe(7, 5))
         scene_party.add_object(CharacterPote(1, 5))
         scene_party.add_object(BuffoonCap(0, 0))
@@ -999,7 +1006,7 @@ class GameModel:
         scene_school.add_object(pote)
         pote.set_held_object(gift_mcdo)
         scene_school.add_object(CharacterMonsieurR(9, 5))
-        scene_school.add_object(SchoolPole(6, 6))
+        scene_school.add_object(SchoolPole(6, 5))
         scene_school.set_focused_object("pote")
 
         scene_text = Scene("text")
@@ -1026,7 +1033,8 @@ class GameModel:
             "pote_",
             "R_norm_",
             "R_angry_",
-            "gift_mcdo_",
+            "gift_mcdo_1",
+            "gift_mcdo_2",
             "school_pole_",
         ]
         for prefix in authorized_prefixes:
@@ -1075,11 +1083,15 @@ class GameModel:
             self.special_effect_fade_to_black += 1
             if self.special_effect_fade_to_black == GameModel.FADE_TO_BLACK_QTY:
                 if self.restart_story:
+                    # Rien à foutre là ça. Osef.
                     self.init_all_scenes()
                     self.current_scene = self.scenes["outside"]
                     self.next_scene = None
                     self.restart_story = False
                 else:
+                    # Rien à foutre là non plus.
+                    if self.global_advancement == 9:
+                        self.inventory.set_held_object_name("gift_mcdo")
                     self.current_scene = self.next_scene
                     self.next_scene = None
             return GameModel.DA_CHANGE_SCENE_DOING
@@ -1131,6 +1143,9 @@ class GameModel:
             pote.move(-1, 0)
             if pote.x >= 0:
                 return GameModel.DA_POTE_FLEES
+            else:
+                self.inventory.remove_held_object()
+                return None
 
     def handle_give_gift_to_pote(self):
         if self.state_give_gift == 0:
@@ -1361,7 +1376,5 @@ class GameModel:
 
 
 # TODO gestion des passable tiles
-# TODO inventaire dans la scène de monsieur R
-# TODO glitch pourri dans le sol de Carnot
-
 # TODO : messages de logs pour indiquer ce qu'il faut faire.
+# TODO : bougie.
