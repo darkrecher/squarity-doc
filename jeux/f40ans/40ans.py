@@ -766,7 +766,7 @@ class CharacterPote(SceneObject):
 
     def _update_smile(self):
         # TODO : bug visuel quand le pote ne smile pas, n'offre pas, et que ça shake.
-        # Et aussi que le pote smile, offre, et que ça shake. Pas le temps de corriger.
+        # Et aussi quand le pote smile, offre, et que ça shake. Pas le temps de corriger.
         gamobj_head = "pote_head_smile" if self.is_smiling else "pote_head"
         self.current_gamobjs[1] = (gamobj_head, 0, -2)
 
@@ -1346,7 +1346,6 @@ class GameModel:
                 else:
                     next_focus = "pote"
                 self.current_scene.set_focused_object(next_focus)
-                # TODO : afficher un truc en dessous du nouveau personnage contrôlé.
 
         elif event_name == "change_scene":
             return self.handle_change_scene()
@@ -1359,3 +1358,10 @@ class GameModel:
 
         elif event_name == "give_gift_to_pote":
             return self.handle_give_gift_to_pote()
+
+
+# TODO gestion des passable tiles
+# TODO inventaire dans la scène de monsieur R
+# TODO glitch pourri dans le sol de Carnot
+
+# TODO : messages de logs pour indiquer ce qu'il faut faire.
