@@ -52,8 +52,8 @@
     "plastic_sword_1": [152, 928],
     "plastic_sword_2": [152, 864],
 
-    "candle_pink": [38, 717],
-    "candle_blue": [20, 718],
+    "candle_pnk": [38, 717],
+    "candle_blu": [20, 718],
     "candle_grn": [152, 717],
 
     "gift_mcdo_centered": [1, 897],
@@ -457,8 +457,51 @@ Lien direct : http://squarity.fr#fetchez_githubgist_darkrecher/f095db4921d6b6c18
 Lien moins direct : https://tinyurl.com/f40ans
 
 """
+
+I_WANT_TO_MOVE_EVERYWHERE = False
+
 SCENE_WIDTH = 8
 SCENE_HEIGHT = 7
+
+PASSABLE_MAP_OUTSIDE = """
+........
+........
+........
+........
+.+.+++++
+++++++++
+++++++++
+"""
+
+PASSABLE_MAP_SHOP = """
+........
+........
+........
+....+...
+++++++..
+++++++++
+++++++++
+"""
+
+PASSABLE_MAP_PARTY = """
+........
+........
+........
+........
+....++++
++...++++
+++++++++
+"""
+
+PASSABLE_MAP_SCHOOL = """
+........
+........
+........
+........
+........
+++++++++
+........
+"""
 
 
 class SceneObject:
@@ -470,9 +513,12 @@ class SceneObject:
         self.visible = True
 
     def move(self, move_x, move_y, passable_coords=None):
-        # TODO : check passable coords.
-        self.x += move_x
-        self.y += move_y
+        new_x = self.x + move_x
+        new_y = self.y + move_y
+        if passable_coords is not None and (new_x, new_y) not in passable_coords:
+            return
+        self.x = new_x
+        self.y = new_y
 
     def draw(self, func_get_tile):
         for gamobj, offset_x, offset_y in self.current_gamobjs:
@@ -482,12 +528,26 @@ class SceneObject:
 
 
 class Scene:
-    def __init__(self, name, connectors=()):
+    def __init__(self, name, connectors=(), passable_map=None):
         self.name = name
         self.connectors = connectors
         self.ordered_scene_objects = []
         self.indexed_scene_objects = {}
         self.focused_scene_object = None
+        if passable_map is None or I_WANT_TO_MOVE_EVERYWHERE:
+            self.passable_coords = None
+        else:
+            self.passable_coords = self._compute_passable_coords(passable_map)
+
+    def _compute_passable_coords(self, passable_map):
+        passable_coords = []
+        passable_map = passable_map.strip()
+        for y, line in enumerate(passable_map.split("\n")):
+            line_stripped = line.strip()
+            for x, char in enumerate(line_stripped):
+                if char == "+":
+                    passable_coords.append((x, y))
+        return tuple(passable_coords)
 
     def add_object(self, scene_object):
         self.ordered_scene_objects.append(scene_object)
@@ -766,12 +826,12 @@ class CharacterPote(SceneObject):
         self.set_smile(True)
 
     def _update_smile(self):
-        # TODO : bug visuel quand le pote ne smile pas, n'offre pas, et que ça shake.
+        # FUTURE : Il y a un bug visuel quand le pote ne smile pas, n'offre pas, et que ça shake.
         # Et aussi quand le pote smile, offre, et que ça shake. Pas le temps de corriger.
         gamobj_head = "pote_head_smile" if self.is_smiling else "pote_head"
         self.current_gamobjs[1] = (gamobj_head, 0, -2)
 
-    def move(self, move_x, move_y, passable_coords=[]):
+    def move(self, move_x, move_y, passable_coords=None):
         if self.is_offering:
             self.set_offer(False)
         super().move(move_x, move_y, passable_coords)
@@ -849,7 +909,7 @@ class CharacterMonsieurR(SceneObject):
             CharacterMonsieurR.GAMOBJS_ANGRY,
         ][int(self.is_angry)]
 
-    def move(self, move_x, move_y):
+    def move(self, move_x, move_y, passable_coords=None):
         if not self.is_flying:
             if not move_x and move_y == -1:
                 super().move(move_x, move_y)
@@ -920,10 +980,10 @@ class GameModel:
     DA_POTE_FLEES = """
         { "delayed_actions": [ {"name": "pote_flees", "delay_ms": 300} ] }
     """
-    # TODO : block the inputs while giving gift, you stupid !!
     DA_GIVE_GIFT_TO_POTE = """
-        { "delayed_actions": [ {"name": "give_gift_to_pote", "delay_ms": 800} ] }
+        { "delayed_actions": [ {"name": "give_gift_to_pote", "delay_ms": 800} ], "player_locks": ["give_gift"] }
     """
+    DA_GIVE_GIFT_TO_POTE_DONE = """{ "player_unlocks": ["give_gift"] }"""
 
     def get_tile(self, x, y):
         if 0 <= x < self.w and 0 <= y < self.h:
@@ -934,13 +994,6 @@ class GameModel:
     def __init__(self):
         self.w = SCENE_WIDTH
         self.h = SCENE_HEIGHT
-
-        self.tiles = []
-        for y in range(self.h):
-            line = []
-            for x in range(self.w):
-                line.append([])
-            self.tiles.append(line)
 
         self.init_all_scenes()
 
@@ -955,7 +1008,7 @@ class GameModel:
             (1, 4, "U", "shop"),
             (7, 4, "U", "party"),
         )
-        scene_outside = Scene("outside", outside_connectors)
+        scene_outside = Scene("outside", outside_connectors, PASSABLE_MAP_OUTSIDE)
         scene_outside.add_object(Background("outside"))
         scene_outside.add_object(CharacterMe(4, 5))
         # On est obligé de créer les 3 objets prenables, dans chacune des scènes.
@@ -971,16 +1024,16 @@ class GameModel:
             (7, 5, "R", "outside"),
             (7, 4, "R", "outside"),
         )
-        scene_party = Scene("party", party_connectors)
+        scene_party = Scene("party", party_connectors, PASSABLE_MAP_PARTY)
         scene_party.add_object(Background("party"))
         scene_party.add_object(
             SimpleObjectOneSquare(5, 4, "buffoon_scepter_dark", visible=False)
         )
-        scene_party.add_object(SimpleObjectOneSquare(3, 4, "candle_blue", visible=True))
-        scene_party.add_object(SimpleObjectOneSquare(2, 4, "candle_pink", visible=True))
-        scene_party.add_object(SimpleObjectOneSquare(3, 4, "candle_grn", visible=True))
-        scene_party.add_object(CharacterMe(7, 5))
+        scene_party.add_object(SimpleObjectOneSquare(3, 4, "candle_blu", visible=False))
+        scene_party.add_object(SimpleObjectOneSquare(2, 4, "candle_pnk", visible=False))
+        scene_party.add_object(SimpleObjectOneSquare(3, 4, "candle_grn"))
         scene_party.add_object(CharacterPote(1, 5))
+        scene_party.add_object(CharacterMe(7, 5))
         scene_party.add_object(BuffoonCap(0, 0))
         scene_party.add_object(BuffoonScepter(0, 0))
         scene_party.add_object(PlasticSword(0, 0))
@@ -988,7 +1041,7 @@ class GameModel:
         scene_party.set_focused_object("me")
 
         shop_connectors = ((4, 3, "U", "outside"),)
-        scene_shop = Scene("shop", shop_connectors)
+        scene_shop = Scene("shop", shop_connectors, PASSABLE_MAP_SHOP)
         scene_shop.add_object(Background("shop"))
         scene_shop.add_object(CharacterMe(4, 3))
         scene_shop.add_object(ShopTable(0, 6))
@@ -997,7 +1050,7 @@ class GameModel:
         scene_shop.add_object(PlasticSword(1, 5))
         scene_shop.set_focused_object("me")
 
-        scene_school = Scene("school")
+        scene_school = Scene("school", passable_map=PASSABLE_MAP_SCHOOL)
         scene_school.add_object(Background("school"))
         scene_school.add_object(UrlAds(1, 0))
         gift_mcdo = GiftMcDo(0, 0)
@@ -1044,7 +1097,6 @@ class GameModel:
 
     def export_all_tiles(self):
 
-        # TODO : factorize this, ou bien c'est de la daube.
         self.tiles = []
         for y in range(self.h):
             line = []
@@ -1175,7 +1227,7 @@ class GameModel:
             return GameModel.DA_GIVE_GIFT_TO_POTE
         else:
             self.global_advancement += 1
-            return None
+            return GameModel.DA_GIVE_GIFT_TO_POTE_DONE
 
     def set_offer_me(self, focused_obj, is_offering):
         if is_offering == focused_obj.is_offering:
@@ -1243,12 +1295,20 @@ class GameModel:
                     "buffoon_cap_on_head"
                 ]
                 buffoon_cap_on_head.visible = True
+                candle_pink = buffoon_cap_on_head = self.scenes[
+                    "party"
+                ].indexed_scene_objects["candle_pnk"]
+                candle_pink.visible = True
 
             if self.global_advancement == 6:
                 buffoon_scepter_dark = self.scenes["party"].indexed_scene_objects[
                     "buffoon_scepter_dark"
                 ]
                 buffoon_scepter_dark.visible = True
+                candle_blu = buffoon_cap_on_head = self.scenes[
+                    "party"
+                ].indexed_scene_objects["candle_blu"]
+                candle_blu.visible = True
 
             self.next_scene = self.scenes["outside"]
             return GameModel.DA_CHANGE_SCENE_DOING
@@ -1309,7 +1369,11 @@ class GameModel:
                     self.next_scene = self.scenes[next_scene_name]
                     return GameModel.DA_CHANGE_SCENE_DOING
                 else:
-                    focused_obj.move(*move_coords)
+                    focused_obj.move(
+                        move_coords[0],
+                        move_coords[1],
+                        self.current_scene.passable_coords,
+                    )
 
                 if self.current_scene.name == "school":
                     if focused_obj.name == "monsieur_R":
@@ -1375,6 +1439,4 @@ class GameModel:
             return self.handle_give_gift_to_pote()
 
 
-# TODO gestion des passable tiles
 # TODO : messages de logs pour indiquer ce qu'il faut faire.
-# TODO : bougie.
