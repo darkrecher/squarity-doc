@@ -1,4 +1,5 @@
 # https://i.postimg.cc/BnY1BNMT/cat-frag.png
+# https://i.postimg.cc/rw28bx03/cat-frag.png
 
 """
 
@@ -21,6 +22,11 @@
 
         "laser_left": [96, 128],
         "laser_right": [128, 128],
+
+        "metal_left": [0, 160],
+        "metal_right": [32, 160],
+        "metal_up": [0, 192],
+        "metal_down": [32, 192],
 
         "cat_A_00_00": [0, 0],
         "cat_A_00_01": [32, 0],
@@ -328,8 +334,32 @@
 
 """
 
+# TODO list :
+#  X bordure "métal" autour des éléments d'images qui sont posés.
+#  X déplacement du vaisseau dans toutes les directions.
+#  X gestion des collisions entre image posées et vaisseau. (ça bloque)
+#  - gestion des collisions entre image qui tombent et vaisseau. (ça fait mourir)
+#  - gestion du temps : gravité qui s'applique automatiquement, laser qui s'enlève.
+#  - gestion du cooldown du laser : on affiche un truc sur le vaisseau pour montrer quand le laser s'est rechargé.
+#  - envoi d'image en continu.
+#  - arrêt de la partie si une image qui arrive est bloquée par des images posées.
+#  - d'autres images de chats, avec d'autres dimensions de rectangles.
+#  - calcul du score à la fin de la partie.
+#  - redémarrage du jeu avec le bouton "2" à la fin d'une partie.
+#  - test et équilibrage du jeu.
+#  - envoi à Ludumdumdum !!!
+#  - dodo.
+
+
 AREA_W = 14
 AREA_H = 20
+
+OFFSET_FROM_DIR = {
+    "U": (0, -1),
+    "D": (0, 1),
+    "L": (-1, 0),
+    "R": (+1, 0),
+}
 
 
 class CatImage:
@@ -407,9 +437,10 @@ class LayedCats:
 
 
 class UssFragmentor:
-    def __init__(self, x, y):
+    def __init__(self, x, y, owner):
         self.x = x
         self.y = y
+        self.owner = owner
         self.firing = False
 
     def draw_on_tiles(self, tiles):
@@ -420,6 +451,30 @@ class UssFragmentor:
             for y in range(self.y):
                 tiles[y][self.x].append("laser_left")
                 tiles[y][self.x + 1].append("laser_right")
+
+    def move(self, move_dir):
+        offset_x, offset_y = OFFSET_FROM_DIR[move_dir]
+        new_x_left = self.x + offset_x
+        new_y_left = self.y + offset_y
+        new_x_right = new_x_left + 1
+        new_y_right = new_y_left
+
+        if not (0 <= new_y_left < self.owner.area_h):
+            return
+        if not 0 <= new_x_left:
+            return
+        if not new_x_right < self.owner.area_w:
+            return
+
+        # check collisions avec les images de chats posées.
+        layed_cats = self.owner.layed_cats
+        if layed_cats.get_tile(new_x_left, new_y_left) or layed_cats.get_tile(
+            new_x_right, new_y_right
+        ):
+            return
+
+        self.x = new_x_left
+        self.y = new_y_left
 
 
 class CatImgManager:
@@ -436,6 +491,16 @@ class CatImgManager:
                 self.layed_cats.get_tile(cat_img.x + x, cat_img.y + y).append(
                     gamobj_cat
                 )
+        for y in range(cat_img.h):
+            self.layed_cats.get_tile(cat_img.x, cat_img.y + y).append("metal_left")
+            self.layed_cats.get_tile(cat_img.x + cat_img.w - 1, cat_img.y + y).append(
+                "metal_right"
+            )
+        for x in range(cat_img.w):
+            self.layed_cats.get_tile(cat_img.x + x, cat_img.y).append("metal_up")
+            self.layed_cats.get_tile(cat_img.x + x, cat_img.y + cat_img.h - 1).append(
+                "metal_down"
+            )
 
     def _apply_gravity_on_cat(self, cat_img):
         y_dest = cat_img.y + cat_img.h
@@ -510,13 +575,13 @@ class GameModel:
         self.h = AREA_H
         self.area_w = AREA_W
         self.area_h = AREA_H
-        self.uss_fragmentor = UssFragmentor(4, 17)
+        self.uss_fragmentor = UssFragmentor(6, 17, self)
         # Les cat_image de la liste doivent être ordonnée par leur y_bottom.
         # La première cat_image est celle qui a la plus grande valeur de (cat_img.y+cat_img.h)
 
-        cat_test = CatImage("cat_A", {}, 4, 2, 3, 3)
+        cat_test = CatImage("cat_A", {}, 4, 2, 3, 12)
         self.cat_images = [
-            CatImage("cat_B", {}, 3, 3, 2, 7),
+            CatImage("cat_B", {}, 3, 3, 2, 16),
             cat_test,
         ]
         self.layed_cats = LayedCats(self.w, self.h)
@@ -540,13 +605,10 @@ class GameModel:
         return exported_tiles
 
     def on_game_event(self, event_name):
-        if event_name == "L" and self.uss_fragmentor.x > 0:
-            self.uss_fragmentor.x -= 1
+        if event_name in "URDL":
+            self.uss_fragmentor.move(event_name)
             self.uss_fragmentor.firing = False
-        # -2 parce que le fragmentor a une largeur de 2.
-        elif event_name == "R" and self.uss_fragmentor.x < self.area_w - 2:
-            self.uss_fragmentor.x += 1
-            self.uss_fragmentor.firing = False
+
         elif event_name == "action_1":
             # TODO : enlever automatiquement le laser au bout d'une demi-seconde.
             # Pour l'instant on le fait à l'arrache.
