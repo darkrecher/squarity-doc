@@ -1,9 +1,4 @@
-# https://i.postimg.cc/BnY1BNMT/cat-frag.png
-# https://i.postimg.cc/rw28bx03/cat-frag.png
-
 """
-
-
 {
     "game_area": {
         "nb_tile_width": 14,
@@ -16,6 +11,8 @@
 
         "uss_fragmentor_00": [128, 0],
         "uss_fragmentor_01": [160, 0],
+        "laser_loaded_00": [64, 160],
+        "laser_loaded_01": [96, 160],
 
         "cut_left": [96, 64],
         "cut_right": [128, 64],
@@ -46,6 +43,25 @@
         "cat_B_02_00": [0, 128],
         "cat_B_02_01": [32, 128],
         "cat_B_02_02": [64, 128],
+
+        "cat_C_00_00": [128, 160],
+        "cat_C_00_01": [160, 160],
+        "cat_C_01_00": [128, 192],
+        "cat_C_01_01": [160, 192],
+        "cat_C_02_00": [128, 224],
+        "cat_C_02_01": [160, 224],
+
+        "cat_D_00_00": [0, 224],
+        "cat_D_00_01": [32, 224],
+        "cat_D_00_02": [64, 224],
+        "cat_D_01_00": [0, 256],
+        "cat_D_01_01": [32, 256],
+        "cat_D_01_02": [64, 256],
+
+        "cat_E_00_00": [96, 256],
+        "cat_E_00_01": [128, 256],
+        "cat_E_01_00": [94, 288],
+        "cat_E_01_01": [128, 288],
 
         "bg_00_00": [192, 0],
         "bg_01_00": [224, 0],
@@ -334,22 +350,30 @@
 
 """
 
-# TODO list :
-#  X bordure "métal" autour des éléments d'images qui sont posés.
-#  X déplacement du vaisseau dans toutes les directions.
-#  X gestion des collisions entre image posées et vaisseau. (ça bloque)
-#  - gestion des collisions entre image qui tombent et vaisseau. (ça fait mourir)
-#  - gestion du temps : gravité qui s'applique automatiquement, laser qui s'enlève.
-#  - gestion du cooldown du laser : on affiche un truc sur le vaisseau pour montrer quand le laser s'est rechargé.
-#  - envoi d'image en continu.
-#  - arrêt de la partie si une image qui arrive est bloquée par des images posées.
-#  - d'autres images de chats, avec d'autres dimensions de rectangles.
-#  - calcul du score à la fin de la partie.
-#  - redémarrage du jeu avec le bouton "2" à la fin d'une partie.
-#  - test et équilibrage du jeu.
-#  - envoi à Ludumdumdum !!!
-#  - dodo.
+"""
+Cat Fragmentator - Ludum Dare 50 - made by Réchèr.
 
+Someone is continuously downloading cat images from the interweb. The hard disk where the images land will become inevitably full.
+
+You play as a process inside this hard disk, your task is to fragment the cat images, in order to optimize space. How long will you be able to stay alive ?
+
+You can use your keyboard (arrow keys + button '1' and '2'), or click on the buttons.
+
+Start the game by pushing any direction key. Falling cat images kill you, fallen cat images block you.
+
+Use the button '1' to shoot a laser that will cut vertically the cat images. Beware, the laser cooldown is quite long.
+
+When cat images are cut, they fall independantly, and can occupy disk space in a more optimized way.
+
+Your game inevitably ends when two images collides. Use the button '2' to start a new game.
+
+Made with Squarity, an engine that lets you create 2D tiled game in your browser, by coding in python.
+
+Image credits are at the end of the game source code.
+"""
+
+import json
+import random
 
 AREA_W = 14
 AREA_H = 20
@@ -360,6 +384,17 @@ OFFSET_FROM_DIR = {
     "L": (-1, 0),
     "R": (+1, 0),
 }
+
+DELAYED_ACTION_GRAVITY = {"delayed_actions": [{"name": "gravity", "delay_ms": 800}]}
+DELAYED_ACTION_GRAVITY = json.dumps(DELAYED_ACTION_GRAVITY)
+
+DELAYED_ACTION_HANDLE_LASER = {
+    "delayed_actions": [
+        {"name": "remove_laser", "delay_ms": 150},
+        {"name": "reload_laser", "delay_ms": 1500},
+    ]
+}
+DELAYED_ACTION_HANDLE_LASER = json.dumps(DELAYED_ACTION_HANDLE_LASER)
 
 
 class CatImage:
@@ -442,10 +477,17 @@ class UssFragmentor:
         self.y = y
         self.owner = owner
         self.firing = False
+        self.alive = True
+        self.laser_loaded = True
+        self.nb_shots_fired = 0
 
     def draw_on_tiles(self, tiles):
         tiles[self.y][self.x].append("uss_fragmentor_00")
         tiles[self.y][self.x + 1].append("uss_fragmentor_01")
+
+        if self.laser_loaded:
+            tiles[self.y][self.x].append("laser_loaded_00")
+            tiles[self.y][self.x + 1].append("laser_loaded_01")
 
         if self.firing:
             for y in range(self.y):
@@ -476,37 +518,70 @@ class UssFragmentor:
         self.x = new_x_left
         self.y = new_y_left
 
+    def collide_with_active_cats(self):
+        for cat_img in self.owner.cat_images:
+            # Code de test de bounding rect.
+            # J'ai déjà codé ce truc des dizaines de fois. Mince...
+            if (cat_img.x <= self.x < cat_img.x + cat_img.w) and (
+                cat_img.y <= self.y < cat_img.y + cat_img.h
+            ):
+                return True
+            if (cat_img.x <= self.x + 1 < cat_img.x + cat_img.w) and (
+                cat_img.y <= self.y < cat_img.y + cat_img.h
+            ):
+                return True
+
+        return False
+
 
 class CatImgManager:
+
+    CAT_IMAGES_INFOS = (
+        ("cat_A", 4, 2),
+        ("cat_B", 3, 3),
+        ("cat_C", 2, 3),
+        ("cat_D", 3, 2),
+        ("cat_E", 2, 2),
+    )
+
     def __init__(self, layed_cats, cat_images):
         self.layed_cats = layed_cats
         self.cat_images = cat_images
         self.w = self.layed_cats.w
         self.h = self.layed_cats.h
+        self.cat_generation_cooldown = 0
+        self.score_lay_cats = 0
 
     def _lay_cat(self, cat_img):
+        score_to_add = 0
         for y in range(cat_img.h):
             for x in range(cat_img.w):
                 gamobj_cat = cat_img.get_gamobj_name(x, y)
                 self.layed_cats.get_tile(cat_img.x + x, cat_img.y + y).append(
                     gamobj_cat
                 )
+                score_to_add += 10
+
         for y in range(cat_img.h):
             self.layed_cats.get_tile(cat_img.x, cat_img.y + y).append("metal_left")
             self.layed_cats.get_tile(cat_img.x + cat_img.w - 1, cat_img.y + y).append(
                 "metal_right"
             )
+            score_to_add -= 2
+
         for x in range(cat_img.w):
             self.layed_cats.get_tile(cat_img.x + x, cat_img.y).append("metal_up")
             self.layed_cats.get_tile(cat_img.x + x, cat_img.y + cat_img.h - 1).append(
                 "metal_down"
             )
+            score_to_add -= 2
+
+        self.score_lay_cats += score_to_add
 
     def _apply_gravity_on_cat(self, cat_img):
         y_dest = cat_img.y + cat_img.h
 
         if y_dest == self.h:
-            print("bottom", cat_img.y, cat_img.h, y_dest)
             # l'image de chat doit poser ses éléments dans layed_cats
             return False
 
@@ -514,7 +589,6 @@ class CatImgManager:
         gravity_ok = all([not self.layed_cats.get_tile(x, y) for x, y in coords_dest])
 
         if not gravity_ok:
-            print("bumped a layed cat")
             # l'image de chat doit poser ses éléments dans layed_cats
             return False
 
@@ -538,7 +612,6 @@ class CatImgManager:
         processed_cat_images = []
         for cat_img in self.cat_images:
             if cat_img.must_be_cut(area_x_cut, area_y_cut):
-                print("on cutte !")
                 gamobjs_cut_left = cat_img.get_gamobjs_after_cut(area_x_cut, True)
                 cat_img_cut_1 = CatImage(
                     None,
@@ -564,9 +637,60 @@ class CatImgManager:
                 processed_cat_images.append(cat_img_cut_1)
                 processed_cat_images.append(cat_img_cut_2)
             else:
-                print("on cutte pô.")
                 processed_cat_images.append(cat_img)
         self.cat_images[:] = processed_cat_images
+
+    def handle_cat_img_generation(self):
+
+        self.cat_generation_cooldown -= 1
+        if self.cat_generation_cooldown > 0:
+            return True
+
+        cat_to_generate_infos = random.choice(CatImgManager.CAT_IMAGES_INFOS)
+        image_prefix, cat_img_w, cat_img_h = cat_to_generate_infos
+        cat_img_x = random.randint(0, self.w - cat_img_w)
+        cat_img_y = 0
+
+        if self.cat_images:
+            last_cat = self.cat_images[-1]
+            last_cat_bottom_y = last_cat.y + last_cat.h
+            if last_cat_bottom_y < cat_img_h:
+                # On essaye de générer un nouveau cat, dont le bas du rectangle
+                # serait plus bas que le bas du rectangle du dernier cat.
+                # Si on fait ça, les cats ne seront plus ordonnées par leur bottom_y,
+                # et ça mettrait le bazar.
+                # Tant pis, on génère pas de cat, on en refera un au prochain tour.
+                return True
+
+        coords_new_cat = []
+        for y in range(cat_img_h):
+            for x in range(cat_img_w):
+                coords_new_cat.append((cat_img_x + x, cat_img_y + y))
+
+        for coord_x, coord_y in coords_new_cat:
+            for cat_img in self.cat_images:
+                # Code de test de bounding rect.
+                # J'ai déjà codé ce truc des dizaines de fois. Mince...
+                if (cat_img.x <= coord_x < cat_img.x + cat_img.w) and (
+                    cat_img.y <= coord_y < cat_img.y + cat_img.h
+                ):
+                    # On essaye de générer un nouveau cat à un endroit où
+                    # il y a déjà un cat actif en train de tomber.
+                    # On peut pas le générer. On laisse tomber.
+                    return True
+
+        can_continue_game = True
+        for coord_x, coord_y in coords_new_cat:
+            if self.layed_cats.get_tile(coord_x, coord_y):
+                # On va poser un nouveau cat à un endroit où
+                # il y a déjà des cats de posé.
+                # Ça va foirer, on terminera la partie.
+                can_continue_game = False
+
+        new_cat = CatImage(image_prefix, {}, cat_img_w, cat_img_h, cat_img_x)
+        self.cat_images.append(new_cat)
+        self.cat_generation_cooldown = random.randint(0, 10)
+        return can_continue_game
 
 
 class GameModel:
@@ -575,17 +699,18 @@ class GameModel:
         self.h = AREA_H
         self.area_w = AREA_W
         self.area_h = AREA_H
-        self.uss_fragmentor = UssFragmentor(6, 17, self)
-        # Les cat_image de la liste doivent être ordonnée par leur y_bottom.
-        # La première cat_image est celle qui a la plus grande valeur de (cat_img.y+cat_img.h)
+        self.start_game()
 
-        cat_test = CatImage("cat_A", {}, 4, 2, 3, 12)
-        self.cat_images = [
-            CatImage("cat_B", {}, 3, 3, 2, 16),
-            cat_test,
-        ]
+    def start_game(self):
+        self.uss_fragmentor = UssFragmentor(6, self.area_h - 1, self)
+        # Les cat_images de la liste doivent être ordonnée par leur y_bottom.
+        # La première cat_image est celle qui a la plus grande valeur de (cat_img.y+cat_img.h)
+        self.cat_images = []
         self.layed_cats = LayedCats(self.w, self.h)
         self.cat_img_manager = CatImgManager(self.layed_cats, self.cat_images)
+        self.must_start_game = True
+        self.end_message = ""
+        print("Press an arrow key to start.")
 
     def export_all_tiles(self):
         exported_tiles = []
@@ -604,21 +729,75 @@ class GameModel:
 
         return exported_tiles
 
+    def compute_score(self):
+        final_score = 0
+        final_score += self.cat_img_manager.score_lay_cats
+        if self.end_message == "The hard drive is full":
+            final_score += 100
+        final_score -= self.uss_fragmentor.nb_shots_fired
+        return final_score
+
+    def end_game(self):
+        self.uss_fragmentor.alive = False
+        final_score = self.compute_score()
+        print("!" * 10)
+        print(self.end_message)
+        print(f"Your score : {final_score}")
+        print("Press the button '2' to start a new game.")
+
     def on_game_event(self, event_name):
         if event_name in "URDL":
-            self.uss_fragmentor.move(event_name)
-            self.uss_fragmentor.firing = False
+
+            if self.uss_fragmentor.alive:
+                self.uss_fragmentor.move(event_name)
+                self.uss_fragmentor.firing = False
+                if self.uss_fragmentor.collide_with_active_cats():
+                    self.end_message = "You bumped into a falling cat"
+                    self.end_game()
+
+            if self.must_start_game:
+                self.must_start_game = False
+                return DELAYED_ACTION_GRAVITY
 
         elif event_name == "action_1":
-            # TODO : enlever automatiquement le laser au bout d'une demi-seconde.
-            # Pour l'instant on le fait à l'arrache.
-            self.uss_fragmentor.firing = not self.uss_fragmentor.firing
-            if self.uss_fragmentor.firing:
+
+            if self.uss_fragmentor.alive and self.uss_fragmentor.laser_loaded:
+                self.uss_fragmentor.firing = True
+                self.uss_fragmentor.laser_loaded = False
+                self.uss_fragmentor.nb_shots_fired += 1
+
                 self.cat_img_manager.cut_cats(
                     self.uss_fragmentor.x + 1, self.uss_fragmentor.y
                 )
+                return DELAYED_ACTION_HANDLE_LASER
+
+            if self.must_start_game:
+                self.must_start_game = False
+                return DELAYED_ACTION_GRAVITY
+
         elif event_name == "action_2":
-            self.cat_img_manager.apply_gravity()
+            if not self.uss_fragmentor.alive:
+                self.start_game()
+
+        elif event_name == "gravity":
+            if self.uss_fragmentor.alive:
+                self.cat_img_manager.apply_gravity()
+                can_continue_game = self.cat_img_manager.handle_cat_img_generation()
+                if not can_continue_game:
+                    self.end_message = "The hard drive is full"
+                collided_with_cats = self.uss_fragmentor.collide_with_active_cats()
+                if collided_with_cats:
+                    self.end_message = "You bumped into a falling cat"
+                if not can_continue_game or collided_with_cats:
+                    self.end_game()
+                else:
+                    return DELAYED_ACTION_GRAVITY
+
+        elif event_name == "remove_laser":
+            self.uss_fragmentor.firing = False
+
+        elif event_name == "reload_laser":
+            self.uss_fragmentor.laser_loaded = True
 
 
 """
@@ -633,9 +812,14 @@ https://wallpapershero.com/animals-wallpaper/cat-sad-annoyed-wallpapers-pictures
 
 http://glossyinc.com/wp-content/uploads/2017/01/Candid_Catmera_portfolio.jpg
 
+https://i.etsystatic.com/20628809/r/il/e4a58d/1945667396/il_794xN.1945667396_njyh.jpg
+
+https://exploringmormonism.com/imagine-that-youre-driving-down-a-highway/ (WTF ?)
+
 uss fragmentor (même si au départ c'est un defragmenter) :
 
 https://www.papergeek.fr/comment-defragmenter-disque-dur-sous-windows-10-et-pourquoi-important-741789
 
+https://i.ytimg.com/vi/HNPhd4Dxibc/maxresdefault.jpg
 
 """
