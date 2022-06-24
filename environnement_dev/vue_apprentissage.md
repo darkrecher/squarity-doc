@@ -564,3 +564,133 @@ Nan, on fera ça plus tard.
 Pour la doc, je vais pointer directement sur la page github, parce que je suis vraiment à l'arrache.
 
 
+## Installation du router vue
+
+Comme ça je vais pourrais avoir une page de roadmap, et la page avec Squarity.
+
+Source :
+
+https://v3.router.vuejs.org/installation.html#npm
+
+Attention, il est conseillé de d'abord sauvegarder le contenu du fichier App.vue, car le router modifie ce fichier, pour créer un premier exemple.
+
+Ensuite, il faut lancer la commande `vue add router`.
+
+    λ vue add router
+    WARN  There are uncommited changes in the current repository, it's recommended to commit or stash them first.
+    ? Still proceed? Yes
+
+    �  Installing @vue/cli-plugin-router...
+
+    + @vue/cli-plugin-router@4.4.6
+    added 6 packages from 2 contributors and updated 1 package in 19.373s
+
+    51 packages are looking for funding
+      run `npm fund` for details
+
+    ✔  Successfully installed plugin: @vue/cli-plugin-router
+
+    ? Use history mode for router? (Requires proper server setup for index fallback in production) Yes
+
+    �  Invoking generator for @vue/cli-plugin-router...
+    �  Installing additional dependencies...
+
+    added 1 package from 1 contributor in 10.172s
+
+    51 packages are looking for funding
+      run `npm fund` for details
+
+    -  Running completion hooks...warning: Unexpected console statement (no-console) at src\components\DevZone.vue:150:9:
+      148 |       const urlGameSpec = gameSpecLoader.url_game_spec_from_loc_hash(locHash);
+      149 |       if (urlGameSpec === null) {
+    > 150 |         console.log('Le hash de l\'url ne correspond pas à un lien vers une définition de jeu.');
+          |         ^
+      151 |       } else {
+      152 |         const gameSpec = await gameSpecLoader.fetch_game_spec(urlGameSpec);
+      153 |         if (gameSpec === null) {
+
+
+    warning: Unexpected console statement (no-console) at src\components\DevZone.vue:154:11:
+      152 |         const gameSpec = await gameSpecLoader.fetch_game_spec(urlGameSpec);
+      153 |         if (gameSpec === null) {
+    > 154 |           console.log('Le texte récupéré ne correspond pas à une définition de jeu.');
+          |           ^
+      155 |         } else {
+      156 |           this.$refs.url_tileset.value = gameSpec.url_tileset;
+      157 |           this.$refs.json_conf.value = gameSpec.json_conf;
+
+
+    warning: Unexpected console statement (no-console) at src\components\ProgressIndicator.vue:64:7:
+      62 |
+      63 |     add_progress_message(msg) {
+    > 64 |       console.log(`progress: ${msg}`);
+        |       ^
+      65 |       // On met à vide le message d'avant.
+      66 |       // Sinon ça fait trop de texte à lire juste pour une barre de progress.
+      67 |       this.messages[this.messages.length - 1] = ' ';
+
+
+    error: Unable to resolve path to module '@/components/HelloWorld.vue' (import/no-unresolved) at src\views\Home.vue:13:24:
+      11 | <script>
+      12 | // @ is an alias to /src
+    > 13 | import HelloWorld from '@/components/HelloWorld.vue';
+        |                        ^
+      14 |
+      15 | export default {
+      16 |   name: 'Home',
+
+Ça ne marche pas immédiatement, il faut faire quelques modifs dans le code, pour recâbler les bons components, remettre le jeu dans la page principale, etc. Tout ceci est tracé dans le [commit 0b69e7df](https://github.com/darkrecher/squarity-code/commit/0b69e7dfb9ed3b9eea834c6945abd9073addb1cb) du repository squarity-code.
+
+
+## Linting dans VSCode qui fait n'importe quoi
+
+ESLint ne veut pas lancer mon site lorsque j'utilise des double quotes pour mes strings. Par exemple :
+
+`import GameBoard from "../components/GameBoard.vue";`
+
+No problem, si c'est la convention, respectons là.
+
+Mais lorsque je sauvegarde un fichier dans VSCode, il me remet automatiquement des double quotes !
+
+Quand j'ouvre un fichier .vue à l'arrache avec VSCode, il ne me remplace pas les double quotes. Quand j'ouvre VSCode en me plaçant dans le répertoire du projet (squarity-code), puis que je fais `code .`. Là, il remplace. VSCode doit sûrement comprendre qu'il est dans un projet de site web avec Vue, et il se comporte pas pareil. Je pense que j'avais ce problème depuis le début, mais c'est que maintenant que je le vois. (J'avais jamais ouvert mon projet en faisant "code .").
+
+Désactivation, puis désinstallation de l'extension VSCode Vetur.
+
+Installation de l'extension "Vue Language Features (Volar)".
+
+C'est mieux, tout le monde est d'accord pour obliger à mettre des simple quotes.
+
+Mais pour les attributs HTML, c'est pas encore ça.
+
+ESLint veut que je mette comme ça (règle "vue/max-attributes-per-line") :
+
+    <img
+      alt="Vue logo"
+      src="../assets/logo.png"
+    >
+
+Volar me les remet automatiquement comme ça quand je sauvegarde :
+
+    <img alt="Vue logo" src="../assets/logo.png">
+
+Mettez-vous d'accord, bordel !!
+
+Quelqu'un a le même problème. https://www.reddit.com/r/vuejs/comments/se5466/having_a_tough_time_setting_up_eslintprettier_to/
+
+J'ai essayé de créer mon propre fichier .eslintrc, ça a tout fait péter. On oublie. Dans le fichier `package.json`, il y a une partie `eslintConfig`, on peut mettre ce qu'on veut dedans. En particulier, désactiver des règles.
+
+Explication détaillée sur le fonctionnement du fichier de config eslint : https://eslint.org/docs/latest/user-guide/configuring/configuration-files .
+
+**Architectural Decision Record** : (c'est plus "environmental" que "architectural", mais bon). Volar a la priorité sur ESLint. D'abord parce qu'il est spécifique pour Vue, et aussi parce que je ne sais pas comment le configurer !
+
+Quand il y a conflit entre une règle de lintage de ESLint et un formattage automatique de Volar, on désactive ou on reconfigure la règle ESLint, pour qu'il n'y ait plus le conflit.
+
+Par exemple, dans package.json / eslintConfig / rules, j'ajoute ça : `"vue/max-attributes-per-line": "off"`. Et ESLint ne m'embête plus.
+
+Je teste une balise HTML avec plein d'attributs, il y a encore des conflits. Hop, désactivation d'autres règles (voir directement le fichier package.json pour le détail).
+
+Pour plus tard : ce sera bien d'essayer de passer à Vue 3. Apparemment, Vetur est pour Vue 2, Volar est pour Vue 3. https://www.reddit.com/r/vuejs/comments/pahxs4/whats_the_general_opinion_on_vetur_vs_volar/ . J'ai mis une tâche dans Trello pour ça.
+
+Avec un peu de chance, le passage de Vue 2 à Vue 3 se fera sans trop de problèmes, parce que j'ai pas énormément de code pour l'instant.
+
+
