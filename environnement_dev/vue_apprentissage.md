@@ -693,4 +693,12 @@ Pour plus tard : ce sera bien d'essayer de passer à Vue 3. Apparemment, Vetur e
 
 Avec un peu de chance, le passage de Vue 2 à Vue 3 se fera sans trop de problèmes, parce que j'ai pas énormément de code pour l'instant.
 
+Un dernier truc bizarre : les fichiers `gameExamples.js` et `gameSpecLoader.js` sont placés dans le même répertoire, ils ont la même extension, et contiennent le même type de donnée (du code javascript).
 
+Et pourtant Volar ne les traite pas de la même manière. Pour `gameSpecLoader.js`, il met automatiquement une indentation à 2 espaces, et pour `gameExamples.js`, une indentation à 4 espaces. Je ne sais pas comment on le change, ni pourquoi ça fait ça.
+
+Bien évidemment, l'indentation à 4 espaces fait râler ESLint, en plus de certaines lignes qui dépassent 120 caractères.
+
+Ça m'embêterait de désactiver la règle des indentations juste pour un seul fichier. Et en plus, c'est pas vraiment un fichier contenant du javascript. Il contient des grandes chaînes de caractères constituant du python et du json. Donc pour ce fichier en particulier, on désactive ESLint (à l'aide d'un commentaire en première ligne). À terme (je sais juste pas à quel terme), ce fichier `gameExamples.js` sera amené à disparaître, et tout ce qu'il contient sera stocké dans un endroit un peu plus adapté.
+
+Pfiou ! C'était pas simple de reprendre ce projet. Allez, au boulot !
