@@ -57,6 +57,8 @@ Détecter les erreurs de la config json/yaml
  - Détecter et proposer des corrections : On ajoute une virgule ou un guillemet à l'endroit de l'erreur, on teste si ça fait un texte valide, si oui on propose la correction.
 
 Permettre une config écrite en YAML : c'est un peu plus human-readable, et on peut mettre des commentaires. Ça veut dire que dans les gists, faudra indiquer quelque part si c'est du YAML ou du JSON. Ou alors on l'auto-détecte à la bourrin.
+Le YAML est un peu plus human-readable, et on peut mettre des commentaires.
+Ça veut dire que dans les gists, faudra indiquer quelque part si c'est du YAML ou du JSON. Ou alors on auto-détecte le format à la bourrin.
 
 Améliorer la page web
  - Placer une slide-bar horizontale entre la conf et le game code : pour partager comme on veut l'espace entre les deux fenêtres.
@@ -122,6 +124,12 @@ Gamobj qui dépassent de leur tile.
 Afficher du texte sous forme de bulle.
 
 Afficher des éléments d'interface : des nombres, des barres de mana, des couleurs, une mini-map, ... Mais pas trop, parce qu'il faut que ça reste simple.
+Game Object affichant une valeur ou une information.
+Du texte ou des nombres, pour indiquer un score, une quantité d'argent, ...
+Un rectangle de taille variable, qui s'étend sur plusieurs cases, pour indiquer une barre de vie, de mana, ...
+Affichage d'une quantité sous forme de camembert.
+Une mini-map ? (À déterminer précisément)
+Il faudra rendre ces indicateurs suffisamment configurables : taille, couleur, bord arrondi, police de caractère, ... Mais pas trop, car ça doit rester simple. Pour des indicateurs plus spécifiques, il faudra se créer ses propres game objects, et coder leur comportement directement dans le game-code.
 
 Fonctions python helpers, classe BoardModel de base. Des classes qui gèrent des array 2D, en matrice normale et en matrice creuse.
 
