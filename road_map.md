@@ -107,9 +107,31 @@ Vision : une gif où on place des éléments de H2O, et ça met automatiquement 
 
 Vision : construction d'un tileset en piochant des images de plusieurs tilesets existants. Certaines images sont des animations. D'autres sont toutes les possibilités de connexions d'une route.
 
-Vision : édition d'un pack de niveaux, avec des liens entre les niveaux.
+Vision : édition d'un pack de niveaux, avec des liens entre les niveaux. (ou pas, parce que c'est flou).
 
-Créer un éditeur de niveaux.
+### Créer un éditeur de niveaux.
+
+Lorsque la notion de niveau sera implémenté, on pourra créer un éditeur.
+
+Dans la gameconf, il faut pouvoir définir la liste des game objects du jeu qui sont plaçables avec l'éditeur.
+
+Ça permettra des interactions et des collaborations entre les personnes créant les jeux.
+
+Une première personne crée un jeu, avec un tileset, le game code, les game objects, et quelques niveaux. Une autre personne crée d'autres niveaux que la première pourra reprendre.
+
+L'éditeur de niveau doit pouvoir exporter/importer la map d'un niveau, selon le même format que les niveaux définis dans la gameconf.
+
+### Ajouter une fonction de préparation d'un niveau
+
+Ajouter une fonction prepare_level() dans l'API, définissable dans le gamecode, mais qui ne sera pas appelée pendant le déroulement d'une partie.
+
+La fonction est appelée pendant l'édition d'un niveau, à chaque modification de la map.
+
+WIP.
+
+###
+
+
 
 Permettre de définir les niveaux dans la conf : ça permettra à des personnes qui ne codent pas de créer des niveaux dans les jeux fait par d'autres personnes. Ça veut dire aussi qu'il faut des bouts d'API pour gérer ça : start_level, is_level_ended -> (no, win, lost). Et ce serait bien que, même avec ces bouts d'API, on puisse coder un jeu principal qui ne se contente pas d'enchainer les niveaux les uns après les autres.
 
@@ -224,12 +246,39 @@ Différents mode prédéfinis :
 
 Si possible, configuration totalement libre. Mais ça veut dire qu'il faut pouvoir définir la disposition des boutons.
 
-### Sauvegarder une partie
+### Sauvegarder les parties
 
-TODO : à décrire mieux.
+L'API doit comporter deux fonctions :
 
-Sauvegarder sa partie. Lier les sauvegardes au compte, pour pouvoir continuer une partie sur une autre machine.
+ - export_game_situation() : renvoie une grande chaîne de caractère, contenant la situation du jeu sérialisée (position des game objects, actions différées en cours, score, niveau actuel, ...)
+ - import_game_situation(game_situ) : recrée la situation du jeu à partir de la grande chaîne passée en paramètre.
 
+Dans un premier temps, ces fonctions doivent être définies par la personne qui crée le jeu. Si elles ne le sont pas : pas de sauvegarde.
+
+Et ensuite, on propose un export/import par défaut, qui fonctionnera pour les jeux simples. Cet export/import sera activée par une info de config.
+
+Tant que Squarity n'a pas de gestion de compte utilisateur, l'export est enregistré dans le local storage du navigateur. Et ensuite, ce sera stocké dans les infos du compte, ce qui permettra de continuer sa partie sur une autre machine.
+
+### Implémenter la notion de "niveau"
+
+Certains jeux peuvent être découpés en niveaux (par exemple : H2O, soko-ban, soko-punk). On doit pouvoir définir les maps des niveaux dans la config. Un niveau est constitué de layers, comportant des game objects (c'est une situation de jeu comme une autre).
+
+L'API pourra ensuite utiliser cette notion de niveau, avec les fonctions suivantes :
+
+ - on_init_level()
+ - check_lose_level()
+ - go_to_level(level_id)
+ - check_win_level() -> renvoie l'identifiant du prochain niveau.
+
+Dans un premier temps : gérer les niveaux comme dans PuzzleScript. Ils sont rangés linéairement, lorsqu'on gagne un niveau, on passe au suivant.
+
+Si possible : permettre une gestion comme dans le jeu Drod : les niveaux sont agencés selon un plan global, on se déplace dedans comme on le souhaite. Chaque niveau a un état résolu/à faire. On peut les résoudre dans n'importe quel ordre, et on peut revenir à un niveau résolu.
+
+Cette notion de niveau permet de débloquer beaucoup de fonctionnalité de la partie "Éditeur de niveaux, gestion des tilesets".
+
+Elle permet aussi d'implémenter très facilement une fonctionnalité de sauvegarde de partie : il suffit d'enregistrer l'état résolu/à faire de chaque niveau, et le niveau courant. On ne peut pas enregistrer d'état intermédiaire dans un niveau, mais c'est déjà ça.
+
+C'est encore un peu flou (mais moins que d'autres choses très floues).
 
 ###
 
@@ -320,7 +369,7 @@ Live coding (Twitch, Youtube, ...)
 
 ## Social
 
-Vision : un jeu, avec des avis en dessous, dont un avis de résumé. Des icônes ESRB. Une liste de sources (tileset, levels, jeux original, ...).
+Vision : un jeu, avec des avis en dessous, dont un avis de résumé. Des icônes ESRB. Une liste de sources (tileset, niveaux, jeux original, ...).
 
 Vision : le profil d'une personne. Les badges gagnés. Les scores. Les jeux favoris. Les suggestions de jeux.
 
