@@ -10,29 +10,18 @@ Square map :
 6:tutos_doc -1:(le milieu) 2:edition_de_level_et_tileset
 5:contenu_promotion 4:social 3:autoformation_optimisation_prod
 
-le milieu : document "fondateur" expliquant pourquoi je fais ce jeu. Et un autre mini-document expliquant comment je vais fonctionner avec cette road map
+Le milieu : document "fondateur" expliquant pourquoi je fais ce jeu. Et un autre mini-document expliquant comment je vais fonctionner avec cette road map
 
-Toute la description doit être en YAML, avec les niveaux suivants :
+Toute la description des tâches doit être en JSON.
 
- - zones : 8 zones + le milieu
-   - sous-zones : des petites zones ayant une taille de quelques cases
-     - tâches : un objet ponctuel, avec une descrip. On peut en avoir plusieurs sur une même case. Certaines peuvent contenir un lien vers une tâche Trello (ou pas, parce qu'on va pas se prendre la tête à connecter tout le bordel que je fous dans Trello avec la road-map).
-     - spec détaillée : un lien vers un doc (sur github ou ailleurs), décrivant tout ce qu'on veut faire pour cette sous-zone.
-     - une "vision"
-
-On peut noter des tâches et des sous-zones comme "terminées".
-
-On peut avoir des tâches, des spec et des visions directement dans la zone, sans sous-zone.
+Les tâches peuvent être notées comme "terminées".
 
 Avec ce json, on construit (automatiquement via un petit script) :
  - un document markdown, versionné dans github-doc.
- - un jeu Squarity, versionné dans github-doc aussi. On intègre directement le json dans le jeu, et c'est le code python du jeu qui le parse.
  - une page html statique avec tout le bazar dedans.
  - si possible, une image, qu'on pourra poster un peu où on veut.
 
-Ça fait une dépendance de Squarity à github-doc, mais c'est pas grave. Si ça pète, tout le reste fonctionnera quand même. Et comme ça je met à jour plus facilement. C'est un simple commit vers github-doc.
-
-Toutes les tâches Trello doivent rentrer dans l'une de ces 8 zones, et si possible, dans une sous-zone. Mais on ne les fait pas apparaître dans la road-map, parce que ça mettrait trop de bazar. Trop de tâches détaillées.
+Toutes les tâches Trello doivent rentrer dans l'une de ces 8 zones. Mais on ne les fait pas apparaître dans la road-map, parce que ça mettrait trop de bazar. Trop de tâches détaillées.
 
 Le document fondateur contiendra en bas tous les liens vers tous les trucs :
  - les githubs
@@ -41,7 +30,7 @@ Le document fondateur contiendra en bas tous les liens vers tous les trucs :
  - comment je vais fonctionner avec la roadmap, et que il y a les annonces dans Discord.
  - les trellos
 
-Il faut montrer des "visions". Un écran d'exemple et un récit d'utilisation d'une feature de Squarity. Pour montrer aux personnes interessés ce que je compte faire avec cet outil. Même si c'est très résumé et très flou. Ça donnera une idée globale.
+Il faut montrer des "visions". Un écran d'exemple et un récit d'utilisation d'une feature de Squarity. Pour montrer aux personnes interessées ce que je compte faire avec cet outil. Même si c'est très résumé et très flou. Ça donnera une idée globale.
 
 Si possible, au moins une vision par zone.
 
@@ -123,31 +112,63 @@ L'éditeur de niveau doit pouvoir exporter/importer la map d'un niveau, selon le
 
 ### Ajouter une fonction de préparation d'un niveau
 
-Ajouter une fonction prepare_level() dans l'API, définissable dans le gamecode, mais qui ne sera pas appelée pendant le déroulement d'une partie.
+Ajouter une callback prepare_level() dans l'API. Elle est définissable dans le gamecode comme les autres, mais elle n'est pas appelée pendant le déroulement d'une partie.
 
 La fonction est appelée pendant l'édition d'un niveau, à chaque modification de la map.
 
-WIP.
+Elle prend en entrée la map définie par la personne créant un niveau, et renvoie en sortie des layers, contenant des game objects.
 
-###
+Ça permettra, par exemple, d'agencer automatiquement des game objects pour faire plus joli. Par exemple, avec H2O, on a juste à placer des game objects de base (murs, tunnels), et la fonction place automatiquement les dessins de murs spécifiques.
 
+Cette fonction de préparation pourra aussi utiliser les patterns (voir le square de roadmap "Implémenter un système de pattern").
 
+### Générer une image d'aperçu pour les niveaux
 
-Permettre de définir les niveaux dans la conf : ça permettra à des personnes qui ne codent pas de créer des niveaux dans les jeux fait par d'autres personnes. Ça veut dire aussi qu'il faut des bouts d'API pour gérer ça : start_level, is_level_ended -> (no, win, lost). Et ce serait bien que, même avec ces bouts d'API, on puisse coder un jeu principal qui ne se contente pas d'enchainer les niveaux les uns après les autres.
+Cette image d'aperçu permet d'explorer et de naviguer plus facilement dans les niveaux d'un jeu. Lorsqu'on veut les tester, les sélectionner pour en faire une compilation, etc.
 
-fonction de préparation d'un niveau (placer automatiquement des gamobjs selon certains patterns d'autres gamobjs).
+### Implémenter la notion de "solution"
 
-pré-rendu d'une image.
+Une solution est une suite de mouvements effectués par une personne qui joue, associé à un niveau. Elle permet de résoudre le niveau.
 
-enregistrement de la solution d'un niveau. pour valider qu'il est réalisable.
+Tous les jeux ne peuvent pas implémenter cette notion, il faut déjà que le jeu ait la notion de "niveau", et qu'il ne fasse jamais intervenir le hasard.
 
-notion de win/loss sur un niveau. Pour passer automatiquement au niveau suivant, par exemple. Et pour avoir une touche permettant de réinitialiser le niveau (avec la fonction callback qui va bien).
+On peut également associer un score à une solution (nombre minimal de mouvement, nombre de fruits ramassés, ...). Mais pour cela, il faut à nouveau une fonction d'API, qui renvoie le score.
 
-Notion de score. Par exemple le nombre de mouvements, ou le nombre d'objets ramassés. La personne ayant créé le niveau donne une solution, avec un certain score. D'autres personnes peuvent trouver une solution avec un meilleur score. Le score est calculé par le code python, et renvoyé lorsque le niveau est réussi. Ça peut être un tuple. Par exemple (nb_objet_ramassés, nb_monstres_tués, -nb_mouvements_effectués)
+La notion de score permettra à des personnes de comparer leurs solutions, de publier des classements, etc.
 
-Si on calcule des scores, soit on publie la solution qui va avec, soit il faut le valider côté serveur (et ça on sait que c'est trop compliqué pour l'instant).
+Et pour aller jusqu'au bout, il faudrait valider les solutions et les scores côté serveur, sinon des personnes pourront tricher. Mais on va laisser ça de côté pour l'instant, c'est trop compliqué et trop risqué au niveau de la sécurité.
 
-Utilisation d'éditeur 2D (LDtk, mapeditor) dans le cadre de Squarity. Convertisseur automatique. Manuel d'utilisation.
+### Associer des éditeurs 2D externes
+
+Exemple d'éditeur externe : LDtk, Tiled.
+
+Il faut regarder comment ces éditeurs fonctionnent, créer des fonctions d'import/export entre eux et Squarity, documenter leur utilisation.
+
+C'est aussi une occasion de faire connaître Squarity auprès des gens qui utilisent ces éditeurs.
+
+### Enregistrer et gérer des tilesets
+
+Une personne ayant un compte doit pouvoir uploader des tilesets.
+
+Un tileset est un ensemble d'image, qui peut être ensuite utilisé dans des jeux.
+
+Deux types de tileset :
+
+ - "monotaille" : toutes les images ont la même taille et sont des carrés.
+ - "multitaille" : les images peuvent avoir des tailles différentes, mais il faut spécifier un hotpoint par image.
+
+### Gérer les tilesets plus finement
+
+Une personne créant un tileset doit pouvoir regrouper des images pour une signification précise. Par exemple :
+
+ - les 4 (ou 8) directions d'un même personnage
+ - les étapes de l'animation d'un même objet
+ - les différentes combinaisons d'une route (verticale, horizontale, tournant, croisement, ...)
+ - les différentes combinaisons d'une zone étendue (de l'eau, adjacente à d'autres cases comportant de l'eau)
+
+C'est encore assez flou, car pour l'instant, c'est difficile de voir ce qui serait faisable avec ces infos de regroupement.
+
+Créer un nouveau tilesets en prenant des images provenant de tileset différents.
 
 
 ## Moteur du jeu
@@ -185,6 +206,19 @@ Dans la définition du game object, on ajoute une coordonnée de hot point, et u
 C'est un game object spécial. Au lieu de lui associer une image, on définit le texte à afficher, la couleur, la position relative de la bulle par rapport à la tile qui la génère, etc.
 
 Si possible, un comportement par défaut dans ce game object, qui le supprime automatiquement au bout de quelques secondes.
+
+### Ajouter des game objects affichant une valeur ou une information.
+
+Types de Game Object :
+
+- Du texte ou des nombres, pour indiquer un score, une quantité d'argent, ...
+- Un rectangle de taille variable, qui s'étend sur plusieurs cases, pour indiquer une barre de vie, de mana, ...
+- Affichage d'une quantité sous forme de camembert.
+- Une mini-map ? (À déterminer précisément)
+
+Il faudra rendre ces indicateurs suffisamment configurables : taille, couleur, bord arrondi, police de caractère, ... Mais pas trop, car ça doit rester simple.
+
+Pour des indicateurs plus spécifiques, il faudra se créer ses propres game objects, et coder leur comportement directement dans le game-code.
 
 ### Rendre l'aire de jeu redimensionnable dynamiquement
 
@@ -280,43 +314,6 @@ Elle permet aussi d'implémenter très facilement une fonctionnalité de sauvega
 
 C'est encore un peu flou (mais moins que d'autres choses très floues).
 
-###
-
-
-Afficher des éléments d'interface : des nombres, des barres de mana, des couleurs, une mini-map, ... Mais pas trop, parce qu'il faut que ça reste simple.
-Game Object affichant une valeur ou une information.
-Du texte ou des nombres, pour indiquer un score, une quantité d'argent, ...
-Un rectangle de taille variable, qui s'étend sur plusieurs cases, pour indiquer une barre de vie, de mana, ...
-Affichage d'une quantité sous forme de camembert.
-Une mini-map ? (À déterminer précisément)
-Il faudra rendre ces indicateurs suffisamment configurables : taille, couleur, bord arrondi, police de caractère, ... Mais pas trop, car ça doit rester simple. Pour des indicateurs plus spécifiques, il faudra se créer ses propres game objects, et coder leur comportement directement dans le game-code.
-
-Fonctions python helpers, classe BoardModel de base. Des classes qui gèrent des array 2D, en matrice normale et en matrice creuse.
-
-Règles de pattern matching. On doit pouvoir faire un jeu complet rien qu'avec ces règles. À la PuzzleScript. Il faudra aussi faciliter le débuggage du super-langage de pattern qui est prévu d'ajouter mais pour lequel on n'a encore rien décidé.
-
-
-Gamobj simples (pour du décor qui ne bouge pas trop) et gamobj plus compliqués, avec des fonctions associées genre move().
-
-Réagir au clic de souris. En mode "sur une case", ou en mode "direction déduite à partir d'un gamobj spécifique".
-
-"Gestures" pour smartphone.
-
-client stand-alone pour jouer déconnecté.
-
-sandboxer le jeu, car on fait de l'exécution de code arbitraire sur des navigateurs.
-
-changer les dimensions de l'aire de jeu pendant une partie.
-
-Jeux à deux sur un même poste.
-
-Jeux à deux à distance (turn-based).
-
-Sauvegarder sa partie. Lier les sauvegardes au compte, pour pouvoir continuer une partie sur une autre machine.
-
-boutons configurables.
-
-des layers de différents types : tableau 2D, liste d'objets avec leurs coordonnées, layers statiques qu'on n'a plus besoin de renvoyer mais qu'on peut supprimer après, ...
 
 ## "Effets spéciaux"
 
@@ -367,7 +364,7 @@ Recenser et qualifier des tilesets
 Live coding (Twitch, Youtube, ...)
 
 
-## Social
+## Social et site web
 
 Vision : un jeu, avec des avis en dessous, dont un avis de résumé. Des icônes ESRB. Une liste de sources (tileset, niveaux, jeux original, ...).
 
@@ -389,27 +386,90 @@ Deux onglets, un pour l'url de l'image + gameconf, un autre pour le gamecode. Pa
 
 Les personnes qui veulent juste jouer seront moins polluées par des infos secondaires. Elles ne verront que le jeu, et une zone de texte affichant une description en langage naturel. Et ça laisse quand même la possibilité d'être curieux, de scroller pour découvrir du code python, de cliquer sur l'autre onglet pour découvrir la conf, etc.
 
+### Utiliser correctement le nom de domaine
+
+squarity.fr fait une redirection moche vers squarity.pythonanywhere.com. Il faut garder le nom de domaine tout le temps.
+
+Et aussi mettre du https. Avec Letsencrypt, ou quelque chose du genre.
+
+### Gérer des comptes utilisateurs
+
+Une personne crée un compte sur le site, pour enregistrer ses jeux (la gameconf, le gamecode, l'image de tileset).
+
+Authentification classique / OAuth / Google / github / autre. Pour éviter d'embêter des gens avec un login-password supplémentaire.
+
+Un peu flou pour l'instant, mais il y a sûrement des bonnes pratiques et de la doc sur le sujet.
+
+### Créer un mini-CMS
+
+Content Management System.
+
+Le but est de pouvoir écrire des articles, des tutoriels, des analyses de jeux vidéos, etc.
+
+Sans prise de tête. On ne va pas recréer tout un moteur de blog.
+
+ - ranger les articles par catégories,
+ - convertisseur markdown to html,
+ - un petit moteur de recherche de texte.
+
+Ce sera amplement suffisant.
+
+### Ajouter des commentaires
+
+Les commentaires pourront être associé à un jeu ou à un article du mini-CMS.
+
+Quelque chose de basique, mais avec un peu de fonctionnalité quand même :
+
+ - mise en forme de texte, avec du markdown,
+ - affichage d'images (qui seront hébergées ailleurs),
+ - organisation arborescente (un commentaire de réponse à un autre commentaire),
+ - permalinks.
+
+### Faciliter les forks et les mashups de jeux
+
+Exemple de cas d'utilisation :
+
+Une personne crée un premier jeu, avec tous les éléments nécessaires (gamecode, tilesets, ...). Une seconde personne, qui sait mieux dessiner, forke le jeu, et remplace le tileset. Une troisième personne reforke le jeu et ajoute des niveaux en plus. La première personne récupère ses éléments, et crée une nouvelle version du jeu, avec des images plus jolies et plus de niveaux.
+
+On pourrait avoir un autre exemple avec un jeu utilisant uniquement le système de pattern (pas de gamecode). Une autre personne forke le jeu, rajoute un type de game object et les patterns associés.
+
+Les forks doivent pouvoir être traçable. Pour un jeu donné, on peut voir tous les éléments (pattern, tileset, etc.) provenant de jeux précédents, et on peut aussi voir tous les forks qui ont été fait à partir de ce jeu.
+
+Ça n'empêchera pas des gens irrespectueux de copier-coller manuellement du code ou des images, puis de créer ensuite un nouveau jeu non forké, en disant que c'est eux qui ont tout fait, mais ça c'est difficilement gérable.
+
+### Faire de la curation de commentaires
+
+Si j'ai bien compris le terme, "curation" signifie : analyser un gros tas de données (des jeux, des commentaires ou autres), et ne garder que les plus pertinents. C'est censé être fait par des humains, même si les premiers filtrages peuvent être faits par des machines.
+
+Une personne "curateuse" va lire des dizaines de commentaires, et rédiger un seul commentaire récapitulatif, avec des références/citations vers les commentaires initiaux.
+
+Une curation peut être de plus ou moins bonne qualité, ce qui signifie qu'il faudrait curater les curations. Ha ha ha !!
+
+Bref, c'est un peu flou pour le moment.
+
+Pas de curation de jeux, car pour l'instant, ce serait trop ambitieux de dire qu'il y aura beaucoup de jeux créés avec Squarity. On ne devrait pas avoir besoin de les classer par pertinence pour s'y retrouver.
+
+On pourrait imaginer un système pour noter les jeux, mais il faudrait trouver quelque chose de plus subtil qu'un nombre d'étoiles à choisir entre 0 et 5. Un classement a tendance a "s'auto-exagérer". Le jeu le plus classé devient le jeu le plus joué, il récolte encore plus de bonnes notes, et devient de plus en plus indétrônable de la première place.
+
+### Générer des statistiques pour les jeux
+
+Combien de personnes ont testé le jeu, combien ont réussi quels niveaux, temps de jeu moyen.
+
+Tout ça par jour / semaine / mois / année.
+
+### Gérer le contenu "choquant"
+
+Une personne créant un jeu doit pouvoir indiquer la présence de contenu "choquant" : note ESRB, descripteur de contenu (sexe, violence, drogue, ...), limite d'âge, etc.
+
+Une personne qui parcourt la liste des jeux (même si elle n'a pas créé de compte) doit pouvoir filtrer selon ces différentes indications.
+
+Truc amusant : le masquage d'indicateur. Pour un descripteur de contenu, non seulement on le filtre pas, mais en plus on n'affiche pas que le jeu possède ce contenu. Pour les personnes qui aiment se faire surprendre par une scène choquante dans un jeu alors qu'elles ne s'y attendent pas.
+
+Gérer des comptes "enfants". Le compte est associé à un compte parent, qui décide des filtrages. C'est flou pour l'instant, car rien n'empêche l'enfant de se déconnecter et d'afficher la liste des jeux sans filtre. Peut-être que le compte parent pourrait enregistrer une liste de machines accessible par l'enfant, sur lesquelles on ne pourrait plus se déconnecter du compte enfant, à moins de saisir le mot de passe du compte parent.
+
 ###
 
-Création de comptes sur le site, pour enregistrer ses jeux et commenter ceux des autres.
 
-Forker des jeux pour changer le code ou le tileset ou les niveaux.
-
-Forum / discord / mastodon. Bref, un truc où on échange des infos.
-
-Le même compte pour le forum et pour le site.
-
-Curation.
-
-Faire un résumé d'un ensemble de commentaire (avec des liens de citations).
-
-Classer les jeux selon je-sais-pas-quoi. (Si on pouvait faire plus subtil qu'un simple nombre d'étoiles, ce serait bien)
-
-Statistiques sur les jeux : combien l'ont testé, combien ont réussi quel niveaux, combien de temps de jeux.
-
-Tagger les jeux avec les ratings ESRB, 18+, violence, etc.
-
-Compte parent qui gère des comptes enfants.
 
 Des badges, des achievements, des stats. Avec la validation côté serveur qui va avec (sécurité, exécution de code python arbitraire, etc.).
 
