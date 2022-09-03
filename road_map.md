@@ -467,14 +467,29 @@ Truc amusant : le masquage d'indicateur. Pour un descripteur de contenu, non seu
 
 Gérer des comptes "enfants". Le compte est associé à un compte parent, qui décide des filtrages. C'est flou pour l'instant, car rien n'empêche l'enfant de se déconnecter et d'afficher la liste des jeux sans filtre. Peut-être que le compte parent pourrait enregistrer une liste de machines accessible par l'enfant, sur lesquelles on ne pourrait plus se déconnecter du compte enfant, à moins de saisir le mot de passe du compte parent.
 
-###
+### Ajouter des badges et du score
 
+Fortement inspiré de Kongregate, Steam, et toutes les autres plate-formes de jeux.
 
+Comme d'habitude : des fonctions en plus dans l'API, pour que des actions spécifiques dans un jeu attribuent un badge au compte de la personne qui joue.
 
-Des badges, des achievements, des stats. Avec la validation côté serveur qui va avec (sécurité, exécution de code python arbitraire, etc.).
+On affiche les badges sur le profil de la personne. Et on peut faire un peu de statistiques dessus (combien de personnes ont le badge, au bout de combien de temps de jeu, etc).
 
-Organisation de game jams.
+Même chose avec du score. Des fonctions dans l'API permettent de donner un score à une partie jouée. Les scores sont enregistrés dans les comptes utilisateurs, on peut faire des classements, des statistiques, etc.
 
+Comme le code du jeu est exécuté par le navigateur web, il sera très facile de tricher, de s'auto-attribuer des badges et des scores très haut. Dans un premier temps, on laissera comme ça.
+
+Pour plus tard : il faudra réfléchir à répliquer le déroulement d'une partie sur le serveur. C'est une idée très floue, assez compliquée à réaliser, voire risquée (exécution de code arbitraire sur un serveur). Donc ce sera vraiment pour plus tard.
+
+### Permettre l'organisation de game jams
+
+Avec un thème, une date de début, une date de fin, un classement, des petites icônes pour indiquer les jeux qui sont arrivés les premiers.
+
+Le mode de classement est à définir, il peut y en avoir plusieurs : notation par les personnes participant au game jam, jury prédéfini, etc.
+
+Est-ce qu'on met ensemble le classement normal sur le site et les classement de game jam, ou est-ce qu'on sépare ?
+
+C'est très flou, et avant de permettre les game jams, il faut une base de personnes utilisatrices un peu plus conséquente que ce qu'on a maintenant.
 
 
 ## Meta
@@ -491,8 +506,5 @@ Tests unitaires automatisés avec Selenium.
 
 Héberger une instance peertube pour y mettre les démos de jeu.
 
-
-Le bouton magique : "publier dans itch.io", ça va dans la catégorie "IDE, environnement de dev".
-(Si tant est qu'on puisse créer un bouton magique de ce genre, car c'est pas gagné).
 
 
