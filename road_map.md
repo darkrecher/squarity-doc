@@ -317,23 +317,68 @@ C'est encore un peu flou (mais moins que d'autres choses très floues).
 
 ## "Effets spéciaux"
 
-Vision : screenshot de drod, avec éclairage et déplacement progressif.
+Vision : screenshot de drod, avec éclairage et déplacement progressif. Et des morceaux de cafards qui giclent.
 
 Vision : des effets spéciaux (éclair, explosion, distortion, ...)
 
-Du son, de la musique. Où est-ce qu'on va stocker ces trucs ? Ça prend toujours plein de place.
+### Emettre des sons "blip-blop"
 
-Animation de transition (déplacements, rotations, shake, disparition/apparition, fade)
+Les sons blip-blop ont 3 avantages :
 
-Objets animés. Par exemple un personnage qui marche.
+ - un petit côté rétro qui rappellera l'époque des sons 8-bits de la NES et des PC speakers.
+ - très facile à stocker, à transmettre et à éditer : une chaîne de caractère suffit (associée au player qui va bien).
+ - permet aux personnes non musiciennes une ambiance sonore, même si ça reste basique
 
-Zoom/dézoom
+On pourra s'inspirer des players blip-blop existants. Il y en a dans PuzzleScript, ZZT, 3D Construction Kit... Il y a peut-être même des players dédiés.
 
-Shaders, webGL. Mais pour l'instant j'y connais rien.
+### Emettre des vrais sons
 
-Effets de lumière, moteurs de particules.
+Jouer des fichiers .wav, .mp3, ...
 
-animation globale, et animation d'un gamobj.
+Avec les fonctions qui vont bien : jouer une fois, jouer en boucle, stopper le son, ...
+
+Le problème, c'est l'hébergement de ces fichiers. Ca prend plus de place que des petites images de tileset. Le plus simple sera de limiter la taille des fichiers, et si possible de trouver des hébergeurs publics et gratos.
+
+### Afficher des déplacements progressifs
+
+L'idéal serait d'indiquer dans la game config, ou bien dans des directives, qu'un certain game object (ou type de game object) se déplace progressivement. Durant le jeu, on se contente de changer la position des game objects. Les déplacements progressifs se déduisent tout seul.
+
+Ca veut dire que les game objects doivent avoir des identifiants uniques, sinon on ne peut pas retrouver qui a bougé où.
+
+### Transformer visuellement les game objects et les layers
+
+Exemples de transformation : rotation, transparence, filtre de couleur, décalage X/Y, agrandissement/rétrécissement, flou, distortion, pixelisation, changement de l'image affichée, ...
+
+Ces opérations pourraient s'appliquer sur des game objects ou des layers entiers.
+
+### Animer les transformations visuelles
+
+Exemple : une transformation de type "transparence", avec la transparence qui augmente progressivement, permet de montrer la disparition d'un game object.
+
+Autre type d'animations : un enchainement d'image, par exemple pour montrer un personnage qui marche.
+
+Certaines animations risquent d'être plus difficile à décrire. Par exemple, un "shake" est constitué de plusieurs décalages X/Y. Il faut pouvoir donner la liste de ces décalages, ou bien une fonction qui va les générer aléatoirement.
+
+Ces transformations visuelles animées pourraient s'appliquer sur des game objects ou des layers entiers. 
+
+Exemple : la taille de l'aire de jeu est de 8x8 tiles. En une seule opération, on passe à une aitre de jeu de 12x12 tiles, mais on applique une transfo visuelle d'agrandissement sur tous les layers, de façon à n'afficher que le milieu de l'aire de jeu. Puis, on diminue progressivement l'agrandissement pour finir par afficher les 12x12 tiles. Ca fait un dézoom progressif.
+
+Peut-être qu'on pourrait s'inspirer des mots-clés "transitions" et "transform" du CSS. Sans avoir la prétention de réimplémenter tout ce que fait le CSS...
+
+### Ajouter des effets de lumière
+
+Un game object, en plus de s'afficher sous forme d'une image, pourrait aussi être une ou plusieurs sources lumineuses, avec couleur, intensité, direction, etc.
+
+Il est possible d'indique qu'une source lumineuse est sur un même plan que un ou plusieurs layers. Dans ce cas, les game objects de ces layers bloquent la lumière.
+
+Ensuite, on peut indiquer, pour chaque type de game object, qu'il laisse plus ou moins passer la lumière. Et on pourrait carrément définir des height map pour chaque game object. Une pyramide ne renvoit pas la lumière dans les mêmes directions qu'un mur.
+
+### Utiliser du WebGL
+
+Pour ajouter des shaders, des moteurs de particules, etc.
+
+Fonctionnalité très floue. Il faudrait pr
+endre connaissance de ce que peut faire le WebGL.
 
 
 ## Tutoriels, manuels, conseils, ...
