@@ -36,9 +36,7 @@ Si possible, au moins une vision par zone.
 
 ## IDE, Environnement de développement
 
-Vision : une console en live, et de la coloration syntaxique.
-
-Vision : timeline de debug, avec un zoom sur la timeline. Les valeurs de quelques variables. Des mini-screenshots dans la timeline montrant l'état du jeu à différentes étapes.
+Vision : Une console en live, et de la coloration syntaxique.
 
 ### Faciliter la gestion des gameconfs.
 
@@ -71,6 +69,10 @@ Ajout automatique d'espace en début de ligne, coloration syntaxique, multi-curs
 
 Il faut essayer de trouver quelque chose de tout fait. Les plates-formes comme CodinGame et Jupyter ont déjà toutes ces fonctionnalités.
 
+### Vision : timeline de debug
+
+Timeline de debug, avec un zoom sur la timeline. Les valeurs de quelques variables. Des mini-screenshots dans la timeline montrant l'état du jeu à différentes étapes.
+
 ### Ajouter une gestion des tests unitaires
 
 Pour commencer des tests unitaires validant uniquement du code.
@@ -92,11 +94,7 @@ On doit pouvoir enregistrer des fichiers de code, que l'on peut ensuite importer
 
 ## Éditeur de niveaux, gestion des tilesets
 
-Vision : une gif où on place des éléments de H2O, et ça met automatiquement les bonnes images.
-
-Vision : construction d'un tileset en piochant des images de plusieurs tilesets existants. Certaines images sont des animations. D'autres sont toutes les possibilités de connexions d'une route.
-
-Vision : édition d'un pack de niveaux, avec des liens entre les niveaux. (ou pas, parce que c'est flou).
+Vision : une gif où on place des éléments de H2O, et ça met automatiquement les bonnes images. Et à côté on voit d'autres niveaux. level 1, level 2, ...
 
 ### Créer un éditeur de niveaux.
 
@@ -170,14 +168,36 @@ C'est encore assez flou, car pour l'instant, c'est difficile de voir ce qui sera
 
 Créer un nouveau tilesets en prenant des images provenant de tileset différents.
 
+### Vision : Construction d'un tileset
+
+Construction d'un tileset en piochant des images de plusieurs tilesets existants. Certaines images sont des animations. D'autres sont toutes les possibilités de connexions d'une route.
+
 
 ## Moteur du jeu
 
-Vision : des personnages et du texte qui apparaît par dessus, pour faire des "visual novel".
-
-Vision : édition de pattern à la puzzlescript, pour créer un jeu.
-
 Vision : gif animée. on clique sur un sort "create monsters", on fait un rectangle de sélection, ça crée 4 monstres qui tombent. Puis ils tournent et retombent. Et ils disent "ouch" dans une minibulle.
+
+### Faire un moteur qui fonctionne
+
+descrip TODO
+
+Avec des zones de texte, un bouton "Exécuter", et on peut jouer au jeu.
+
+Afficher correctement les exceptions python
+
+### Ajouter des actions différées
+
+descrip TODO
+
+bla. bloquante et pas bloquante.
+
+La prochaine étape c'est de le documenter. Ha ha ha !!!
+
+### Configurer la taille de l'aire de jeu
+
+descrip TODO
+
+Définissable uniquement dans la game config. Ça s'applique au moment de l'exécution du jeu, et on ne peut pas changer la taille.
 
 ### Spécifier l'API et la structure des données
 
@@ -200,6 +220,10 @@ C'est le coeur du système. Il faut mettre tout ça au propre dans un document d
 Ca devrait se gérer assez facilement une fois qu'on aura les layers.
 
 Dans la définition du game object, on ajoute une coordonnée de hot point, et une taille (width, height).
+
+### Vision : Un dialogue de visual novel
+
+Vision : des personnages et du texte qui apparaît par dessus, pour faire des "visual novel". Avec Blondeau George Jacques Babylas dedans.
 
 ### Afficher du texte sous forme de bulle.
 
@@ -249,6 +273,10 @@ Avec, bien sûr, du debug, du log, des tests unitaires spécifiques pour les pat
 
 C'est encore très flou. On le précisera en ajoutant d'autres squares de roadmap.
 
+### Vision : Exemples de pattern
+
+édition de pattern à la puzzlescript, pour créer un jeu.
+
 ### Ajouter une fonction d'export
 
 Un jeu doit pouvoir être exporté sous forme d'un ensemble de fichiers, pour pouvoir y jouer en local.
@@ -270,6 +298,8 @@ Uniquement pour les jeux turn-based, et qui ne comportent pas d'actions différ�
 Il faudra des fonctions spécifiques dans l'API, pour indiquer la personne qui a la main. L'interface de toutes les autres personnes est alors bloquée.
 
 ### Rendre les boutons configurables
+
+La personne qui crée un jeu peut décider de la disposition des boutons.
 
 Différents mode prédéfinis :
 
@@ -319,8 +349,6 @@ C'est encore un peu flou (mais moins que d'autres choses très floues).
 
 Vision : screenshot de drod, avec éclairage et déplacement progressif. Et des morceaux de cafards qui giclent.
 
-Vision : des effets spéciaux (éclair, explosion, distortion, ...)
-
 ### Emettre des sons "blip-blop"
 
 Les sons blip-blop ont 3 avantages :
@@ -359,7 +387,7 @@ Autre type d'animations : un enchainement d'image, par exemple pour montrer un p
 
 Certaines animations risquent d'être plus difficile à décrire. Par exemple, un "shake" est constitué de plusieurs décalages X/Y. Il faut pouvoir donner la liste de ces décalages, ou bien une fonction qui va les générer aléatoirement.
 
-Ces transformations visuelles animées pourraient s'appliquer sur des game objects ou des layers entiers. 
+Ces transformations visuelles animées pourraient s'appliquer sur des game objects ou des layers entiers.
 
 Exemple : la taille de l'aire de jeu est de 8x8 tiles. En une seule opération, on passe à une aitre de jeu de 12x12 tiles, mais on applique une transfo visuelle d'agrandissement sur tous les layers, de façon à n'afficher que le milieu de l'aire de jeu. Puis, on diminue progressivement l'agrandissement pour finir par afficher les 12x12 tiles. Ca fait un dézoom progressif.
 
@@ -373,6 +401,10 @@ Il est possible d'indique qu'une source lumineuse est sur un même plan que un o
 
 Ensuite, on peut indiquer, pour chaque type de game object, qu'il laisse plus ou moins passer la lumière. Et on pourrait carrément définir des height map pour chaque game object. Une pyramide ne renvoit pas la lumière dans les mêmes directions qu'un mur.
 
+### Vision : Pif paf boum !
+
+Des effets spéciaux (éclair, explosion, distortion, ...)
+
 ### Utiliser du WebGL
 
 Pour ajouter des shaders, des moteurs de particules, etc.
@@ -385,35 +417,76 @@ endre connaissance de ce que peut faire le WebGL.
 
 Vision : un site genre un blog, avec des articles : "recensement des jeux de type soko-ban", "transitions entre types de terrain", "les objets squarity.layer"
 
-Des tutoriels, texte ou vidéo.
+### Écrire un article pour créer un mini-jeu
 
-Définir un vocabulaire spécifique : arena, tile, gamobj, sprite. Mais "gamobj" c'est pourri comme mot.
+descrip TODO : déjà fait. plop.
 
-Snippets de code python pour faire une chose ou une autre.
+### Créer des vidéos de tutoriels
 
-Des articles sur des sujets de jeux vidéo (la perspective, la narration, les autres éditeurs de jeu)
+Ce serait pour expliquer les mêmes chose que l'article de création d'un mini-jeu, mais on l'expliquerait dans une vidéo.
 
-CMS pour mettre tout ce bazar là-dedans. Tester SocialHome.
+Il y a des gens qui préfère apprendre avec du texte, d'autres avec des vidéos, il faut essayer de toucher le plus de monde possible.
+
+### Définir un vocabulaire spécifique
+
+arena, tile, gamobj, sprite...
+
+"Gamobj", est un terme un peu moche. Pas de meilleure idée pour l'instant.
+
+### Écrire des snippets de code
+
+Des bouts de code et des mini-jeux, pour présenter chaque fonctionnalité de la manière la plus isolée possible.
+
+Organiser ces snippets avec des pré-requis : "pour comprendre la fonctionalité X, il faut avoir déjà vu les fonctionnalités Y et Z."
+
+### Rédiger des articles sur les jeux vidéo
+
+Une pléthoritude de sujets pourraient être abordés : la perspective (vue de haut/côté/entre les deux), la narration, les codes culturels, un peu d'histoire, ...
 
 
 ## Contenu et promotion
 
 Vision : une liste avec plein de jeux comme dans Youtube. Squarenigma, Match-conquest, Footnotes, ...
 
-Participer au Ludum Dare et à d'autres game jams.
+### Participer au Ludum Dare
 
-Créer des jeux pour une personne ou une organisation spécifique, pour faire connaître Squarity.
+C'est en cours depuis 2 ans. Il s'agit d'une "tâche infinie".
 
-Recenser et qualifier des tilesets
+Liste des contributions existantes :
 
-Live coding (Twitch, Youtube, ...)
+https://ldjam.com/users/recher/games
+
+### Créer des jeux pour une personne ou une organisation spécifique
+
+ - Des challenges de hacking sous forme de jeu Squarity
+ - Un mini-remake de Drod
+ - Des remakes de plein d'autres jeux
+ - Des jeux privés (pour des anniversaires de potes, des événements, ...)
+ - Le jeu Footnotes, à révéler en temps voulu
+ - Un jeu où tous les gamobj sont des caractères UTF-8 (comme ZZT), pour lutter contre l'illetrisme
+
+### Recenser et qualifier des tilesets
+
+Un début de recensement a été fait dans la partie "Bouillonnement créatif" du serveur Discord.
+
+Lien vers opengamearts.org, qui contient beaucoup de jolies choses.
+
+https://opengameart.org/
+
+### Faire des live coding
+
+Live coding durant les game jams, ou durant le développement de Squarity en lui-même.
+
+Il s'agit d'une "tache infinie".
+
+Mon compte twitch super génial.
+
+https://www.twitch.tv/recher_squarity
 
 
 ## Social et site web
 
 Vision : un jeu, avec des avis en dessous, dont un avis de résumé. Des icônes ESRB. Une liste de sources (tileset, niveaux, jeux original, ...).
-
-Vision : le profil d'une personne. Les badges gagnés. Les scores. Les jeux favoris. Les suggestions de jeux.
 
 ### Améliorer le "point d'entrée"
 
@@ -444,6 +517,10 @@ Une personne crée un compte sur le site, pour enregistrer ses jeux (la gameconf
 Authentification classique / OAuth / Google / github / autre. Pour éviter d'embêter des gens avec un login-password supplémentaire.
 
 Un peu flou pour l'instant, mais il y a sûrement des bonnes pratiques et de la doc sur le sujet.
+
+### Vision : les infos de profil
+
+Le profil d'une personne. Les badges gagnés. Les scores. Les jeux favoris. Les suggestions de jeux.
 
 ### Créer un mini-CMS
 
@@ -541,15 +618,41 @@ C'est très flou, et avant de permettre les game jams, il faut une base de perso
 
 Vision : une image avec une cervelle qui explose et puis c'est tout.
 
-Documenter le projet, son architecture, les choix d'architecture et d'outils techniques.
+### Documenter le projet
 
-Héberger son propre système de gestion de tâches, à la place de Trello.
+Les choix d'architecture et d'outils utilisés, une vision d'ensemble des composants, etc.
 
-Auto-formation à Vue, à Django, au CSS, etc.
+Pour l'instant, c'est sous forme de devlogs, avec des infos notées au fur et à mesure.
 
-Tests unitaires automatisés avec Selenium.
+On ajoutera des squares pour chaque élément de documentation important.
 
-Héberger une instance peertube pour y mettre les démos de jeu.
+Lien vers les devlogs
 
+https://github.com/darkrecher/squarity-doc/tree/master/environnement_dev
 
+### Héberger un système de gestion de tâches
+
+Au lieu d'utiliser Trello. C'est tellement plus classe d'avoir tous les outils annexes en interne.
+
+### Héberger une instance peertube
+
+Pour y mettre les démos des jeux, les tutoriels vidéos, etc.
+
+Même si on laissera des vidéos sur Youtube, parce que "tout le monde est sur Youtube".
+
+### Mettre en place des tests unitaires
+
+Selenium est prévu pour les tests des environnements web client. On peut automatiser des actions, des clics de boutons, etc.
+
+### Optimiser les process
+
+Tâche très floue pour l'instant. Mais lorsqu'on aura un vrai serveur, avec une vraie base de donnée, il y aura sûrement beaucoup de choses à optimiser.
+
+webpack, déploiement automatique, dump régulier de base de données, etc.
+
+### Auto-formation
+
+C'est une tâche infinie, qui s'effectue au fur et à mesure des développements.
+
+Auto-formation à Vue,au javascript, au CSS, plus tard à Django, etc.
 
