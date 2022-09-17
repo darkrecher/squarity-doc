@@ -177,7 +177,7 @@ Construction d'un tileset en piochant des images de plusieurs tilesets existants
 
 Vision : gif animée. on clique sur un sort "create monsters", on fait un rectangle de sélection, ça crée 4 monstres qui tombent. Puis ils tournent et retombent. Et ils disent "ouch" dans une minibulle.
 
-### Faire un moteur qui fonctionne
+### Faire naître le moteur de jeu
 
 descrip TODO
 
@@ -185,13 +185,9 @@ Avec des zones de texte, un bouton "Exécuter", et on peut jouer au jeu.
 
 Afficher correctement les exceptions python
 
-### Ajouter des actions différées
+avec des actions différées. Bloquante et pas bloquante.
 
-descrip TODO
-
-bla. bloquante et pas bloquante.
-
-La prochaine étape c'est de le documenter. Ha ha ha !!!
+La prochaine étape c'est de documenter ces actions. Ha ha ha !!!
 
 ### Configurer la taille de l'aire de jeu
 
@@ -413,7 +409,7 @@ Fonctionnalité très floue. Il faudrait pr
 endre connaissance de ce que peut faire le WebGL.
 
 
-## Tutoriels, manuels, conseils, ...
+## Tutoriels, manuels, conseils
 
 Vision : un site genre un blog, avec des articles : "recensement des jeux de type soko-ban", "transitions entre types de terrain", "les objets squarity.layer"
 
@@ -614,7 +610,7 @@ Est-ce qu'on met ensemble le classement normal sur le site et les classement de 
 C'est très flou, et avant de permettre les game jams, il faut une base de personnes utilisatrices un peu plus conséquente que ce qu'on a maintenant.
 
 
-## Meta
+## Auto-formation, Optimisation
 
 Vision : une image avec une cervelle qui explose et puis c'est tout.
 
