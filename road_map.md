@@ -423,12 +423,6 @@ Ce serait pour expliquer les mêmes chose que l'article de création d'un mini-j
 
 Il y a des gens qui préfère apprendre avec du texte, d'autres avec des vidéos, il faut essayer de toucher le plus de monde possible.
 
-### Définir un vocabulaire spécifique
-
-arena, tile, gamobj, sprite...
-
-"Gamobj", est un terme un peu moche. Pas de meilleure idée pour l'instant.
-
 ### Écrire des snippets de code
 
 Des bouts de code et des mini-jeux, pour présenter chaque fonctionnalité de la manière la plus isolée possible.
@@ -438,6 +432,16 @@ Organiser ces snippets avec des pré-requis : "pour comprendre la fonctionalité
 ### Rédiger des articles sur les jeux vidéo
 
 Une pléthoritude de sujets pourraient être abordés : la perspective (vue de haut/côté/entre les deux), la narration, les codes culturels, un peu d'histoire, ...
+
+TODO : Documenter le vocabulaire spécifique de Squarity.
+
+arena, tile, gamobj, sprite...
+
+"Gamobj", est un terme un peu moche. Pas de meilleure idée pour l'instant.
+
+### Traduire les tutoriels et les articles en anglais
+
+Et si possible dans d'autres langues. Mais il faudra d'autres gens.
 
 
 ## Contenu et promotion
@@ -599,7 +603,7 @@ Comme le code du jeu est exécuté par le navigateur web, il sera très facile d
 
 Pour plus tard : il faudra réfléchir à répliquer le déroulement d'une partie sur le serveur. C'est une idée très floue, assez compliquée à réaliser, voire risquée (exécution de code arbitraire sur un serveur). Donc ce sera vraiment pour plus tard.
 
-### Permettre l'organisation de game jams
+### Ajouter l'organisation de game jams
 
 Avec un thème, une date de début, une date de fin, un classement, des petites icônes pour indiquer les jeux qui sont arrivés les premiers.
 

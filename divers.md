@@ -1,8 +1,12 @@
 # Doc diverses
 
-(On va essayer que ça devienne pas un fourre-tout).
+On va essayer que ça devienne pas un fourre-tout.
 
-Grande image, publiquement accessible, pour vérifier que la récupération d'un atlas fonctionne bien : https://i.imgur.com/TQZDMUu.gif
+## Une grande image
+
+Image publiquement accessible, pour vérifier que la récupération d'un atlas fonctionne bien : https://i.imgur.com/TQZDMUu.gif
+
+Et en plus c'est du joli pixel art.
 
 
 ## Modifs à faire pour intégrer le site squarity dans itch.io
@@ -30,4 +34,11 @@ Ensuite, on s'en sert comme des mots de passe normaux.
 En local, c'est censé être géré correctement dans le "gestionnaire d'identification" sur la machine de dev.
 
 https://stackoverflow.com/questions/15381198/remove-credentials-from-git
+
+
+## Générateur de CSS pour afficher des background avec des motifs
+
+hachures, quadrillage, vagues, ...
+
+https://www.magicpattern.design/tools/css-backgrounds
 
