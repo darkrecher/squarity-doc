@@ -47,6 +47,15 @@ HTML_CLASS_FROM_ID = {
     "o": "optim",
 }
 
+VISION_GIF_FILES = {
+    "i05": "test_vision.gif",
+    "l08": "test_vision.gif",
+    "g05": "test_vision.gif",
+    "g11": "test_vision.gif",
+    "e07": "test_vision.gif",
+    "s04": "test_vision.gif",
+}
+
 HARDCODED_SQUARE_DEFINITIONS = [
     {
         "key": "#00",
@@ -64,65 +73,72 @@ HARDCODED_SQUARE_DEFINITIONS = [
         "rank": "superior",
         "html_class": "special-effect superior-square",
         "title": '\n"Effets spéciaux"',
-        "gif_vision": "dancing-banana-gif-moving-5.gif",
+        "gif_vision": "test_vision.gif",
     },
     {
         "key": "g00",
         "rank": "superior",
         "html_class": "game-engine superior-square",
         "title": "\nMoteur du jeu",
-        "gif_vision": "dancing-banana-gif-moving-5.gif",
+        "gif_vision": "test_vision.gif",
     },
     {
         "key": "i00",
         "rank": "superior",
         "html_class": "ide superior-square",
         "title": "Environnement de dév. intégré",
-        "gif_vision": "dancing-banana-gif-moving-5.gif",
+        "gif_vision": "test_vision.gif",
     },
     {
         "key": "t00",
         "rank": "superior",
         "html_class": "tuto superior-square",
         "title": "Tutoriels\n\nDocs\n\nExemples",
-        "gif_vision": "dancing-banana-gif-moving-5.gif",
+        "gif_vision": "test_vision.gif",
     },
     {
         "key": "l00",
         "rank": "superior",
         "html_class": "level superior-square",
         "title": "Éditeur de niveaux\n\nGestion des tilesets",
-        "gif_vision": "dancing-banana-gif-moving-5.gif",
+        "gif_vision": "test_vision.gif",
     },
     {
         "key": "c00",
         "rank": "superior",
         "html_class": "promo superior-square",
         "title": "Contenu\n\nJeux\n\nPromotion",
-        "gif_vision": "dancing-banana-gif-moving-5.gif",
+        "gif_vision": "test_vision.gif",
     },
     {
         "key": "s00",
         "rank": "superior",
         "html_class": "social superior-square",
         "title": "\nSocial\n\nSite web",
-        "gif_vision": "dancing-banana-gif-moving-5.gif",
+        "gif_vision": "test_vision.gif",
     },
     {
         "key": "o00",
         "rank": "superior",
         "html_class": "optim superior-square",
         "title": "Auto-formation\n\nOptimisation",
-        "gif_vision": "dancing-banana-gif-moving-5.gif",
+        "gif_vision": "test_vision.gif",
     },
 ]
 
 
 class RoadMapConverter:
-    def __init__(self, html_class_from_id, map_squares, hardcoded_square_definitions):
+    def __init__(
+        self,
+        html_class_from_id,
+        map_squares,
+        vision_gif_files,
+        hardcoded_square_definitions,
+    ):
         logging.basicConfig(level=logging.INFO)
         self.html_class_from_id = html_class_from_id
         self.map_squares = map_squares
+        self.vision_gif_files = vision_gif_files
         self.hardcoded_square_definitions = hardcoded_square_definitions
 
         all_sub_ids = " ".join(map_squares)
@@ -141,13 +157,41 @@ class RoadMapConverter:
         if complete_sub_id not in self.done_sub_chapter_ids:
             html_class += "-undone"
 
-        subchapter_json_data = {
-            "key": complete_sub_id,
-            "rank": "normal",
-            "html_class": html_class,
-            "title": title.strip(),
-            "description": sub_chapter_text.strip(),
-        }
+        if title.startswith("Vision :"):
+            title = title[len("Vision :") :]
+            gif_vision = self.vision_gif_files[complete_sub_id]
+            subchapter_json_data = {
+                "key": complete_sub_id,
+                "rank": "vision",
+                "html_class": html_class,
+                "title": title.strip(),
+                "gif_vision": gif_vision,
+            }
+        else:
+            description = sub_chapter_text.strip()
+            subchapter_json_data = {
+                "key": complete_sub_id,
+                "rank": "normal",
+                "html_class": html_class,
+                "title": title.strip(),
+                "description": description,
+            }
+
+            descrip_lines = description.split("\n")
+            last_line = descrip_lines[-1]
+            if last_line.startswith("http") and "//" in last_line:
+                index_line_descrip = len(descrip_lines) - 2
+                before_last_line = None
+                while before_last_line is None:
+                    if descrip_lines[index_line_descrip].strip():
+                        before_last_line = descrip_lines[index_line_descrip].strip()
+                    index_line_descrip -= 1
+                subchapter_json_data["link_text"] = before_last_line
+                subchapter_json_data["link_url"] = last_line
+                subchapter_json_data["description"] = "\n".join(
+                    descrip_lines[:index_line_descrip] + [""]
+                )
+
         return subchapter_json_data
 
     def generate_one_chapter_json(self, chapter_text, id_chapter):
@@ -222,7 +266,7 @@ class RoadMapConverter:
 
 def main():
     road_map_converter = RoadMapConverter(
-        HTML_CLASS_FROM_ID, MAP_SQUARES, HARDCODED_SQUARE_DEFINITIONS
+        HTML_CLASS_FROM_ID, MAP_SQUARES, VISION_GIF_FILES, HARDCODED_SQUARE_DEFINITIONS
     )
     road_map_converter.convert_markdown_to_json(PATH_FILE_SOURCE, PATH_FILE_DEST)
 

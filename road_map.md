@@ -34,26 +34,30 @@ Il faut montrer des "visions". Un écran d'exemple et un récit d'utilisation d'
 
 Si possible, au moins une vision par zone.
 
+TODO : reprendre le texte du square original.
+
 ## IDE, Environnement de développement
 
 Vision : Une console en live, et de la coloration syntaxique.
 
-### Faciliter la gestion des gameconfs.
+### Faciliter l'écriture des gameconfs.
 
-Une gameconf, c'est le texte en json (ou en yaml) définit avec le code d'un jeu. C'est ce qui définit les noms des game objects, la taille de l'aire de jeu, etc.
+Une gameconf, c'est le texte en json (ou en yaml) associé à un jeu. C'est ce qui définit les noms des game objects, la taille de l'aire de jeu, etc.
 
-Le YAML a un intérêt, car il est plus human-readable, et permet d'indiquer des commentaires.
+Le YAML a un intérêt, car il est plus human-readable, et permet les commentaires.
+
+Actions prévues :
 
  - Détecter les erreurs de syntaxe, les afficher dans l'IDE, montrer la ligne où se trouve l'erreur.
- - Détection automatique YAML/JSON. Si il y a une accolade ou un crochet, c'est du JSON. Sinon c'est du YAML.
- - La gameconf doit être accessible dans le code du jeu. Pour récupérer la taille initiale de l'aire de jeu, et d'autres infos.
- - Au lieu de répéter les coordonnées dans le tileset, on indique une zone dans l'image (top, left, width, height), une suite de nom, et ça crée automatiquement tous les gamobj types à la suite.
+ - Déterminer automatiquement si la syntaxe est en YAML ou en JSON. Si il y a une accolade ou un crochet, c'est du JSON. Sinon c'est du YAML.
+ - Rendre la gameconf accessible dans le code du jeu. Ça peut être utile, par exemple pour récupérer la taille initiale de l'aire de jeu.
+ - Permettre la définition d'images "bulk". On indique une zone dans le tileset (top, left, width, height), une suite de nom, et ça crée automatiquement tous les game object types à la suite.
 
 ### Automatiser la génération des gameconfs
 
-Un page web avec un formulaire dans lequel on définit les valeurs.
+Un page web avec un formulaire dans lequel on définit les valeurs de config.
 
-On indique l'url de l'image de tileset, elle s'affiche, on sélectionne dedans les sprites et on les nomme, pour créer la liste des game objects.
+On indique l'url de l'image de tileset, elle s'affiche, on sélectionne des zones et on les nomme, afin de créer automatiquement la liste des game object types.
 
 ### Faciliter le débuggage
 
@@ -61,7 +65,7 @@ Exécution pas-à-pas, tracking, replay, variables watch, profiling, time-line d
 
 Essayer de core-dumper toutes les valeurs des variables python, pour avoir un état global de la mémoire au moment où a eu lieu une exception non gérée.
 
-Tout ça est encore très flou. On le précisera en ajoutant d'autres squares de roadmap.
+C'est très flou pour l'instant. On le précisera en ajoutant d'autres squares de roadmap.
 
 ### Améliorer la zone de texte du gamecode
 
@@ -69,27 +73,29 @@ Ajout automatique d'espace en début de ligne, coloration syntaxique, multi-curs
 
 Il faut essayer de trouver quelque chose de tout fait. Les plates-formes comme CodinGame et Jupyter ont déjà toutes ces fonctionnalités.
 
-### Vision : timeline de debug
+### Vision : Timeline de debug
 
 Timeline de debug, avec un zoom sur la timeline. Les valeurs de quelques variables. Des mini-screenshots dans la timeline montrant l'état du jeu à différentes étapes.
 
-### Ajouter une gestion des tests unitaires
+### Gérer des tests unitaires
 
-Pour commencer des tests unitaires validant uniquement du code.
+On pourra commencer avec des tests unitaires validant uniquement du code.
 
-Et ensuite, intégrer ces tests dans le moteur du jeu. Par exemple, on donne une situation initiale, des inputs (appui sur les flèches et les boutons d'actions), et une situation finale à vérifier.
+Et ensuite, on pourra intégrer ces tests dans le moteur du jeu. Par exemple, on donne une situation initiale, des inputs (touches de flèches, boutons d'actions, clics), et une situation finale à vérifier.
 
-### Documenter des solutions d'IDE externe.
+### Se connecter à des IDE externes.
 
-Documenter la technique du serveur local et du bout de javascript dans le game code qui interroge ce serveur.
+Techniquement, ce n'est pas trivial de connecter un navigateur web à un IDE externe. Les navigateurs ne sont pas prévus pour, et ça poserait des problèmes de sécurité. C'est tout de même possible, on le documentera avec des tutoriels.
 
-Chercher des extensions de navigateur qui synchronisent un fichier texte sur le disque avec une zone de texte dans une page web. Ce qui permettra d'écrire le gamecode avec n'importe quel éditeur de texte.
+La technique du serveur local, avec un bout de javascript dans le game code qui interroge ce serveur.
 
-### Gérer des librairies personnalisées
+Chercher des extensions de navigateur qui synchronisent un fichier texte sur le disque avec une zone de texte dans une page web.
 
-Lorsqu'il sera possible de se créer un compte et d'y associer des infos (images, jeux, ...)
+### Importer des librairies de code personnalisées
 
-On doit pouvoir enregistrer des fichiers de code, que l'on peut ensuite importer dans les jeux. Avec la possibilité de mettre ces libs à disposition des autres.
+Ce sera possible avec les comptes utilisateurs.
+
+On doit pouvoir enregistrer sur son compte des fichiers de code, que l'on peut ensuite importer dans les jeux. Il faudra également faciliter la mise à disposition de ces libs à d'autres personnes.
 
 
 ## Éditeur de niveaux, gestion des tilesets
@@ -98,75 +104,73 @@ Vision : une gif où on place des éléments de H2O, et ça met automatiquement 
 
 ### Créer un éditeur de niveaux.
 
-Lorsque la notion de niveau sera implémenté, on pourra créer un éditeur.
+Lorsque la notion de niveau sera implémentée, on pourra créer un éditeur.
 
-Dans la gameconf, il faut pouvoir définir la liste des game objects du jeu qui sont plaçables avec l'éditeur.
+Dans la gameconf, on définit la liste des game objects du jeu qui sont plaçables avec l'éditeur.
 
-Ça permettra des interactions et des collaborations entre les personnes créant les jeux.
+Un éditeur permet des interactions et des collaborations : une première personne crée un jeu avec quelques niveaux, une seconde personne reprend ce jeu et y ajoute des niveaux supplémentaires, que la première personne pourra reprendre ensuite.
 
-Une première personne crée un jeu, avec un tileset, le game code, les game objects, et quelques niveaux. Une autre personne crée d'autres niveaux que la première pourra reprendre.
-
-L'éditeur de niveau doit pouvoir exporter/importer la map d'un niveau, selon le même format que les niveaux définis dans la gameconf.
+L'éditeur doit pouvoir exporter/importer la map d'un niveau, selon le même format de définition que la gameconf.
 
 ### Ajouter une fonction de préparation d'un niveau
 
-Ajouter une callback prepare_level() dans l'API. Elle est définissable dans le gamecode comme les autres, mais elle n'est pas appelée pendant le déroulement d'une partie.
+Ajouter une callback "prepare_level()" dans l'API. Elle est définissable dans le gamecode comme les autres, mais n'est pas appelée pendant le déroulement d'une partie.
 
-La fonction est appelée pendant l'édition d'un niveau, à chaque modification de la map.
+La fonction est appelée durant l'édition d'un niveau, à chaque modification de la map.
 
 Elle prend en entrée la map définie par la personne créant un niveau, et renvoie en sortie des layers, contenant des game objects.
 
-Ça permettra, par exemple, d'agencer automatiquement des game objects pour faire plus joli. Par exemple, avec H2O, on a juste à placer des game objects de base (murs, tunnels), et la fonction place automatiquement les dessins de murs spécifiques.
+Ça permettra d'agencer automatiquement des game objects. Par exemple, avec H2O, on a juste à placer des game objects de base (murs, tunnels), et la fonction place automatiquement les dessins spécifiques, pour faire plus joli.
 
-Cette fonction de préparation pourra aussi utiliser les patterns (voir le square de roadmap "Implémenter un système de pattern").
+Cette fonction de préparation pourra aussi utiliser les patterns (voir "Implémenter un système de pattern").
 
-### Générer une image d'aperçu pour les niveaux
+### Générer une image d'aperçu de niveau
 
-Cette image d'aperçu permet d'explorer et de naviguer plus facilement dans les niveaux d'un jeu. Lorsqu'on veut les tester, les sélectionner pour en faire une compilation, etc.
+Cette image permet d'explorer et de naviguer plus facilement dans les niveaux d'un jeu. Lorsqu'on veut les tester, les sélectionner pour en faire une compilation, etc.
 
 ### Implémenter la notion de "solution"
 
 Une solution est une suite de mouvements effectués par une personne qui joue, associé à un niveau. Elle permet de résoudre le niveau.
 
-Tous les jeux ne peuvent pas implémenter cette notion, il faut déjà que le jeu ait la notion de "niveau", et qu'il ne fasse jamais intervenir le hasard.
+Tous les jeux ne peuvent pas implémenter cette notion. Il faut déjà avoir la notion de "niveau", et ne pas faire intervenir le hasard.
 
 On peut également associer un score à une solution (nombre minimal de mouvement, nombre de fruits ramassés, ...). Mais pour cela, il faut à nouveau une fonction d'API, qui renvoie le score.
 
-La notion de score permettra à des personnes de comparer leurs solutions, de publier des classements, etc.
+La notion de score permettra de comparer des solutions, de publier des classements, etc.
 
-Et pour aller jusqu'au bout, il faudrait valider les solutions et les scores côté serveur, sinon des personnes pourront tricher. Mais on va laisser ça de côté pour l'instant, c'est trop compliqué et trop risqué au niveau de la sécurité.
+Pour aller jusqu'au bout, il faudrait valider les solutions et les scores côté serveur, sinon des personnes pourront tricher. On va laisser ça de côté pour l'instant, c'est trop compliqué et trop risqué au niveau de la sécurité.
 
 ### Associer des éditeurs 2D externes
 
-Exemple d'éditeur externe : LDtk, Tiled.
+LDtk, Tiled, ...
 
-Il faut regarder comment ces éditeurs fonctionnent, créer des fonctions d'import/export entre eux et Squarity, documenter leur utilisation.
+Il faut regarder comment ces éditeurs fonctionnent, créer des fonctions d'import/export avec Squarity et documenter leur utilisation.
 
-C'est aussi une occasion de faire connaître Squarity auprès des gens qui utilisent ces éditeurs.
+C'est aussi une occasion de faire connaître Squarity auprès des gens utilisant ces éditeurs.
 
-### Enregistrer et gérer des tilesets
+### Enregistrer des tilesets
 
-Une personne ayant un compte doit pouvoir uploader des tilesets.
+Une personne ayant un compte utilisateur doit pouvoir uploader des tilesets.
 
-Un tileset est un ensemble d'image, qui peut être ensuite utilisé dans des jeux.
+Un tileset est un ensemble d'image, qui peut être ensuite utilisé dans un jeu.
 
 Deux types de tileset :
 
- - "monotaille" : toutes les images ont la même taille et sont des carrés.
- - "multitaille" : les images peuvent avoir des tailles différentes, mais il faut spécifier un hotpoint par image.
+ - mono-taille : toutes les images ont la même taille et sont des carrés.
+ - multi-taille : les images peuvent avoir des tailles différentes, mais il faut spécifier un hotpoint par image.
 
 ### Gérer les tilesets plus finement
 
-Une personne créant un tileset doit pouvoir regrouper des images pour une signification précise. Par exemple :
+Une personne créant un tileset doit pouvoir grouper des images et qualifier ce groupe. Par exemple :
 
- - les 4 (ou 8) directions d'un même personnage
- - les étapes de l'animation d'un même objet
- - les différentes combinaisons d'une route (verticale, horizontale, tournant, croisement, ...)
- - les différentes combinaisons d'une zone étendue (de l'eau, adjacente à d'autres cases comportant de l'eau)
+ - les 4 (ou 8) directions d'un même personnage,
+ - les étapes de l'animation d'un même objet,
+ - les différentes combinaisons d'une route (verticale, horizontale, tournant, croisement, ...),
+ - les différentes combinaisons d'une zone étendue (de l'eau, adjacente à d'autres cases comportant de l'eau).
 
-C'est encore assez flou, car pour l'instant, c'est difficile de voir ce qui serait faisable avec ces infos de regroupement.
+C'est encore assez flou, car pour l'instant, c'est difficile de voir ce qui serait faisable avec ces groupes.
 
-Créer un nouveau tilesets en prenant des images provenant de tileset différents.
+On doit également pouvoir créer un nouveau tilesets en piochant des images et des groupes de tilesets différents.
 
 ### Vision : Construction d'un tileset
 
@@ -177,45 +181,51 @@ Construction d'un tileset en piochant des images de plusieurs tilesets existants
 
 Vision : gif animée. on clique sur un sort "create monsters", on fait un rectangle de sélection, ça crée 4 monstres qui tombent. Puis ils tournent et retombent. Et ils disent "ouch" dans une minibulle.
 
-### Faire naître le moteur de jeu
+### Faire naître le moteur du jeu
 
-descrip TODO
+Un jeu est défini par une image de tileset, sa game configuration et son game code, en python.
 
-Avec des zones de texte, un bouton "Exécuter", et on peut jouer au jeu.
+Le moteur récupère et affiche correctement les exceptions python durant l'exécution du jeu, ce qui permet de débugger le game code.
 
-Afficher correctement les exceptions python
+Le game code comporte des fonctions de callback, qui sont automatiquement appelées par le moteur, sur un appui de touche de clavier ou sur un bouton du jeu.
 
-avec des actions différées. Bloquante et pas bloquante.
+La situation du jeu est définie par un tableau contenant les game objects. À partir de ce tableau, le moteur construit et affiche l'image représentant la situation du jeu.
 
-La prochaine étape c'est de documenter ces actions. Ha ha ha !!!
+Le moteur gère également des actions différées. Les fonctions de callback peuvent renvoyer des informations indiquant au moteur qu'il doit relancer automatiquement une autre callback plus tard. Cela permet, par exemple, d'avoir un personnage qui se déplace tout seul.
+
+Les actions différées peuvent être bloquante, ou pas. Lorsqu'elle est bloquante, les boutons du jeu sont désactivés. Une autre fonction de callback doit alors explicitement renvoyer une information de déblocage.
 
 ### Configurer la taille de l'aire de jeu
 
-descrip TODO
+Cette taille est définie en nombre de tiles (largeur et hauteur).
 
-Définissable uniquement dans la game config. Ça s'applique au moment de l'exécution du jeu, et on ne peut pas changer la taille.
+La taille en pixels de l'affichage est calculée automatiquement, en fonction des tailles en nombre de tiles, et de la zone disponible dans la page web.
+
+Les proportions sont conservées. Chaque tile est affichée sous forme d'un carré, plus ou moins grand selon la place disponible.
+
+Pour l'instant, la taille est définissable uniquement au moment de l'exécution du jeu, via la game config.
 
 ### Spécifier l'API et la structure des données
 
-Une fonction on_draw() renvoyant un tableau de chaînes de caractère, c'est trop basique.
+Actuellement, la situation du jeu est définie par un simple tableau de chaînes de caractère, c'est trop basique.
 
-Il faut des layers. Les game objects doivent être des objets python, et non pas juste une chaîne de caractère. Ce qui permettra d'y associer d'autres infos (effet visuel, déplacement de transition) et des fonctions (move(), hide(), ...).
+Il faut des layers. Les game objects doivent être des objets python, ce qui permettra d'y associer d'autres infos (effet visuel, déplacement de transition) et des fonctions (move(), hide(), ...).
 
-Des layers en mode "tableau normal" et des layers en mode "matrice creuse". L'idéal, ce serait d'avoir les mêmes fonctions pour les deux types de layers. Certains traitements sont plus optimisés pour un mode que pour l'autre.
+Il y a deux méthodes de stockage interne pour un layer : tableau normal ou matrice creuse. L'idéal serait d'avoir les mêmes fonctions publiques quelle que soit la méthode. Certains traitements sont plus optimisés pour une méthode que pour l'autre.
 
-Il faudra peut-être gérer des id numériques de layers et de game objects, pour simplifier les échanges d'infos entre le moteur Squarity et le game code.
+Il faudra peut-être gérer des id numériques de layers et de game objects, pour simplifier les échanges d'infos entre le moteur et le game code.
 
-On pourra aussi imaginer des layers spéciaux n'affichant pas de game objects, mais un effet visuel global : du brouillard, une distortion d'image, un filtre de couleur, ...
+On peut aussi imaginer des layers spéciaux n'affichant pas de game objects, mais un effet visuel global : du brouillard, une distortion d'image, un filtre de couleur, ...
 
-Les fonctions de callback peuvent renvoyer diverses informations, qu'il faudra structurer. On a un début de quelque chose avec le json mal foutu qui indique des actions différées. Il faut améliorer ça. Les fonctions de callback pourrait aussi renvoyer des indications de sons à jouer.
+Il faut structurer les diverses informations que peuvent renvoyer Les fonctions de callback. Actuellement, on n'a que le json mal foutu indiquant des actions différées. Il faut améliorer ça. Les fonctions de callback pourrait aussi renvoyer des indications de sons à jouer.
 
-C'est le coeur du système. Il faut mettre tout ça au propre dans un document de référence, et ensuite le coder. Si possible, essayer de garder une rétro-compatibilité.
+C'est le cœur du système. Il faut mettre tout ça au propre dans un document de référence, et ensuite le coder. Si possible, essayer de garder la rétro-compatibilité.
 
 ### Ajouter des game objects qui dépassent de la tile
 
-Ca devrait se gérer assez facilement une fois qu'on aura les layers.
+Ça devrait être assez facile une fois qu'on aura les layers.
 
-Dans la définition du game object, on ajoute une coordonnée de hot point, et une taille (width, height).
+Dans la définition du game object, on ajoute un hot point (x, y), et une taille (width, height).
 
 ### Vision : Un dialogue de visual novel
 
@@ -225,7 +235,7 @@ Vision : des personnages et du texte qui apparaît par dessus, pour faire des "v
 
 C'est un game object spécial. Au lieu de lui associer une image, on définit le texte à afficher, la couleur, la position relative de la bulle par rapport à la tile qui la génère, etc.
 
-Si possible, un comportement par défaut dans ce game object, qui le supprime automatiquement au bout de quelques secondes.
+Si possible, associer un comportement par défaut à ce game object, qui le supprime automatiquement au bout de quelques secondes.
 
 ### Ajouter des game objects affichant une valeur ou une information.
 
@@ -238,19 +248,19 @@ Types de Game Object :
 
 Il faudra rendre ces indicateurs suffisamment configurables : taille, couleur, bord arrondi, police de caractère, ... Mais pas trop, car ça doit rester simple.
 
-Pour des indicateurs plus spécifiques, il faudra se créer ses propres game objects, et coder leur comportement directement dans le game-code.
+Pour des indicateurs plus spécifiques, il faudra se créer ses propres game objects, et coder leur comportement directement dans le gamecode.
 
 ### Rendre l'aire de jeu redimensionnable dynamiquement
 
-Les dimensions initiales (width, height) sont définies dans la config.
+Le nombre de tile en largeur et en hauteur doivent pouvoir être changées pendant le jeu.
 
-Elles doivent pouvoir être changées pendant le jeu. Si c'est un jeu avec plusieurs niveaux qui s'enchaînent, ils pourraient avoir des tailles différentes.
+Lorsque le jeu est constitué d'une succession de niveaux, ils pourraient avoir des tailles différentes.
 
 ### Réagir aux clics de souris
 
-Une fonction de callback comme une autre, pour gérer les clics de souris.
+Une fonction de callback pour gérer les clics de souris.
 
-La possibilité d'indiquer dans la gameconf, un mode de gestion spécifique des clics. On définit un game object censé être unique dans le jeu, qui serait le personnage principal. Un clic n'appelle pas la callback de clic, mais la callback d'appui sur une touche de direction. La direction est déduite des positions relatives du clic et du personnage principal.
+Un mode de gestion spécifique des clics peut être ajouté. On définit un game object censé être unique dans le jeu, qui serait le personnage principal. Un clic n'appelle pas la callback de clic, mais la callback d'appui sur une flèche. La direction est déduite des positions relatives du clic et du personnage principal.
 
 ### Implémenter un système de pattern
 
@@ -261,13 +271,13 @@ Exemples :
  - lorsqu'il y a un objet de type "fruit" sur une case, et que la case en-dessous n'a pas d'objet de type "fruit", alors on dépace l'objet vers le bas.
  - lorsqu'il y a un objet de type H2O liquide et un objet de type "chauffage" sur la même case, alors on enlève le H2O liquide et on met un H2O gazeux.
 
-Dans un premier temps, on implémente les patterns uniquement sous forme de fonctions dans les layers. On exécute ces patterns dans le gamecode.
+Dans un premier temps, on implémente les patterns sous forme de fonctions de layer, que l'on exécute dans le gamecode.
 
-Ensuite, ce serait bien d'avoir une interface spécifique dans le site, pour créer et tester les patterns. Le but serait de pouvoir créer un jeu uniquement avec les patterns, pour les personnes qui n'ont pas envie de coder.
+Ensuite, ce serait bien d'avoir une interface spécifique dans le site web, pour créer et tester les patterns. Le but serait de pouvoir créer un jeu uniquement avec ça, pour les personnes qui n'ont pas envie de coder.
 
-Avec, bien sûr, du debug, du log, des tests unitaires spécifiques pour les patterns.
+Avec, bien sûr : du debug, du log, des tests unitaires spécifiques aux patterns, etc.
 
-C'est encore très flou. On le précisera en ajoutant d'autres squares de roadmap.
+C'est encore très flou et aussi très pharaonique. Ça nécessitera d'autres squares de roadmap.
 
 ### Vision : Exemples de pattern
 
@@ -277,25 +287,25 @@ C'est encore très flou. On le précisera en ajoutant d'autres squares de roadma
 
 Un jeu doit pouvoir être exporté sous forme d'un ensemble de fichiers, pour pouvoir y jouer en local.
 
-L'export devrait ensuite permettre d'uploader le jeu sur une autre plate-forme (itch.io, ou autre).
+L'export devrait ensuite permettre d'uploader le jeu sur une autre plate-forme (itch.io ou autre).
 
 ### Exécuter le jeu dans une sandbox
 
 Actuellement, le gamecode permet d'exécuter du javascript arbitraire sur le site. C'est un petit peu une faille de sécurité.
 
-Il faudrait trouver le moyen d'interdire l'accès aux éléments du site. Le gamecode ne peut faire que des returns de fonctions, et modifier des variables internes.
+Il faudrait trouver le moyen d'interdire l'accès aux éléments du site, et empêcher d'exécuter du javascript dans le python. C'est actuellement possible avec un simple "import javascript".
 
-Il faudrait auusi trouver le moyen d'empêcher d'exécuter du javascript dans le python. C'est actuellement possible avec un simple "import javascript".
+Le gamecode ne doit pouvoir faire que des returns de fonctions, et modifier des variables internes.
 
 ### Jouer à plusieurs, à distance
 
-Uniquement pour les jeux turn-based, et qui ne comportent pas d'actions différées. Ce serait trop compliqué de gérer des événements à synchroniser en temps réel sur plusieurs machines.
+Uniquement pour les jeux turn-based, ne comportant pas d'actions différées. Ce serait trop compliqué de gérer des événements à synchroniser en temps réel sur plusieurs machines.
 
-Il faudra des fonctions spécifiques dans l'API, pour indiquer la personne qui a la main. L'interface de toutes les autres personnes est alors bloquée.
+Il faudra des fonctions spécifiques dans l'API, pour définir les tours de jeux. L'interface de toutes les personnes dont ce n'est pas le tour est bloquée. Bien entendu, l'API devra permettre de donner plusieurs tours de suite à une même personne, de changer le sens, etc.
 
 ### Rendre les boutons configurables
 
-La personne qui crée un jeu peut décider de la disposition des boutons.
+La disposition des boutons est définie par la gameconf.
 
 Différents mode prédéfinis :
 
@@ -304,7 +314,7 @@ Différents mode prédéfinis :
  - 2 groupes de flèches de direction, pour jouer à deux sur une même machine.
  - un ou plusieurs boutons d'actions, en plus des flèches.
 
-Si possible, configuration totalement libre. Mais ça veut dire qu'il faut pouvoir définir la disposition des boutons.
+Si possible, configuration totalement libre, mais il faut réfléchir à un format de config.
 
 ### Sauvegarder les parties
 
@@ -315,13 +325,13 @@ L'API doit comporter deux fonctions :
 
 Dans un premier temps, ces fonctions doivent être définies par la personne qui crée le jeu. Si elles ne le sont pas : pas de sauvegarde.
 
-Et ensuite, on propose un export/import par défaut, qui fonctionnera pour les jeux simples. Cet export/import sera activée par une info de config.
+Ensuite, on proposera un export/import par défaut, qui fonctionnera pour les jeux simples. Cet export/import sera activée par une info de config.
 
-Tant que Squarity n'a pas de gestion de compte utilisateur, l'export est enregistré dans le local storage du navigateur. Et ensuite, ce sera stocké dans les infos du compte, ce qui permettra de continuer sa partie sur une autre machine.
+Tant que Squarity n'a pas de gestion de compte utilisateur, l'export est enregistré dans le local storage du navigateur. Lorsqu'il sera stocké dans les infos du compte, on pourra continuer sa partie sur une autre machine.
 
 ### Implémenter la notion de "niveau"
 
-Certains jeux peuvent être découpés en niveaux (par exemple : H2O, soko-ban, soko-punk). On doit pouvoir définir les maps des niveaux dans la config. Un niveau est constitué de layers, comportant des game objects (c'est une situation de jeu comme une autre).
+Certains jeux peuvent être découpés en niveaux (H2O, soko-ban, soko-punk). Les maps des niveaux pourraient être définies dans la config. Un niveau est constitué de layers, comportant des game objects. C'est une situation de jeu comme une autre.
 
 L'API pourra ensuite utiliser cette notion de niveau, avec les fonctions suivantes :
 
@@ -332,13 +342,13 @@ L'API pourra ensuite utiliser cette notion de niveau, avec les fonctions suivant
 
 Dans un premier temps : gérer les niveaux comme dans PuzzleScript. Ils sont rangés linéairement, lorsqu'on gagne un niveau, on passe au suivant.
 
-Si possible : permettre une gestion comme dans le jeu Drod : les niveaux sont agencés selon un plan global, on se déplace dedans comme on le souhaite. Chaque niveau a un état résolu/à faire. On peut les résoudre dans n'importe quel ordre, et on peut revenir à un niveau résolu.
+Si possible, une gestion comme dans le jeu Drod : les niveaux sont agencés selon un plan global, on se déplace dedans comme on le souhaite. Chaque niveau a un état "résolu/à faire". On peut les résoudre dans n'importe quel ordre, et on peut revenir à un niveau résolu.
 
 Cette notion de niveau permet de débloquer beaucoup de fonctionnalité de la partie "Éditeur de niveaux, gestion des tilesets".
 
-Elle permet aussi d'implémenter très facilement une fonctionnalité de sauvegarde de partie : il suffit d'enregistrer l'état résolu/à faire de chaque niveau, et le niveau courant. On ne peut pas enregistrer d'état intermédiaire dans un niveau, mais c'est déjà ça.
+Elle permet aussi d'implémenter très facilement une sauvegarde simple de partie : il suffit d'enregistrer l'état résolu/à faire de chaque niveau, et le niveau courant. On ne peut pas enregistrer d'état intermédiaire, mais c'est déjà ça.
 
-C'est encore un peu flou (mais moins que d'autres choses très floues).
+Pour l'instant, cette notion est un peu floue (mais moins que d'autres choses très floues).
 
 
 ## "Effets spéciaux"
@@ -349,25 +359,25 @@ Vision : screenshot de drod, avec éclairage et déplacement progressif. Et des 
 
 Les sons blip-blop ont 3 avantages :
 
- - un petit côté rétro qui rappellera l'époque des sons 8-bits de la NES et des PC speakers.
- - très facile à stocker, à transmettre et à éditer : une chaîne de caractère suffit (associée au player qui va bien).
- - permet aux personnes non musiciennes une ambiance sonore, même si ça reste basique
+ - un petit côté rétro qui rappelle l'époque des sons 8-bits de la NES et des PC speakers.
+ - très facile à stocker, à transmettre et à éditer : une chaîne de quelques caractère suffit (associée au player qui va bien).
+ - permet aux personnes non musiciennes de créer une ambiance sonore, même si ça reste basique
 
-On pourra s'inspirer des players blip-blop existants. Il y en a dans PuzzleScript, ZZT, 3D Construction Kit... Il y a peut-être même des players dédiés.
+On pourra s'inspirer des players blip-blop existants. Il y en a dans PuzzleScript, ZZT, 3D Construction Kit... Il existe peut-être des players dédiés.
 
 ### Emettre des vrais sons
 
 Jouer des fichiers .wav, .mp3, ...
 
-Avec les fonctions qui vont bien : jouer une fois, jouer en boucle, stopper le son, ...
+Avec les fonctions qui vont bien : jouer une fois ou en boucle, stopper le son, ...
 
-Le problème, c'est l'hébergement de ces fichiers. Ca prend plus de place que des petites images de tileset. Le plus simple sera de limiter la taille des fichiers, et si possible de trouver des hébergeurs publics et gratos.
+Le problème, c'est l'hébergement des fichiers. Un son prend plus de place que des images de tileset. Solution : limiter la taille des fichiers, permettre d'accéder à des sons accessibles publiquement depuis des hébergeurs gratuits.
 
 ### Afficher des déplacements progressifs
 
-L'idéal serait d'indiquer dans la game config, ou bien dans des directives, qu'un certain game object (ou type de game object) se déplace progressivement. Durant le jeu, on se contente de changer la position des game objects. Les déplacements progressifs se déduisent tout seul.
+L'idéal serait d'indiquer dans la game config ou bien dans des directives, qu'un certain game object (ou type de game object) se déplace progressivement. Durant le jeu, on se contente de changer des coordonnées. Les déplacements progressifs se déduisent tout seul.
 
-Ca veut dire que les game objects doivent avoir des identifiants uniques, sinon on ne peut pas retrouver qui a bougé où.
+Ca veut dire que les game objects doivent avoir des identifiants uniques, sinon on ne peut pas retrouver lequel a bougé où.
 
 ### Transformer visuellement les game objects et les layers
 
@@ -377,25 +387,26 @@ Ces opérations pourraient s'appliquer sur des game objects ou des layers entier
 
 ### Animer les transformations visuelles
 
-Exemple : une transformation de type "transparence", avec la transparence qui augmente progressivement, permet de montrer la disparition d'un game object.
+Exemples :
 
-Autre type d'animations : un enchainement d'image, par exemple pour montrer un personnage qui marche.
+ - Transformation de type "hide". La transparence augmente progressivement, pour montrer la disparition d'un game object.
+ - Enchainement d'images successifs, pour montrer un personnage qui marche.
 
-Certaines animations risquent d'être plus difficile à décrire. Par exemple, un "shake" est constitué de plusieurs décalages X/Y. Il faut pouvoir donner la liste de ces décalages, ou bien une fonction qui va les générer aléatoirement.
+Certaines animations risquent d'être plus difficile à décrire. Par exemple, un "shake" est constitué de plusieurs décalages X/Y. Il faut définir ces décalages, ou bien définir une fonction qui va les générer aléatoirement.
 
 Ces transformations visuelles animées pourraient s'appliquer sur des game objects ou des layers entiers.
 
-Exemple : la taille de l'aire de jeu est de 8x8 tiles. En une seule opération, on passe à une aitre de jeu de 12x12 tiles, mais on applique une transfo visuelle d'agrandissement sur tous les layers, de façon à n'afficher que le milieu de l'aire de jeu. Puis, on diminue progressivement l'agrandissement pour finir par afficher les 12x12 tiles. Ca fait un dézoom progressif.
+Exemple : la taille de l'aire de jeu est de 8x8 tiles. En une seule opération, on passe à 12x12 tiles, mais on applique un agrandissement sur tous les layers, de façon à n'afficher que le milieu de l'aire de jeu. Puis, on diminue progressivement l'agrandissement pour finir par afficher les 12x12 tiles. Ca fait un dézoom progressif.
 
 Peut-être qu'on pourrait s'inspirer des mots-clés "transitions" et "transform" du CSS. Sans avoir la prétention de réimplémenter tout ce que fait le CSS...
 
 ### Ajouter des effets de lumière
 
-Un game object, en plus de s'afficher sous forme d'une image, pourrait aussi être une ou plusieurs sources lumineuses, avec couleur, intensité, direction, etc.
+Un game object, en plus de s'afficher sous forme d'une image, pourrait aussi être une source lumineuse, avec couleur, intensité, direction, etc.
 
-Il est possible d'indique qu'une source lumineuse est sur un même plan que un ou plusieurs layers. Dans ce cas, les game objects de ces layers bloquent la lumière.
+Il est possible d'indiquer qu'une source lumineuse est sur un même plan que un ou plusieurs layers. Dans ce cas, les game objects de ces layers bloquent la lumière.
 
-Ensuite, on peut indiquer, pour chaque type de game object, qu'il laisse plus ou moins passer la lumière. Et on pourrait carrément définir des height map pour chaque game object. Une pyramide ne renvoit pas la lumière dans les mêmes directions qu'un mur.
+Ensuite, on peut indiquer, pour chaque type de game object, dans quelle mesure il laisse passer la lumière. On pourrait carrément définir des height map pour chaque game object. Une pyramide ne renvoit pas la lumière dans les mêmes directions qu'un mur.
 
 ### Vision : Pif paf boum !
 
@@ -405,8 +416,7 @@ Des effets spéciaux (éclair, explosion, distortion, ...)
 
 Pour ajouter des shaders, des moteurs de particules, etc.
 
-Fonctionnalité très floue. Il faudrait pr
-endre connaissance de ce que peut faire le WebGL.
+Fonctionnalité très floue. Il faudrait prendre connaissance de ce que peut faire le WebGL.
 
 
 ## Tutoriels, manuels, conseils
@@ -415,33 +425,37 @@ Vision : un site genre un blog, avec des articles : "recensement des jeux de typ
 
 ### Écrire un article pour créer un mini-jeu
 
-descrip TODO : déjà fait. plop.
+C'est fait. Mais il faut remettre à jour les screenshots, car le site web a un peu changé d'aspect.
+
+Lien vers l'article.
+
+https://github.com/darkrecher/squarity-doc/blob/master/user_manual/tutoriel_sokoban.md
 
 ### Créer des vidéos de tutoriels
 
-Ce serait pour expliquer les mêmes chose que l'article de création d'un mini-jeu, mais on l'expliquerait dans une vidéo.
+La vidéo expliquera les mêmes choses que l'article de création d'un mini-jeu.
 
-Il y a des gens qui préfère apprendre avec du texte, d'autres avec des vidéos, il faut essayer de toucher le plus de monde possible.
+Il y a des gens qui préfèrent apprendre avec du texte, d'autres avec des vidéos, il faut essayer de toucher le plus de monde possible.
 
 ### Écrire des snippets de code
 
 Des bouts de code et des mini-jeux, pour présenter chaque fonctionnalité de la manière la plus isolée possible.
 
-Organiser ces snippets avec des pré-requis : "pour comprendre la fonctionalité X, il faut avoir déjà vu les fonctionnalités Y et Z."
+Décrire en particulier la notion d'action différée, car pour l'instant ce n'est documenté nul part.
+
+Ces snippets seront organisés en dépendances : "pour comprendre la fonctionalité X, il faut avoir déjà vu les fonctionnalités Y et Z".
 
 ### Rédiger des articles sur les jeux vidéo
 
 Une pléthoritude de sujets pourraient être abordés : la perspective (vue de haut/côté/entre les deux), la narration, les codes culturels, un peu d'histoire, ...
 
-TODO : Documenter le vocabulaire spécifique de Squarity.
+Il faudra aussi documenter le vocabulaire spécifique des objets manipulés dans Squarity : arena, tile, game object (gamobj), sprite...
 
-arena, tile, gamobj, sprite...
-
-"Gamobj", est un terme un peu moche. Pas de meilleure idée pour l'instant.
+"Gamobj", est un terme un peu moche, mais il n'y a pas de meilleure idée pour l'instant.
 
 ### Traduire les tutoriels et les articles en anglais
 
-Et si possible dans d'autres langues. Mais il faudra d'autres gens.
+Et si possible dans d'autres langues, si de gentilles personnes veulent bien s'y coller.
 
 
 ## Contenu et promotion
@@ -452,24 +466,25 @@ Vision : une liste avec plein de jeux comme dans Youtube. Squarenigma, Match-con
 
 C'est en cours depuis 2 ans. Il s'agit d'une "tâche infinie".
 
-Liste des contributions existantes :
+Lien vers les contributions existantes.
 
 https://ldjam.com/users/recher/games
 
 ### Créer des jeux pour une personne ou une organisation spécifique
 
- - Des challenges de hacking sous forme de jeu Squarity
- - Un mini-remake de Drod
- - Des remakes de plein d'autres jeux
- - Des jeux privés (pour des anniversaires de potes, des événements, ...)
- - Le jeu Footnotes, à révéler en temps voulu
- - Un jeu où tous les gamobj sont des caractères UTF-8 (comme ZZT), pour lutter contre l'illetrisme
+ - Des challenges de hacking sous forme de jeu Squarity,
+ - Un mini-remake de Drod,
+ - Des remakes de plein d'autres jeux,
+ - Des jeux "privés" (pour des anniversaires de potes, des événements),
+ - Le jeu Footnotes, à révéler en temps voulu,
+ - Un jeu où tous les gamobj sont des caractères UTF-8 (comme ZZT), pour lutter contre l'illetrisme,
+ - ...
 
 ### Recenser et qualifier des tilesets
 
 Un début de recensement a été fait dans la partie "Bouillonnement créatif" du serveur Discord.
 
-Lien vers opengamearts.org, qui contient beaucoup de jolies choses.
+Lien vers le site opengamearts.org, contenant beaucoup de jolies choses.
 
 https://opengameart.org/
 
@@ -493,16 +508,16 @@ Vision : un jeu, avec des avis en dessous, dont un avis de résumé. Des icônes
 Une home page avec, dans l'ordre :
 
  - "Jouer" : liste de jeux prédéfinis.
- - "Créer des jeux" : un jeu vide pour commencer de coder, le jeu d'exemple de soko-ban, tutoriel, documentation, référence de l'API.
- - "En savoir un peu plus" : lien vers mastodon, roadmap, repo git, doc décrivant les intentions de Squarity.
+ - "Créer des jeux" : un jeu vide pour commencer de coder, le jeu d'exemple de soko-ban, liens vers les tutoriels, documentations et référence de l'API.
+ - "En savoir un peu plus" : des liens vers mastodon, roadmap, repo git, le document décrivant les intentions de Squarity.
 
 Dans la page du jeu, on met juste un lien vers cette home page, et un lien vers le discord. Ca permettra de supprimer plein de petites infos qui polluent la page du jeu.
 
 Le bouton de plein écran ne doit pas occuper toute une bande horizontale de la page, ça fait de la place perdue.
 
-Deux onglets, un pour l'url de l'image + gameconf, un autre pour le gamecode. Par défaut, on affiche le game code. Une docstring au début du game code permet de donner une petite description du jeu.
+Trois onglets, url et affichage de l'image, gameconf, gamecode. Par défaut, on affiche le game code. Une docstring au début du game code permet de donner une petite description du jeu.
 
-Les personnes qui veulent juste jouer seront moins polluées par des infos secondaires. Elles ne verront que le jeu, et une zone de texte affichant une description en langage naturel. Et ça laisse quand même la possibilité d'être curieux, de scroller pour découvrir du code python, de cliquer sur l'autre onglet pour découvrir la conf, etc.
+Les personnes qui veulent juste jouer seront moins polluées par des infos secondaires. Elles ne verront que le jeu et une zone de texte affichant une description en langage naturel. Pour autant, ça laisse place à la curiosité, on peut scroller pour découvrir du code python, cliquer sur les autres onglets, etc.
 
 ### Utiliser correctement le nom de domaine
 
