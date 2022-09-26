@@ -1,3 +1,7 @@
+"""
+TODO : expliquer ce que fait ce truc.
+"""
+
 import os
 import logging
 import json
@@ -21,7 +25,7 @@ ID_FROM_CHAPTER_TITLES = {
 }
 
 MAP_SQUARES = [
-    "    ... g11 ... ... g14 ... ... ... ... ...",
+    "... ... g11 ... ... g14 ... ... ... ... ...",
     "... ... g10 g07 g12 g08 ... ... ... ... ...",
     "... e06 g05 g06 g16 g03 g15 i03 i05 ... ...",
     "... e05 e02 g17 g13 G02 i06 i07 ... ... ...",
@@ -62,11 +66,17 @@ HARDCODED_SQUARE_DEFINITIONS = [
         "rank": "origin",
         "html_class": "road-map-origin",
         "description": ""
-        "C'est la road-map de Squarity. Elle n'est pas linéaire.\n"
-        'C\'est une "road-square-map".\n\n'
-        "Cliquez sur les autres carrés pour avoir des précisions sur les fonctionnalités prévues.\n",
+        "Squarity est développé par une équipe d'une seule personne. "
+        "Il est donc difficile d'annoncer des dates de réalisation, ou même d'ordonner les priorités. "
+        "C'est pourquoi la road-map est sous forme d'un quadrillage, où chaque carré représente une fonctionnalité. "
+        "Aucun ordre précis ne peut être déduit.\n\n"
+        "Les carrés de couleurs vives sont des fonctionnalités déjà faites (pour l'instant, il y en a assez peu...). "
+        "Ceux de couleurs ternes sont des fonctionnalités à développer.\n\n"
+        "Certains carrés afficheront des gif animés montrant des screenshot hypothétique de Squarity.\n"
+        "Pour l'instant ces gifs ne sont pas finis, il faudra attendre encore un peu.\n"
+        "La première étape de la road-map est de finir la road-map.\n\n",
         "link_url": "https://github.com/darkrecher/squarity-doc/blob/master/road_map.md",
-        "link_text": 'Lien vers la road-map version "document normal".',
+        "link_text": "Lien vers la road-map en version texte, pour une lecture détaillée plus facile.",
     },
     {
         "key": "e00",

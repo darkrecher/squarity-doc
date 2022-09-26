@@ -2,39 +2,16 @@
 
 ## Fonctionnement de la road map
 
-Ce sera des road squares.
+Ce document regroupe les tâches de la roadmap accessible ici : http://squarity.fr/roadmap . Ce sont exactement les mêmes noms de tâches et les mêmes textes détaillés. Le contenu de la roadmap sur le site web est généré à partir de ce document.
 
-Square map :
+Il permet une lecture plus facile et plus linéaire, pour les personnes qui voudraient connaître le détail de toutes les tâches.
 
-7:effets_spéciaux 0:moteur 1:IDE
-6:tutos_doc -1:(le milieu) 2:edition_de_level_et_tileset
-5:contenu_promotion 4:social 3:autoformation_optimisation_prod
+Les tâches sont regroupées en 8 catégories principales. Dans chaque catégorie, l'ordre des tâches est arbitraire et n'est pas une indication de l'ordre dans lequel elles seront réalisées.
 
-Le milieu : document "fondateur" expliquant pourquoi je fais ce jeu. Et un autre mini-document expliquant comment je vais fonctionner avec cette road map
+Il y aura bientôt, sur le site et dans ce document, des gifs animés de "vision". Elles donneront un aperçu de certaines fonctionnalités de Squarity.
 
-Toute la description des tâches doit être en JSON.
+Bonne lecture !
 
-Les tâches peuvent être notées comme "terminées".
-
-Avec ce json, on construit (automatiquement via un petit script) :
- - un document markdown, versionné dans github-doc.
- - une page html statique avec tout le bazar dedans.
- - si possible, une image, qu'on pourra poster un peu où on veut.
-
-Toutes les tâches Trello doivent rentrer dans l'une de ces 8 zones. Mais on ne les fait pas apparaître dans la road-map, parce que ça mettrait trop de bazar. Trop de tâches détaillées.
-
-Le document fondateur contiendra en bas tous les liens vers tous les trucs :
- - les githubs
- - discord, mastodon
- - la roadmap en page statique, la roadmap en jeu Squarity
- - comment je vais fonctionner avec la roadmap, et que il y a les annonces dans Discord.
- - les trellos
-
-Il faut montrer des "visions". Un écran d'exemple et un récit d'utilisation d'une feature de Squarity. Pour montrer aux personnes interessées ce que je compte faire avec cet outil. Même si c'est très résumé et très flou. Ça donnera une idée globale.
-
-Si possible, au moins une vision par zone.
-
-TODO : reprendre le texte du square original.
 
 ## IDE, Environnement de développement
 
@@ -279,6 +256,10 @@ Avec, bien sûr : du debug, du log, des tests unitaires spécifiques aux pattern
 
 C'est encore très flou et aussi très pharaonique. Ça nécessitera d'autres squares de roadmap.
 
+Lien vers PuzzleScript
+
+https://www.puzzlescript.net/
+
 ### Vision : Exemples de pattern
 
 édition de pattern à la puzzlescript, pour créer un jeu.
@@ -511,27 +492,27 @@ Une home page avec, dans l'ordre :
  - "Créer des jeux" : un jeu vide pour commencer de coder, le jeu d'exemple de soko-ban, liens vers les tutoriels, documentations et référence de l'API.
  - "En savoir un peu plus" : des liens vers mastodon, roadmap, repo git, le document décrivant les intentions de Squarity.
 
-Dans la page du jeu, on met juste un lien vers cette home page, et un lien vers le discord. Ca permettra de supprimer plein de petites infos qui polluent la page du jeu.
+Dans la page du jeu, on met juste un lien vers cette home page et un lien vers le Discord. Ça supprimera plein de petites infos qui polluent la page du jeu.
 
-Le bouton de plein écran ne doit pas occuper toute une bande horizontale de la page, ça fait de la place perdue.
+Le bouton de plein écran ne doit pas occuper toute une bande horizontale de la page.
 
-Trois onglets, url et affichage de l'image, gameconf, gamecode. Par défaut, on affiche le game code. Une docstring au début du game code permet de donner une petite description du jeu.
+Trois onglets : url et affichage de l'image, gameconf, gamecode. Par défaut, on affiche le game code. Une docstring au début du game code permet de donner une petite description du jeu.
 
-Les personnes qui veulent juste jouer seront moins polluées par des infos secondaires. Elles ne verront que le jeu et une zone de texte affichant une description en langage naturel. Pour autant, ça laisse place à la curiosité, on peut scroller pour découvrir du code python, cliquer sur les autres onglets, etc.
+Les personnes qui veulent juste jouer seront moins polluées par des infos secondaires. Elles ne verront que le jeu et une zone de texte affichant une description en langage naturel. Les personnes interessées pourront scroller pour découvrir du code python, cliquer sur les autres onglets, etc.
 
 ### Utiliser correctement le nom de domaine
 
 squarity.fr fait une redirection moche vers squarity.pythonanywhere.com. Il faut garder le nom de domaine tout le temps.
 
-Et aussi mettre du https. Avec Letsencrypt, ou quelque chose du genre.
+Et aussi mettre du https. Avec Letsencrypt ou quelque chose du genre.
 
 ### Gérer des comptes utilisateurs
 
-Une personne crée un compte sur le site, pour enregistrer ses jeux (la gameconf, le gamecode, l'image de tileset).
+Un compte permet d'enregistrer ses jeux, et de simplifier les urls de partage de jeux.
 
-Authentification classique / OAuth / Google / github / autre. Pour éviter d'embêter des gens avec un login-password supplémentaire.
+L'authentification pourra s'effectuer de différentes manières : classique, OAuth, Google, github, ... afin d'éviter d'embêter les gens avec un login-password supplémentaire.
 
-Un peu flou pour l'instant, mais il y a sûrement des bonnes pratiques et de la doc sur le sujet.
+C'est un peu flou pour l'instant, mais il y a sûrement des bonnes pratiques et de la doc sur le sujet.
 
 ### Vision : les infos de profil
 
@@ -539,15 +520,17 @@ Le profil d'une personne. Les badges gagnés. Les scores. Les jeux favoris. Les 
 
 ### Créer un mini-CMS
 
-Content Management System.
+CMS = Content Management System.
 
 Le but est de pouvoir écrire des articles, des tutoriels, des analyses de jeux vidéos, etc.
 
-Sans prise de tête. On ne va pas recréer tout un moteur de blog.
+On le fera sans se prendre la tête, pas besoin de recréer un moteur de blog entier.
 
- - ranger les articles par catégories,
+Fonctionnalités prévues :
+
+ - rangement des articles par catégories,
  - convertisseur markdown to html,
- - un petit moteur de recherche de texte.
+ - moteur de recherche dans les textes des articles.
 
 Ce sera amplement suffisant.
 
@@ -555,44 +538,42 @@ Ce sera amplement suffisant.
 
 Les commentaires pourront être associé à un jeu ou à un article du mini-CMS.
 
-Quelque chose de basique, mais avec un peu de fonctionnalité quand même :
+Quelque chose d'assez simple :
 
  - mise en forme de texte, avec du markdown,
- - affichage d'images (qui seront hébergées ailleurs),
- - organisation arborescente (un commentaire de réponse à un autre commentaire),
+ - affichage d'images, qui seront hébergées ailleurs,
+ - organisation arborescente, pour répondre à un commentaire par un autre commentaire,
  - permalinks.
 
 ### Faciliter les forks et les mashups de jeux
 
 Exemple de cas d'utilisation :
 
-Une personne crée un premier jeu, avec tous les éléments nécessaires (gamecode, tilesets, ...). Une seconde personne, qui sait mieux dessiner, forke le jeu, et remplace le tileset. Une troisième personne reforke le jeu et ajoute des niveaux en plus. La première personne récupère ses éléments, et crée une nouvelle version du jeu, avec des images plus jolies et plus de niveaux.
+Une personne crée un premier jeu, avec tous les éléments nécessaires (gamecode, tilesets, ...). Une seconde personne, qui sait mieux dessiner, forke le jeu et remplace le tileset. Une troisième personne reforke le jeu et ajoute des niveaux en plus. La première personne récupère ses éléments, crée une nouvelle version du jeu, avec des images plus jolies et plus de niveaux.
 
-On pourrait avoir un autre exemple avec un jeu utilisant uniquement le système de pattern (pas de gamecode). Une autre personne forke le jeu, rajoute un type de game object et les patterns associés.
+Exemple avec un jeu utilisant uniquement le système de pattern : la seconde personne forke le jeu pour y ajouter un type de game object et les patterns associés.
 
-Les forks doivent pouvoir être traçable. Pour un jeu donné, on peut voir tous les éléments (pattern, tileset, etc.) provenant de jeux précédents, et on peut aussi voir tous les forks qui ont été fait à partir de ce jeu.
+Les forks doivent pouvoir être traçables. Pour un jeu donné, on connait les éléments provenant de jeux précédents et les forks qui en ont découlés.
 
-Ça n'empêchera pas des gens irrespectueux de copier-coller manuellement du code ou des images, puis de créer ensuite un nouveau jeu non forké, en disant que c'est eux qui ont tout fait, mais ça c'est difficilement gérable.
+Ça n'empêchera pas des gens irrespectueux de créer un jeu non forké en copiant-collant manuellement du code ou des images, puis de prétendre que c'est eux qui ont tout fait. Techniquement c'est impossible à interdire.
 
 ### Faire de la curation de commentaires
 
-Si j'ai bien compris le terme, "curation" signifie : analyser un gros tas de données (des jeux, des commentaires ou autres), et ne garder que les plus pertinents. C'est censé être fait par des humains, même si les premiers filtrages peuvent être faits par des machines.
+"Curation" signifie : analyser un gros tas de données (jeux, commentaires, ...) pour garder ce qui est le plus pertinent. C'est censé être fait par des humains, même si les premiers filtrages peuvent être faits par des machines.
 
-Une personne "curateuse" va lire des dizaines de commentaires, et rédiger un seul commentaire récapitulatif, avec des références/citations vers les commentaires initiaux.
+Une personne "curateuse" va lire des dizaines de commentaires et rédiger un récapitulatif, avec des références/citations vers les commentaires initiaux.
 
-Une curation peut être de plus ou moins bonne qualité, ce qui signifie qu'il faudrait curater les curations. Ha ha ha !!
+Une curation peut être de qualité plus ou moins bonne, ce qui signifie qu'il faudrait curater les curations. Ha ha !! Bref, c'est flou pour le moment.
 
-Bref, c'est un peu flou pour le moment.
+Pas de curation de jeux. Pour l'instant, ce serait trop ambitieux de croire que Squarity va générer des centaines de jeux. On n'aura donc pas besoin de les classer par pertinence pour s'y retrouver.
 
-Pas de curation de jeux, car pour l'instant, ce serait trop ambitieux de dire qu'il y aura beaucoup de jeux créés avec Squarity. On ne devrait pas avoir besoin de les classer par pertinence pour s'y retrouver.
-
-On pourrait imaginer un système pour noter les jeux, mais il faudrait trouver quelque chose de plus subtil qu'un nombre d'étoiles à choisir entre 0 et 5. Un classement a tendance a "s'auto-exagérer". Le jeu le plus classé devient le jeu le plus joué, il récolte encore plus de bonnes notes, et devient de plus en plus indétrônable de la première place.
+On pourrait imaginer un système de notation, mais il faudrait trouver quelque chose de plus subtil qu'un nombre d'étoiles à choisir entre 0 et 5. Un classement a tendance a "s'auto-exagérer". Le jeu le mieux classé devient le plus joué, récolte encore plus de bonnes notes et devient de plus en plus indétrônable de la première place.
 
 ### Générer des statistiques pour les jeux
 
-Combien de personnes ont testé le jeu, combien ont réussi quels niveaux, temps de jeu moyen.
+Combien de personnes ont testé le jeu, combien ont réussi quels niveaux, quel est le temps de jeu moyen.
 
-Tout ça par jour / semaine / mois / année.
+Des statistiques par jour / semaine / mois / année.
 
 ### Gérer le contenu "choquant"
 
@@ -600,33 +581,31 @@ Une personne créant un jeu doit pouvoir indiquer la présence de contenu "choqu
 
 Une personne qui parcourt la liste des jeux (même si elle n'a pas créé de compte) doit pouvoir filtrer selon ces différentes indications.
 
-Truc amusant : le masquage d'indicateur. Pour un descripteur de contenu, non seulement on le filtre pas, mais en plus on n'affiche pas que le jeu possède ce contenu. Pour les personnes qui aiment se faire surprendre par une scène choquante dans un jeu alors qu'elles ne s'y attendent pas.
+Idée amusante : le masquage d'indicateur. Une personne choisit de ne pas filtrer un type de contenu particulier, et en plus de ne pas en être avertie. Pour les gens qui aiment se faire surprendre par une scène choquante dans un jeu sans en avoir été prévenu.
 
-Gérer des comptes "enfants". Le compte est associé à un compte parent, qui décide des filtrages. C'est flou pour l'instant, car rien n'empêche l'enfant de se déconnecter et d'afficher la liste des jeux sans filtre. Peut-être que le compte parent pourrait enregistrer une liste de machines accessible par l'enfant, sur lesquelles on ne pourrait plus se déconnecter du compte enfant, à moins de saisir le mot de passe du compte parent.
+Gérer des comptes "enfants", associé à un compte parent qui décide des filtrages. C'est flou pour l'instant, car rien n'empêche l'enfant de se déconnecter et d'afficher la liste des jeux sans filtre. Peut-être que le compte parent pourrait enregistrer une liste de machines, sur lesquelles on ne pourrait plus se déconnecter du compte enfant, à moins de saisir le mot de passe du compte parent.
 
 ### Ajouter des badges et du score
 
-Fortement inspiré de Kongregate, Steam, et toutes les autres plate-formes de jeux.
+Fortement inspiré de Kongregate, Steam et toutes les plate-formes de jeux.
 
-Comme d'habitude : des fonctions en plus dans l'API, pour que des actions spécifiques dans un jeu attribuent un badge au compte de la personne qui joue.
+Comme d'habitude : des fonctions en plus dans le moteur, pour que des actions spécifiques dans un jeu attribuent un badge au compte de la personne qui joue.
 
-On affiche les badges sur le profil de la personne. Et on peut faire un peu de statistiques dessus (combien de personnes ont le badge, au bout de combien de temps de jeu, etc).
+Les badges sont affichés sur la page de profil. On peut faire des statistiques avec (combien de personnes ont le badge, au bout de combien de temps de jeu, etc).
 
-Même chose avec du score. Des fonctions dans l'API permettent de donner un score à une partie jouée. Les scores sont enregistrés dans les comptes utilisateurs, on peut faire des classements, des statistiques, etc.
+Même chose avec du score. Des fonctions dans le moteur permettent d'attribuer un score à une partie. On peut faire des classements, des statistiques, etc.
 
-Comme le code du jeu est exécuté par le navigateur web, il sera très facile de tricher, de s'auto-attribuer des badges et des scores très haut. Dans un premier temps, on laissera comme ça.
+Le code du jeu étant exécuté par le navigateur web, il sera très facile de tricher, de s'auto-attribuer des badges et des scores très hauts. Dans un premier temps, on laissera comme ça.
 
-Pour plus tard : il faudra réfléchir à répliquer le déroulement d'une partie sur le serveur. C'est une idée très floue, assez compliquée à réaliser, voire risquée (exécution de code arbitraire sur un serveur). Donc ce sera vraiment pour plus tard.
+Pour (beaucoup) plus tard : trouver le moyen de répliquer le déroulement d'une partie sur le serveur. C'est très flou et très compliqué à réaliser, voire risqué (exécution de code arbitraire sur un serveur).
 
-### Ajouter l'organisation de game jams
+### Permettre l'organisation de game jams
 
-Avec un thème, une date de début, une date de fin, un classement, des petites icônes pour indiquer les jeux qui sont arrivés les premiers.
+Avec un thème, une date de début, une date de fin, un classement, des petites icônes pour les jeux les mieux classés.
 
-Le mode de classement est à définir, il peut y en avoir plusieurs : notation par les personnes participant au game jam, jury prédéfini, etc.
+Le mode de classement doit être configurable : notation par les personnes participantes, jury prédéfini, basé sur des statistiques, etc.
 
-Est-ce qu'on met ensemble le classement normal sur le site et les classement de game jam, ou est-ce qu'on sépare ?
-
-C'est très flou, et avant de permettre les game jams, il faut une base de personnes utilisatrices un peu plus conséquente que ce qu'on a maintenant.
+C'est très flou. Avant de permettre les game jams, il faut une base de personnes utilisatrices plus conséquente.
 
 
 ## Auto-formation, Optimisation
@@ -647,7 +626,7 @@ https://github.com/darkrecher/squarity-doc/tree/master/environnement_dev
 
 ### Héberger un système de gestion de tâches
 
-Au lieu d'utiliser Trello. C'est tellement plus classe d'avoir tous les outils annexes en interne.
+Actuellement on utilise Trello. Mais c'est tellement plus classe d'avoir les outils annexes en interne.
 
 ### Héberger une instance peertube
 
@@ -661,9 +640,9 @@ Selenium est prévu pour les tests des environnements web client. On peut automa
 
 ### Optimiser les process
 
-Tâche très floue pour l'instant. Mais lorsqu'on aura un vrai serveur, avec une vraie base de donnée, il y aura sûrement beaucoup de choses à optimiser.
+Tâche très floue pour l'instant. Lorsqu'on aura un vrai serveur avec une vraie base de donnée, il y aura sûrement beaucoup de choses à optimiser.
 
-webpack, déploiement automatique, dump régulier de base de données, etc.
+Webpack, déploiement automatique, dump régulier de base de données, etc.
 
 ### Auto-formation
 
