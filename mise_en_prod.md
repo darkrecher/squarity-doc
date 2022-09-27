@@ -103,4 +103,78 @@ commit : 61346d42
 Même méthode que la 1ère mise en prod. C'est à dire, à l'arrache.
 
 
+## Mise en prod 03
 
+2022-09-26
+
+commit : 1ac6598
+
+Il y a eu quelques problèmes, mais on a fini par y arriver.
+
+### Échec
+
+Cette nouvelle version du site intègre le router Vue : une librairie magique de Vue qui sert à gérer plusieurs urls, par exemple `squarity.fr/` et `squarity.fr/roadmap`.
+
+Le début de la mise en prod est effectuée de la même manière qu'avant. C'est à dire :
+
+ - Dans la racine du repository de squarity-code, exécution de `npm run build`, pour mettre à jour tout le contenu du répertoire `dist` (non versionné dans le repository).
+ - Connexion sur le site pythonanywhere.com , avec le mot de passe qui va bien.
+ - Copie de toute l'arborescence du répertoire `dist`, dans pythonanywhere, dans le répertoire `/home/squastatic`. Il faut effacer les anciens fichiers, et copier les nouveaux un par un, via le menu Files de pythonanywhere.com. C'est relou, mais j'ai pas mieux.
+ - Dans le menu Web, ajout d'un élément dans les "static files", car on a un fichier en plus dans la racine : url=`/road_map_data.json`, directory=`/home/squarity/squastatic/road_map_data.json`
+ - Toujours dans le menu Web, clic sur le bouton "Reload squarity.pythonanywhere.com"
+
+Test du site.
+
+L'url `http://squarity.fr` redirige automatiquement vers `http://squarity.fr/index.html`, et ... ça ne marche pas ! On voit une page toute noire, et c'est tout. Aucun message d'erreur dans la console javascript. Les url spécifiques fonctionnent très bien, on peut récupérer une image du répertoire "img", un fichier javascript, etc.
+
+### Et finalement réussite
+
+De ce que j'ai compris, avec le router Vue, le site doit respecter les conditions suivantes :
+
+ - l'url `http://squarity.fr/index.html` ne fonctionne pas. Les personnes utilisant le site ne doivent pas l'utiliser. C'est comme ça.
+ - l'url `http://squarity.fr/` ou `http://squarity.fr` doit renvoyer le contenu du fichier `index.html` mais ne doit pas faire de redirection vers une autre url.
+
+Les serveurs web les plus simples respectent ces conditions (par exemple `python -m http.server`), mais pas le mien.
+
+Il faut donc corriger tout ça.
+
+Dans l'onglet Files de pythonanywhere, édition du fichier `/home/squarity/squarity/squarity/urls.py`. Mise en commentaire des deux redirections vers `index.html`.
+
+Et au passage, édition du fichier `home/squarity/squarity/squarity/settings.py`. Mise en commentaire de la ligne `DEBUG = True`. Ça aurait dû être fait depuis le début ...
+
+Versionnement de ces deux fichiers dans le repository, répertoire `squarity-doc/pythonanywhere`. Évidemment, la valeur de `SECRET_KEY` a été modifiée au préalable.
+
+Pour autant, ça ne fonctionne toujours pas.
+
+Ajout d'un autre élément dans les static files : url=`/`, directory=`/home/squarity/squastatic/index.html`. J'y croyais pas, mais on peut faire ça. Et maintenant, le site marche tout bien comme il faut !
+
+Liste actuelle de tous les static files :
+
+| URL                 | Directory                                    |
+|-|-|
+| /static/            | /home/squarity/squarity/static               |
+| /media/             | /home/squarity/squarity/media                |
+| /index.html         | /home/squarity/squastatic/index.html         |
+| /pyodide/           | /home/squarity/squastatic/pyodide            |
+| /css/               | /home/squarity/squastatic/css                |
+| /img/               | /home/squarity/squastatic/img                |
+| /js/                | /home/squarity/squastatic/js                 |
+| /favicon.ico        | /home/squarity/squastatic/favicon.ico        |
+| /squarity.py        | /home/squarity/squastatic/squarity.py        |
+| /pyodide.js         | /home/squarity/squastatic/pyodide.js         |
+| /road_map_data.json | /home/squarity/squastatic/road_map_data.json |
+| /                   | /home/squarity/squastatic/index.html         |
+
+### Dernière recommandation
+
+Il ne faut pas bookmarker ni communiquer des urls contenant index.html.
+
+L'url de base du site est : `http://squarity.fr`
+
+Pour partager un jeu, ajouter tout de suite après l'url de base le caractère dièse, et l'identifiant permettant d'accéder au github gist (voir la doc qui va bien pour savoir comment créer cet identifiant).
+
+Exemple : `http://squarity.fr#fetchez_githubgist_darkrecher/4c3e3f95c67da728f89274c9e8a317e8/raw/catfragmentator`
+
+On peut mettre un slash juste après le ".fr", mais ce n'est pas obligé.
+
+Dans tous les cas, pas de "index.html", et pas de squarity.pythonanywhere.com, car je ne peux pas garantir que je conserverais ces urls. (Faudrait d'ailleurs que je gère mon DNS mieux que ça, mais ça viendra plus tard).
