@@ -1,5 +1,31 @@
 """
-TODO : expliquer ce que fait ce truc.
+Ce script ne prend pas de paramètres. Les emplacements des fichiers d'entrée et de sortie sont
+définis en dur, parce que pas besoin de plus.
+
+Ce script lit le fichier markdown "road_map.md", qui est présent dans la racine du repository squarity-doc.
+
+Il écrit le fichier json road_map_data.json, qui est présent dans le repository squarity-code.
+Ce fichier json est nécessaire au site Squarity, pour afficher la road-map.
+
+Les titres de niveau 3 du fichier markdown et les textes des chapitre sont utilisés pour définir
+les carrés de la road-map (titre et description).
+
+Si la dernière ligne d'un texte de chapitre est une url (débute par "http"), alors la description
+du carré correspondant comportera un lien, placé à la fin.
+
+ - La dernière ligne du texte du chapitre est utilisée pour l'url du lien
+ - L'avant-dernière ligne du texte du chapitre est utilisée pour le texte du lien.
+
+Le premier titre de niveau 2 et tout son contenu ne sont pas lus par ce script. On peut y mettre
+tout ce qu'on veut, ça restera dans le markdown.
+
+Le "carré original" (celui qui est placé au milieu de la road-map), et les 8 carrés "superior"
+ne sont pas définis par le markdown, mais par des infos en dur définies dans ce code
+(voir variable HARDCODED_SQUARE_DEFINITIONS).
+
+Pour des infos plus détaillées sur la disposition des carrés dans la road-map, et sur la
+manière dont le fichier markdown doit être écrit, voir les commentaires des variables
+ID_FROM_CHAPTER_TITLES, MAP_SQUARES, VISION_GIF_FILES.
 """
 
 import os
@@ -13,6 +39,9 @@ PATH_FILE_DEST = os.path.join(
 
 INDEXES_CHAPTER_TO_SKIP = [0]
 
+# Correspondance entre les titres de chapitre et leurs identifiants internes
+# Attention, ces titres de chapitre doivent correspondre exactement aux titres de niveau 2
+# qui sont écrits dans le fichier markdown. Sinon ça lève une vilaine exception.
 ID_FROM_CHAPTER_TITLES = {
     "IDE, Environnement de développement": "i",
     "Éditeur de niveaux, gestion des tilesets": "l",
@@ -24,6 +53,14 @@ ID_FROM_CHAPTER_TITLES = {
     "Auto-formation, Optimisation": "o",
 }
 
+# Carte des carrés tels qu'ils seront représentés dans la road-map du site.
+# La première lettre correspond à la catégorie du carré (voir dictionnaire ID_FROM_CHAPTER_TITLES),
+# si la lettre est minuscule, le carré est considéré comme non fait (sa couleur sera terne),
+# en majuscule, le carré est fait (couleur vive).
+# Le numéro juste après permet d'identifier le carré dans sa catégorie.
+# 00 : le "superior square" indiquant la catégorie concernée.
+# une valeur supérieure à 1 : index du sous-chapitre (en comptant à partir de 1),
+# dans le fichier markdown contenant les données d'entrée.
 MAP_SQUARES = [
     "... ... g11 ... ... g14 ... ... ... ... ...",
     "... ... g10 g07 g12 g08 ... ... ... ... ...",
@@ -51,6 +88,7 @@ HTML_CLASS_FROM_ID = {
     "o": "optim",
 }
 
+# Nom des images gif pour les carrés spéciaux affichant des "visions", au lieu d'une description.
 VISION_GIF_FILES = {
     "i05": "test_vision.gif",
     "l08": "test_vision.gif",

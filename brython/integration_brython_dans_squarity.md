@@ -73,5 +73,5 @@ Inconvénient : Pyodide est très lent à démarrer au début. Il faut télécha
 
 **Architecture Decision Record** : on vire Brython et on met Pyodide à la place.
 
-TODO : décrire les liens entre pyodide et le reste de on code.
+TODO : décrire les liens entre pyodide et le reste de mon code.
 
