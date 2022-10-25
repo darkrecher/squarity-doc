@@ -1,4 +1,5 @@
 # https://raw.githubusercontent.com/darkrecher/squarity-doc/master/image_workshop_gif/roadmap/game_engine/draft.png
+# https://i.ibb.co/zmdNtcL/draft.png
 
 
 """
@@ -37,16 +38,33 @@
       "text_spell_norm_2": [256, 288],
       "text_spell_norm_3": [288, 288],
       "text_spell_norm_4": [320, 288],
+      "text_spell_activ_0": [0, 288],
+      "text_spell_activ_1": [32, 288],
+      "text_spell_activ_2": [64, 288],
+      "text_spell_activ_3": [96, 288],
+      "text_spell_activ_4": [128, 288],
+
 
       "mouse_cursor_0_0_f": [299, 39],
-      "mouse_cursor_0_1_u": [303, 23],
-      "mouse_cursor_0_1_d": [303, 55],
-      "mouse_cursor_0_2_f": [309, 31],
+      "mouse_cursor_0_1_u": [302, 21],
+      "mouse_cursor_0_1_d": [302, 53],
+      "mouse_cursor_0_2_f": [304, 28],
+      "mouse_cursor_1_0_f": [294, 30],
+      "mouse_cursor_1_1_f": [306, 34],
+      "mouse_cursor_1_2_f": [318, 38],
+      "mouse_cursor_1_3_f": [316, 40],
+      "mouse_cursor_1_4_f": [314, 42],
 
       "flowers_0": [0, 64],
       "flowers_1": [32, 64],
       "flowers_2": [64, 64],
       "flowers_3": [96, 64],
+
+      "magi_selection_up": [0, 32],
+      "magi_selection_right": [32, 32],
+      "magi_selection_down": [64, 32],
+      "magi_selection_left": [96, 32],
+      "magi_selection_middle": [128, 32],
 
       "monster_green_0u": [0, 220],
       "monster_green_0d": [0, 252],
@@ -65,7 +83,6 @@
       "monster_green_7u": [0, 192],
       "monster_green_7d": [0, 224],
       "monster_green": [0, 224],
-
 
       "sky": [256, 0],
 
@@ -88,11 +105,31 @@ M...........
 =###===##===
 """
 
-SEQ_UNROLL_SPELL = (
+SEQ_MOUSE_CURSOR_TO_SPELL = (
+    ((0, 3, "mouse_cursor_0_0_f"),),
+    (
+        (0, 2, "mouse_cursor_0_1_u"),
+        (0, 3, "mouse_cursor_0_1_d"),
+    ),
+)
+
+SEQ_STATIC_ROLLED_SPELL = (
     (
         (1, 2, "rolled_parchment"),
         (1, 2, "rolled_scroll"),
     ),
+) * 1
+
+SEQ_MOUSE_CURSOR_TO_GAME = (
+    ((1, 2, "mouse_cursor_1_0_f"),),
+    ((3, 2, "mouse_cursor_1_1_f"),),
+    ((5, 2, "mouse_cursor_1_2_f"),),
+    ((6, 2, "mouse_cursor_1_3_f"),),
+)
+
+SEQ_STATIC_MOUSE_CURSOR_ON_GAME = (((7, 2, "mouse_cursor_1_4_f"),),) * 6
+
+SEQ_UNROLL_SPELL_TEXT_NORM = (
     (
         (1, 2, "unrolled_parchment"),
         (1, 2, "text_spell_norm_0"),
@@ -190,7 +227,251 @@ SEQ_UNROLL_SPELL = (
     ),
 )
 
-SEQ_ROLL_SPELL = SEQ_UNROLL_SPELL[::-1]
+SEQ_UNROLL_SPELL_TEXT_ACTIV = (
+    (
+        (1, 2, "unrolled_parchment"),
+        (1, 2, "text_spell_activ_0"),
+        (1, 2, "unrolled_scroll"),
+    ),
+    (
+        (1, 2, "parchment"),
+        (1, 2, "text_spell_activ_0"),
+        (2, 2, "rolled_parchment"),
+        (2, 2, "rolled_scroll"),
+    ),
+    (
+        (1, 2, "parchment"),
+        (1, 2, "text_spell_activ_0"),
+        (2, 2, "unrolled_parchment"),
+        (2, 2, "text_spell_activ_1"),
+        (2, 2, "unrolled_scroll"),
+    ),
+    (
+        (1, 2, "parchment"),
+        (1, 2, "text_spell_activ_0"),
+        (2, 2, "parchment"),
+        (2, 2, "text_spell_activ_1"),
+        (3, 2, "rolled_parchment"),
+        (3, 2, "rolled_scroll"),
+    ),
+    (
+        (1, 2, "parchment"),
+        (1, 2, "text_spell_activ_0"),
+        (2, 2, "parchment"),
+        (2, 2, "text_spell_activ_1"),
+        (3, 2, "unrolled_parchment"),
+        (3, 2, "text_spell_activ_2"),
+        (3, 2, "unrolled_scroll"),
+    ),
+    (
+        (1, 2, "parchment"),
+        (1, 2, "text_spell_activ_0"),
+        (2, 2, "parchment"),
+        (2, 2, "text_spell_activ_1"),
+        (3, 2, "parchment"),
+        (3, 2, "text_spell_activ_2"),
+        (4, 2, "rolled_parchment"),
+        (4, 2, "rolled_scroll"),
+    ),
+    (
+        (1, 2, "parchment"),
+        (1, 2, "text_spell_activ_0"),
+        (2, 2, "parchment"),
+        (2, 2, "text_spell_activ_1"),
+        (3, 2, "parchment"),
+        (3, 2, "text_spell_activ_2"),
+        (4, 2, "unrolled_parchment"),
+        (4, 2, "text_spell_activ_3"),
+        (4, 2, "unrolled_scroll"),
+    ),
+    (
+        (1, 2, "parchment"),
+        (1, 2, "text_spell_activ_0"),
+        (2, 2, "parchment"),
+        (2, 2, "text_spell_activ_1"),
+        (3, 2, "parchment"),
+        (3, 2, "text_spell_activ_2"),
+        (4, 2, "parchment"),
+        (4, 2, "text_spell_activ_3"),
+        (5, 2, "rolled_parchment"),
+        (5, 2, "rolled_scroll"),
+    ),
+    (
+        (1, 2, "parchment"),
+        (1, 2, "text_spell_activ_0"),
+        (2, 2, "parchment"),
+        (2, 2, "text_spell_activ_1"),
+        (3, 2, "parchment"),
+        (3, 2, "text_spell_activ_2"),
+        (4, 2, "parchment"),
+        (4, 2, "text_spell_activ_3"),
+        (5, 2, "unrolled_parchment"),
+        (5, 2, "text_spell_activ_4"),
+        (5, 2, "unrolled_scroll"),
+    ),
+    (
+        (1, 2, "parchment"),
+        (1, 2, "text_spell_activ_0"),
+        (2, 2, "parchment"),
+        (2, 2, "text_spell_activ_1"),
+        (3, 2, "parchment"),
+        (3, 2, "text_spell_activ_2"),
+        (4, 2, "parchment"),
+        (4, 2, "text_spell_activ_3"),
+        (5, 2, "parchment"),
+        (5, 2, "text_spell_activ_4"),
+        (6, 2, "rolled_parchment"),
+        (6, 2, "rolled_scroll"),
+    ),
+)
+
+SEQ_ROLL_SPELL_TEXT_ACTIV = SEQ_UNROLL_SPELL_TEXT_ACTIV[::-1]
+
+SEQ_STATIC_ACTIVATED_SPELL_AND_TEXT = (
+    (
+        (0, 2, "spell_monster_activated"),
+        (1, 2, "parchment"),
+        (1, 2, "text_spell_activ_0"),
+        (2, 2, "parchment"),
+        (2, 2, "text_spell_activ_1"),
+        (3, 2, "parchment"),
+        (3, 2, "text_spell_activ_2"),
+        (4, 2, "parchment"),
+        (4, 2, "text_spell_activ_3"),
+        (5, 2, "parchment"),
+        (5, 2, "text_spell_activ_4"),
+        (6, 2, "rolled_parchment"),
+        (6, 2, "rolled_scroll"),
+    ),
+) * 2
+
+SEQ_STATIC_ACTIVATED_SPELL = (((0, 2, "spell_monster_activated"),),)
+
+SEQ_SPELL = (
+    SEQ_STATIC_ROLLED_SPELL
+    + SEQ_UNROLL_SPELL_TEXT_NORM
+    + SEQ_STATIC_ACTIVATED_SPELL_AND_TEXT
+    + SEQ_ROLL_SPELL_TEXT_ACTIV
+)
+
+LEN_STATIC_MOUSE = len(SEQ_UNROLL_SPELL_TEXT_NORM) + len(
+    SEQ_STATIC_ACTIVATED_SPELL_AND_TEXT
+)
+SEQ_STATIC_MOUSE_CURSOR_ON_SPELL = (((0, 2, "mouse_cursor_0_2_f"),),) * LEN_STATIC_MOUSE
+
+SEQ_MOUSE = (
+    SEQ_MOUSE_CURSOR_TO_SPELL
+    + SEQ_STATIC_MOUSE_CURSOR_ON_SPELL
+    + SEQ_MOUSE_CURSOR_TO_GAME
+    + SEQ_STATIC_MOUSE_CURSOR_ON_GAME
+)
+
+DATE_START_LAUNCH_SPELL = 21
+
+SEQ_MAGI_SQUARE = (
+    (
+        (7, 2, "magi_selection_middle"),
+        (7, 2, "magi_selection_middle"),
+        (7, 2, "magi_selection_up"),
+        (7, 2, "magi_selection_right"),
+        (7, 2, "magi_selection_left"),
+        (7, 2, "magi_selection_down"),
+    ),
+    (
+        (7, 2, "magi_selection_middle"),
+        (7, 2, "magi_selection_middle"),
+        (7, 2, "magi_selection_middle"),
+        (7, 2, "magi_selection_middle"),
+        (7, 2, "magi_selection_up"),
+        (7, 2, "magi_selection_right"),
+        (7, 2, "magi_selection_left"),
+        (7, 2, "magi_selection_down"),
+    ),
+    (
+        (7, 2, "magi_selection_middle"),
+        (7, 2, "magi_selection_middle"),
+        (7, 2, "magi_selection_middle"),
+        (7, 2, "magi_selection_middle"),
+        (7, 2, "magi_selection_up"),
+        (7, 2, "magi_selection_left"),
+        (7, 2, "magi_selection_down"),
+        (8, 2, "magi_selection_middle"),
+        (8, 2, "magi_selection_middle"),
+        (8, 2, "magi_selection_middle"),
+        (8, 2, "magi_selection_middle"),
+        (8, 2, "magi_selection_up"),
+        (8, 2, "magi_selection_right"),
+        (8, 2, "magi_selection_down"),
+    ),
+    (
+        (7, 2, "magi_selection_middle"),
+        (7, 2, "magi_selection_middle"),
+        (7, 2, "magi_selection_middle"),
+        (7, 2, "magi_selection_middle"),
+        (7, 2, "magi_selection_up"),
+        (7, 2, "magi_selection_left"),
+        (7, 2, "magi_selection_down"),
+        (8, 2, "magi_selection_middle"),
+        (8, 2, "magi_selection_middle"),
+        (8, 2, "magi_selection_middle"),
+        (8, 2, "magi_selection_middle"),
+        (8, 2, "magi_selection_up"),
+        (8, 2, "magi_selection_right"),
+        (8, 2, "magi_selection_down"),
+    ),
+    (
+        (7, 2, "magi_selection_middle"),
+        (7, 2, "magi_selection_middle"),
+        (7, 2, "magi_selection_middle"),
+        (7, 2, "magi_selection_middle"),
+        (7, 2, "magi_selection_up"),
+        (7, 2, "magi_selection_left"),
+        (8, 2, "magi_selection_middle"),
+        (8, 2, "magi_selection_middle"),
+        (8, 2, "magi_selection_middle"),
+        (8, 2, "magi_selection_middle"),
+        (8, 2, "magi_selection_up"),
+        (8, 2, "magi_selection_right"),
+        (7, 3, "magi_selection_middle"),
+        (7, 3, "magi_selection_middle"),
+        (7, 3, "magi_selection_middle"),
+        (7, 3, "magi_selection_middle"),
+        (7, 3, "magi_selection_down"),
+        (7, 3, "magi_selection_left"),
+        (8, 3, "magi_selection_middle"),
+        (8, 3, "magi_selection_middle"),
+        (8, 3, "magi_selection_middle"),
+        (8, 3, "magi_selection_middle"),
+        (8, 3, "magi_selection_right"),
+        (8, 3, "magi_selection_down"),
+    ),
+    (
+        (7, 2, "magi_selection_middle"),
+        (7, 2, "magi_selection_middle"),
+        (7, 2, "magi_selection_middle"),
+        (7, 2, "magi_selection_middle"),
+        (7, 2, "magi_selection_up"),
+        (7, 2, "magi_selection_left"),
+        (8, 2, "magi_selection_middle"),
+        (8, 2, "magi_selection_middle"),
+        (8, 2, "magi_selection_middle"),
+        (8, 2, "magi_selection_middle"),
+        (8, 2, "magi_selection_up"),
+        (8, 2, "magi_selection_right"),
+        (7, 3, "magi_selection_middle"),
+        (7, 3, "magi_selection_middle"),
+        (7, 3, "magi_selection_middle"),
+        (7, 3, "magi_selection_middle"),
+        (7, 3, "magi_selection_down"),
+        (7, 3, "magi_selection_left"),
+        (8, 3, "magi_selection_middle"),
+        (8, 3, "magi_selection_middle"),
+        (8, 3, "magi_selection_middle"),
+        (8, 3, "magi_selection_middle"),
+        (8, 3, "magi_selection_right"),
+        (8, 3, "magi_selection_down"),
+    ),
+)
 
 SEQ_GREEN_FALL = (
     ((7, 3, "monster_green"),),
@@ -278,8 +559,21 @@ class GameModel:
         self.w = 12
         self.h = 9
         self.anim_sequences = (
-            AnimationSequence(SEQ_UNROLL_SPELL, 0),
-            AnimationSequence(SEQ_GREEN_FALL, 4),
+            AnimationSequence(SEQ_SPELL, 0),
+            AnimationSequence(
+                SEQ_STATIC_ACTIVATED_SPELL,
+                len(SEQ_UNROLL_SPELL_TEXT_NORM)
+                + len(SEQ_STATIC_ACTIVATED_SPELL_AND_TEXT),
+                loop=True,
+            ),
+            AnimationSequence(
+                SEQ_STATIC_ROLLED_SPELL,
+                len(SEQ_SPELL),
+                loop=True,
+            ),
+            AnimationSequence(SEQ_GREEN_FALL, 40),
+            AnimationSequence(SEQ_MAGI_SQUARE, DATE_START_LAUNCH_SPELL),
+            AnimationSequence(SEQ_MOUSE, 0),
         )
         self.tiles = [[[] for x in range(self.w)] for y in range(self.h)]
         end_dates = [
