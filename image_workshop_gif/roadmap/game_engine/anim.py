@@ -9,6 +9,12 @@ Appuyez sur les flèches droite et gauche pour faire avancer/reculer l'animation
 
 Lorsque la gif sera créée, je la mettrais sur le site PixelJoint. Si vous avez un compte, ce serait gentil de mettre un petit like.
 
+Publication dans github gist :
+https://gist.githubusercontent.com/darkrecher/39dd576bfefa1f95318d2e1edbed0bea/raw/animcreatemonsters.txt
+
+Url pour jouer l'animation :
+
+http://squarity.fr/#fetchez_githubgist_darkrecher/39dd576bfefa1f95318d2e1edbed0bea/raw/animcreatemonsters.txt
 
 """
 
@@ -156,23 +162,6 @@ Lorsque la gif sera créée, je la mettrais sur le site PixelJoint. Si vous avez
       "monster_red_7u": [96, 192],
       "monster_red_7d": [96, 224],
       "monster_red": [96, 224],
-
-      "monster_red_rot_0l": [160, 32],
-      "monster_red_rot_0r": [192, 32],
-      "monster_red_rot_1l": [160, 64],
-      "monster_red_rot_1r": [192, 64],
-      "monster_red_rot_2l": [160, 96],
-      "monster_red_rot_2r": [192, 96],
-      "monster_red_rot_3l": [160, 128],
-      "monster_red_rot_3r": [192, 128],
-      "monster_red_rot_4l": [160, 160],
-      "monster_red_rot_4r": [192, 160],
-      "monster_red_rot_5l": [160, 192],
-      "monster_red_rot_5r": [192, 192],
-      "monster_red_rot_6l": [160, 224],
-      "monster_red_rot_6r": [192, 224],
-      "monster_red_rot_7l": [160, 256],
-      "monster_red_rot_7r": [192, 256],
 
       "monster_red_rot_0l": [160, 32],
       "monster_red_rot_0r": [192, 32],
