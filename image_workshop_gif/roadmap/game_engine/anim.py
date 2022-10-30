@@ -1,6 +1,5 @@
 # https://raw.githubusercontent.com/darkrecher/squarity-doc/master/image_workshop_gif/roadmap/game_engine/draft.png
-# https://i.ibb.co/zmdNtcL/draft.png
-
+# https://i.ibb.co/5s61Jph/draft.png
 
 """
 
@@ -8,7 +7,7 @@
     "tile_size": 32,
     "game_area": {
         "nb_tile_width": 12,
-        "nb_tile_height": 9
+        "nb_tile_height": 8
     },
 
     "img_coords": {
@@ -162,9 +161,54 @@
       "monster_red_rot_7l": [160, 256],
       "monster_red_rot_7r": [192, 256],
 
-      "sky": [256, 0],
+      "monster_red_rot_0l": [160, 32],
+      "monster_red_rot_0r": [192, 32],
+      "monster_red_rot_1l": [160, 64],
+      "monster_red_rot_1r": [192, 64],
+      "monster_red_rot_2l": [160, 96],
+      "monster_red_rot_2r": [192, 96],
+      "monster_red_rot_3l": [160, 128],
+      "monster_red_rot_3r": [192, 128],
+      "monster_red_rot_4l": [160, 160],
+      "monster_red_rot_4r": [192, 160],
+      "monster_red_rot_5l": [160, 192],
+      "monster_red_rot_5r": [192, 192],
+      "monster_red_rot_6l": [160, 224],
+      "monster_red_rot_6r": [192, 224],
+      "monster_red_rot_7l": [160, 256],
+      "monster_red_rot_7r": [192, 256],
 
-      "vide": [0, 0]
+      "monster_white_rot_0l": [224, 32],
+      "monster_white_rot_0r": [256, 32],
+      "monster_white_rot_1l": [224, 64],
+      "monster_white_rot_1r": [256, 64],
+      "monster_white_rot_2l": [224, 96],
+      "monster_white_rot_2r": [256, 96],
+      "monster_white_rot_3l": [224, 128],
+      "monster_white_rot_3r": [256, 128],
+      "monster_white_rot_4l": [224, 160],
+      "monster_white_rot_4r": [256, 160],
+      "monster_white_rot_5l": [224, 192],
+      "monster_white_rot_5r": [256, 192],
+      "monster_white_rot_6l": [224, 224],
+      "monster_white_rot_6r": [256, 224],
+      "monster_white_rot_7l": [224, 256],
+      "monster_white_rot_7r": [256, 256],
+
+      "text_ouch_l": [32, 96],
+      "text_ouch_r": [64, 96],
+
+      "star_0_0": [307, 144],
+      "star_0_1": [307, 208],
+      "star_1_0": [304, 151],
+      "star_1_1": [304, 215],
+      "star_2_0": [297, 141],
+      "star_2_1": [297, 205],
+      "star_3_0": [312, 147],
+      "star_3_1": [312, 211],
+
+
+      "sky": [256, 0]
 
     }
   }
@@ -177,10 +221,9 @@ H*..........
 M...........
 ............
 ............
-.......+....
-.......I-...
-./=-...I1...
-=###===##===
+....../-....
+..+...I#-...
+==#===###===
 """
 
 
@@ -635,6 +678,34 @@ SEQ_MAGI_SQUARE = (
     ),
 )
 
+SEQ_MAGI_STARS = (
+    ((7, 2, "star_0_0"),),
+    ((7, 2, "star_0_1"),),
+    (
+        (8, 2, "star_1_0"),
+        (7, 2, "star_0_0"),
+    ),
+    (
+        (8, 2, "star_1_1"),
+        (7, 3, "star_2_0"),
+    ),
+    (
+        (8, 2, "star_1_0"),
+        (7, 3, "star_2_1"),
+        (8, 2, "star_2_0"),
+    ),
+    (
+        (7, 3, "star_2_0"),
+        (8, 3, "star_3_0"),
+        (8, 2, "star_2_1"),
+    ),
+    (
+        (8, 3, "star_3_1"),
+        (8, 2, "star_2_0"),
+    ),
+    ((8, 3, "star_3_0"),),
+)
+
 SEQ_TEMPLATE_MONSTER_FALL = (
     (
         (0, 0, "{{monster}}_0u"),
@@ -715,7 +786,7 @@ SEQ_GREEN = SEQ_STATIC_GREEN_ON_START + untemplatize_seq(
 
 SEQ_STATIC_BLUE_ON_START = (((8, 3, "monster_blue"),),) * 5
 
-SEQ_STATIC_BLUE_ON_END = (((8, 4, "monster_blue"),),)
+SEQ_STATIC_BLUE_ON_END = (((8, 5, "monster_blue"),),)
 
 SEQ_BLUE = (
     SEQ_STATIC_BLUE_ON_START
@@ -732,16 +803,23 @@ SEQ_RED = (
     + untemplatize_seq(SEQ_TEMPLATE_MONSTER_FALL, 6, 3, "monster", "monster_red")
 )
 
+SEQ_STATIC_RED_ON_END = (((6, 4, "monster_red"),),)
+
 SEQ_STATIC_WHITE_ON_START = (((8, 2, "monster_white"),),) * 5
 
 SEQ_WHITE = (
     SEQ_STATIC_WHITE_ON_START
     + untemplatize_seq(SEQ_TEMPLATE_MONSTER_FALL, 8, 2, "monster", "monster_white")
     + untemplatize_seq(SEQ_TEMPLATE_MONSTER_FALL, 8, 3, "monster", "monster_white")
+    + untemplatize_seq(SEQ_TEMPLATE_MONSTER_ROT, 8, 4, "monster", "monster_white")
+    + untemplatize_seq(SEQ_TEMPLATE_MONSTER_FALL, 9, 4, "monster", "monster_white")
+    + untemplatize_seq(SEQ_TEMPLATE_MONSTER_FALL, 9, 5, "monster", "monster_white")
 )
 
-
 DATE_START_MONSTERS = 27
+
+SEQ_TEXT_OUCH_GREEN = (((6, 4, "text_ouch_l"),),) * 6
+SEQ_TEXT_OUCH_BLUE = (((9, 5, "text_ouch_r"),),) * 6
 
 
 class AnimationSequence:
@@ -788,7 +866,7 @@ class GameModel:
 
     def __init__(self):
         self.w = 12
-        self.h = 9
+        self.h = 8
         self.anim_sequences = (
             AnimationSequence(SEQ_SPELL, 0),
             AnimationSequence(
@@ -807,12 +885,21 @@ class GameModel:
             AnimationSequence(SEQ_RED, DATE_START_MONSTERS),
             AnimationSequence(SEQ_WHITE, DATE_START_MONSTERS),
             AnimationSequence(SEQ_MAGI_SQUARE, DATE_START_LAUNCH_SPELL),
+            AnimationSequence(SEQ_MAGI_STARS, DATE_START_LAUNCH_SPELL + 1),
             AnimationSequence(SEQ_MOUSE, 0),
+            AnimationSequence(SEQ_TEXT_OUCH_GREEN, DATE_START_MONSTERS + 13),
+            AnimationSequence(SEQ_TEXT_OUCH_BLUE, DATE_START_MONSTERS + 21),
             AnimationSequence(
                 SEQ_STATIC_MOUSE_CURSOR_ON_END, len(SEQ_MOUSE), loop=True
             ),
             AnimationSequence(
                 SEQ_STATIC_GREEN_ON_END, DATE_START_MONSTERS + len(SEQ_GREEN), loop=True
+            ),
+            AnimationSequence(
+                SEQ_STATIC_RED_ON_END, DATE_START_MONSTERS + len(SEQ_RED), loop=True
+            ),
+            AnimationSequence(
+                SEQ_STATIC_BLUE_ON_END, DATE_START_MONSTERS + len(SEQ_BLUE), loop=True
             ),
         )
         self.tiles = [[[] for x in range(self.w)] for y in range(self.h)]
@@ -827,7 +914,7 @@ class GameModel:
         self.calculated_game_areas = []
 
         self.initial_map = INITIAL_MAP.strip().split("\n")
-        self.current_step_index = 25
+        self.current_step_index = 20
         self.apply_anim_step()
 
     def reset_game_area(self):
