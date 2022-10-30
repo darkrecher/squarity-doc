@@ -1,5 +1,18 @@
+"""
+Ceci n'est pas un jeu !
+
+C'est une petite animation qui sera utilisée pour créer une gif animée.
+
+Cette gif animée sera placée dans la road-map, sur le carré "moteur du jeu", juste au-dessus du carré de départ.
+
+Appuyez sur les flèches droite et gauche pour faire avancer/reculer l'animation. C'est tout.
+
+Lorsque la gif sera créée, je la mettrais sur le site PixelJoint. Si vous avez un compte, ce serait gentil de mettre un petit like.
+
+
+"""
+
 # https://raw.githubusercontent.com/darkrecher/squarity-doc/master/image_workshop_gif/roadmap/game_engine/draft.png
-# https://i.ibb.co/5s61Jph/draft.png
 
 """
 
@@ -206,7 +219,21 @@
       "star_2_1": [297, 205],
       "star_3_0": [312, 147],
       "star_3_1": [312, 211],
+      "star_4_0_0": [287, 141],
+      "star_4_0_1": [319, 141],
+      "star_4_1_0": [287, 205],
+      "star_4_1_1": [319, 205],
+      "star_5_0_0": [309, 126],
+      "star_5_0_1": [309, 158],
+      "star_5_1_0": [309, 190],
+      "star_5_1_1": [309, 222],
+      "star_6_0": [310, 135],
+      "star_6_1": [310, 199],
 
+      "flowers_0": [64, 64],
+      "flowers_1": [96, 64],
+      "flowers_2": [0, 64],
+      "flowers_3": [32, 64],
 
       "sky": [256, 0]
 
@@ -680,30 +707,55 @@ SEQ_MAGI_SQUARE = (
 
 SEQ_MAGI_STARS = (
     ((7, 2, "star_0_0"),),
-    ((7, 2, "star_0_1"),),
+    (
+        (7, 2, "star_0_1"),
+        (7, 2, "star_4_0_0"),
+        (8, 2, "star_4_0_1"),
+    ),
     (
         (8, 2, "star_1_0"),
         (7, 2, "star_0_0"),
+        (7, 2, "star_4_1_0"),
+        (8, 2, "star_4_1_1"),
     ),
     (
         (8, 2, "star_1_1"),
         (7, 3, "star_2_0"),
+        (7, 2, "star_4_0_0"),
+        (8, 2, "star_4_0_1"),
     ),
     (
         (8, 2, "star_1_0"),
         (7, 3, "star_2_1"),
         (8, 2, "star_2_0"),
+        (8, 3, "star_1_0"),
+        (7, 3, "star_6_0"),
     ),
     (
         (7, 3, "star_2_0"),
         (8, 3, "star_3_0"),
         (8, 2, "star_2_1"),
+        (7, 2, "star_5_0_0"),
+        (7, 3, "star_5_0_1"),
+        (8, 3, "star_1_1"),
+        (8, 3, "star_2_0"),
+        (7, 3, "star_6_1"),
     ),
     (
         (8, 3, "star_3_1"),
         (8, 2, "star_2_0"),
+        (7, 2, "star_5_1_0"),
+        (7, 3, "star_5_1_1"),
+        (8, 3, "star_1_0"),
+        (8, 3, "star_2_1"),
+        (7, 3, "star_6_0"),
     ),
-    ((8, 3, "star_3_0"),),
+    (
+        (8, 3, "star_3_0"),
+        (7, 2, "star_5_0_0"),
+        (7, 3, "star_5_0_1"),
+        (8, 3, "star_2_0"),
+    ),
 )
 
 SEQ_TEMPLATE_MONSTER_FALL = (
@@ -815,11 +867,26 @@ SEQ_WHITE = (
     + untemplatize_seq(SEQ_TEMPLATE_MONSTER_FALL, 9, 4, "monster", "monster_white")
     + untemplatize_seq(SEQ_TEMPLATE_MONSTER_FALL, 9, 5, "monster", "monster_white")
 )
+SEQ_STATIC_WHITE_ON_END = (((9, 6, "monster_white"),),)
 
 DATE_START_MONSTERS = 27
 
 SEQ_TEXT_OUCH_GREEN = (((6, 4, "text_ouch_l"),),) * 6
 SEQ_TEXT_OUCH_BLUE = (((9, 5, "text_ouch_r"),),) * 6
+SEQ_TEXT_OUCH_RED = (((5, 4, "text_ouch_l"),),) * 6
+SEQ_TEXT_OUCH_WHITE = (((10, 6, "text_ouch_r"),),) * 6 + (((10, 6, "sky"),),)
+
+SEQ_FLOWERS = (
+    (((2, 5, "flowers_0"),),) * 5
+    + (
+        ((2, 5, "flowers_1"),),
+        ((2, 5, "flowers_2"),),
+        ((2, 5, "flowers_3"),),
+    )
+    + (((2, 5, "flowers_0"),),) * 15
+    + (((2, 5, "flowers_1"),),) * 7
+    + (((2, 5, "flowers_0"),),) * 2
+)
 
 
 class AnimationSequence:
@@ -868,6 +935,7 @@ class GameModel:
         self.w = 12
         self.h = 8
         self.anim_sequences = (
+            AnimationSequence(SEQ_FLOWERS, 0, loop=True),
             AnimationSequence(SEQ_SPELL, 0),
             AnimationSequence(
                 SEQ_STATIC_ACTIVATED_SPELL,
@@ -889,6 +957,8 @@ class GameModel:
             AnimationSequence(SEQ_MOUSE, 0),
             AnimationSequence(SEQ_TEXT_OUCH_GREEN, DATE_START_MONSTERS + 13),
             AnimationSequence(SEQ_TEXT_OUCH_BLUE, DATE_START_MONSTERS + 21),
+            AnimationSequence(SEQ_TEXT_OUCH_RED, DATE_START_MONSTERS + 29),
+            AnimationSequence(SEQ_TEXT_OUCH_WHITE, DATE_START_MONSTERS + 45),
             AnimationSequence(
                 SEQ_STATIC_MOUSE_CURSOR_ON_END, len(SEQ_MOUSE), loop=True
             ),
@@ -901,6 +971,11 @@ class GameModel:
             AnimationSequence(
                 SEQ_STATIC_BLUE_ON_END, DATE_START_MONSTERS + len(SEQ_BLUE), loop=True
             ),
+            AnimationSequence(
+                SEQ_STATIC_WHITE_ON_END,
+                DATE_START_MONSTERS + len(SEQ_WHITE),
+                loop=True,
+            ),
         )
         self.tiles = [[[] for x in range(self.w)] for y in range(self.h)]
         end_dates = [
@@ -910,11 +985,8 @@ class GameModel:
         ]
         self.end_date = max(end_dates)
 
-        # TODO
-        self.calculated_game_areas = []
-
         self.initial_map = INITIAL_MAP.strip().split("\n")
-        self.current_step_index = 20
+        self.current_step_index = 0
         self.apply_anim_step()
 
     def reset_game_area(self):
