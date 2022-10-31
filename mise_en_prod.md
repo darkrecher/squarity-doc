@@ -37,8 +37,8 @@ Il faut créer toute l'arborescence de répertoires, et copier tous les fichiers
 
 Dans l'onglet Web de pythonanywhere, partie "Static files", ajouter toutes les correspondances suivantes :
 
-| URL             |  Directory                               |
-|-----------------|------------------------------------------|
+| URL             | Directory                                |
+| --------------- | ---------------------------------------- |
 | /static/        | /home/squarity/squarity/static           |
 | /media/         | /home/squarity/squarity/media            |
 | /board_model.py | /home/squarity/squastatic/board_model.py |
@@ -151,7 +151,7 @@ Ajout d'un autre élément dans les static files : url=`/`, directory=`/home/squ
 Liste actuelle de tous les static files :
 
 | URL                 | Directory                                    |
-|-|-|
+| ------------------- | -------------------------------------------- |
 | /static/            | /home/squarity/squarity/static               |
 | /media/             | /home/squarity/squarity/media                |
 | /index.html         | /home/squarity/squastatic/index.html         |
@@ -178,3 +178,24 @@ Exemple : `http://squarity.fr#fetchez_githubgist_darkrecher/4c3e3f95c67da728f892
 On peut mettre un slash juste après le ".fr", mais ce n'est pas obligé.
 
 Dans tous les cas, pas de "index.html", et pas de squarity.pythonanywhere.com, car je ne peux pas garantir que je conserverais ces urls. (Faudrait d'ailleurs que je gère mon DNS mieux que ça, mais ça viendra plus tard).
+
+
+## Mise en prod 03
+
+2022-10-31
+
+commit : 4d12fc23
+
+C'était juste pour ajouter la gif animée d'un carré de roadmap (celui de "moteur du jeu").
+
+Comme d'hab : `npm run build`
+
+Ensuite, connexion à pythonanywhere.com.
+
+Je pensais qu'il suffirait d'ajouter l'image et de mettre à jour le fichier `road_map_data.json`, mais ça ne marche pas. La nouvelle image n'est pas gérée par l'ancien code.
+
+Donc, mise à jour de tous les fichiers à la racine, et des répertoires `css`, `img` et `js`.
+
+Petits tests rapide : affichage de la nouvelle gif, lancement d'un jeu existant. Tout marche bien.
+
+
