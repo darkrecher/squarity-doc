@@ -1,5 +1,4 @@
-# https://i.ibb.co/KWSz3th/grreeny.png
-# https://i.ibb.co/wS2b32z/grreeny.png
+# https://i.ibb.co/k3NBpGq/grreeny.png
 
 """
   {
@@ -9,10 +8,17 @@
     },
     "tile_size": 32,
     "img_coords": {
-      "grreeny": [0, 0],
+      "grreeny": [0,  0],
       "col_red": [32, 0],
       "col_grn": [64, 0],
       "col_blu": [96, 0],
+
+      "col_red_red_blu": [128, 0],
+      "col_red_grn_grn": [0,  32],
+      "col_red_red_grn": [32, 32],
+      "col_grn_blu_blu": [64, 32],
+      "col_grn_grn_blu": [96, 32],
+      "col_red_blu_blu": [128, 32],
 
       "void": [0, 0]
     }
@@ -28,6 +34,7 @@ DIR_INT_FROM_STR = {
     "L": 6,
 }
 
+# TODO : useless ??
 OFFSET_COORDS_FROM_STR = {
     "U": (0, -1),
     "R": (+1, 0),
@@ -46,11 +53,54 @@ class Tile:
         self.col_grn = 0
         self.col_blu = 0
 
+    def set_color(self, red, grn, blu):
+        self.col_red = red
+        self.col_grn = grn
+        self.col_blu = blu
+
+    def has_color(self):
+        return bool(self.col_red) or bool(self.col_grn) or bool(self.col_blu)
+
+    def is_mono_color(self):
+        nb_distinct_colors = sum(
+            (
+                int(bool(self.col_red)),
+                int(bool(self.col_grn)),
+                int(bool(self.col_blu)),
+            )
+        )
+        return nb_distinct_colors == 1
+
+    def has_same_mono_color(self, other_tile):
+        if not self.is_mono_color():
+            return False
+        if not other_tile.is_mono_color():
+            return False
+        return all(
+            (
+                bool(self.col_red) == bool(other_tile.col_red),
+                bool(self.col_grn) == bool(other_tile.col_grn),
+                bool(self.col_blu) == bool(other_tile.col_blu),
+            )
+        )
+
     def render(self):
         gamobjs = []
-        gamobjs.extend(["col_red"] * self.col_red)
-        gamobjs.extend(["col_grn"] * self.col_grn)
-        gamobjs.extend(["col_blu"] * self.col_blu)
+
+        if self.is_mono_color():
+            # Le 0.7 est un peu arbitraire. Pouet.
+            gamobjs.extend(["col_red"] * int(self.col_red**0.7))
+            gamobjs.extend(["col_grn"] * int(self.col_grn**0.7))
+            gamobjs.extend(["col_blu"] * int(self.col_blu**0.7))
+        elif self.has_color():
+            gamobj_name = (
+                "col"
+                + "_red" * self.col_red
+                + "_grn" * self.col_grn
+                + "_blu" * self.col_blu
+            )
+            gamobjs.append(gamobj_name)
+
         if self.has_grreeny:
             gamobjs.append("grreeny")
         return gamobjs
@@ -80,13 +130,13 @@ class GameModel:
                 random.randrange(0, self.w),
                 random.randrange(0, self.h),
             )
-            for _ in range(4)
+            for _ in range(5)
         ]
 
-        tiles_to_colorize[0].col_red = 1
-        tiles_to_colorize[1].col_red = 1
-        tiles_to_colorize[2].col_grn = 1
-        tiles_to_colorize[3].col_blu = 1
+        for tile in tiles_to_colorize:
+            if not tile.has_color():
+                red, grn, blu = self.random_choose_multicol()
+                tile.set_color(red, grn, blu)
 
     def _make_adjacencies(self, x, y):
         """
@@ -119,30 +169,57 @@ class GameModel:
 
         return exported_tiles
 
-    def get_moved_grreeny_coords(self, offset_coords):
+    def random_choose_multicol(self):
+        colors = [2, 1, 0]
+        random.shuffle(colors)
+        return colors
+
+    def move_colors(self, tile_src, tile_dst):
+        tile_dst.col_red = tile_src.col_red
+        tile_dst.col_grn = tile_src.col_grn
+        tile_dst.col_blu = tile_src.col_blu
+        tile_src.col_red = 0
+        tile_src.col_grn = 0
+        tile_src.col_blu = 0
+
+    def merge_colors(self, tile_src, tile_dst):
+        tile_dst.col_red += tile_src.col_red
+        tile_dst.col_grn += tile_src.col_grn
+        tile_dst.col_blu += tile_src.col_blu
+        tile_src.col_red = 0
+        tile_src.col_grn = 0
+        tile_src.col_blu = 0
+
+    def move_grreeny(self, move_dir):
         """
-        Renvoie les nouvelles coordonnées de grreeny après
-        son déplacement, si le déplacement est possible.
-        Sinon renvoie None.
+        Déplace greeny, ainsi que les couleurs.
+        Renvoie un booléen, indiquant si un mouvement
+        a pu être effectué, ou pas.
         """
-        grreeny_x, grreeny_y = self.grreeny_coords
-        offset_x, offset_y = offset_coords
-        new_grreeny_x = grreeny_x + offset_x
-        new_grreeny_y = grreeny_y + offset_y
-        if not (0 <= new_grreeny_x < self.w):
-            return None
-        if not (0 <= new_grreeny_y < self.h):
-            return None
-        return (new_grreeny_x, new_grreeny_y)
+        tile_grreeny_cur = self.get_tile(*self.grreeny_coords)
+        tile_grreeny_next = tile_grreeny_cur.adjacencies[move_dir]
+        if tile_grreeny_next is None:
+            return False
+
+        if tile_grreeny_next.has_color():
+            tile_grreeny_next_next = tile_grreeny_next.adjacencies[move_dir]
+            if tile_grreeny_next_next is None:
+                return False
+            if tile_grreeny_next_next.has_color():
+                if tile_grreeny_next.has_same_mono_color(tile_grreeny_next_next):
+                    self.merge_colors(tile_grreeny_next, tile_grreeny_next_next)
+                else:
+                    return False
+            else:
+                self.move_colors(tile_grreeny_next, tile_grreeny_next_next)
+
+        tile_grreeny_cur.has_grreeny = False
+        self.grreeny_coords = (tile_grreeny_next.x, tile_grreeny_next.y)
+        tile_grreeny_next.has_grreeny = True
+        return True
 
     def on_game_event(self, event_name):
 
-        offset_coords = OFFSET_COORDS_FROM_STR.get(event_name)
-        if offset_coords is not None:
-            move_result = self.get_moved_grreeny_coords(offset_coords)
-            if move_result is not None:
-                prev_tile = self.get_tile(*self.grreeny_coords)
-                prev_tile.has_grreeny = False
-                self.grreeny_coords = move_result
-                cur_tile = self.get_tile(*self.grreeny_coords)
-                cur_tile.has_grreeny = True
+        move_dir = DIR_INT_FROM_STR.get(event_name)
+        if move_dir is not None:
+            move_result = self.move_grreeny(move_dir)
