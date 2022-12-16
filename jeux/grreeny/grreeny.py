@@ -1,10 +1,12 @@
 # https://i.ibb.co/k3NBpGq/grreeny.png
+# https://i.ibb.co/yFrz7Pk/grreeny.png
+# https://i.ibb.co/FbVkCRz/grreeny.png
 
 """
   {
     "game_area": {
-        "nb_tile_width": 8,
-        "nb_tile_height": 8
+        "nb_tile_width": 7,
+        "nb_tile_height": 7
     },
     "tile_size": 32,
     "img_coords": {
@@ -20,6 +22,13 @@
       "col_grn_grn_blu": [96, 32],
       "col_red_blu_blu": [128, 32],
 
+      "timer_1": [0, 64],
+      "timer_2": [32, 64],
+      "timer_3": [64, 64],
+
+      "skull": [160, 0],
+      "background": [160, 32],
+
       "void": [0, 0]
     }
   }
@@ -27,17 +36,17 @@
 
 """
 TODO :
- - générer les couleurs de plus en plus vite.
- - un timer 3-2-1 lors de la génération d'une couleur.
- - on peut déclencher une génération sur grreeny (il a 3 tours pour se pousser)
- - fin de la partie lorsqu'une couleur est générée sur greeny
- - action 1 : glandouille. on avance d'un tour, et ça augmente le score.
- - action 2 : message qui dit que y'a pas d'action 2.
- - icône de tête de mort lorsque greeny meurt.
- - redémarrage de partie lorsque c'est fini, et qu'on fait l'action 1.
+ X générer les couleurs de plus en plus vite.
+ X un timer 3-2-1 lors de la génération d'une couleur.
+ X on peut déclencher une génération sur grreeny (il a 3 tours pour se pousser)
+ X fin de la partie lorsqu'une couleur est générée sur greeny
+ - action 1 : glandouille. on avance d'un tour, ça augmente le score de 5, et ça génère une couleur.
+ - action 2 : message qui donne le score, et qui fait réinitialiser si on re-appuie dessus.
+ - redémarrage de partie lorsqu'on fait l'action 2 deux fois.
+ X icône de tête de mort lorsque greeny meurt, et message que il faut faire l'action 2.
  - calcul et affichage du score à la fin de la partie.
  - dessin un peu mieux foutus (meme si ce sera pas top)
- - tile de background.
+ X tile de background.
  - docstring pour expliquer le jeu et donner le pitch.
  - publier tout ce bazar, créer la tinyurl.
 """
@@ -61,19 +70,33 @@ def dir_turn_anticlockwise(init_dir):
 
 
 class Tile:
+
+    GEN_MULTICOL_OK = 0
+    GEN_MULTICOL_FAIL_COL = 1
+    GEN_MULTICOL_FAIL_GRREENY = 2
+
     def __init__(self, x, y):
         self.x = x
         self.y = y
         self.adjacencies = None
         self.has_grreeny = False
-        self.col_red = 0
-        self.col_grn = 0
-        self.col_blu = 0
+        self.reset_all()
+
+    def reset_all(self):
+        self.has_grreeny = False
+        self.set_color(0, 0, 0)
+        self.timer = 0
+        self.has_skull = False
 
     def set_color(self, red, grn, blu):
         self.col_red = red
         self.col_grn = grn
         self.col_blu = blu
+
+    def set_random_multicol(self):
+        rgb_random = [2, 1, 0]
+        random.shuffle(rgb_random)
+        self.set_color(*rgb_random)
 
     def has_color(self):
         return bool(self.col_red) or bool(self.col_grn) or bool(self.col_blu)
@@ -102,6 +125,8 @@ class Tile:
         )
 
     def is_splittable(self, dir_grreeny):
+        if self.is_mono_color():
+            return False
         all_color = (
             self.col_red,
             self.col_grn,
@@ -120,7 +145,7 @@ class Tile:
         return True
 
     def render(self):
-        gamobjs = []
+        gamobjs = ["background"]
 
         if self.is_mono_color():
             # Le 0.7 est un peu arbitraire. Pouet.
@@ -137,15 +162,47 @@ class Tile:
             gamobjs.append(gamobj_name)
 
         if self.has_grreeny:
-            gamobjs.append("grreeny")
+            if self.has_skull:
+                gamobjs.append("skull")
+            else:
+                gamobjs.append("grreeny")
+
+        if self.timer:
+            gamobjs.append(f"timer_{self.timer}")
+
         return gamobjs
+
+    def set_timer(self):
+        self.timer = 3
+
+    def countdown_and_generate(self):
+        if not self.timer:
+            return Tile.GEN_MULTICOL_OK
+
+        self.timer -= 1
+        if self.timer:
+            return Tile.GEN_MULTICOL_OK
+        if not self.timer:
+            if self.has_color():
+                return Tile.GEN_MULTICOL_FAIL_COL
+            elif self.has_grreeny:
+                return Tile.GEN_MULTICOL_FAIL_GRREENY
+            else:
+                self.set_random_multicol()
+                return Tile.GEN_MULTICOL_OK
 
 
 class GameModel:
+
+    GEN_POINTS_THRESHOLD = 1000
+    GEN_POINTS_INC_INC = 0.125
+
     def __init__(self):
-        self.w = 8
-        self.h = 8
+        self.w = 7
+        self.h = 7
         self.turn_index = 0
+        self.gen_points = 0
+        self.gen_points_inc = 30.0
         self.tiles = []
         for y in range(self.h):
             line = []
@@ -157,13 +214,21 @@ class GameModel:
             for x in range(self.w):
                 self.get_tile(x, y).adjacencies = self._make_adjacencies(x, y)
 
+        self.start_game()
+
+    def start_game(self):
+        for line in self.tiles:
+            for tile in line:
+                tile.reset_all()
+
         self.grreeny_coords = (3, 4)
         self.get_tile(*self.grreeny_coords).has_grreeny = True
 
         for _ in range(2):
-            tile_generation = self.random_select_empty_tile()
-            rgb_gener = self.random_choose_multicol()
-            tile_generation.set_color(*rgb_gener)
+            tile_generation = self.random_select_empty_tile(False)
+            tile_generation.set_random_multicol()
+
+        self.game_ended = False
 
     def _make_adjacencies(self, x, y):
         """
@@ -196,18 +261,19 @@ class GameModel:
 
         return exported_tiles
 
-    def random_choose_multicol(self):
-        colors = [2, 1, 0]
-        random.shuffle(colors)
-        return colors
-
-    def random_select_empty_tile(self):
+    def random_select_empty_tile(self, can_select_grreeny):
+        if can_select_grreeny:
+            func_check_tile = lambda tile: (not tile.has_color() and not tile.timer)
+        else:
+            func_check_tile = lambda tile: (
+                not tile.has_color() and not tile.timer and not tile.has_grreeny
+            )
         empty_tiles_border = []
         empty_tiles_inside = []
 
         for line in self.tiles:
             for tile in line:
-                if not tile.has_color() and not tile.has_grreeny:
+                if func_check_tile(tile):
                     if any(
                         (
                             tile.x == 0,
@@ -299,16 +365,36 @@ class GameModel:
 
         move_dir = DIR_INT_FROM_STR.get(event_name)
         advanced_turn = False
-        if move_dir is not None:
-            move_result = self.move_grreeny(move_dir)
-            self.turn_index += 1
-            advanced_turn = True
+        if not self.game_ended:
+            if move_dir is not None:
+                move_result = self.move_grreeny(move_dir)
+                self.turn_index += 1
+                advanced_turn = True
+        else:
+            if event_name == "action_2":
+                print("-" * 20)
+                self.start_game()
 
         if advanced_turn:
-            if self.turn_index % 20 == 0:
-                tile_generation = self.random_select_empty_tile()
+
+            for line in self.tiles:
+                for tile in line:
+                    gen_result = tile.countdown_and_generate()
+                    if gen_result == Tile.GEN_MULTICOL_FAIL_COL:
+                        print("TODO fail col", gen_result)
+                    elif gen_result == Tile.GEN_MULTICOL_FAIL_GRREENY:
+                        self.game_ended = True
+                        self.get_tile(*self.grreeny_coords).has_skull = True
+                        print("TODO. Fin de la partie. show score")
+                        print("Appuyez sur le bouton '2' pour redémarrer une partie.")
+
+            self.gen_points += int(self.gen_points_inc)
+            self.gen_points_inc += GameModel.GEN_POINTS_INC_INC
+            if self.gen_points >= GameModel.GEN_POINTS_THRESHOLD:
+                self.gen_points -= GameModel.GEN_POINTS_THRESHOLD
+                tile_generation = self.random_select_empty_tile(True)
                 if tile_generation is None:
                     pass
+                    print("fail gen color")
                 else:
-                    rgb_gener = self.random_choose_multicol()
-                    tile_generation.set_color(*rgb_gener)
+                    tile_generation.set_timer()
