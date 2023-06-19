@@ -11,6 +11,7 @@ GAME_ELEM_W = 32
 GAME_ELEM_H = 32
 CURSOR_THICKNESS = 5
 CURSOR_COLOR = (0, 50, 255)
+VALID_CHECKBOX_COORD = 808, 4
 
 GAME_ELEMS = (
     "nothing", "wall", "cold", "hot", "sponge",
@@ -27,6 +28,47 @@ ANIM_STEPS = (
     ("map", 70),
     ("cursor", "elec_h"),
     ("map", 72),
+    ("cursor", "elec_v"),
+    ("map", 74),
+    ("cursor", "elec_h"),
+    ("map", 77),
+    ("cursor", "hot"),
+    ("map", 79),
+    ("cursor", "h2o_in"),
+    ("map", 80),
+    ("cursor", "cold"),
+    ("map", 82),
+    ("cursor", "hot"),
+    ("map", 83),
+    ("cursor", "tunnel_v"),
+    ("map", 85),
+    ("cursor", "pool"),
+    ("map", 86),
+    ("cursor", "tunnel_h"),
+    ("map", 89),
+    ("cursor", "tunnel_v"),
+    ("map", 91),
+    ("cursor", "elec_v"),
+    ("map", 94),
+    ("cursor", "elec_h"),
+    ("map", 96),
+    ("cursor", "pool"),
+    ("map", 97),
+    ("cursor", "cold"),
+    ("map", 98),
+    ("cursor", "h2o_out"),
+    ("valid", True),
+    ("map", 99),
+    ("cursor", "hot"),
+    ("map", 100),
+    ("cursor", "sponge"),
+    ("map", 101),
+    ("cursor", "elec_h"),
+    ("map", 102),
+
+
+
+
 )
 
 
@@ -69,12 +111,13 @@ def show_cursor(dest_img, game_elem_name):
 
 def create_one_image(
     main_frame, level_img_index, game_elem_name,
-    out_img_index, is_valid
+    out_img_index, img_valid
 ):
     processed_image = np.array(main_frame)
     level_image_filename = f"canvas{level_img_index:03}.png"
     level_image = cv2.imread(level_image_filename)
     blit_img(level_image, processed_image, MAP_COORD)
+    blit_img(img_valid, processed_image, VALID_CHECKBOX_COORD)
     show_cursor(processed_image, game_elem_name)
 
     out_image_path_file = f"temp_img/processed_{out_img_index:03}.png"
@@ -85,11 +128,13 @@ def create_one_image(
 
 def main():
     main_frame = cv2.imread("main_frame.png")
+    img_valid_false = cv2.imread("valid_false.png")
+    img_valid_true = cv2.imread("valid_true.png")
 
     level_img_index = -1
     out_img_index = -1
     game_elem_name = "nothing"
-    is_valid = False
+    current_img_valid = img_valid_false
 
     folder = "temp_img"
     for filename in os.listdir(folder):
@@ -103,17 +148,20 @@ def main():
             out_img_index += 1
             create_one_image(
                 main_frame, level_img_index, game_elem_name,
-                out_img_index, is_valid,
+                out_img_index, current_img_valid,
             )
-        else:
+        elif step_type == "map":
             final_level_img_index = step_detail
             while level_img_index < final_level_img_index:
                 level_img_index += 1
                 out_img_index += 1
                 create_one_image(
                     main_frame, level_img_index, game_elem_name,
-                    out_img_index, is_valid,
+                    out_img_index, current_img_valid,
                 )
+        if step_type == "valid":
+            valid_val = step_detail
+            current_img_valid = img_valid_true if valid_val else img_valid_false
 
     # cv2.imshow("Image", processed_image)
     # cv2.waitKey(0)
