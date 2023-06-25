@@ -162,7 +162,7 @@ Réflexion, lecture, inspiration :
  - https://vuejs.org/v2/guide/typescript.html
 
 
-**Architectural Decision Record** : pour l'instant, on utilise Vue avec TypeScript, mais on ne fait pas les préconisations indiquées dans les deux premiers liens. C'est peut-être pas nécessaire parce que tout serait (hypothétiquement configuré et intégré comme il faut avec Vue).
+**Architectural Decision Record** : pour l'instant, on utilise Vue avec TypeScript, mais on ne fait pas les préconisations indiquées dans les deux premiers liens. C'est peut-être pas nécessaire parce que tout serait (hypothétiquement) configuré et intégré comme il faut avec Vue.
 
 Et on verra plus tard quand on connaîtra un peu mieux tout ce fatras.
 
