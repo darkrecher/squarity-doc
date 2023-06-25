@@ -135,7 +135,7 @@ HARDCODED_SQUARE_DEFINITIONS = [
         "rank": "superior",
         "html_class": "ide superior-square",
         "title": "Environnement de dév. intégré",
-        "gif_vision": "test_vision.gif",
+        "gif_vision": "ide.gif",
     },
     {
         "key": "t00",
@@ -149,7 +149,7 @@ HARDCODED_SQUARE_DEFINITIONS = [
         "rank": "superior",
         "html_class": "level superior-square",
         "title": "Éditeur de niveaux\n\nGestion des tilesets",
-        "gif_vision": "test_vision.gif",
+        "gif_vision": "level_editor.gif",
     },
     {
         "key": "c00",

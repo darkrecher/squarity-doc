@@ -400,7 +400,7 @@ Pour ajouter des shaders, des moteurs de particules, etc.
 Fonctionnalité très floue. Il faudrait prendre connaissance de ce que peut faire le WebGL.
 
 
-## Tutoriels, manuels, conseils
+## Tutoriels, docs, exemples
 
 Vision : un site genre un blog, avec des articles : "recensement des jeux de type soko-ban", "transitions entre types de terrain", "les objets squarity.layer"
 

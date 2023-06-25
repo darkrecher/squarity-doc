@@ -199,3 +199,138 @@ Donc, mise à jour de tous les fichiers à la racine, et des répertoires `css`,
 Petits tests rapide : affichage de la nouvelle gif, lancement d'un jeu existant. Tout marche bien.
 
 
+## Reconstruction et mise en prod 04
+
+2023-06-19
+
+Je suis passé à Ubuntu ! Il faut donc reconstruire tout le projet.
+
+`git clone https://github.com/darkrecher/squarity-code.git`
+
+Ah, j'ai même pas npm.
+
+`sudo apt install nodejs npm`
+
+Purée... 103 MB dans la tronche pour cette cochonnerie de nodejs.
+
+`npm -v`
+8.5.1
+
+`npm install`
+
+Ça plante.
+
+    npm WARN old lockfile
+    npm WARN old lockfile The package-lock.json file was created with an old version of npm,
+    npm WARN old lockfile so supplemental metadata must be fetched from the registry.
+    npm WARN old lockfile
+    npm WARN old lockfile This is a one-time fix-up, please be patient...
+    npm WARN old lockfile
+    npm WARN deprecated axios@0.20.0: Critical security vulnerability fixed in v0.21.1. For more information, see https://github.com/axios/axios/pull/3410
+    npm WARN deprecated popper.js@1.16.1: You can find the new Popper v2 at @popperjs/core, this package is dedicated to the legacy v1
+    npm ERR! Cannot read property 'insert' of undefined
+
+    npm ERR! A complete log of this run can be found in:
+    npm ERR!     /home/paf/.npm/_logs/2023-06-19T21_37_20_691Z-debug-0.log
+
+
+`npm install`
+
+Ça replante pareil.
+
+Suppression du fichier `package-lock.json`. (Peut-être qu'un package-lock créé avec un windows n'est pas compatible sur du Ubuntu). Ha ha ha !!
+
+Puis on re-essaye `npm install`
+
+    npm WARN EBADENGINE Unsupported engine {
+    npm WARN EBADENGINE   package: 'sass@1.63.4',
+    npm WARN EBADENGINE   required: { node: '>=14.0.0' },
+    npm WARN EBADENGINE   current: { node: 'v12.22.9', npm: '8.5.1' }
+    npm WARN EBADENGINE }
+    npm WARN deprecated axios@0.20.0: Critical security vulnerability fixed in v0.21.1. For more information, see https://github.com/axios/axios/pull/3410
+    npm WARN deprecated stable@0.1.8: Modern JS already guarantees Array#sort() is a stable sort, so this library is deprecated. See the compatibility table on MDN: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/sort#browser_compatibility
+    npm WARN deprecated urix@0.1.0: Please see https://github.com/lydell/urix#deprecated
+    npm WARN deprecated source-map-url@0.4.1: See https://github.com/lydell/source-map-url#deprecated
+    npm WARN deprecated resolve-url@0.2.1: https://github.com/lydell/resolve-url#deprecated
+    npm WARN deprecated source-map-resolve@0.5.3: See https://github.com/lydell/source-map-resolve#deprecated
+    npm WARN deprecated har-validator@5.1.5: this library is no longer supported
+    npm WARN deprecated uuid@3.4.0: Please upgrade  to version 7 or higher.  Older versions may use Math.random() in certain circumstances, which is known to be problematic.  See https://v8.dev/blog/math-random for details.
+    npm WARN deprecated popper.js@1.16.1: You can find the new Popper v2 at @popperjs/core, this package is dedicated to the legacy v1
+    npm WARN deprecated svgo@1.3.2: This SVGO version is no longer supported. Upgrade to v2.x.x.
+    npm WARN deprecated consolidate@0.15.1: Please upgrade to consolidate v1.0.0+ as it has been modernized with several long-awaited fixes implemented. Maintenance is supported by Forward Email at https://forwardemail.net ; follow/watch https://github.com/ladjs/consolidate for updates and release changelog
+    npm WARN deprecated @hapi/bourne@1.3.2: This version has been deprecated and is no longer supported or maintained
+    npm WARN deprecated @hapi/topo@3.1.6: This version has been deprecated and is no longer supported or maintained
+    npm WARN deprecated @hapi/address@2.1.4: Moved to 'npm install @sideway/address'
+    npm WARN deprecated @hapi/hoek@8.5.1: This version has been deprecated and is no longer supported or maintained
+    npm WARN deprecated request@2.88.2: request has been deprecated, see https://github.com/request/request/issues/3142
+    npm WARN deprecated @hapi/joi@15.1.1: Switch to 'npm install joi'
+    npm WARN deprecated html-webpack-plugin@3.2.0: 3.x is no longer supported
+    npm WARN deprecated eslint-loader@2.2.1: This loader has been deprecated. Please use eslint-webpack-plugin
+    npm WARN deprecated babel-eslint@10.1.0: babel-eslint is now @babel/eslint-parser. This package will no longer receive updates.
+    npm WARN deprecated chokidar@2.1.8: Chokidar 2 does not receive security updates since 2019. Upgrade to chokidar 3 with 15x fewer dependencies
+    npm WARN deprecated chokidar@2.1.8: Chokidar 2 does not receive security updates since 2019. Upgrade to chokidar 3 with 15x fewer dependencies
+
+    added 1420 packages, and audited 1421 packages in 1m
+
+    125 packages are looking for funding
+    run `npm fund` for details
+
+    31 vulnerabilities (1 low, 6 moderate, 20 high, 4 critical)
+
+    To address issues that do not require attention, run:
+    npm audit fix
+
+    To address all issues (including breaking changes), run:
+    npm audit fix --force
+
+    Run `npm audit` for details.
+
+
+C'est une orgie de warning, mais ça a quand même l'air de mieux fonctionner.
+
+Ensuite, on lance `npm run serve`
+
+    WARNING  Compiled with 1 warning
+
+    Module Warning (from ./node_modules/eslint-loader/index.js):
+
+    /home/wilfried/Documents/personnel/squarity/squarity-code/src/components/DevZone.vue
+    117:9   warning  Unexpected console statement  no-console
+    121:11  warning  Unexpected console statement  no-console
+
+    ✖ 2 problems (0 errors, 2 warnings)
+
+
+    You may use special comments to disable some warnings.
+    Use // eslint-disable-next-line to ignore the next line.
+    Use /* eslint-disable */ to ignore all warnings in a file.
+
+    App running at:
+    - Local:   http://localhost:8080/
+    - Network: http://192.168.1.30:8080/
+
+    Note that the development build is not optimized.
+    To create a production build, run npm run build.
+
+
+Le site est bien présent sur http://localhost:8080/ , on peut jouer au jeu du sorcier. L'url http://localhost:8080/roadmap fonctionne aussi. Youpi !!
+
+Mais ce serait peut-être le moment de passer à Vue 3.
+
+D'abord on reconstruit la version actuelle et on vérifie qu'on peut la publier. Ensuite on passera à Vue 3.
+
+Dans le repository squarity-doc, lancement du script python `road_map_text_to_json.py`, pour intégrer les nouvelles gif dans le fichier `public/road_map_data.json`.
+
+Commit de squarity-code : f58464f0.
+
+On lance `npm run build`.
+
+Tout semble bien se passer.
+
+Connexion à pythonanywhere, comme d'hab'.
+
+Avant de faire quoi que ce soit, petite sauvegarde du contenu de squastatic, squastatic/css, squastatic/js et squastatic/pyodide. (Non versionné, mais je me garde ça ici : `~/Documents/personnel/squarity/vieux_trucs/squarity_old_dist`).
+
+Et ensuite on copie tous les fichiers générés par dist, sur pythonanywhere, dans squastatic.
+
+
