@@ -1,5 +1,7 @@
 # Passage à Vue 3
 
+## Réinstallation de nodejs et npm
+
 npm et node ont déjà été installé sur ma toute belle machine Linux Ubuntu. (Voir doc de mise en prod).
 
 `node -v`
@@ -103,6 +105,8 @@ La commande `nvm ls` ne donne rien d'intéressant. La commande `nvm ls-remote` l
 `node --version`
 v16.20.1
 
+## Création d'un nouveau projet Vue 3
+
 `npm init vue@latest`
 
 Vue.js - The Progressive JavaScript Framework
@@ -165,5 +169,16 @@ Tout a été créé dans un répertoire "squarity-code/squarity-code". C'est rel
     ➜  Network: use --host to expose
     ➜  press h to show help
 
+Ça fonctionne, on voit le site par défaut.
 
+
+## Réintégration de tout mon code dans ce nouveau projet.
+
+Au départ, il suffit de remettre le component principal (GameBoard) dans la vue principale (HomeView). Et il faut aussi copier les fichiers de l'ancien projet dans le nouveau.
+
+Concrètement, c'est pas si simple. Il y a plein de choses qui changent (en particulier, on n'utilise plus le mot-clé `require`).
+
+Je vais pas tout décrire, mais il suffit de voir le code du nouveau projet.
+
+Première version, qui affiche des trucs, mais pas le jeu. Commit : a7f6d40982, du repository squarity-code.
 
