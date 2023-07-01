@@ -182,3 +182,55 @@ Je vais pas tout décrire, mais il suffit de voir le code du nouveau projet.
 
 Première version, qui affiche des trucs, mais pas le jeu. Commit : a7f6d40982, du repository squarity-code.
 
+Le chargement du fichier `pyodide.js` ne se fait pas. C'est normal, il manque un plugin. J'avais pris ce truc : https://www.npmjs.com/package/vue-plugin-load-script
+
+Let's go !
+
+`npm install --save vue-plugin-load-script@^2.x.x`
+
+    added 1 package, and audited 137 packages in 2s
+
+    28 packages are looking for funding
+    run `npm fund` for details
+
+    2 moderate severity vulnerabilities
+
+    To address all issues, run:
+    npm audit fix
+
+    Run `npm audit` for details.
+
+`npm audit`
+
+    # npm audit report
+
+    word-wrap  *
+    Severity: moderate
+    word-wrap vulnerable to Regular Expression Denial of Service - https://github.com/advisories/GHSA-j8xg-fqg3-53r7
+    fix available via `npm audit fix`
+    node_modules/word-wrap
+    optionator  0.8.3 - 0.9.1
+    Depends on vulnerable versions of word-wrap
+    node_modules/optionator
+
+    2 moderate severity vulnerabilities
+
+    To address all issues, run:
+    npm audit fix
+
+On fera les fix après. Déjà faut que ça marche.
+
+Ça marche pas immédiatement. Mais après quelques modifs dans le code, tout va bien. Je vois le jeu du sorcier et le jeu de H2O dans l'interface !!
+
+`npm audit fix`
+
+    added 1 package, removed 1 package, changed 1 package, and audited 137 packages in 806ms
+
+    28 packages are looking for funding
+    run `npm fund` for details
+
+    found 0 vulnerabilities
+
+OK. Il reste encore plein de trucs à régler (bootstrap, responsive, le router, ...). Mais avec ce commit : 5b504f0c, les jeux fonctionnent.
+
+
