@@ -234,3 +234,71 @@ On fera les fix après. Déjà faut que ça marche.
 OK. Il reste encore plein de trucs à régler (bootstrap, responsive, le router, ...). Mais avec ce commit : 5b504f0c, les jeux fonctionnent.
 
 
+## Ajout de Bootstrap (échec)
+
+C'était pas une bonne idée. Je l'ai enlevé juste après.
+
+Pour plus de détail, voir doc `echec_boostrap_vue_3.md`
+
+
+## Vue-cli
+
+Faudrait aussi installer le vue-cli. Un truc que j'aurais dû faire depuis le début.
+
+`npm install --global @vue/cli`
+
+    npm WARN deprecated source-map-url@0.4.1: See https://github.com/lydell/source-map-url#deprecated
+    npm WARN deprecated urix@0.1.0: Please see https://github.com/lydell/urix#deprecated
+    npm WARN deprecated resolve-url@0.2.1: https://github.com/lydell/resolve-url#deprecated
+    npm WARN deprecated source-map-resolve@0.5.3: See https://github.com/lydell/source-map-resolve#deprecated
+    npm WARN deprecated apollo-server-plugin-base@3.7.2: The `apollo-server-plugin-base` package is part of Apollo Server v2 and v3, which are now deprecated (end-of-life October 22nd 2023). This package's functionality is now found in the `@apollo/server` package. See https://www.apollographql.com/docs/apollo-server/previous-versions/ for more details.
+    npm WARN deprecated apollo-server-env@4.2.1: The `apollo-server-env` package is part of Apollo Server v2 and v3, which are now deprecated (end-of-life October 22nd 2023). This package's functionality is now found in the `@apollo/utils.fetcher` package. See https://www.apollographql.com/docs/apollo-server/previous-versions/ for more details.
+    npm WARN deprecated apollo-datasource@3.3.2: The `apollo-datasource` package is part of Apollo Server v2 and v3, which are now deprecated (end-of-life October 22nd 2023). See https://www.apollographql.com/docs/apollo-server/previous-versions/ for more details.
+    npm WARN deprecated apollo-reporting-protobuf@3.4.0: The `apollo-reporting-protobuf` package is part of Apollo Server v2 and v3, which are now deprecated (end-of-life October 22nd 2023). This package's functionality is now found in the `@apollo/usage-reporting-protobuf` package. See https://www.apollographql.com/docs/apollo-server/previous-versions/ for more details.
+    npm WARN deprecated apollo-server-errors@3.3.1: The `apollo-server-errors` package is part of Apollo Server v2 and v3, which are now deprecated (end-of-life October 22nd 2023). This package's functionality is now found in the `@apollo/server` package. See https://www.apollographql.com/docs/apollo-server/previous-versions/ for more details.
+    npm WARN deprecated apollo-server-types@3.8.0: The `apollo-server-types` package is part of Apollo Server v2 and v3, which are now deprecated (end-of-life October 22nd 2023). This package's functionality is now found in the `@apollo/server` package. See https://www.apollographql.com/docs/apollo-server/previous-versions/ for more details.
+    npm WARN deprecated subscriptions-transport-ws@0.11.0: The `subscriptions-transport-ws` package is no longer maintained. We recommend you use `graphql-ws` instead. For help migrating Apollo software to `graphql-ws`, see https://www.apollographql.com/docs/apollo-server/data/subscriptions/#switching-from-subscriptions-transport-ws    For general help using `graphql-ws`, see https://github.com/enisdenjo/graphql-ws/blob/master/README.md
+    npm WARN deprecated apollo-server-core@3.12.0: The `apollo-server-core` package is part of Apollo Server v2 and v3, which are now deprecated (end-of-life October 22nd 2023). This package's functionality is now found in the `@apollo/server` package. See https://www.apollographql.com/docs/apollo-server/previous-versions/ for more details.
+    npm WARN deprecated apollo-server-express@3.12.0: The `apollo-server-express` package is part of Apollo Server v2 and v3, which are now deprecated (end-of-life October 22nd 2023). This package's functionality is now found in the `@apollo/server` package. See https://www.apollographql.com/docs/apollo-server/previous-versions/ for more details.
+
+    added 864 packages, and audited 865 packages in 41s
+
+    66 packages are looking for funding
+    run `npm fund` for details
+
+    21 vulnerabilities (16 moderate, 5 high)
+
+    To address issues that do not require attention, run:
+    npm audit fix
+
+    To address all issues (including breaking changes), run:
+    npm audit fix --force
+
+    Run `npm audit` for details.
+
+Ça met un gros bazar, comme d'hab'.
+
+`vue --version`
+
+    @vue/cli 5.0.8
+
+Youpi.
+
+
+## Ajout de Vuetify
+
+Inspiration : https://vuetifyjs.com/en/getting-started/installation/
+
+`npm add vuetify`
+
+    added 1 package, removed 41 packages, and audited 138 packages in 15s
+
+    29 packages are looking for funding
+    run `npm fund` for details
+
+    found 0 vulnerabilities
+
+Il faut faire quelques modifs dans le code pour que la gestion du responsive design fonctionne comme avant. En gros : écrire `v-col` et `v-row` au lieu de `b-col` et `b-row`.
+
+Commit : 41b094cb, du repository squarity-code.
+
