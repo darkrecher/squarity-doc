@@ -47,3 +47,18 @@ Puzzlescript est un autre moteur de jeux, utilisant un langage spécifique. La "
 
 Saviez-vous que Squassos est quasi-immortelle ? Elle possède 65536 horcruxes, disséminés dans des lieux virtuels et réels, dont le sphincter du créateur de Squa...
 
+
+
+# Source des images
+
+https://gamefabrique.com/games/sokoban/
+https://apkpure.com/sokoban/com.mobilepearls.sokoban
+https://www.uvlist.net/game-161295-Sokoban
+https://www.indiedb.com/games/patricks-parabox
+
+http://www.cr31.co.uk/stagecast/wang/blob.html
+
+https://discover.hubpages.com/art/Isometric-Pixel-Art
+
+
+https://www.puzzlescript.net/editor.html

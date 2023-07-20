@@ -1,0 +1,112 @@
+title Simple Block Pushing Game
+author Recher
+homepage www.puzzlescript.net
+
+========
+OBJECTS
+========
+
+Background
+#101010 black
+11111
+01111
+11101
+11111
+10111
+
+
+Wall
+darkred darkgrey
+00010
+11111
+01000
+11111
+00010
+
+Player
+#0000D0 orange white blue
+.000.
+.111.
+22222
+.333.
+.3.3.
+
+Key
+yellow
+.000.
+.0.0.
+..0..
+.00..
+..0..
+
+ClosedDoor
+gray brown darkbrown
+.000.
+01110
+01110
+02110
+01110
+
+OpenedDoor
+gray
+.000.
+0...0
+0...0
+0...0
+0...0
+
+=======
+LEGEND
+=======
+
+. = Background
+# = Wall
+P = Player
+k = Key
+D = ClosedDoor
+
+
+=======
+SOUNDS
+=======
+
+
+================
+COLLISIONLAYERS
+================
+
+Background
+ClosedDoor, OpenedDoor
+Player, Wall, Key
+
+
+======
+RULES
+======
+
+[ > Player | Key ] -> [ > Player | > Key ]
+
+[ > Player | ClosedDoor ] -> CANCEL
+
+late [ ClosedDoor Key ] -> [ OpenedDoor ]
+
+
+==============
+WINCONDITIONS
+==============
+
+
+
+=======
+LEVELS
+=======
+
+########
+#...#..#
+#...#..#
+#.k.#..#
+#...D..#
+#.P.#..#
+#...#..#
+########
+
