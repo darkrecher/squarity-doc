@@ -302,3 +302,57 @@ Il faut faire quelques modifs dans le code pour que la gestion du responsive des
 
 Commit : 41b094cb, du repository squarity-code.
 
+Doc à regarder à l'occasion :
+
+ - https://vitejs.dev/
+ - https://vuejs.org/
+
+
+## La fonction updated
+
+`updated` est supposé être une fonction de hook, définie dans un Component. Elle est appelée après une modification dans les `data` du Component, et après les modifications dans le DOM.
+
+J'utilisais ce hook pour redéfinir la taille de l'aire de jeu, après un appui sur le boutton "Jeu en plein écran".
+
+Eh bien ça ne marche plus. Le hook n'est plus appelé.
+
+J'ai essayé en mettant `handleResize` dans la fonction `toggle_dev_zone_display`. Mais au moment où c'est exécuté, le DOM n'est pas à jour, et les valeurs ClientWidth et ClientHeight sont les anciennes valeurs. Donc ça retaille pas comme il faut.
+
+On peut aussi mettre des watch. Une fonction appelée sur un changement d'une donnée spécifique de `data`. C'est bien appelé, mais pas au bon moment (avant la mise à jour du DOM).
+
+https://learnvue.co/articles/vue-watch-and-watcheffect
+
+J'ai mis une solution de contournement dégueue avec un setTimeout. Pas mieux pour l'instant.
+
+Il y a peut-être moyen de faire mieux avec la Composition API. Un truc de Vue 3.
+
+https://learnvue.co/articles/vue-lifecycle-hooks-guide
+
+
+## Le linter
+
+Pour l'instant, ça marche pas.
+
+`npm run lint`
+
+    > squarity-code@0.0.0 lint
+    > eslint . --ext .vue,.js,.jsx,.cjs,.mjs --fix --ignore-path .gitignore
+
+    /home/wilfried/Documents/personnel/squarity/squarity-code/public/pyodide.js
+    7:40  error  Parsing error: Assigning to rvalue
+
+    /home/wilfried/Documents/personnel/squarity/squarity-code/src/App.vue
+    1:1  error  Parsing error: Unexpected token <
+
+    [etc. Plein d'autres messages d'erreur du même genre à la suite.]
+
+Si j'ai bien compris, faut installer un linter spécial pour Vue : https://eslint.vuejs.org/user-guide/ . On verra ça plus tard.
+
+
+## Plugin axios et vue-routeur
+
+Non réinstallé. Pas besoin de axios. On utilise la fonction `fetch` pour faire des requêtes HTTP GET.
+
+Le vue-routeur est préinstallée avec Vue 3.
+
+
