@@ -314,17 +314,11 @@ Doc à regarder à l'occasion :
 
 J'utilisais ce hook pour redéfinir la taille de l'aire de jeu, après un appui sur le boutton "Jeu en plein écran".
 
-Eh bien ça ne marche plus. Le hook n'est plus appelé.
-
-J'ai essayé en mettant `handleResize` dans la fonction `toggle_dev_zone_display`. Mais au moment où c'est exécuté, le DOM n'est pas à jour, et les valeurs ClientWidth et ClientHeight sont les anciennes valeurs. Donc ça retaille pas comme il faut.
+Eh bien ça ne marche plus aussi bien qu'avant. Pour que le hook soit appelé, il faut faire des modifs un peu plus sérieuses dans le DOM. Je suis obligé de faire des modifs bidons dans le DOM (voir la variable data `dummytab` dans le composant `GameBoard`).
 
 On peut aussi mettre des watch. Une fonction appelée sur un changement d'une donnée spécifique de `data`. C'est bien appelé, mais pas au bon moment (avant la mise à jour du DOM).
 
 https://learnvue.co/articles/vue-watch-and-watcheffect
-
-J'ai mis une solution de contournement dégueue avec un setTimeout. Pas mieux pour l'instant.
-
-Il y a peut-être moyen de faire mieux avec la Composition API. Un truc de Vue 3.
 
 https://learnvue.co/articles/vue-lifecycle-hooks-guide
 
