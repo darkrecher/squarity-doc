@@ -2,7 +2,7 @@ On va faire une gif animée montrant un blog qui scrolle, tout simplement.
 
 Titre : Le squariblog
 
-## Les jeux soko-bans : État de l'art
+## Les jeux soko-bans : État de l'art
 
 `#sokoban #puzzle #culture`
 
