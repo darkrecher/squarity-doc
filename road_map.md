@@ -2,7 +2,7 @@
 
 ## Fonctionnement de la road map
 
-Ce document regroupe les tâches de la roadmap accessible ici : http://squarity.fr/roadmap . Ce sont exactement les mêmes noms de tâches et les mêmes textes détaillés. Le contenu de la roadmap sur le site web est généré à partir de ce document.
+Ce document regroupe les tâches de la roadmap accessible ici : https://squarity.pythonanywhere.com/roadmap. Ce sont exactement les mêmes noms de tâches et les mêmes textes détaillés. Le contenu de la roadmap sur le site web est généré à partir de ce document.
 
 Il permet une lecture plus facile et plus linéaire, pour les personnes qui voudraient connaître le détail de toutes les tâches.
 
