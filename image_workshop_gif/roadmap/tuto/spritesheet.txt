@@ -1,6 +1,6 @@
 blue_vessel,0,96,160,32
 blue_vessel_2,224,0,32,96
-bulb,192,0,32,164
+bulb,192,0,32,160
 hair,160,0,32,192
 melanocyte,160,192,32,32
 red_vessel,0,128,160,32
@@ -9,3 +9,4 @@ skin_bottom,0,160,64,64
 skin_bottom_reversed,64,160,64,64
 skin_top,128,160,32,64
 skin_top_with_updown,0,0,160,96
+grey_background,224,192,32,32
