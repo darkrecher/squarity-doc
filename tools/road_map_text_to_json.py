@@ -121,7 +121,7 @@ HARDCODED_SQUARE_DEFINITIONS = [
         "rank": "superior",
         "html_class": "special-effect superior-square",
         "title": '\n"Effets spéciaux"',
-        "gif_vision": "test_vision",
+        "gif_vision": "special_effect",
     },
     {
         "key": "g00",
@@ -142,7 +142,7 @@ HARDCODED_SQUARE_DEFINITIONS = [
         "rank": "superior",
         "html_class": "tuto superior-square",
         "title": "Tutoriels\n\nDocs\n\nExemples",
-        "gif_vision": "test_vision",
+        "gif_vision": "tuto",
     },
     {
         "key": "l00",

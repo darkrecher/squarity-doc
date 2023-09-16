@@ -334,3 +334,64 @@ Avant de faire quoi que ce soit, petite sauvegarde du contenu de squastatic, squ
 Et ensuite on copie tous les fichiers générés par dist, sur pythonanywhere, dans squastatic.
 
 
+
+## Mise en prod 05 (avec la petite flipette sur le type MIME des fichiers statiques)
+
+Avec le passage de Vue 2 à Vue 3. Youhou !!!
+
+Commit de squarity-code : b0a26dce
+
+Comme d'hab', on lance `npm run build`. Ça met à jour le contenu du répertoire dist.
+
+Petit conseil : avant de mettre en prod, testez la version buildée, en lançant un petit serveur statique. Il faut se mettre dans le répertoire dist et lancer la commande `python3 -m http.server`. Ça m'a permis de me rendre compte que je m'étais planté pour servir les gif animées de roadmap (faut faire "import" et non pas je-sais-plus-quel-autre-truc).
+
+Et ensuite, on met dans les fichiers dans pythonanywhere, comme d'habitude.
+
+Sauf qu'il faut changer la structure. Maintenant, avec Vue 3, la plupart des fichiers (js, css, images, ...) sont dans un unique répertoire "assets".
+
+Alors j'ai du changer la config des liens statiques dans pythonanywhere. Ensuite j'ai reloadé le site et j'ai testé, plus rien ne marchait !!
+
+Dans la console du navigateur, j'avais des messages d'erreur complètement WTF :
+
+> Loading module from “https://squarity.pythonanywhere.com/assets/index-54527515.js” was blocked because of a disallowed MIME type (“text/html”).
+
+Ça m'a fait très peur, j'ai cru qu'il fallait configurer manuellement les MIME types indiqués dans les headers HTTP. Et je ne sais pas du tout où on doit faire ça dans pythonanywhere !
+
+En fait le problème venait pas de là. C'est ce crétin de browser qui me renvoyait un message d'erreur totalement inadapté. C'est un peu expliqué ici : https://stackoverflow.com/questions/48248832/stylesheet-not-loaded-because-of-mime-type#comment91526535_48248832
+
+Le vrai problème, c'est que les fichiers statiques n'étaient pas accessibles. Le navigateur ne récupérait pas un fichier avec un mauvais MIME type. Il récupérait carrément rien du tout !
+
+La raison pour laquelle ce n'était pas accessible, c'est que je m'étais planté dans la config des fichiers statiques.
+
+Dans pythonanywhere, j'avais ça :
+
+| URL      | Directory                            |
+| -------- | ------------------------------------ |
+| (un tas de trucs divers)                        |
+| ...      |                                      |
+| /        | /home/squarity/squastatic/index.html |
+| /assets/ | /home/squarity/squastatic/assets     |
+
+L'ordre des éléments dans la config est important. Le lien statique appelé avec le slash tout seul attrape absolument tout, et balançait à chaque fois le fichier index.html. Forcément ça pète. Le contenu du répertoire assets n'était jamais servi.
+
+Donc il faut, bien évidemment, **toujours mettre en dernier le lien statique avec le slash tout seul**.
+
+Et quand on aura un site un peu plus sérieux (avec un vrai serveur et pas que des fichiers statiques), il faudra sûrement virer ce slash tout seul, et le gérer autrement. Voili voilà.
+
+Voici la config actuelle de tous les static files :
+
+
+| URL                | Directory                                   |
+| ------------------ | ------------------------------------------- |
+| /static/           | /home/squarity/squarity/static              |
+| /media/            | /home/squarity/squarity/media               |
+| /index.html        | /home/squarity/squastatic/index.html        |
+| /pyodide/          | /home/squarity/squastatic/pyodide           |
+| /favicon.ico       | /home/squarity/squastatic/favicon.ico       |
+| /squarity.txt      | /home/squarity/squastatic/squarity.txt      |
+| /pyodide.js        | /home/squarity/squastatic/pyodide.js        |
+| /road_map_data.txt | /home/squarity/squastatic/road_map_data.txt |
+| /assets/           | /home/squarity/squastatic/assets            |
+| /                  | /home/squarity/squastatic/index.html        |
+
+Et maintenant ça marche !
