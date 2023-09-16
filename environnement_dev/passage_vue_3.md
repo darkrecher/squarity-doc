@@ -350,3 +350,132 @@ Non réinstallé. Pas besoin de axios. On utilise la fonction `fetch` pour faire
 Le vue-routeur est préinstallée avec Vue 3.
 
 
+## Le linter (bis)
+
+On avait donc vue (ha ha) que ça déconnait. Le linter ne sait même pas que j'utilise Vue, donc il essaye d'analyser les fichiers avec la syntaxe de base du javascript, et ça fait n'importe quoi.
+
+Cette doc : https://eslint.vuejs.org/user-guide/ explique comment installer le plugin de Vue pour Eslint. Elle m'embête beaucoup, car elle indique que la version requise de NodeJs est : "Node.js v14.17.x, v16.x and above".
+
+C'est pas ce que j'ai :
+
+`nodejs -v`
+    v12.22.9
+
+Je comprends pas comment je peux être en retard à ce point là, alors que j'ai installé NodeJS sur cette machine assez récemment.
+
+Cette doc explique comment mettre à jour NodeJS, mais ça m'a l'air complètement fumé : https://phoenixnap.com/kb/update-node-js-version . Peux pas faire des "apt-get upgrade" comme tout le monde ?
+
+Je comprends rien à tous ces trucs, mais je tente quand même la commande d'installation du plugin.
+
+`cd /projects_root/squarity-code/src`
+`npm install --save-dev eslint eslint-plugin-vue`
+
+    changed 11 packages, and audited 138 packages in 4s
+
+    29 packages are looking for funding
+      run `npm fund` for details
+
+    found 0 vulnerabilities
+
+Ça met à jour des trucs dans le package.json, mais concrètement ça ne change rien. La commande `npm run lint` renvoie le même gros tas de messages.
+
+D'autre part, la commande `eslint` ne marche pas dans la console, or d'après plein de docs, c'est censé marcher.
+
+`eslint`
+
+    Command 'eslint' not found, but can be installed with:
+    sudo apt install eslint
+
+Il faudra peut-être l'installer globalement : https://stackoverflow.com/questions/63964494/command-eslint-init-not-found-why . Mais pour l'instant on s'en fout un peu.
+
+En fait eslint est installé en local dans mon projet squarity-code. Et par je-ne-sais-quelle-magie, c'est cet eslint local qui est lancé quand on fait `npm run lint`.
+
+En fouinant un peu, je tombe là-dessus :
+
+`cd //projects_root/squarity-code`
+`./node_modules/.bin/eslint src/main.js`
+
+    Oops! Something went wrong! :(
+
+    ESLint: 8.49.0
+
+    ESLint couldn't find a configuration file. To set up a configuration file for this project, please run:
+
+        npm init @eslint/config
+
+    ESLint looked for configuration files in /home/wilfried/Documents/personnel/squarity/squarity-code/src and its ancestors. If it found none, it then looked in your home directory.
+
+    If you think you already have a configuration file or if you need more help, please stop by the ESLint Discord server: https://eslint.org/chat
+
+(Je savais même pas que je pouvais lancer des .js directement dans la console)
+
+Ça plante, mais au moins j'ai des explications.
+
+Let's go !
+
+`npm init @eslint/config`
+
+    Need to install the following packages:
+      @eslint/create-config@0.4.6
+    Ok to proceed? (y) y
+    ✔ How would you like to use ESLint? · problems
+    ✔ What type of modules does your project use? · esm
+    ✔ Which framework does your project use? · vue
+    ✔ Does your project use TypeScript? · No / Yes (j'ai mis No)
+    ✔ Where does your code run? · browser
+    ✔ What format do you want your config file to be in? · JSON
+    The config that you've selected requires the following dependencies:
+
+    eslint-plugin-vue@latest
+    ✔ Would you like to install them now? · No / Yes (j'ai mis Yes)
+    ✔ Which package manager do you want to use? · npm
+    Installing eslint-plugin-vue@latest
+
+    up to date, audited 138 packages in 645ms
+
+    29 packages are looking for funding
+      run `npm fund` for details
+
+    found 0 vulnerabilities
+    Successfully created .eslintrc.json file in /home/wilfried/Documents/personnel/squarity/squarity-code
+
+Ça a changé des trucs ! Quand je lance `npm run lint`, j'ai maintenant un tas de warning et d'erreurs, mais il a l'air de comprendre que j'utilise Vue.
+
+Les erreurs proviennent pour la plupart des fichiers de pyodide, et des fichiers dans le répertoire dist. C'est normal, c'est pas des fichiers utilisant Vue. Pyodide c'est pas moi qui le code. Tout ce qu'il y a dans dist est le résultat de la compilation du projet. C'est moi qui le génère, mais c'est pas moi qui le code.
+
+Donc faut pas linter ces trucs.
+
+Création d'un fichier `.eslintignore` avec les chemins et fichiers à ignorer dedans.
+
+Mais c'est pas pris en compte. Il faut modifier un truc dans package.json.
+
+Cette ligne là :
+
+`"lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs --fix --ignore-path .gitignore"`
+
+doit être changée en celle-la :
+
+`"lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs --fix --ignore-path .eslintignore"`
+
+Ces modifs ont été effectuées dans le commit git squarity-code/56f7ff089e46c8fa2b81516a392553553ed1fa17
+
+Et maintenant, le linter marche !
+
+`npm run lint`
+
+    > squarity-code@0.0.0 lint
+    > eslint . --ext .vue,.js,.jsx,.cjs,.mjs --fix --ignore-path .eslintignore
+
+    /home/wilfried/Documents/personnel/squarity/squarity-code/src/App.vue
+    2:10  error  'RouterLink' is defined but never used  no-unused-vars
+
+    /home/wilfried/Documents/personnel/squarity/squarity-code/src/components/GameBoard.vue
+    114:5  error  Elements in iteration expect to have 'v-bind:key' directives  vue/require-v-for-key
+
+    ✖ 2 problems (2 errors, 0 warnings)
+
+Il y a un nombre raisonnable d'erreurs, qui proviennent de mon code. C'est à moi de les corriger.
+
+En route vers de nouvelles aventures !!
+
+

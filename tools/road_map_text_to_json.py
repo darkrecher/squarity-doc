@@ -34,7 +34,7 @@ import json
 
 PATH_FILE_SOURCE = os.path.join("..", "road_map.md")
 PATH_FILE_DEST = os.path.join(
-    "..", "..", "squarity-code", "public", "road_map_data.json"
+    "..", "..", "squarity-code", "public", "road_map_data.txt"
 )
 
 INDEXES_CHAPTER_TO_SKIP = [0]
@@ -47,7 +47,7 @@ ID_FROM_CHAPTER_TITLES = {
     "Éditeur de niveaux, gestion des tilesets": "l",
     "Moteur du jeu": "g",
     '"Effets spéciaux"': "e",
-    "Tutoriels, manuels, conseils": "t",
+    "Tutoriels, docs, exemples": "t",
     "Contenu et promotion": "c",
     "Social et site web": "s",
     "Auto-formation, Optimisation": "o",
@@ -90,12 +90,12 @@ HTML_CLASS_FROM_ID = {
 
 # Nom des images gif pour les carrés spéciaux affichant des "visions", au lieu d'une description.
 VISION_GIF_FILES = {
-    "i05": "test_vision.gif",
-    "l08": "test_vision.gif",
-    "g05": "test_vision.gif",
-    "g11": "test_vision.gif",
-    "e07": "test_vision.gif",
-    "s04": "test_vision.gif",
+    "i05": "test_vision",
+    "l08": "test_vision",
+    "g05": "test_vision",
+    "g11": "test_vision",
+    "e07": "test_vision",
+    "s04": "test_vision",
 }
 
 HARDCODED_SQUARE_DEFINITIONS = [
@@ -121,56 +121,56 @@ HARDCODED_SQUARE_DEFINITIONS = [
         "rank": "superior",
         "html_class": "special-effect superior-square",
         "title": '\n"Effets spéciaux"',
-        "gif_vision": "test_vision.gif",
+        "gif_vision": "test_vision",
     },
     {
         "key": "g00",
         "rank": "superior",
         "html_class": "game-engine superior-square",
         "title": "\nMoteur du jeu",
-        "gif_vision": "vision_game_engine.gif",
+        "gif_vision": "game_engine",
     },
     {
         "key": "i00",
         "rank": "superior",
         "html_class": "ide superior-square",
         "title": "Environnement de dév. intégré",
-        "gif_vision": "ide.gif",
+        "gif_vision": "ide",
     },
     {
         "key": "t00",
         "rank": "superior",
         "html_class": "tuto superior-square",
         "title": "Tutoriels\n\nDocs\n\nExemples",
-        "gif_vision": "test_vision.gif",
+        "gif_vision": "test_vision",
     },
     {
         "key": "l00",
         "rank": "superior",
         "html_class": "level superior-square",
         "title": "Éditeur de niveaux\n\nGestion des tilesets",
-        "gif_vision": "level_editor.gif",
+        "gif_vision": "level_editor",
     },
     {
         "key": "c00",
         "rank": "superior",
         "html_class": "promo superior-square",
         "title": "Contenu\n\nJeux\n\nPromotion",
-        "gif_vision": "test_vision.gif",
+        "gif_vision": "test_vision",
     },
     {
         "key": "s00",
         "rank": "superior",
         "html_class": "social superior-square",
         "title": "\nSocial\n\nSite web",
-        "gif_vision": "test_vision.gif",
+        "gif_vision": "test_vision",
     },
     {
         "key": "o00",
         "rank": "superior",
         "html_class": "optim superior-square",
         "title": "Auto-formation\n\nOptimisation",
-        "gif_vision": "test_vision.gif",
+        "gif_vision": "test_vision",
     },
 ]
 
