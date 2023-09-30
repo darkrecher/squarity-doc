@@ -1,40 +1,5 @@
-# Ludum Dare 54 : Limited space
-
-# Unlimited space (ha ha ha).
-# https://raw.githubusercontent.com/darkrecher/squarity-doc/master/jeux/unlimited_space/unlimited_space_tileset.png
-
-# Lien vers le code actuel du jeu :
-# https://github.com/darkrecher/squarity-doc/blob/master/jeux/unlimited_space/unlimited-space.py
-
-
-"""
-
-Générer un nombre aléatoire qui sera toujours le même pour une coordonnée fixée :
-
-    import random
-
-    random.seed("12345_78_50")
-
-    print("pouet")
-    print(random.randint(0, 10000))
-    print(random.randint(0, 10000))
-
-🫠
-
-Un taxi intergalactique qui transporte des extra-terrestres.
-
-Dans l'espace, y'a des balises de taxi, qui indiquent les coordonnées d'extra-terrestres en attente de transport.
-
-On gagne de l'argent à chaque course. Au bout d'une certaine somme, on met un message : "bravo, vous avez amassé suffisamment d'argent, vous pouvez prendre votre retraite, ou bien continuer de transporter des gens si ça vous plaît."
-
- - dessiner 2 extra-terrestres et une balise spatiale
- - générer les positions de 10 extra-terrestres (avec des noms en emoji).
- - une balise indique, au hasard, entre 2 et 4 extra-terrestres parmi les 10.
- - gérer la récupération et le dépôt d'un extra-terrestre.
-
-
-
-
+https://raw.githubusercontent.com/darkrecher/squarity-doc/master/jeux/unlimited_space/unlimited_space_tileset.png
+--------
   {
     "game_area": {
         "nb_tile_width": 15,
@@ -50,7 +15,39 @@ On gagne de l'argent à chaque course. Au bout d'une certaine somme, on met un m
       "osef": [0, 0]
     }
   }
+--------
 
+"""
+
+Ludum Dare 54 : Limited space
+
+Unlimited space (ha ha ha).
+
+
+Un taxi intergalactique qui transporte des extra-terrestres.
+
+Dans l'espace, y'a des balises de taxi, qui indiquent les coordonnées d'extra-terrestres en attente de transport.
+
+On gagne de l'argent à chaque course. Au bout d'une certaine somme, on met un message : "bravo, vous avez amassé suffisamment d'argent, vous pouvez prendre votre retraite, ou bien continuer de transporter des gens si ça vous plaît."
+
+ - dessiner 2 extra-terrestres et une balise spatiale
+ - générer les positions de 10 extra-terrestres (avec des noms en emoji).
+ - une balise indique, au hasard, entre 2 et 4 extra-terrestres parmi les 10.
+ - gérer la récupération et le dépôt d'un extra-terrestre.
+
+draft :
+
+Générer un nombre aléatoire qui sera toujours le même pour une coordonnée fixée :
+
+    import random
+
+    random.seed("12345_78_50")
+
+    print("pouet")
+    print(random.randint(0, 10000))
+    print(random.randint(0, 10000))
+
+🫠
 
 """
 
