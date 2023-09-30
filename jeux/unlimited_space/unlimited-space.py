@@ -3,7 +3,7 @@
 # Unlimited space (ha ha ha).
 # https://raw.githubusercontent.com/darkrecher/squarity-doc/master/jeux/unlimited_space/unlimited_space_tileset.png
 
-# https://i.ibb.co/g6LMywf/unlimited-space-tileset.png
+# https://i.ibb.co/J324DDM/unlimited-space-tileset.png
 
 # Lien vers le code actuel du jeu :
 # https://github.com/darkrecher/squarity-doc/blob/master/jeux/unlimited_space/unlimited-space.py
@@ -35,6 +35,10 @@ On gagne de l'argent à chaque course. Au bout d'une certaine somme, on met un m
  - gérer la récupération et le dépôt d'un extra-terrestre.
 
 emoji d'argent :  💵 💴 💶 💷 🪙 💰 💎
+🟤 ⚪ 🟡 🪙 💵 💶 💷 💴 💰 💎 🏆 👑
+
+
+👛 💼
 
 
   {
@@ -50,11 +54,30 @@ emoji d'argent :  💵 💴 💶 💷 🪙 💰 💎
       "planet_01": [96, 0],
       "customer_01": [128, 0],
       "customer_02": [160, 0],
-      "beacon_customers": [32, 32],
+      "beacon_customers": [32, 96],
 
       "osef": [0, 0]
     }
   }
+
+
+
+
+http://squarity.fr/#fetchez_githubgist_darkrecher/099fdc3c77980e90b3c89d2e26cde792/raw/unlimited-space.txt
+
+
+Pour jouer à la version actuelle du jeu "Unlimited Space" :
+
+http://squarity.fr/#fetchez_githubgist_darkrecher/099fdc3c77980e90b3c89d2e26cde792/raw/unlimited-space.txt
+
+
+
+
+https://ldj.am/$377455
+
+
+https://www.twitch.tv/recher_squarity
+
 
 
 """
@@ -80,12 +103,30 @@ STR_DEST = "🏁"
 STR_NO_INFO = "❌"
 STR_SELECT_BEG = ""
 STR_SELECT_END = "  ◀️"
+STR_WALLET = "💼"
+
+STR_MONEY_FROM_VALUE = (
+    (0, "🕸️"),
+    (1, "🟤"),
+    (2, "⚪"),
+    (5, "🟡"),
+    (8, "🪙"),
+    (10, "💵"),
+    (20, "💶"),
+    (50, "💷"),
+    (80, "💴"),
+    (100, "💰"),
+    (200, "💎"),
+    (500, "🏆"),
+    (800, "👑"),
+)
 
 class Customer():
 
     def __init__(self, start_coord, dest_coord):
         self.start_coord = start_coord
         self.dest_coord = dest_coord
+        self.money = random.randint(10, 100)
         if random.randint(0, 1) == 0:
             self.game_object = "customer_01"
         else:
@@ -96,16 +137,23 @@ class Customer():
         self.beacon_compatibility = 2 ** random.randint(1, 5)
         self.arrived = False
 
+    def put_to_destination(self):
+        self.arrived = True
+        self.start_coord = self.dest_coord
+        self.dest_coord = None
+        self.money = 0
+        self.life_time = random.randint(20, 200)
+
     def get_talks_on_boarding(self):
         dest_x, dest_y = self.dest_coord
         return [
-            f"  {self.name}: 🖖",
-            f"  {self.name}: 🛸 ({dest_x}, {dest_y})"
+            f"  {self.name}: \"🖖\"",
+            f"  {self.name}: \"🛸 ({dest_x}, {dest_y})\""
         ]
 
     def get_talks_off_boarding(self):
         return [
-            f"  {self.name}: 🫶👌",
+            f"  {self.name}: \"🫶👌\"",
         ]
 
     def get_log_line_start(self, selected=False):
@@ -198,7 +246,6 @@ class GameModel():
         self.w = 15
         self.h = 15
         self.game_seed = str(random.randint(0, 1000000000))
-        print("seed :", self.game_seed)
         self.tiles = [
             [
                 [] for x in range(self.w)
@@ -207,6 +254,7 @@ class GameModel():
         ]
         self.hero_coord = [7, 7]
         self.corner_coord = [-7, -7]
+        self.money = 0
         self.buffer_celestial_bodies = []
         self.customer_inside = None
 
@@ -215,9 +263,12 @@ class GameModel():
         self.customer_list = CustomerList()
 
         self.spawn_customer(0, 20)
-        self.spawn_customer(70, 200)
-        for _ in range(8):
+        for _ in range(4):
+            self.spawn_customer(70, 200)
+        for _ in range(5):
             self.spawn_customer(2000, 2000)
+
+        self.spawn_timer = 10000
 
 
     def get_tile(self, x, y):
@@ -296,7 +347,6 @@ class GameModel():
         if dest_coord is None:
             return None
         if start_coord == dest_coord:
-            print("pas de bol.")
             return None
 
         new_customer = Customer(start_coord, dest_coord)
@@ -329,18 +379,29 @@ class GameModel():
 
     def log_status(self):
         print("\n" * 3)
-        if self.customer_inside is not None:
-            dest_x, dest_y = self.customer_inside.dest_coord
-            print(f"  {STR_DEST} {STR_COORDS}: ({dest_x}, {dest_y})")
+
+        log_money = "  " + STR_WALLET + ": "
+        if not self.money:
+            log_money += STR_MONEY_FROM_VALUE[0][1]
         else:
-            selected_cust = self.customer_list.get_selected_customer()
-            if selected_cust != None:
-                print(selected_cust.get_log_line_start(True))
+            temp_money = self.money
+            for value, str_val in STR_MONEY_FROM_VALUE[:0:-1]:
+                while temp_money >= value:
+                    temp_money -= value
+                    log_money += str_val + " "
+        print(log_money)
 
         hero_univ_x = self.hero_coord[0] + self.corner_coord[0]
         hero_univ_y = self.hero_coord[1] + self.corner_coord[1]
-        print(f"  {STR_HERO} {STR_COORDS}: ({hero_univ_x}, {hero_univ_y})", end="")
+        print(f"  {STR_HERO} {STR_COORDS}: ({hero_univ_x}, {hero_univ_y})")
 
+        if self.customer_inside is not None:
+            dest_x, dest_y = self.customer_inside.dest_coord
+            print(f"  {STR_DEST} {STR_COORDS}: ({dest_x}, {dest_y})", end="")
+        else:
+            selected_cust = self.customer_list.get_selected_customer()
+            if selected_cust != None:
+                print(selected_cust.get_log_line_start(True), end="")
 
     def add_customers_from_beacon(self, beacon_coord):
         beacon_compatibility = (beacon_coord[0] + 3 * beacon_coord[1]) % 64
@@ -384,7 +445,7 @@ class GameModel():
             hero_univ_coord = (hero_univ_x, hero_univ_y)
             customer_on_hero = self.customers.get(hero_univ_coord)
 
-            if self.customer_inside is None and customer_on_hero is not None:
+            if self.customer_inside is None and customer_on_hero is not None and not customer_on_hero.arrived:
                 self.customer_inside = customer_on_hero
                 del self.customers[hero_univ_coord]
                 self.customer_list.remove_customer(customer_on_hero)
@@ -400,9 +461,13 @@ class GameModel():
                 print("\n")
                 for log in self.customer_inside.get_talks_off_boarding():
                     print(log)
-                # TODO : afficher le customer sur la planète
+                self.money += self.customer_inside.money
+                # On affiche le customer sur la planète,
                 # durant une durée limitée de tour.
-                # TODO : gérer l'argent. Le customer paye le héros.
+                self.customer_inside.put_to_destination()
+                cust_coord = self.customer_inside.start_coord
+                self.customers[cust_coord] = self.customer_inside
+
                 self.customer_inside = None
 
         elif event_name == "action_1":
@@ -414,6 +479,25 @@ class GameModel():
             print("\n")
             for log_line in self.customer_list.get_customer_list_info():
                 print(log_line)
+
+        cust_coord_to_del = None
+        for coord, customer in self.customers.items():
+            if customer.life_time is not None:
+                customer.life_time -= 1
+                if customer.life_time < 0:
+                    cust_coord_to_del = coord
+        if cust_coord_to_del is not None:
+            del self.customers[cust_coord_to_del]
+
+        if not self.customers:
+            self.spawn_timer = 0
+        else:
+            self.spawn_timer -= (12-len(self.customers)) ** 2
+
+        if self.spawn_timer <= 0:
+            self.spawn_customer(2000, 2000)
+            self.spawn_timer += 10000
+
 
         self.prev_action = event_name
 
