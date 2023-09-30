@@ -11,18 +11,18 @@ https://raw.githubusercontent.com/darkrecher/squarity-doc/master/jeux/unlimited_
       "hero": [32, 0],
       "scenery_01": [64, 0],
       "planet_01": [96, 0],
+      "customer_01": [128, 0],
+      "customer_02": [160, 0],
+      "beacon_customers": [32, 32],
 
       "osef": [0, 0]
     }
   }
 --------
-
 """
-
 Ludum Dare 54 : Limited space
 
 Unlimited space (ha ha ha).
-
 
 Un taxi intergalactique qui transporte des extra-terrestres.
 
@@ -35,20 +35,7 @@ On gagne de l'argent à chaque course. Au bout d'une certaine somme, on met un m
  - une balise indique, au hasard, entre 2 et 4 extra-terrestres parmi les 10.
  - gérer la récupération et le dépôt d'un extra-terrestre.
 
-draft :
-
-Générer un nombre aléatoire qui sera toujours le même pour une coordonnée fixée :
-
-    import random
-
-    random.seed("12345_78_50")
-
-    print("pouet")
-    print(random.randint(0, 10000))
-    print(random.randint(0, 10000))
-
-🫠
-
+emoji d'argent :  💵 💴 💶 💷 🪙 💰 💎
 """
 
 import random
@@ -66,6 +53,124 @@ HERO_LIMIT_ON_SCREEN_X2 = 9
 HERO_LIMIT_ON_SCREEN_Y2 = 9
 BUFFER_SIZE_CELEST_BODIES = 250
 
+STR_COORDS = "🇽 🇾"
+STR_HERO = "👽"
+STR_DEST = "🏁"
+STR_NO_INFO = "❌"
+STR_SELECT_BEG = ""
+STR_SELECT_END = "  ◀️"
+
+class Customer():
+
+    def __init__(self, start_coord, dest_coord):
+        self.start_coord = start_coord
+        self.dest_coord = dest_coord
+        if random.randint(0, 1) == 0:
+            self.game_object = "customer_01"
+        else:
+            self.game_object = "customer_02"
+        self.life_time = None
+        self.name = "🟩🧩"
+        # possible names for customer_01 : 🎾 , 🧩 , 🦠 , 💚 , ✳️ , 🟢  , 🟩
+        self.beacon_compatibility = 2 ** random.randint(1, 5)
+        self.arrived = False
+
+    def get_talks_on_boarding(self):
+        dest_x, dest_y = self.dest_coord
+        return [
+            f"  {self.name}: 🖖",
+            f"  {self.name}: 🛸 ({dest_x}, {dest_y})"
+        ]
+
+    def get_talks_off_boarding(self):
+        return [
+            f"  {self.name}: 🫶👌",
+        ]
+
+    def get_log_line_start(self, selected=False):
+        x, y = self.start_coord
+        log_line = f"  {self.name} {STR_COORDS}: ({x}, {y})"
+        if selected:
+            log_line = STR_SELECT_BEG + log_line + STR_SELECT_END
+        return log_line
+
+
+class CustomerList():
+
+    def __init__(self):
+        # liste de tuple de 3 elem :
+        # distance par rapport au point (0, 0)
+        # boolean : selected ou pas.
+        # référence vers un objet Customer.
+        self.customers = []
+
+    def _get_index_selected(self):
+        for index, cust_info in enumerate(self.customers):
+            if cust_info[1]:
+                return index
+        return None
+
+    def get_selected_customer(self):
+        for dist_orig, selected, cust in self.customers:
+            if selected:
+                return cust
+        return None
+
+    def add_customer(self, customer):
+
+        for cust_info in self.customers:
+            if cust_info[2] == customer:
+                # On connait déjà ce client, on le rajoute pas.
+                return
+
+        cust_x, cust_y = customer.start_coord
+        dist_orig = cust_x**2 + cust_y**2
+        if not self.customers:
+            self.customers.append([dist_orig, True, customer])
+        else:
+            self.customers.append([dist_orig, False, customer])
+            self.customers.sort(key=lambda x:x[0])
+
+    def remove_customer(self, customer_to_remove):
+        prev_index_selected = self._get_index_selected()
+        self.customers = [
+            cust_info for cust_info in self.customers
+            if cust_info[2] != customer_to_remove
+        ]
+        cur_index_selected = self._get_index_selected()
+        if prev_index_selected is not None and cur_index_selected is None:
+            if prev_index_selected >= len(self.customers):
+                prev_index_selected = len(self.customers)-1
+            self.customers[prev_index_selected][1] = True
+
+    def cycle_selection(self):
+        index_selected = self._get_index_selected()
+        if index_selected is not None:
+            self.customers[index_selected][1] = False
+            index_selected = (index_selected + 1) % len(self.customers)
+            self.customers[index_selected][1] = True
+
+    def get_customer_list_info(self):
+        """
+        Renvoie un log de la liste, avec le customer sélectionné en dernier,
+        puis les précédents, puis on fait le tour pour afficher l'autre partie de la liste.
+        """
+        index_selected = self._get_index_selected()
+        if index_selected is not None:
+            reordered_customers = self.customers[index_selected:] + self.customers[:index_selected]
+            reordered_customers = reordered_customers[::-1]
+            logs = []
+            for cust_info in reordered_customers:
+                dist_orig, sel, cust = cust_info
+                logs.append(cust.get_log_line_start(sel))
+            return logs
+        else:
+            # On va rien logger si on a des customers alors
+            # qu'aucun d'eux n'a été sélectionné.
+            # Mais c'est pas censé arriver.
+            return ["  " + STR_NO_INFO]
+
+
 class GameModel():
 
     def __init__(self):
@@ -82,6 +187,16 @@ class GameModel():
         self.hero_coord = [7, 7]
         self.corner_coord = [-7, -7]
         self.buffer_celestial_bodies = []
+        self.customer_inside = None
+
+        self.customers = {}
+        self.prev_action = None
+        self.customer_list = CustomerList()
+
+        self.spawn_customer(0, 20)
+        self.spawn_customer(70, 200)
+        for _ in range(8):
+            self.spawn_customer(2000, 2000)
 
 
     def get_tile(self, x, y):
@@ -93,8 +208,10 @@ class GameModel():
         random.seed(rand_seed)
         proba = random.randint(0, 1000)
         if proba < 5:
+            return ["beacon_customers"]
+        elif 5 <= proba < 15:
             return ["planet_01"]
-        elif 5 <= proba < 90:
+        elif 15 <= proba < 105:
             return ["scenery_01"]
         else:
             return ["bg"]
@@ -109,50 +226,174 @@ class GameModel():
         return celest_bod
 
 
+    def is_coord_ok_for_customer(self, x, y):
+        # On ne place pas de client trop proche du point de départ
+        # du héros, parce que ça serait trop confusionnant.
+        if (-1 <= x <= 1) and (-1 <= y <= 1):
+            return False
+        celest_bod = self.compute_celestial_body(x, y)
+        if "planet_01" not in celest_bod:
+            return False
+        return True
+
+
+    def find_planet_around(self, x, y):
+        # Bon, faut faire des carrés autour du centre, de plus en plus grand.
+        # Algo poucrave, on se croirait dans un clash of code.
+
+        for dist_corner in range(20):
+            cur_y = y - dist_corner
+            for cur_x in range(x-dist_corner, x + dist_corner + 1):
+                if self.is_coord_ok_for_customer(cur_x, cur_y):
+                    return cur_x, cur_y
+            cur_y = y + dist_corner
+            for cur_x in range(x-dist_corner, x + dist_corner + 1):
+                if self.is_coord_ok_for_customer(cur_x, cur_y):
+                    return cur_x, cur_y
+
+            cur_x = x - dist_corner
+            for cur_y in range(y-dist_corner + 1, y + dist_corner):
+                if self.is_coord_ok_for_customer(cur_x, cur_y):
+                    return cur_x, cur_y
+            cur_x = x + dist_corner
+            for cur_y in range(y-dist_corner + 1, y + dist_corner):
+                if self.is_coord_ok_for_customer(cur_x, cur_y):
+                    return cur_x, cur_y
+
+        return None
+
+
+    def spawn_customer(self, start_dist, dest_dist):
+        start_x = random.randint(-start_dist, +start_dist)
+        start_y = random.randint(-start_dist, +start_dist)
+        start_coord = self.find_planet_around(start_x, start_y)
+        if start_coord is None:
+            return None
+        dest_x = random.randint(-dest_dist, +dest_dist)
+        dest_y = random.randint(-dest_dist, +dest_dist)
+        dest_coord = self.find_planet_around(dest_x, dest_y)
+        if dest_coord is None:
+            return None
+        if start_coord == dest_coord:
+            print("pas de bol.")
+            return None
+
+        new_customer = Customer(start_coord, dest_coord)
+        self.customers[start_coord] = new_customer
+        return new_customer
+
+
     def export_all_tiles(self):
+
         for y in range(self.h):
             for x in range(self.w):
                 x_univ = self.corner_coord[0] + x
                 y_univ = self.corner_coord[1] + y
-                self.tiles[y][x][:] = self.compute_celestial_body_memoized(x_univ, y_univ)
+                tile_current = self.get_tile(x, y)
+                tile_current[:] = self.compute_celestial_body_memoized(x_univ, y_univ)
+                customer = self.customers.get((x_univ, y_univ))
+                if customer is not None:
+                    tile_current.append(customer.game_object)
+
         if len(self.buffer_celestial_bodies) > BUFFER_SIZE_CELEST_BODIES:
             self.buffer_celestial_bodies = self.buffer_celestial_bodies[BUFFER_SIZE_CELEST_BODIES:]
 
-        self.get_tile(*self.hero_coord).append("hero")
+        tile_hero = self.get_tile(*self.hero_coord)
+        if self.customer_inside is not None:
+            tile_hero.append(self.customer_inside.game_object)
+        tile_hero.append("hero")
+
         return self.tiles
+
+
+    def log_status(self):
+        print("\n" * 3)
+        if self.customer_inside is not None:
+            dest_x, dest_y = self.customer_inside.dest_coord
+            print(f"  {STR_DEST} {STR_COORDS}: ({dest_x}, {dest_y})")
+        else:
+            selected_cust = self.customer_list.get_selected_customer()
+            if selected_cust != None:
+                print(selected_cust.get_log_line_start(True))
+
+        hero_univ_x = self.hero_coord[0] + self.corner_coord[0]
+        hero_univ_y = self.hero_coord[1] + self.corner_coord[1]
+        print(f"  {STR_HERO} {STR_COORDS}: ({hero_univ_x}, {hero_univ_y})", end="")
+
+
+    def add_customers_from_beacon(self, beacon_coord):
+        beacon_compatibility = (beacon_coord[0] + 3 * beacon_coord[1]) % 64
+        customers_to_reveal = []
+        for customer in self.customers.values():
+            if customer.beacon_compatibility & beacon_compatibility:
+                customers_to_reveal.append(customer)
+        customers_to_reveal = customers_to_reveal[:2]
+
+        print("\n")
+        if not customers_to_reveal:
+            print("  " + STR_NO_INFO)
+        else:
+            for customer in customers_to_reveal:
+                self.customer_list.add_customer(customer)
+                print(customer.get_log_line_start())
 
 
     def on_game_event(self, event_name):
         offset_coord = OFFSET_FROM_DIR_STR.get(event_name)
         if offset_coord is not None:
+            self.logged_status = False
             self.hero_coord[0] += offset_coord[0]
             self.hero_coord[1] += offset_coord[1]
-            moved_corner = False
 
             if self.hero_coord[0] < HERO_LIMIT_ON_SCREEN_X1:
                 self.hero_coord[0] = HERO_LIMIT_ON_SCREEN_X1
                 self.corner_coord[0] -= 1
-                moved_corner = True
             if self.hero_coord[1] < HERO_LIMIT_ON_SCREEN_Y1:
                 self.hero_coord[1] = HERO_LIMIT_ON_SCREEN_Y1
                 self.corner_coord[1] -= 1
-                moved_corner = True
             if self.hero_coord[0] > HERO_LIMIT_ON_SCREEN_X2:
                 self.hero_coord[0] = HERO_LIMIT_ON_SCREEN_X2
                 self.corner_coord[0] += 1
-                moved_corner = True
             if self.hero_coord[1] > HERO_LIMIT_ON_SCREEN_Y2:
                 self.hero_coord[1] = HERO_LIMIT_ON_SCREEN_Y2
                 self.corner_coord[1] += 1
-                moved_corner = True
-
-            if moved_corner:
-                pass
 
             hero_univ_x = self.hero_coord[0] + self.corner_coord[0]
             hero_univ_y = self.hero_coord[1] + self.corner_coord[1]
-            if "planet_01" in self.compute_celestial_body_memoized(hero_univ_x, hero_univ_y):
-                print("🪐 !!")
+            hero_univ_coord = (hero_univ_x, hero_univ_y)
+            customer_on_hero = self.customers.get(hero_univ_coord)
 
+            if self.customer_inside is None and customer_on_hero is not None:
+                self.customer_inside = customer_on_hero
+                del self.customers[hero_univ_coord]
+                self.customer_list.remove_customer(customer_on_hero)
+                print()
+                print()
+                for log in self.customer_inside.get_talks_on_boarding():
+                    print(log)
+
+            if "beacon_customers" in self.compute_celestial_body_memoized(hero_univ_x, hero_univ_y):
+                self.add_customers_from_beacon(hero_univ_coord)
+
+            if self.customer_inside is not None and self.customer_inside.dest_coord == hero_univ_coord:
+                print("\n")
+                for log in self.customer_inside.get_talks_off_boarding():
+                    print(log)
+                # TODO : afficher le customer sur la planète
+                # durant une durée limitée de tour.
+                # TODO : gérer l'argent. Le customer paye le héros.
+                self.customer_inside = None
+
+        elif event_name == "action_1":
+            if self.prev_action != event_name:
+                self.log_status()
+
+        elif event_name == "action_2":
+            self.customer_list.cycle_selection()
+            print("\n")
+            for log_line in self.customer_list.get_customer_list_info():
+                print(log_line)
+
+        self.prev_action = event_name
 
 

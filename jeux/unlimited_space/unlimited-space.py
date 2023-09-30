@@ -78,6 +78,8 @@ STR_COORDS = "🇽 🇾"
 STR_HERO = "👽"
 STR_DEST = "🏁"
 STR_NO_INFO = "❌"
+STR_SELECT_BEG = ""
+STR_SELECT_END = "  ◀️"
 
 class Customer():
 
@@ -88,10 +90,11 @@ class Customer():
             self.game_object = "customer_01"
         else:
             self.game_object = "customer_02"
-        self.life_time = random.randint(1000, 10000)
+        self.life_time = None
         self.name = "🟩🧩"
         # possible names for customer_01 : 🎾 , 🧩 , 🦠 , 💚 , ✳️ , 🟢  , 🟩
         self.beacon_compatibility = 2 ** random.randint(1, 5)
+        self.arrived = False
 
     def get_talks_on_boarding(self):
         dest_x, dest_y = self.dest_coord
@@ -104,6 +107,89 @@ class Customer():
         return [
             f"  {self.name}: 🫶👌",
         ]
+
+    def get_log_line_start(self, selected=False):
+        x, y = self.start_coord
+        log_line = f"  {self.name} {STR_COORDS}: ({x}, {y})"
+        if selected:
+            log_line = STR_SELECT_BEG + log_line + STR_SELECT_END
+        return log_line
+
+
+class CustomerList():
+
+    def __init__(self):
+        # liste de tuple de 3 elem :
+        # distance par rapport au point (0, 0)
+        # boolean : selected ou pas.
+        # référence vers un objet Customer.
+        self.customers = []
+
+    def _get_index_selected(self):
+        for index, cust_info in enumerate(self.customers):
+            if cust_info[1]:
+                return index
+        return None
+
+    def get_selected_customer(self):
+        for dist_orig, selected, cust in self.customers:
+            if selected:
+                return cust
+        return None
+
+    def add_customer(self, customer):
+
+        for cust_info in self.customers:
+            if cust_info[2] == customer:
+                # On connait déjà ce client, on le rajoute pas.
+                return
+
+        cust_x, cust_y = customer.start_coord
+        dist_orig = cust_x**2 + cust_y**2
+        if not self.customers:
+            self.customers.append([dist_orig, True, customer])
+        else:
+            self.customers.append([dist_orig, False, customer])
+            self.customers.sort(key=lambda x:x[0])
+
+    def remove_customer(self, customer_to_remove):
+        prev_index_selected = self._get_index_selected()
+        self.customers = [
+            cust_info for cust_info in self.customers
+            if cust_info[2] != customer_to_remove
+        ]
+        cur_index_selected = self._get_index_selected()
+        if prev_index_selected is not None and cur_index_selected is None:
+            if prev_index_selected >= len(self.customers):
+                prev_index_selected = len(self.customers)-1
+            self.customers[prev_index_selected][1] = True
+
+    def cycle_selection(self):
+        index_selected = self._get_index_selected()
+        if index_selected is not None:
+            self.customers[index_selected][1] = False
+            index_selected = (index_selected + 1) % len(self.customers)
+            self.customers[index_selected][1] = True
+
+    def get_customer_list_info(self):
+        """
+        Renvoie un log de la liste, avec le customer sélectionné en dernier,
+        puis les précédents, puis on fait le tour pour afficher l'autre partie de la liste.
+        """
+        index_selected = self._get_index_selected()
+        if index_selected is not None:
+            reordered_customers = self.customers[index_selected:] + self.customers[:index_selected]
+            reordered_customers = reordered_customers[::-1]
+            logs = []
+            for cust_info in reordered_customers:
+                dist_orig, sel, cust = cust_info
+                logs.append(cust.get_log_line_start(sel))
+            return logs
+        else:
+            # On va rien logger si on a des customers alors
+            # qu'aucun d'eux n'a été sélectionné.
+            # Mais c'est pas censé arriver.
+            return ["  " + STR_NO_INFO]
 
 
 class GameModel():
@@ -125,8 +211,8 @@ class GameModel():
         self.customer_inside = None
 
         self.customers = {}
-        self.logged_status = False
-        self.latest_customer_info = []
+        self.prev_action = None
+        self.customer_list = CustomerList()
 
         self.spawn_customer(0, 20)
         self.spawn_customer(70, 200)
@@ -242,25 +328,21 @@ class GameModel():
 
 
     def log_status(self):
-        print()
-        print()
+        print("\n" * 3)
         if self.customer_inside is not None:
-            print()
-            print()
             dest_x, dest_y = self.customer_inside.dest_coord
             print(f"  {STR_DEST} {STR_COORDS}: ({dest_x}, {dest_y})")
         else:
-            # TODO : il faut éliminer de ce log
-            # les clients qu'on a déjà transportés.
-            for log_customer in self.latest_customer_info:
-                print(log_customer)
+            selected_cust = self.customer_list.get_selected_customer()
+            if selected_cust != None:
+                print(selected_cust.get_log_line_start(True))
 
         hero_univ_x = self.hero_coord[0] + self.corner_coord[0]
         hero_univ_y = self.hero_coord[1] + self.corner_coord[1]
         print(f"  {STR_HERO} {STR_COORDS}: ({hero_univ_x}, {hero_univ_y})", end="")
 
 
-    def compute_customer_info(self, beacon_coord):
+    def add_customers_from_beacon(self, beacon_coord):
         beacon_compatibility = (beacon_coord[0] + 3 * beacon_coord[1]) % 64
         customers_to_reveal = []
         for customer in self.customers.values():
@@ -268,14 +350,13 @@ class GameModel():
                 customers_to_reveal.append(customer)
         customers_to_reveal = customers_to_reveal[:2]
 
-        logs = []
-        for customer in customers_to_reveal:
-            cust_x, cust_y = customer.start_coord
-            logs.append(f"  {customer.name} {STR_COORDS}: ({cust_x}, {cust_y})")
-
-        if not logs:
-            logs.append(STR_NO_INFO)
-        return logs
+        print("\n")
+        if not customers_to_reveal:
+            print("  " + STR_NO_INFO)
+        else:
+            for customer in customers_to_reveal:
+                self.customer_list.add_customer(customer)
+                print(customer.get_log_line_start())
 
 
     def on_game_event(self, event_name):
@@ -306,22 +387,17 @@ class GameModel():
             if self.customer_inside is None and customer_on_hero is not None:
                 self.customer_inside = customer_on_hero
                 del self.customers[hero_univ_coord]
+                self.customer_list.remove_customer(customer_on_hero)
                 print()
                 print()
                 for log in self.customer_inside.get_talks_on_boarding():
                     print(log)
 
             if "beacon_customers" in self.compute_celestial_body_memoized(hero_univ_x, hero_univ_y):
-                logs = self.compute_customer_info(hero_univ_coord)
-                self.latest_customer_info = logs
-                print()
-                print()
-                for log_line in logs:
-                    print(log_line)
+                self.add_customers_from_beacon(hero_univ_coord)
 
             if self.customer_inside is not None and self.customer_inside.dest_coord == hero_univ_coord:
-                print()
-                print()
+                print("\n")
                 for log in self.customer_inside.get_talks_off_boarding():
                     print(log)
                 # TODO : afficher le customer sur la planète
@@ -329,17 +405,16 @@ class GameModel():
                 # TODO : gérer l'argent. Le customer paye le héros.
                 self.customer_inside = None
 
-        else:
-            # Bouton d'action 1 ou 2. Ça logge le status.
-            if not self.logged_status:
+        elif event_name == "action_1":
+            if self.prev_action != event_name:
                 self.log_status()
-                self.logged_status = True
 
+        elif event_name == "action_2":
+            self.customer_list.cycle_selection()
+            print("\n")
+            for log_line in self.customer_list.get_customer_list_info():
+                print(log_line)
 
-
-
-
-
-
+        self.prev_action = event_name
 
 
