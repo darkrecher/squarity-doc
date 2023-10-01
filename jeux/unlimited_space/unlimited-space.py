@@ -71,14 +71,72 @@ Pour jouer à la version actuelle du jeu "Unlimited Space" :
 http://squarity.fr/#fetchez_githubgist_darkrecher/099fdc3c77980e90b3c89d2e26cde792/raw/unlimited-space.txt
 
 
-
-
 https://ldj.am/$377455
 
 
 https://www.twitch.tv/recher_squarity
 
 
+archétypes d'extra-terrestres :
+
+## emoji générique
+  destination : 🛸
+  argent : STR_WALLET
+
+## L'extra-terrestre vert :
+
+money : entre 10 et 50
+point de départ et d'arrivée : centré sur (0, 0). amplitude 50.
+bonjour : 👋😃
+au revoir : 👋😃 🫶
+nom : deux au choix parmi :  🧩 💚 ✳️ 🟢 🟩 🍏 📗 ❎ ❇️
+conversation :
+  entre 3 et 8 parmi :
+    🎾 🧩 🦠 💚 ✳️ 🟢 🟩 🏕️ 🏜️ 🛣️ 🛤️ 🚀 🌍 🌎 🌏 🛞 😀 😃 😄 😁 😆 😅 🤣 😂 🙂 😉 😊 😇 🥰 😍 😋 😛 😜 🤪 😝 🗣️ 👤 👥 🧟 🧟‍♂️ 💐 🌹 🥀 🌻 🌱 🪴 🌲 🌳 🌴 🌵 🌾 🌿 🍀 🍃 🐸 🐢 🐍 🦕 🌞 🪐 🌟 🌠 🌌 🍈 🍏 🍐 🫒 🥑 🫑 🥒 🥬 🥦 🫛 📗 🈯 ❇️
+  entre 2 et 4 lignes de conversation, c'est lui qui commence ou c'est le héro.
+
+## Un robot (faudra refaire son apparence)
+
+money : entre 40 et 120
+point de départ : centré sur (-30, -30). amplitude 40
+point d'arrivée : centrée sur (10, 10). amplitude 40.
+bonjour : ☎️
+au revoir : ☎️
+nom : d'abord 🤖 , puis un parmi :#️⃣ *️⃣ 0️⃣ 1️⃣ 2️⃣ 3️⃣ 4️⃣ 5️⃣ 6️⃣ 7️⃣ 8️⃣ 9️⃣ 🔟 🔢 🔣
+conversation :
+  entre 2 et 5 parmi :
+    📱 📞 🦾 🦿 ☄️ 🪐 🍴 🥄 🔪 🫙 🎮 🕹️ 🎰 🚀 🛵 🦽 🦼 🛺 🚲 🛴 🛢️ ⛽ 💺 🎙️ 🎚️ 🎛️ 🎤 🎧 📻 🔈 🔊 📢 📟 📠 🔋 🪫 🔌 💻 🖥️ 🖨️ 🖱️ 🖲️ 💽 💾 💿 📀 📺 📷 📹 📼 📎 🖇️ ✂️ 🗑️ 🔨 🪓 ⛏️ ⚒️ 🛠️ 🪚 🔧 🪛 🔩 ⚙️ 🗜️ ⛓️ 🪝 🧲 🔭 🧷 🧯 🛒
+  2 lignes de conversation à chaque fois.
+
+## un poulpe volant
+
+amplitude 300
+paye pas très bien
+
+## le personnage jaune
+
+amplitude 700, mais trajet très court.
+paye très bien. ne parle que d'argent.
+
+👌
+
+## un cristal bleu
+
+parle très mal. paye pas beaucoup.
+trajet assez long. au moins 400.
+ne donne pas la somme qu'il paye avant qu'on l'embarque.
+
+Je sais vraiment pas si j'aurais le temps de faire tout ça.
+
+
+Archetype :
+ - apparence (nom de game object)
+ - nom du personnage (une string)
+ - conversation (fonctions : bonjour, on-boarding, au revoir, blabla. faut que ce soit une sous-classe)
+ - money (nombre)
+ - point de départ et d'arrivée (2 coords)
+
+On peut tout prendre du même archetype, ou bien piocher des trucs différents.
 
 """
 
@@ -121,6 +179,42 @@ STR_MONEY_FROM_VALUE = (
     (800, "👑"),
 )
 
+class Conversationer():
+
+    def __init__(self, customer):
+        self.customer = customer
+
+    def get_hello_str(self, hero_coord):
+        """
+        Renvoie None ou une string.
+        Les trucs que dit le client avant qu'on l'embarque.
+        Il y a plus de chance de parler si le héro est proche.
+        """
+        raise NotImplemented
+
+    def get_on_board_str(self):
+        """
+        Renvoie une string.
+        Ce que dit le client au moment où on l'embarque.
+        (au minimum : les coordonnées de destination)
+        """
+        raise NotImplemented
+
+    def get_goodbye_str(self):
+        """
+        Renvoie None ou une string.
+        Les trucs que dit le client quand on le dépose.
+        """
+        raise NotImplemented
+
+    def get_speak_while_traveling(self):
+        """
+        Renvoie None, ou un tuple (string, id).
+        L'id indique qui a parlé : 0: le client. 1: le héro
+        """
+        raise NotImplemented
+
+
 class Customer():
 
     def __init__(self, start_coord, dest_coord):
@@ -133,7 +227,6 @@ class Customer():
             self.game_object = "customer_02"
         self.life_time = None
         self.name = "🟩🧩"
-        # possible names for customer_01 : 🎾 , 🧩 , 🦠 , 💚 , ✳️ , 🟢  , 🟩
         self.beacon_compatibility = 2 ** random.randint(1, 5)
         self.arrived = False
 
