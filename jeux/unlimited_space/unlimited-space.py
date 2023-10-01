@@ -486,7 +486,7 @@ class RichGolden(Archetype):
         self.gamobj_appearance = "customer_rich"
         self.conversationer = ConversationerRichGolden()
         self.money = random.randint(180, 340)
-        FIRST_CHAR = "🫅 🤴 👸".split()
+        FIRST_CHAR = "☀️ 🌞 ⭐ 🌟".split()
         SEC_CHAR = "©️ ®️ ™️ 🟠 🟡 🟧 🟨 🔸 🔶".split(" ")
         self.name = random.choice(FIRST_CHAR) + random.choice(SEC_CHAR)
 
@@ -824,8 +824,17 @@ class GameModel():
                     archetype, archetype, archetype, archetype, archetype
                 ]
             else:
-                if random.randint(0, 3) == 0:
-                    # Un client bizarre qui est le mélange de deux archétypes.
+                unarchetypal = random.randint(0, 11)
+
+                if unarchetypal == 11:
+                    # Un client qui est le mélange de plein d'archétypes
+                    archetypes = []
+                    for __ in range(5):
+                        archetype_class = self.choose_archetype_class()
+                        archetypes.append(archetype_class())
+
+                elif unarchetypal > 8:
+                    # Un client qui est le mélange de deux archétypes.
                     archetype_class_1 = self.choose_archetype_class()
                     for __ in range(10):
                         archetype_class_2 = self.choose_archetype_class()
