@@ -1,11 +1,11 @@
 """
 Ludum Dare 54 : Unlimited space
 
-You are a galactic taxi-driver. Get customer, drive them to their destination, earn enough money to retire to a beautiful green and blue planet.
+You are a galactic taxi-driver. Get customers, drive them to their destination, earn enough money to retire to a beautiful green and blue planet.
 
 You can use the button or the arrow keys.
 
-Use the key "1" or the button "1" to display your status in the log, on the lower part of the screen, at the left of the arrow buttons.
+Use the key "1" or the button "1" to display your status in the log, on the lower part of the screen.
 
 The log displays :
  - your money, next to the wallet emoji "💼"
@@ -26,23 +26,12 @@ Everybody in this universe use the universal language of emoji. You may not unde
 
 # https://raw.githubusercontent.com/darkrecher/squarity-doc/master/jeux/unlimited_space/unlimited_space_tileset.png
 
-# https://i.ibb.co/LrBT7LP/unlimited-space-tileset.png
-
 # Lien vers le code actuel du jeu :
 # https://github.com/darkrecher/squarity-doc/blob/master/jeux/unlimited_space/unlimited-space.py
 
 # http://squarity.fr/#fetchez_githubgist_darkrecher/099fdc3c77980e90b3c89d2e26cde792/raw/unlimited-space.txt
 
 """
-
-
-
-Un taxi intergalactique qui transporte des extra-terrestres.
-
-Dans l'espace, y'a des balises de taxi, qui indiquent les coordonnées d'extra-terrestres en attente de transport.
-
-On gagne de l'argent à chaque course. Au bout d'une certaine somme, on met un message : "bravo, vous avez amassé suffisamment d'argent, vous pouvez prendre votre retraite, ou bien continuer de transporter des gens si ça vous plaît."
-
 
   {
     "game_area": {
@@ -58,6 +47,8 @@ On gagne de l'argent à chaque course. Au bout d'une certaine somme, on met un m
       "customer_green": [128, 0],
       "customer_rich": [160, 0],
       "customer_robot": [160, 32],
+      "customer_fuck_blue_cristal": [96, 64],
+      "customer_octopus": [128, 64],
       "beacon_customers": [32, 96],
       "speak_bubble_left": [128, 32],
       "speak_bubble_right": [96, 32],
@@ -75,70 +66,6 @@ On gagne de l'argent à chaque course. Au bout d'une certaine somme, on met un m
       "osef": [0, 0]
     }
   }
-
-
-https://www.twitch.tv/recher_squarity
-
-
-archétypes d'extra-terrestres :
-
-## emoji générique
-  destination : 🛸
-  argent : STR_WALLET
-
-## L'extra-terrestre vert :
-
-money : entre 10 et 50
-point de départ et d'arrivée : centré sur (0, 0). amplitude 50.
-bonjour : 👋😃
-au revoir : 👋😃 🫶
-nom : deux au choix parmi :  🧩 💚 ✳️ 🟢 🟩 🍏 📗 ❎ ❇️
-conversation :
-  entre 3 et 8 parmi :
-    🎾 🧩 🦠 💚 ✳️ 🟢 🟩 🏕️ 🏜️ 🛣️ 🛤️ 🚀 🌍 🌎 🌏 🛞 😀 😃 😄 😁 😆 😅 🤣 😂 🙂 😉 😊 😇 🥰 😍 😋 😛 😜 🤪 😝 🗣️ 👤 👥 🧟 🧟‍♂️ 💐 🌹 🥀 🌻 🌱 🪴 🌲 🌳 🌴 🌵 🌾 🌿 🍀 🍃 🐸 🐢 🐍 🦕 🌞 🪐 🌟 🌠 🌌 🍈 🍏 🍐 🫒 🥑 🫑 🥒 🥬 🥦 🫛 📗 🈯 ❇️
-  entre 2 et 4 lignes de conversation, c'est lui qui commence ou c'est le héro.
-
-## Un robot
-
-money : entre 40 et 120
-point de départ : centré sur (-30, -30). amplitude 40
-point d'arrivée : centrée sur (10, 10). amplitude 40.
-bonjour : ☎️
-au revoir : ☎️
-nom : d'abord 🤖 , puis un parmi :#️⃣ *️⃣ 0️⃣ 1️⃣ 2️⃣ 3️⃣ 4️⃣ 5️⃣ 6️⃣ 7️⃣ 8️⃣ 9️⃣ 🔟 🔢 🔣
-conversation :
-  entre 2 et 5 parmi :
-    📱 📞 🦾 🦿 ☄️ 🪐 🍴 🥄 🔪 🫙 🎮 🕹️ 🎰 🚀 🛵 🦽 🦼 🛺 🚲 🛴 🛢️ ⛽ 💺 🎙️ 🎚️ 🎛️ 🎤 🎧 📻 🔈 🔊 📢 📟 📠 🔋 🪫 🔌 💻 🖥️ 🖨️ 🖱️ 🖲️ 💽 💾 💿 📀 📺 📷 📹 📼 📎 🖇️ ✂️ 🗑️ 🔨 🪓 ⛏️ ⚒️ 🛠️ 🪚 🔧 🪛 🔩 ⚙️ 🗜️ ⛓️ 🪝 🧲 🔭 🧷 🧯 🛒
-  2 lignes de conversation à chaque fois.
-
-## un poulpe volant
-
-amplitude 300
-paye pas très bien
-
-## le personnage jaune
-
-amplitude 700, mais trajet très court.
-paye très bien. ne parle que d'argent.
-
-👌
-
-## un cristal bleu
-
-parle très mal. paye pas beaucoup.
-trajet assez long. au moins 400.
-ne donne pas la somme qu'il paye avant qu'on l'embarque.
-
-
-
-Archetype :
- - apparence (nom de game object)
- - nom du personnage (une string)
- - conversation (fonctions : bonjour, on-boarding, au revoir, blabla. faut que ce soit une sous-classe)
- - money (nombre)
- - point de départ et d'arrivée (2 coords)
-
-On peut tout prendre du même archetype, ou bien piocher des trucs différents.
 
 """
 
@@ -177,13 +104,12 @@ STR_MONEY_FROM_VALUE = (
     (80, "💴"),
     (100, "💰"),
     (200, "💎"),
-    # TODO
-    # (500, "🏆"),
-    (500, "👑"),
+    (500, "🏆"),
+    (800, "👑"),
 )
 
 LIFE_TIME_SPEAK_BUBBLE = 5
-MONEY_TO_WIN = 500 # TODO : put that to 800 when we have more customer archetypes.
+MONEY_TO_WIN = 800
 STR_WIN_1 = "  🎆 🎉 ✨ 🌍 !!!!!"
 STR_WIN_2 = "  💖 ✨ 🤩 🎉 🎊 🎇 🏖️ 🏝️ 🏞️"
 
@@ -472,7 +398,7 @@ class RoboticMachine(Archetype):
     def __init__(self):
         self.gamobj_appearance = "customer_robot"
         self.conversationer = ConversationerRoboticMachine()
-        self.money = random.randint(40, 120)
+        self.money = random.randint(80, 160)
         CHAR_NAME = "#️⃣ *️⃣ 0️⃣ 1️⃣ 2️⃣ 3️⃣ 4️⃣ 5️⃣ 6️⃣ 7️⃣ 8️⃣ 9️⃣ 🔟 🔢 🔣".split(" ")
         self.name = "🤖" + random.choice(CHAR_NAME)
 
@@ -484,6 +410,180 @@ class RoboticMachine(Archetype):
             return
         dest_x = random.randint(-30, +50)
         dest_y = random.randint(-30, +50)
+        self.dest_coord = CelestialObjGen.find_planet_around(dest_x, dest_y)
+        if self.dest_coord is None:
+            return
+        if self.start_coord == self.dest_coord:
+            return
+        self.is_coord_valid = True
+
+
+class ConversationerRichGolden(Conversationer):
+
+    def __init__(self):
+        self.said_hello = False
+        self.words_alien = "💷 💴 💰 💎 🏆 🔏 🔐 🔑 🛳️ ⛴️ 🛥️ 🏯 🏰 💒 🕌".split()
+        self.words_hero = "🕸️ 🟤 ⚪ 🟡 🪙 💵".split()
+        self.reset_conversation()
+
+
+    def reset_conversation(self):
+        self.conversation_delay = -random.randint(20, 50)
+        self.current_speaker = 1
+        self.conv_length = 19
+
+
+    def get_hello_str(self, hero_univ_coord):
+        if self.customer.arrived:
+            return []
+        if self.compute_dist_from_hero(hero_univ_coord) > 2:
+            self.said_hello = False
+            return []
+        if self.said_hello:
+            return []
+        if random.randint(0, 10) >= 9:
+            return []
+
+        self.said_hello = True
+        money_str = get_money_str(self.customer.money)
+        return [
+            f"🤌🫰🤌 {STR_WALLET}: {money_str}",
+        ]
+
+
+    def get_on_board_str(self):
+        return ["😎💨"]
+
+
+    def get_goodbye_str(self):
+        return ["👌👌"]
+
+
+    def get_speak_while_traveling(self):
+        self.conversation_delay += 1
+        if self.conversation_delay >= self.conv_length:
+            self.reset_conversation()
+            return None
+
+        if self.conversation_delay >= 0 and self.conversation_delay % 5 == 0:
+            self.current_speaker = [1, 0][self.current_speaker]
+
+            if self.current_speaker == 1:
+                cur_words = self.words_hero
+                conv_length = random.randint(2, 5)
+            else:
+                cur_words = self.words_alien
+                conv_length = random.randint(5, 9)
+            talk_line = "".join((random.choice(cur_words) for _ in range(conv_length)))
+            return (talk_line, self.current_speaker)
+        else:
+            return None
+
+
+class RichGolden(Archetype):
+
+    def __init__(self):
+        self.gamobj_appearance = "customer_rich"
+        self.conversationer = ConversationerRichGolden()
+        self.money = random.randint(180, 340)
+        FIRST_CHAR = "🫅 🤴 👸".split()
+        SEC_CHAR = "©️ ®️ ™️ 🟠 🟡 🟧 🟨 🔸 🔶".split(" ")
+        self.name = random.choice(FIRST_CHAR) + random.choice(SEC_CHAR)
+
+        self.is_coord_valid = False
+        start_x = random.randint(-700, +700)
+        start_y = random.randint(-700, +700)
+        self.start_coord = CelestialObjGen.find_planet_around(start_x, start_y)
+        if self.start_coord is None:
+            return
+        dest_x = random.randint(start_x-20, start_x+20)
+        dest_y = random.randint(start_y-20, start_y+20)
+        self.dest_coord = CelestialObjGen.find_planet_around(dest_x, dest_y)
+        if self.dest_coord is None:
+            return
+        if self.start_coord == self.dest_coord:
+            return
+        self.is_coord_valid = True
+
+
+class ConversationerFuckingBlueCrystal(Conversationer):
+
+    def __init__(self):
+        self.said_hello = False
+        self.words = "🙁 😮 😲 😳 🥺 😦 😭 😱 😖 😣 😩 😫 😤 😡 😠 🤬 👿 😈 👿 💀 ☠️ 💩 🦷 🦴 👅".split()
+        self.reset_conversation()
+
+
+    def reset_conversation(self):
+        self.conversation_delay = -random.randint(30, 60)
+        self.current_speaker = 0
+        self.conv_length = 1
+
+
+    def get_hello_str(self, hero_univ_coord):
+        if self.customer.arrived:
+            return []
+        if self.compute_dist_from_hero(hero_univ_coord) > 2:
+            self.said_hello = False
+            return []
+        if self.said_hello:
+            return []
+        if random.randint(0, 10) >= 9:
+            return []
+
+        self.said_hello = True
+        return [
+            f"🫵👊 💼: 💎💎💎💎",
+        ]
+
+
+    def get_on_board_str(self):
+        return ["🖕🖕🖕"]
+
+
+    def get_goodbye_str(self):
+        return ["🖕🖕🖕🖕🖕"]
+
+
+    def get_speak_while_traveling(self):
+        self.conversation_delay += 1
+        if self.conversation_delay >= self.conv_length:
+            self.reset_conversation()
+            return None
+
+        if self.conversation_delay >= 0 and self.conversation_delay % 5 == 0:
+            self.current_speaker = 0
+            conv_length = random.randint(3, 8)
+            talk_line = "".join((random.choice(self.words) for _ in range(conv_length)))
+            return (talk_line, self.current_speaker)
+        else:
+            return None
+
+
+class FuckingBlueCrystal(Archetype):
+
+    def __init__(self):
+        self.gamobj_appearance = "customer_fuck_blue_cristal"
+        self.conversationer = ConversationerFuckingBlueCrystal()
+        self.money = random.randint(2, 20)
+        NAME_CHAR = "💩 🤮 🧻 🤢 🔧 🗑️ 🗞️ 🪠 🪣".split()
+        self.name = "🔷" +  random.choice(NAME_CHAR)
+
+        self.is_coord_valid = False
+        start_x = random.randint(-200, +200)
+        start_y = random.randint(-200, +200)
+        self.start_coord = CelestialObjGen.find_planet_around(start_x, start_y)
+        if self.start_coord is None:
+            return
+        if random.randint(0, 1) == 0:
+            dest_x = random.randint(start_x-350, start_x-320)
+        else:
+            dest_x = random.randint(start_x+320, start_x+350)
+        if random.randint(0, 1) == 0:
+            dest_y = random.randint(start_y-350, start_y-320)
+        else:
+            dest_y = random.randint(start_y+320, start_y+350)
+
         self.dest_coord = CelestialObjGen.find_planet_around(dest_x, dest_y)
         if self.dest_coord is None:
             return
@@ -671,7 +771,10 @@ class GameModel():
         self.spawn_customer(SympatheticGreenAlienNear)
         self.spawn_customer(SympatheticGreenAlien)
         self.spawn_customer(RoboticMachine)
-        for _ in range(7):
+        self.spawn_customer(RichGolden)
+        self.spawn_customer(FuckingBlueCrystal)
+
+        for _ in range(5):
             self.spawn_customer()
 
         self.spawn_timer = 10000
@@ -695,7 +798,11 @@ class GameModel():
         return random.choice(
             (
                 SympatheticGreenAlien,
+                SympatheticGreenAlien,
                 RoboticMachine,
+                RoboticMachine,
+                RichGolden,
+                FuckingBlueCrystal,
             )
         )
 
@@ -717,7 +824,7 @@ class GameModel():
                     archetype, archetype, archetype, archetype, archetype
                 ]
             else:
-                if random.randint(0, 3) > 0: # TODO : == 0
+                if random.randint(0, 3) == 0:
                     # Un client bizarre qui est le mélange de deux archétypes.
                     archetype_class_1 = self.choose_archetype_class()
                     for __ in range(10):
@@ -732,7 +839,6 @@ class GameModel():
                         archetypes = [archetype_1, archetype_2, archetype_2]
                     archetypes.append(random.choice((archetype_1, archetype_2)))
                     archetypes.append(random.choice((archetype_1, archetype_2)))
-                    # print("Debug created a weird customer !!")
 
                 else:
                     # Un client archétypal simple.
@@ -749,10 +855,8 @@ class GameModel():
             if archetype_coords.is_coord_valid:
                 # On vérifie que les coordonnées ne se confondent pas avec un customer existant.
                 if archetype_coords.start_coord not in forbidden_coords and archetype_coords.dest_coord not in forbidden_coords:
-                    # print("Debug and it is valid !!")
                     coord_ok = True
                     break
-            # print("debug or not")
 
         if not coord_ok:
             # Fail spawn du customer. Tant pis !
