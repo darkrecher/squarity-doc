@@ -33,130 +33,28 @@ https://raw.githubusercontent.com/darkrecher/squarity-doc/master/jeux/unlimited_
   }
 --------
 """
-# Ludum Dare 54 : Limited space
+Ludum Dare 54 : Unlimited space
 
-# Unlimited space (ha ha ha).
+You are a galactic taxi-driver. Get customer, drive them to their destination, earn enough money to retire to a beautiful green and blue planet.
 
-Un taxi intergalactique qui transporte des extra-terrestres.
+You can use the button or the arrow keys.
 
-Dans l'espace, y'a des balises de taxi, qui indiquent les coordonnées d'extra-terrestres en attente de transport.
+Use the key "1" or the button "1" to display your status in the log, on the lower part of the screen, at the left of the arrow buttons.
 
-On gagne de l'argent à chaque course. Au bout d'une certaine somme, on met un message : "bravo, vous avez amassé suffisamment d'argent, vous pouvez prendre votre retraite, ou bien continuer de transporter des gens si ça vous plaît."
+The log displays :
+ - your money, next to the wallet emoji "💼"
+ - your current coordinates, next to your head "👽"
+ - the coordinates of your objective.
 
- - dessiner 2 extra-terrestres et une balise spatiale
- - générer les positions de 10 extra-terrestres (avec des noms en emoji).
- - une balise indique, au hasard, entre 2 et 4 extra-terrestres parmi les 10.
- - gérer la récupération et le dépôt d'un extra-terrestre.
+Don't have an objective yet ? Move around and find radars. Some of them will tell you customers coordinates.
 
-  {
-    "game_area": {
-        "nb_tile_width": 11,
-        "nb_tile_height": 11
-    },
-    "tile_size": 32,
-    "img_coords": {
-      "bg": [0, 0],
-      "hero": [32, 0],
-      "scenery_01": [64, 0],
-      "planet_01": [96, 0],
-      "customer_green": [128, 0],
-      "customer_rich": [160, 0],
-      "customer_robot": [160, 32],
-      "beacon_customers": [32, 96],
-      "speak_bubble_left": [128, 32],
-      "speak_bubble_right": [96, 32],
+Use the button "2" to show and cycle through the list of your known customers.
 
-      "win_0_0": [96, 96],
-      "win_1_0": [128, 96],
-      "win_2_0": [160, 96],
-      "win_0_1": [96, 128],
-      "win_1_1": [128, 128],
-      "win_2_1": [160, 128],
-      "win_0_2": [96, 160],
-      "win_1_2": [128, 160],
-      "win_2_2": [160, 160],
+When you get a crown in your wallet, you have enough money to retire. Go back to the coordinates (0, 0) and win !
 
-      "osef": [0, 0]
-    }
-  }
+Some customers pay well, some others not. Some customers want to go far, some others not. You can guess it from their name, appearance and dialogues... Or not. Some customers may not exactly corresponds to their supposed stereotypes.
 
-
-
-
-http://squarity.fr/#fetchez_githubgist_darkrecher/099fdc3c77980e90b3c89d2e26cde792/raw/unlimited-space.txt
-
-
-Pour jouer à la version actuelle du jeu "Unlimited Space" :
-
-http://squarity.fr/#fetchez_githubgist_darkrecher/099fdc3c77980e90b3c89d2e26cde792/raw/unlimited-space.txt
-
-
-https://ldj.am/$377455
-
-
-https://www.twitch.tv/recher_squarity
-
-
-archétypes d'extra-terrestres :
-
-## emoji générique
-  destination : 🛸
-  argent : STR_WALLET
-
-## L'extra-terrestre vert :
-
-money : entre 10 et 50
-point de départ et d'arrivée : centré sur (0, 0). amplitude 50.
-bonjour : 👋😃
-au revoir : 👋😃 🫶
-nom : deux au choix parmi :  🧩 💚 ✳️ 🟢 🟩 🍏 📗 ❎ ❇️
-conversation :
-  entre 3 et 8 parmi :
-    🎾 🧩 🦠 💚 ✳️ 🟢 🟩 🏕️ 🏜️ 🛣️ 🛤️ 🚀 🌍 🌎 🌏 🛞 😀 😃 😄 😁 😆 😅 🤣 😂 🙂 😉 😊 😇 🥰 😍 😋 😛 😜 🤪 😝 🗣️ 👤 👥 🧟 🧟‍♂️ 💐 🌹 🥀 🌻 🌱 🪴 🌲 🌳 🌴 🌵 🌾 🌿 🍀 🍃 🐸 🐢 🐍 🦕 🌞 🪐 🌟 🌠 🌌 🍈 🍏 🍐 🫒 🥑 🫑 🥒 🥬 🥦 🫛 📗 🈯 ❇️
-  entre 2 et 4 lignes de conversation, c'est lui qui commence ou c'est le héro.
-
-## Un robot (faudra refaire son apparence)
-
-money : entre 40 et 120
-point de départ : centré sur (-30, -30). amplitude 40
-point d'arrivée : centrée sur (10, 10). amplitude 40.
-bonjour : ☎️
-au revoir : ☎️
-nom : d'abord 🤖 , puis un parmi :#️⃣ *️⃣ 0️⃣ 1️⃣ 2️⃣ 3️⃣ 4️⃣ 5️⃣ 6️⃣ 7️⃣ 8️⃣ 9️⃣ 🔟 🔢 🔣
-conversation :
-  entre 2 et 5 parmi :
-    📱 📞 🦾 🦿 ☄️ 🪐 🍴 🥄 🔪 🫙 🎮 🕹️ 🎰 🚀 🛵 🦽 🦼 🛺 🚲 🛴 🛢️ ⛽ 💺 🎙️ 🎚️ 🎛️ 🎤 🎧 📻 🔈 🔊 📢 📟 📠 🔋 🪫 🔌 💻 🖥️ 🖨️ 🖱️ 🖲️ 💽 💾 💿 📀 📺 📷 📹 📼 📎 🖇️ ✂️ 🗑️ 🔨 🪓 ⛏️ ⚒️ 🛠️ 🪚 🔧 🪛 🔩 ⚙️ 🗜️ ⛓️ 🪝 🧲 🔭 🧷 🧯 🛒
-  2 lignes de conversation à chaque fois.
-
-## un poulpe volant
-
-amplitude 300
-paye pas très bien
-
-## le personnage jaune
-
-amplitude 700, mais trajet très court.
-paye très bien. ne parle que d'argent.
-
-👌
-
-## un cristal bleu
-
-parle très mal. paye pas beaucoup.
-trajet assez long. au moins 400.
-ne donne pas la somme qu'il paye avant qu'on l'embarque.
-
-Je sais vraiment pas si j'aurais le temps de faire tout ça.
-
-
-Archetype :
- - apparence (nom de game object)
- - nom du personnage (une string)
- - conversation (fonctions : bonjour, on-boarding, au revoir, blabla. faut que ce soit une sous-classe)
- - money (nombre)
- - point de départ et d'arrivée (2 coords)
-
-On peut tout prendre du même archetype, ou bien piocher des trucs différents.
+Everybody in this universe use the universal language of emoji. You may not understand everything, try to deal with it as best as you can !
 
 """
 
@@ -195,12 +93,27 @@ STR_MONEY_FROM_VALUE = (
     (80, "💴"),
     (100, "💰"),
     (200, "💎"),
-    (500, "🏆"),
-    (800, "👑"),
+    # TODO
+    # (500, "🏆"),
+    (500, "👑"),
 )
 
 LIFE_TIME_SPEAK_BUBBLE = 5
+MONEY_TO_WIN = 500 # TODO : put that to 800 when we have more customer archetypes.
+STR_WIN_1 = "  🎆 🎉 ✨ 🌍 !!!!!"
+STR_WIN_2 = "  💖 ✨ 🤩 🎉 🎊 🎇 🏖️ 🏝️ 🏞️"
 
+DICT_WIN = {
+    (-1, -1): "win_0_0",
+    (0, -1): "win_1_0",
+    (+1, -1): "win_2_0",
+    (-1, 0): "win_0_1",
+    (0, 0): "win_1_1",
+    (+1, 0): "win_2_1",
+    (-1, +1): "win_0_2",
+    (0, +1): "win_1_2",
+    (+1, +1): "win_2_2",
+}
 
 # C'est dégueux d'initialiser ça ici, mais j'ai pas le temps.
 global_game_seed = str(random.randint(0, 1000000000))
@@ -414,6 +327,87 @@ class SympatheticGreenAlienNear(SympatheticGreenAlien):
         super().__init__(15, 30)
 
 
+class ConversationerRoboticMachine(Conversationer):
+
+    def __init__(self):
+        self.said_hello = False
+        self.words = "📱 📞 🦾 🦿 ☄️ 🪐 🍴 🥄 🔪 🫙 🎮 🕹️ 🎰 🚀 🛵 🦽 🦼 🛺 🚲 🛴 🛢️ ⛽ 💺 🎙️ 🎚️ 🎛️ 🎤 🎧 📻 🔈 🔊 📢 📟 📠 🔋 🪫 🔌 💻 🖥️ 🖨️ 🖱️ 🖲️ 💽 💾 💿 📀 📺 📷 📹 📼 📎 🖇️ ✂️ 🗑️ 🔨 🪓 ⛏️ ⚒️ 🛠️ 🪚 🔧 🪛 🔩 ⚙️ 🗜️ ⛓️ 🪝 🧲 🔭 🧷 🧯 🛒".split()
+        self.reset_conversation()
+
+
+    def reset_conversation(self):
+        self.conversation_delay = -random.randint(30, 50)
+        self.current_speaker = random.randint(0, 1)
+        self.conv_length = 10
+
+
+    def get_hello_str(self, hero_univ_coord):
+        if self.customer.arrived:
+            return []
+        if self.compute_dist_from_hero(hero_univ_coord) > 2:
+            self.said_hello = False
+            return []
+        if self.said_hello:
+            return []
+        if random.randint(0, 10) >= 7:
+            return []
+
+        self.said_hello = True
+        dest_x, dest_y = self.customer.dest_coord
+        return [
+            f"🔊",
+            f"🛸 ({dest_x}, {dest_y})",
+        ]
+
+
+    def get_on_board_str(self):
+        return ["🦾🛴"]
+
+
+    def get_goodbye_str(self):
+        return ["📞☎️📱"]
+
+
+    def get_speak_while_traveling(self):
+        self.conversation_delay += 1
+        if self.conversation_delay >= self.conv_length:
+            self.reset_conversation()
+            return None
+
+        if self.conversation_delay >= 0 and self.conversation_delay % 7 == 0:
+            self.current_speaker = [1, 0][self.current_speaker]
+            conv_length = random.randint(2, 5)
+            talk_line = "".join((random.choice(self.words) for _ in range(conv_length)))
+            return (talk_line, self.current_speaker)
+        else:
+            return None
+
+
+class RoboticMachine(Archetype):
+
+    def __init__(self):
+        self.gamobj_appearance = "customer_robot"
+        self.conversationer = ConversationerRoboticMachine()
+        self.money = random.randint(40, 120)
+        CHAR_NAME = "#️⃣ *️⃣ 0️⃣ 1️⃣ 2️⃣ 3️⃣ 4️⃣ 5️⃣ 6️⃣ 7️⃣ 8️⃣ 9️⃣ 🔟 🔢 🔣".split(" ")
+        self.name = "🤖" + random.choice(CHAR_NAME)
+
+        self.is_coord_valid = False
+        start_x = random.randint(-70, +10)
+        start_y = random.randint(-70, +10)
+        self.start_coord = CelestialObjGen.find_planet_around(start_x, start_y)
+        if self.start_coord is None:
+            return
+        dest_x = random.randint(-30, +50)
+        dest_y = random.randint(-30, +50)
+        self.dest_coord = CelestialObjGen.find_planet_around(dest_x, dest_y)
+        if self.dest_coord is None:
+            return
+        if self.start_coord == self.dest_coord:
+            return
+        self.is_coord_valid = True
+
+
 class Customer():
 
     def __init__(self, single_archetype=None, archetypes=[]):
@@ -591,11 +585,13 @@ class GameModel():
         self.customer_list = CustomerList()
 
         self.spawn_customer(SympatheticGreenAlienNear)
-        for _ in range(4):
-            self.spawn_customer(SympatheticGreenAlien)
-        for _ in range(5):
-            self.spawn_customer(SympatheticGreenAlien)
+        self.spawn_customer(SympatheticGreenAlien)
+        self.spawn_customer(RoboticMachine)
+        for _ in range(7):
+            self.spawn_customer()
+
         self.spawn_timer = 10000
+        self.dict_gamobjs_win = {}
 
 
     def get_tile(self, x, y):
@@ -611,25 +607,74 @@ class GameModel():
         return celest_bod
 
 
+    def choose_archetype_class(self):
+        return random.choice(
+            (
+                SympatheticGreenAlien,
+                RoboticMachine,
+            )
+        )
+
+
     def spawn_customer(self, single_archetype_class=None):
+
         random.seed()
-        if single_archetype_class is None:
-            raise Exception("TODO : code the archetypes selection, you dumb !!")
         forbidden_coords = []
         for cust in self.customers.values():
             forbidden_coords.append(cust.start_coord)
             forbidden_coords.append(cust.dest_coord)
+        coord_ok = False
 
         for _ in range(5):
-            single_archetype = single_archetype_class()
-            if single_archetype.is_coord_valid:
+
+            if single_archetype_class is not None:
+                archetype = single_archetype_class()
+                archetypes = [
+                    archetype, archetype, archetype, archetype, archetype
+                ]
+            else:
+                if random.randint(0, 3) > 0: # TODO : == 0
+                    # Un client bizarre qui est le mélange de deux archétypes.
+                    archetype_class_1 = self.choose_archetype_class()
+                    for __ in range(10):
+                        archetype_class_2 = self.choose_archetype_class()
+                        if archetype_class_1 != archetype_class_2:
+                            break
+                    archetype_1 = archetype_class_1()
+                    archetype_2 = archetype_class_2()
+                    if random.randint(0, 1) == 0:
+                        archetypes = [archetype_1, archetype_1, archetype_2]
+                    else:
+                        archetypes = [archetype_1, archetype_2, archetype_2]
+                    archetypes.append(random.choice((archetype_1, archetype_2)))
+                    archetypes.append(random.choice((archetype_1, archetype_2)))
+                    # print("Debug created a weird customer !!")
+
+                else:
+                    # Un client archétypal simple.
+                    single_archetype_class = self.choose_archetype_class()
+                    archetype = single_archetype_class()
+                    archetypes = [
+                        archetype, archetype, archetype, archetype, archetype
+                    ]
+
+            # Porcasse, parce que le "3", il vient de la manière
+            # dont c'est unpackée dans la classe Customer.
+            # Ça mériterait d'être factorisé.
+            archetype_coords = archetypes[3]
+            if archetype_coords.is_coord_valid:
                 # On vérifie que les coordonnées ne se confondent pas avec un customer existant.
-                if single_archetype.start_coord not in forbidden_coords and single_archetype.dest_coord not in forbidden_coords:
+                if archetype_coords.start_coord not in forbidden_coords and archetype_coords.dest_coord not in forbidden_coords:
+                    # print("Debug and it is valid !!")
+                    coord_ok = True
                     break
+            # print("debug or not")
+
+        if not coord_ok:
             # Fail spawn du customer. Tant pis !
             return None
 
-        new_customer = Customer(single_archetype)
+        new_customer = Customer(archetypes=archetypes)
         self.customers[new_customer.start_coord] = new_customer
         return new_customer
 
@@ -643,6 +688,9 @@ class GameModel():
                 y_univ = self.corner_coord[1] + y
                 tile_current = self.get_tile(x, y)
                 tile_current[:] = self.compute_celestial_body_memoized(x_univ, y_univ)
+                gamobj_win = self.dict_gamobjs_win.get((x_univ, y_univ))
+                if gamobj_win is not None:
+                    tile_current.append(gamobj_win)
                 customer = self.customers.get((x_univ, y_univ))
 
                 if add_speak_bubble:
@@ -697,7 +745,7 @@ class GameModel():
         beacon_compatibility = (beacon_coord[0] + 3 * beacon_coord[1]) % 64
         customers_to_reveal = []
         for customer in self.customers.values():
-            if customer.beacon_compatibility & beacon_compatibility:
+            if not customer.arrived and customer.beacon_compatibility & beacon_compatibility:
                 customers_to_reveal.append(customer)
         customers_to_reveal = customers_to_reveal[:2]
 
@@ -770,11 +818,19 @@ class GameModel():
                     cust_coord = self.customer_inside.start_coord
                     self.customers[cust_coord] = self.customer_inside
                     self.customer_inside = None
+                    if self.money >= MONEY_TO_WIN:
+                        print()
+                        print(STR_WIN_1)
+                        self.dict_gamobjs_win = DICT_WIN
                 else:
                     talk_result = self.customer_inside.get_speak_while_traveling()
                     if talk_result is not None:
                         print()
                         print(talk_result[0], end="")
+
+            if hero_univ_coord == (0, 0) and self.money >= MONEY_TO_WIN:
+                print()
+                print(STR_WIN_2)
 
         elif event_name == "action_1":
             if self.prev_action != event_name:
@@ -806,8 +862,7 @@ class GameModel():
             self.spawn_timer -= (12-len(self.customers)) ** 2
 
         if self.spawn_timer <= 0:
-            # TODO : spawn random customers.
-            self.spawn_customer(SympatheticGreenAlien)
+            self.spawn_customer()
             self.spawn_timer += 10000
 
 
