@@ -1,12 +1,7 @@
 # L'image social site web etc.
 
-
-
-
-
-
-
 Kawax
+
 
 ## Résumé
 
@@ -19,6 +14,7 @@ Sur 40 commentaires, écrit par 34 personnes :
 
 Ce résumé a été écrit (à priori) par un vrai humain et non par une IA.
 
+
 ## Hi-Score
 
 Alice__ 1450
@@ -27,6 +23,7 @@ Guybrush 1320
 NotLilith 580
 Darkrecher 150
 Lickyd Oom 30
+
 
 ## Badges
 
@@ -39,37 +36,23 @@ en-dessous : "Il reste 5 badges cachés. Gagnez les badges en cours pour les ré
 
 ## Dérivés
 
-Le jeu original. Dérivé en un autre jeu avec plus de niveaux.
+1. Idée: un Match sum(x) au lieu d'un Match-3. _Voklaron_
 
-Il provient d'un jeu avec une fonctionnalité en moins (ajout de l'objet "touillette").
+2. Première version du jeu. _Darkrecher_
 
-Et d'un autre jeu avec un tileset différent.
+3. Tileset. _Tacheul_
 
-Et y'a encore un autre tileset.
+4. Récupération du tileset. _Darkrecher_
 
-Et au tout début y'a juste une idée : et si on faisait un Match sum(x) au lieu de faire un Match-3 ??
+5. Ajout de l'objet Touillette. _Toutouyou_
 
+6. Ajout du mode "histoire". _Lickyd Oom_
 
+7. Fusion des deux jeux. _osef_
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+     3
+     |        5
+     v      /   \
+1 -> 2 -> 4       7
+            \   /
+              6
