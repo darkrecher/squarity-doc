@@ -56,3 +56,11 @@ en-dessous : "Il reste 5 badges cachés. Gagnez les badges en cours pour les ré
 1 -> 2 -> 4       7
             \   /
               6
+
+
+## Temps d'intervalle entre les images
+
+150 150 150 50 50 50 50 200
+150 200 50 50 20 20 20 200
+200 50 200 50 200 50 300
+
