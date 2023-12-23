@@ -205,40 +205,45 @@ class RoadMapConverter:
         if complete_sub_id not in self.done_sub_chapter_ids:
             html_class += "-undone"
 
+        # Gestion des carrés de type "vision"
+        # (on n'en n'a pas besoin pour l'instant, car
+        # les gifs ne sont pas encore prêtes, mais ça sera utile plus tard)
+        # if title.startswith("Vision :"):
+        #     title = title[len("Vision :") :]
+        #     gif_vision = self.vision_gif_files[complete_sub_id]
+        #     subchapter_json_data = {
+        #         "key": complete_sub_id,
+        #         "rank": "vision",
+        #         "html_class": html_class,
+        #         "title": title.strip(),
+        #         "gif_vision": gif_vision,
+        #     }
+        # else:
+        description = sub_chapter_text.strip()
         if title.startswith("Vision :"):
-            title = title[len("Vision :") :]
-            gif_vision = self.vision_gif_files[complete_sub_id]
-            subchapter_json_data = {
-                "key": complete_sub_id,
-                "rank": "vision",
-                "html_class": html_class,
-                "title": title.strip(),
-                "gif_vision": gif_vision,
-            }
-        else:
-            description = sub_chapter_text.strip()
-            subchapter_json_data = {
-                "key": complete_sub_id,
-                "rank": "normal",
-                "html_class": html_class,
-                "title": title.strip(),
-                "description": description,
-            }
+            description = "Ce carré est censé afficher une gif animée, mais on verra ça plus tard.\nCi-dessous, description de l'hypothétique gif.\n\n" + description
+        subchapter_json_data = {
+            "key": complete_sub_id,
+            "rank": "normal",
+            "html_class": html_class,
+            "title": title.strip(),
+            "description": description,
+        }
 
-            descrip_lines = description.split("\n")
-            last_line = descrip_lines[-1]
-            if last_line.startswith("http") and "//" in last_line:
-                index_line_descrip = len(descrip_lines) - 2
-                before_last_line = None
-                while before_last_line is None:
-                    if descrip_lines[index_line_descrip].strip():
-                        before_last_line = descrip_lines[index_line_descrip].strip()
-                    index_line_descrip -= 1
-                subchapter_json_data["link_text"] = before_last_line
-                subchapter_json_data["link_url"] = last_line
-                subchapter_json_data["description"] = "\n".join(
-                    descrip_lines[:index_line_descrip] + [""]
-                )
+        descrip_lines = description.split("\n")
+        last_line = descrip_lines[-1]
+        if last_line.startswith("http") and "//" in last_line:
+            index_line_descrip = len(descrip_lines) - 2
+            before_last_line = None
+            while before_last_line is None:
+                if descrip_lines[index_line_descrip].strip():
+                    before_last_line = descrip_lines[index_line_descrip].strip()
+                index_line_descrip -= 1
+            subchapter_json_data["link_text"] = before_last_line
+            subchapter_json_data["link_url"] = last_line
+            subchapter_json_data["description"] = "\n".join(
+                descrip_lines[:index_line_descrip] + [""]
+            )
 
         return subchapter_json_data
 
