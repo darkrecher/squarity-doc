@@ -156,21 +156,21 @@ HARDCODED_SQUARE_DEFINITIONS = [
         "rank": "superior",
         "html_class": "promo superior-square",
         "title": "Contenu\n\nJeux\n\nPromotion",
-        "gif_vision": "test_vision",
+        "gif_vision": "content_games",
     },
     {
         "key": "s00",
         "rank": "superior",
         "html_class": "social superior-square",
         "title": "\nSocial\n\nSite web",
-        "gif_vision": "test_vision",
+        "gif_vision": "social_web",
     },
     {
         "key": "o00",
         "rank": "superior",
         "html_class": "optim superior-square",
         "title": "Auto-formation\n\nOptimisation",
-        "gif_vision": "test_vision",
+        "gif_vision": "explode_head",
     },
 ]
 
@@ -221,7 +221,7 @@ class RoadMapConverter:
         # else:
         description = sub_chapter_text.strip()
         if title.startswith("Vision :"):
-            description = "Ce carré est censé afficher une gif animée, mais on verra ça plus tard.\nCi-dessous, description de l'hypothétique gif.\n\n" + description
+            description = "Ce carré est censé afficher une gif animée, mais on verra ça plus tard. Ci-dessous, description de l'hypothétique gif.\n\n" + description
         subchapter_json_data = {
             "key": complete_sub_id,
             "rank": "normal",
