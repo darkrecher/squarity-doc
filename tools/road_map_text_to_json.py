@@ -110,9 +110,6 @@ HARDCODED_SQUARE_DEFINITIONS = [
         "Aucun ordre précis ne peut être déduit.\n\n"
         "Les carrés de couleurs vives sont des fonctionnalités déjà faites (pour l'instant, il y en a assez peu...). "
         "Ceux de couleurs ternes sont des fonctionnalités à développer.\n\n"
-        "Certains carrés afficheront des gif animés montrant des screenshot hypothétique de Squarity.\n"
-        "Pour l'instant ces gifs ne sont pas finis, il faudra attendre encore un peu.\n"
-        "La première étape de la road-map est de finir la road-map.\n\n",
         "link_url": "https://github.com/darkrecher/squarity-doc/blob/master/road_map.md",
         "link_text": "Lien vers la road-map en version texte, pour une lecture détaillée plus facile.",
     },

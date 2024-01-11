@@ -16,7 +16,7 @@ Pour créer un jeu, il faut définir trois composants :
 
 Il s'agit d'une image, au format jpg, png ou autre, contenant les éléments (décors, personnages, objets) de votre jeu. En voici quelques exemples :
 
-![https://squarity.pythonanywhere.com/img/h2o_tileset.c174edea.png](https://squarity.pythonanywhere.com/img/h2o_tileset.c174edea.png)
+![https://raw.githubusercontent.com/darkrecher/squarity-doc/master/jeux/h2o/h2o_tileset.png](https://raw.githubusercontent.com/darkrecher/squarity-doc/master/jeux/h2o/h2o_tileset.png)
 
 ![https://opengameart.org/sites/default/files/HighContrastRoguelikeCastle.png](https://opengameart.org/sites/default/files/HighContrastRoguelikeCastle.png)
 
@@ -44,7 +44,7 @@ Exemple de configuration de jeu :
 
     {
         "tile_size": 32,
-        "tile_coords": {
+        "img_coords": {
             "X": [0, 0],
             ".": [32, 0],
             "H": [64, 0],
@@ -64,7 +64,7 @@ La configuration est structurée comme ceci :
 
  - l'élément principal est un dictionnaire (une "correspondance"), contenant deux sous-éléments :
    - le premier a pour clé `tile_size`, et pour valeur un nombre. Ce nombre correspond à la taille, en pixels, de chacun des éléments du jeu, tel que vous les avez dessinés dans votre tileset.
-   - le suivant a pour clé `tile_coords`, et pour valeur un sous-dictionnaire, contenant plusieurs sous-éléments :
+   - le suivant a pour clé `img_coords`, et pour valeur un sous-dictionnaire, contenant plusieurs sous-éléments :
      - chacun de ces sous-éléments a pour clé un texte (de un ou plusieurs caractères), correspondant à un nom d'objet dans votre jeu. La valeur est une liste de deux nombres, indiquant les coordonnées du coin supérieur gauche, dans le tileset, de l'image de cet objet du jeu.
 
 
@@ -74,12 +74,19 @@ Il s'agit d'un texte écrit dans le langage python version 3.
 
 Ce code doit décrire le contenu de l'aire de jeu (quels objets se trouvent sur quelle case), et les changements qui surviennent lorsque la personne qui joue appuie sur une touche de direction ou d'action.
 
-L'aire de jeu affiche 20 cases (tiles) en largeur et 14 en hauteur. Ces tailles sont fixes. Elles seront configurables dans une version ultérieure de Squarity (qui sortira à une date indéterminée, side-project personnel, vous savez ce que c'est).
+L'aire de jeu affiche par défaut 20 cases (tiles) en largeur et 14 en hauteur. Ces tailles peuvent être reconfigurées en ajoutant un élément dans la configuration:
+
+```
+"game_area": {
+    "nb_tile_width": 22,
+    "nb_tile_height": 15
+}
+```
 
 Votre code python doit posséder la structure minimale suivante :
 
 ```
-class BoardModel():
+class GameModel():
 
     def __init__(self):
         self.w = 20 # width (largeur) : 20 cases
@@ -91,9 +98,6 @@ class BoardModel():
             for y in range(self.h)
         ]
 
-    def get_size(self):
-        return self.w, self.h
-
     def export_all_tiles(self):
         return self.tiles
 
@@ -101,11 +105,11 @@ class BoardModel():
         pass
 ```
 
-Ce code définit une classe `BoardModel`, contenant la fonction `__init__` et trois callbacks, c'est à dire des fonctions appelées à des moments précis par le système de jeu.
+Ce code définit une classe `GameModel`, contenant la fonction `__init__` et deux callbacks, c'est à dire des fonctions appelées à des moments précis par le système de jeu.
 
-Vous pouvez bien entendu ajouter d'autres classes, d'autres fonctions, d'autres variables membres dans BoardModel, etc.
+Vous pouvez bien entendu ajouter d'autres classes, d'autres fonctions, d'autres variables membres dans GameModel, etc.
 
-### Fonction BoardModel.\_\_init\_\_(self)
+### Fonction GameModel.\_\_init\_\_(self)
 
 Cette fonction est exécutée une seule fois, au début du jeu.
 
@@ -113,29 +117,21 @@ Vous n'êtes pas obliger d'initialiser une variable membre `self.tiles` dans cet
 
 Cete variable membre est constituée d'un tableau de 20*14 cases, chacune contenant une liste vide.
 
-Vous pouvez ensuite remplir le contenu des cases de ce tableau, en ajoutant une ou plusieurs chaînes de caractères dans les listes, correspondants aux noms de vos objets définis dans la partie `tile_coords` de la configuration.
+Vous pouvez ensuite remplir le contenu des cases de ce tableau, en ajoutant une ou plusieurs chaînes de caractères dans les listes, correspondants aux noms de vos objets définis dans la partie `img_coords` de la configuration.
 
-### Fonction BoardModel.get_size(self)
-
-Cette fonction est exécutée une seule fois, au début du jeu.
-
-Elle servira à définir les dimensions (largeur, hauteur) de l'aire de jeu. Pour l'instant, ça ne fonctionne pas bien, vous devez donc renvoyer le tuple (20, 14). Vous pouvez utiliser les variables membres contenant ces dimensions :
-
-    return self.w, self.h
-
-### Fonction BoardModel.export_all_tiles(self)
+### Fonction GameModel.export_all_tiles(self)
 
 Cette fonction est appelée à chaque rendu de l'aire de jeu (lorsqu'elle est redessinée à l'écran).
 
-Il faut renvoyer une tableau 2D dont chaque case contient une liste de strings, c'est à dire : "une liste de liste de liste de strings".
+Il faut renvoyer un tableau 2D dont chaque case contient une liste de strings. Il faut donc renvoyer "une liste de liste de liste de strings".
 
-Chaque élément des listes de strings doit correspondre à l'un des noms définis dans la partie "tile_coords" de la config json, et déclenchera le dessin de l'objet concerné, dans la case concerné.
+Chaque élément des listes de strings doit correspondre à l'un des noms définis dans la partie "img_coords" de la config json, et déclenchera le dessin de l'objet concerné, dans la case concernée.
 
 L'ordre des noms dans la liste définit l'ordre de dessin des objets sur la case.
 
 Cette fonction peut effectuer des traitements spécifiques, par exemple construire le nom d'un objet complexe et le placer dans la liste à renvoyer. Mais le comportement le plus commun est de renvoyer directement `self.tiles`.
 
-### Fonction BoardModel.on_game_event(self, event_name)
+### Fonction GameModel.on_game_event(self, event_name)
 
 Cette fonction est appelée à chaque événement du jeu : une action de la personne qui joue, ou bien une action différée qui a été préalablement enregistrée.
 
@@ -173,11 +169,11 @@ Ce sont les strings json renvoyées par `on_game_event`, permettant de montrer l
 
 ## Démarrer le jeu
 
-Cliquez sur le bouton "<< Envoyer le jeu" en bas de la page. Le jeu est entièrement réinitialisé, la classe `BoardModel` est reconstruite à partir du nouveau game_code.
+Cliquez sur le bouton "Exécuter" au milieu de la page. Le jeu est entièrement réinitialisé, la classe `GameModel` est reconstruite à partir du nouveau game_code.
 
-Si l'url du tileset a changée, l'image est rechargée, sinon, celle qui est déjà en mémoire est conservée. Si vous avez modifié et republié votre tileset, mais que l'url est restée la même, vous devez changer l'url, envoyer le jeu, puis remettre l'ancienne url. Ce petit désagrément sera corrigé dès que possible.
+Si l'url du tileset a changée, l'image est rechargée, sinon, celle qui est déjà en mémoire est conservée. Si vous avez modifié et republié votre tileset, mais que l'url est restée la même, vous devez changer l'url, exécuter le jeu, puis remettre l'ancienne url. Ce petit désagrément sera corrigé dès que possible.
 
-Il n'est pas possible de sauvegarder la partie en cours. On recommence du début à chaque renvoi du jeu, et à chaque rechargement de la page web. Ce sera amélioré dans un futur proche, quoi que indéterminé.
+Il n'est pas possible de sauvegarder la partie en cours. On recommence du début à chaque renvoi du jeu et à chaque rechargement de la page web.
 
 
 ## Quelques détails techniques
@@ -245,12 +241,13 @@ Lien vers le gist : https://gist.githubusercontent.com/darkrecher/b5240940356e3b
 
 Lien pour jouer directement : [http://squarity.fr#fetchez_githubgist_darkrecher/b5240940356e3bb7e59c8a2522c279d9/raw/pacman-10kbis.txt](http://squarity.fr#fetchez_githubgist_darkrecher/b5240940356e3bb7e59c8a2522c279d9/raw/pacman-10kbis.txt)
 
-J'ai l'impression que son jeu plante. Il se bloque parfois après que vous récupériez une deuxième super-pat'gomm'. J'essayerais de corriger ça.
-
 
 ## Améliorations prévues
 
-Beaucoup, mais indéterminées. Une roadmap sera fournie dès que possible. En attendant, la liste des tâches en cours est publiée sur Trello : https://trello.com/b/bt91FVOH/squarity
+Elles sont prévues à des délais indéterminés.
+
+ - roadmap : https://squarity.pythonanywhere.com/roadmap
+ - liste des tâches en cours, publiée sur Trello : https://trello.com/b/bt91FVOH/squarity
 
 
 ## Contacter l'admin de Squarity
