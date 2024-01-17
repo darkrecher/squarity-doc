@@ -1,19 +1,15 @@
 # Tutoriel Squarity
 
-Ce tutoriel vous montrera comment créer un petit jeu simple avec Squarity. Il s'agit d'un jeu de type [soko-ban](https://fr.wikipedia.org/wiki/Sokoban), dans lequel un personnage doit pousser des caisses pour les ranger dans des emplacements spécifiques.
+Ce tutoriel vous montrera comment créer un petit jeu simple avec Squarity. Il s'agit d'un [soko-ban](https://fr.wikipedia.org/wiki/Sokoban), un jeu dans lequel un personnage doit pousser des caisses pour les ranger.
 
-Il n'est pas nécessaire de connaître le langage python, mais ça peut aider.
+Squarity utilise le langage de programmation python et le format de description de données JSON. Vous n'avez pas besoin de connaître ces notions, mais ça peut aider. Si vous souhaitez découvrir ou approfondir ces sujets, voici [un lien vers des cours de python](https://python.developpez.com/cours/), et la [documentation de la W3 School sur le JSON](https://www.w3schools.com/js/js_json_intro.asp).
 
-Certaines notions seront utilisées sans être expliquées en détail, par exemple : le format JSON, la programmation objet, les itérations, etc. À vous d'approfondir ces sujets par vous-mêmes, si vous le souhaitez. Il y a plein de cours de python sur internet.
-
-Ce tutoriel est un peu long, mais rassurez-vous, il est décomposé en plusieurs étapes, et vous êtes récompensé·e par un résultat à chaque fois.
-
-À la fin, vous devriez avoir un petit jeu simple qui fonctionne dans Squarity.
+Ce tutoriel est un peu long, mais chacune des étapes que vous effectuez vous récompense par un résultat visible dans l'interface de jeu, ce qui permet de garder le courage de continuer.
 
 
 ## Le tileset
 
-Pour commencer, il faudrait dessiner un "tileset", c'est à dire une image contenant tous les éléments qui s'affichent dans votre jeu.
+Pour commencer, il faudrait dessiner un "tileset", c'est à dire une image contenant tous les éléments affichés dans votre jeu.
 
 En voici un déjà prêt :
 
@@ -25,11 +21,11 @@ Il comporte 5 images d'objets :
  - un mur
  - une caisse
  - le personnage
- - une cible, représentant un endroit où il faut placer une caisse.
+ - une cible, représentant un endroit où placer une caisse.
 
-Ce tileset comporte des pixels transparents. Si vous créez le vôtre, vous aurez peut-être besoin d'un logiciel de dessin capable de gérer la transparence (donc, quelque chose de mieux que Paint).
+Ce tileset comporte des pixels transparents. Si vous créez le vôtre, vous aurez peut-être besoin d'un logiciel gérant la transparence (donc, quelque chose de mieux que Paint).
 
-Pour pouvoir être utilisé dans un jeu, le tileset doit être publié sur internet, et vous devez connaître son url. Vous pouvez utiliser pour cela des sites d'hébergement d'images, comme https://imgbb.com/ .
+Le tileset doit être publié sur internet et vous devez connaître son url. Vous pouvez utiliser pour cela des sites d'hébergement d'images, comme https://imgbb.com/ .
 
 Le tileset de ce tutoriel est déjà publié, son url est : https://raw.githubusercontent.com/darkrecher/squarity-doc/master/user_manual/sokoban_tileset.png
 
@@ -38,9 +34,9 @@ Le tileset de ce tutoriel est déjà publié, son url est : https://raw.githubus
 
 Nous allons créer un premier programme qui fonctionne, mais qui ne constitue pas un vrai jeu. Commencez par vous rendre sur le site http://squarity.fr .
 
-Il y a déjà un jeu de démonstration. Nous allons le remplacer par notre programme.
+Nous allons remplacer le jeu de démonstration par notre programme.
 
-Dans le champ *"Url de l'image tileset"*, supprimez le texte existant, puis copier-collez l'url de notre tileset :
+Dans le champ *"Url de l'image"*, supprimez le texte existant, puis copier-collez l'url de notre tileset :
 
 `https://raw.githubusercontent.com/darkrecher/squarity-doc/master/user_manual/sokoban_tileset.png`
 
@@ -49,16 +45,16 @@ Dans le champ en-dessous *"Config du jeu (en JSON)"*, copier-collez la configura
 ```
 {
     "tile_size": 32,
-    "tile_coords": {
+    "img_coords": {
         "herbe": [0, 0]
     }
 }
 ```
 
-Et dans le dernier champ : *"Le code du jeu (en python)"*, copier-collez le code suivant :
+Dans le dernier champ : *"Le code du jeu (en python)"*, copier-collez le code suivant :
 
 ```
-class BoardModel():
+class GameModel():
 
     def __init__(self):
 
@@ -75,16 +71,13 @@ class BoardModel():
 
         self.tiles[3][5].append("herbe")
 
-    def get_size(self):
-        return self.w, self.h
-
     def export_all_tiles(self):
         return self.tiles
 ```
 
-Puis cliquez sur le bouton tout en bas "Exécutez le jeu"
+Puis cliquez sur le bouton "Exécuter" au milieu de la page.
 
-Vous devriez voir un petit morceau d'herbe apparaître. Oh comme c'est impressionnant !
+Vous devriez voir un petit morceau d'herbe apparaître dans le cadre de droite. Youpi !
 
 Votre écran devrait ressembler à ceci (certains boutons ont été supprimés pour simplifier l'image) :
 
