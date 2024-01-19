@@ -27,7 +27,7 @@ Chaque élément de jeu est contenu dans un carré, qui ont tous la même taille
 
 Les pixels transparents, dans le format png, sont pris en compte.
 
-Pour que votre tileset soit accessible dans Squarity, il doit être publié sur internet. Utilisez des sites d'hébergement d'images comme imgur ou imgbb. Récupérez l'url directe de votre fichier (clic droit, option "ouvrir l'image dans un nouvel onglet") et indiquez-là dans le champ "Url de l'image".
+Pour que votre tileset soit accessible dans Squarity, il doit être publié sur internet. Utilisez des sites d'hébergement d'images comme imgur ou imgbb. Récupérez le lien direct de votre fichier et indiquez-le dans le champ "Url de l'image".
 
 Si l'image n'est pas trop grande, vous pouvez également la convertir en url-data, avec un service en ligne comme [ezgif](https://ezgif.com/image-to-datauri).
 
@@ -59,7 +59,7 @@ Cette configuration est un dictionnaire (une "correspondance"), contenant deux �
 
  - le premier a pour clé `tile_size` et pour valeur un nombre. Il définit la taille, en pixels, de chacun des éléments du jeu, tel que vous les avez dessinés dans votre tileset.
  - le suivant a pour clé `img_coords` et pour valeur un sous-dictionnaire :
-     - chacun de ces sous-éléments a pour clé un texte (de un ou plusieurs caractères), définissant un nom d'objet dans votre jeu. La valeur correspondante est une liste de deux nombres, indiquant les coordonnées du coin supérieur gauche, dans votre tileset, de l'image de cet objet du jeu.
+     - chacun de ses sous-éléments a pour clé un texte (de un ou plusieurs caractères), définissant un nom d'objet dans votre jeu. La valeur correspondante est une liste de deux nombres, indiquant les coordonnées du coin supérieur gauche, dans votre tileset, de l'image de cet objet du jeu.
 
 Par défaut, l'aire de jeu a une largeur de 20 cases et une hauteur de 14 cases. Vous pouvez changer cette taille en ajoutant un élément dans la configuration :
 
@@ -73,11 +73,11 @@ Par défaut, l'aire de jeu a une largeur de 20 cases et une hauteur de 14 cases.
 
 ## Le game_code
 
-Il s'agit d'un texte écrit dans le langage python version 3.
+Il s'agit d'un texte écrit en langage python.
 
 Ce code doit décrire le contenu de l'aire de jeu (quels objets se trouvent sur quelle case) et ce qui se passe lorsque la personne qui joue appuie sur une touche de direction ou d'action.
 
-Voici la structure minimale du code python :
+Voici la structure minimale du code :
 
 ```
 class GameModel():
@@ -109,7 +109,7 @@ Cette fonction est exécutée une seule fois, au début du jeu.
 
 Ce n'est pas obligé d'initialiser une variable membre `self.tiles`, mais c'est une bonne pratique.
 
-Cete variable membre est constituée d'un tableau de 20*14 cases, chacune contenant une liste vide. Si vous avez défini une autre taille dans la configuration, vous devez changer les variables `self.w` et `self.h`.
+Cette variable membre est constituée d'un tableau de 20*14 cases, chacune contenant une liste vide. Si vous avez défini une autre taille dans la configuration, vous devez changer les variables `self.w` et `self.h`.
 
 Vous pouvez ensuite remplir ce tableau, en ajoutant une ou plusieurs strings dans les listes vides. Ces strings correspondent aux noms des objets définis dans la partie `img_coords` de la configuration.
 
@@ -138,9 +138,9 @@ Le paramètre `event_name` indique le type d'action. Il peut prendre les valeurs
  - "action_1" : bouton "1"
  - "action_2" : bouton "2"
 
-Ces événements sont également déclenchés par des appuis de touches sur le clavier (flèches de direction, "1" et "2"). Pour cela, le focus doit être sur l'aire de jeu ou sur les boutons (il faut avoir cliqué dessus).
+Ces événements sont également déclenchés par des appuis de touches sur le clavier (flèches de direction, touches "1" et "2"). Pour cela, le focus doit être sur l'aire de jeu ou sur les boutons (il faut avoir cliqué dessus).
 
-Le paramètre `event_name` peut prendre d'autres valeurs, dans le cas des actions différées. Ce n'est pas documenté pour l'instant, ça devrait venir très vite.
+Le paramètre `event_name` peut prendre d'autres valeurs, dans le cas des actions différées. Cette fonctionnalité n'est pas documentée pour l'instant.
 
 La fonction `on_game_event` a pour charge de modifier la situation du jeu, c'est à dire le contenu de `self.tiles`, en fonction de l'événement. Elle implémente la plus grande partie de la "game logic".
 
@@ -150,7 +150,7 @@ Un rendu complet de l'aire de jeu est déclenché après chaque appel de cette f
 
 Elle doit être définie dans la classe `GameModel`.
 
-Elle renvoie la liste des objets d'une seule case. C'est une fonction d'aide que vous pouvez utiliser pour ajouter/enlever des objets dans l'aire de jeu.
+Elle renvoie la liste des objets d'une seule case. C'est une fonction d'aide que vous pouvez utiliser pour ajouter/enlever des objets dans `self.tiles`.
 
 Le jeu fonctionnera même si vous ne la définissez pas.
 
@@ -161,7 +161,7 @@ Le jeu fonctionnera même si vous ne la définissez pas.
 
 ### Actions différées, actions bloquantes, annulation du rendu
 
-Non documentés pour l'instant, car pas le temps. Consultez l'exemple du jeu du magicien pour (essayer de) déterminer à quoi ça sert et comment ça fonctionne.
+Non documentés pour l'instant. Ce sera fait "dès que possible". Consultez l'exemple du jeu du magicien pour (essayer de) déterminer à quoi ça sert et comment ça fonctionne.
 
 Ce sont les strings json renvoyées par `on_game_event`, permettant de montrer le déplacement progressif des boules de feu et les étapes intermédiaires lorsque le personnage passe une porte.
 
@@ -177,7 +177,7 @@ Pour l'instant, il n'est pas possible de sauvegarder la partie en cours. Le jeu 
 
 ## Quelques détails techniques
 
-Le code python du game_code est en version 3.8, il est exécuté par votre navigateur web, grâce à [Pyodide](https://github.com/iodide-project/pyodide). Ça fonctionne à peu près sur les smartphones, selon leur type et beaucoup d'autres choses.
+Le game_code doit être codé en python version 3.8, il est exécuté par votre navigateur web, grâce à [Pyodide](https://github.com/iodide-project/pyodide). Ça fonctionne plus ou moins bien sur les smartphones, selon leur type et beaucoup d'autres choses.
 
 Lorsque votre code python comporte des erreurs, celles-ci apparaissent dans la zone de texte en bas de la page.
 
@@ -216,7 +216,7 @@ L'url affichée dans votre navigateur devrait avoir cette forme :
 
 Les parties "xxx123" et "yyy456" sont de longues suites de caractères alphanumériques, permettant d'identifier votre gist de manière unique.
 
-Supprimer la partie `yyy456/` et recharger la page. Vérifier que le texte brut de votre jeu s'affiche toujours.
+Supprimez la partie `yyy456/` et rechargez la page. Vérifiez que le texte brut de votre jeu s'affiche toujours.
 
 Garder la fin de cette url, à partir de votre nom de compte github. C'est à dire : `votre-nom/xxx123/raw/super-jeu.txt`.
 
