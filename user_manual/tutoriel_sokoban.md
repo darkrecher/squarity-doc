@@ -2,7 +2,7 @@
 
 Ce tutoriel vous montrera comment créer un petit jeu simple avec Squarity. Il s'agit d'un [soko-ban](https://fr.wikipedia.org/wiki/Sokoban), un jeu dans lequel un personnage doit pousser des caisses pour les ranger.
 
-Squarity utilise le langage de programmation python et le format de description de données JSON. Vous n'avez pas besoin de connaître ces notions, mais ça peut aider. Si vous souhaitez découvrir ou approfondir ces sujets, voici [un lien vers des cours de python](https://python.developpez.com/cours/), et la [documentation de la W3 School sur le JSON](https://www.w3schools.com/js/js_json_intro.asp).
+Squarity utilise le langage de programmation python et le format de description de données JSON. Vous n'avez pas besoin de connaître ces notions, mais ça peut aider. Si vous souhaitez découvrir ou approfondir ces sujets, voici [un lien vers des cours de python](https://python.developpez.com/cours/), et la [la page Wikipedia sur le JSON](https://fr.wikipedia.org/wiki/JavaScript_Object_Notation).
 
 Ce tutoriel est un peu long, mais chacune des étapes que vous effectuez vous récompense par un résultat visible dans l'interface de jeu, ce qui permet de garder le courage de continuer.
 
@@ -25,22 +25,22 @@ Il comporte 5 images d'objets :
 
 Ce tileset comporte des pixels transparents. Si vous créez le vôtre, vous aurez peut-être besoin d'un logiciel gérant la transparence (donc, quelque chose de mieux que Paint).
 
-Le tileset doit être publié sur internet et vous devez connaître son url. Vous pouvez utiliser pour cela des sites d'hébergement d'images, comme https://imgbb.com/ . TODO : blabla. Récupérez l'url directe de votre fichier (clic droit, option "ouvrir l'image dans un nouvel onglet").
+Le tileset doit être publié sur internet et vous devez connaître son url. Vous pouvez utiliser pour cela des sites d'hébergement d'images, comme https://imgbb.com/ . Lorsque l'image est publiée, vous devez récupérer l'url directe vers le fichier. En général, c'est possible avec un clic droit sur l'image, puis l'option "ouvrir l'image dans un nouvel onglet". L'url se trouve alors dans la barre d'adresse de votre navigateur web.
 
-Le tileset de ce tutoriel est déjà publié, son url est : https://raw.githubusercontent.com/darkrecher/squarity-doc/master/user_manual/sokoban_tileset.png
+Pour vous simplifier la vie, le tileset de ce tutoriel est déjà publié, son url est : https://raw.githubusercontent.com/darkrecher/squarity-doc/master/user_manual/sokoban_tileset.png
 
 
 ## Un peu d'herbe
 
-Nous allons créer un premier programme qui fonctionne, mais qui ne constitue pas un vrai jeu. Commencez par vous rendre sur le site http://squarity.fr .
+Nous allons créer un premier programme qui fonctionne, mais qui ne constitue pas encore un vrai jeu. Allez sur le site http://squarity.fr .
 
-Nous allons remplacer le jeu de démonstration par notre programme.
+Vous verrez un jeu de démonstration, que nous allons remplacer.
 
-Dans le champ *"Url de l'image"*, supprimez le texte existant, puis copier-collez l'url de notre tileset :
+Dans le champ *"Url de l'image"*, supprimez le texte existant, puis copier-collez le texte suivant :
 
 `https://raw.githubusercontent.com/darkrecher/squarity-doc/master/user_manual/sokoban_tileset.png`
 
-Dans le champ en-dessous *"Config du jeu (en JSON)"*, copier-collez la configuration suivante :
+Dans le champ en-dessous *"Config du jeu (en JSON)"*, remplacez le texte existant par cette configuration :
 
 ```
 {
@@ -51,7 +51,7 @@ Dans le champ en-dessous *"Config du jeu (en JSON)"*, copier-collez la configura
 }
 ```
 
-Dans le dernier champ : *"Le code du jeu (en python)"*, copier-collez le code suivant :
+Dans le dernier champ : *"Le code du jeu (en python)"*, remplacez le texte existant par ce code :
 
 ```
 class GameModel():
@@ -77,7 +77,7 @@ class GameModel():
 
 Puis cliquez sur le bouton "Exécuter" au milieu de la page.
 
-Vous devriez voir un petit morceau d'herbe apparaître dans le cadre de droite. Youpi !
+Vous devriez voir un petit morceau d'herbe dans le cadre de droite. Youpi !
 
 Votre écran devrait ressembler à ceci (certains boutons ont été supprimés pour simplifier l'image) :
 
@@ -114,7 +114,7 @@ Ne vous embêtez pas à la dupliquer des dizaines de fois pour remplir d'herbe t
 Pour finir, appuyez sur les boutons du jeu : les flèches ou les actions 1 et 2. Votre jeu va planter et affichera un message d'erreur. C'est normal, nous réglerons ça dans une étape ultérieure.
 
 
-## Quelques explications concernant tout ce code
+## Quelques explications concernant le code
 
 Le champ *"config du jeu (en JSON)"* ne contient pas votre programme, mais des informations structurées.
 
@@ -150,7 +150,7 @@ La variable `self.tiles` est importante. Elle contient tous les objets à affich
 
 Au départ, nous avons ajouté un seul objet de jeu dans une seule case du tableau. Il a pour nom : "herbe".
 
-Selon ce que vous avez bidouillé dans le chapitre précédent, vous en avez peut-être ajouté d'autres, dans d'autres cases du tableau.
+Selon ce que vous avez bidouillé dans le chapitre précédent, vous en avez peut-être ajouté d'autres.
 
 ![https://raw.githubusercontent.com/darkrecher/squarity-doc/master/user_manual/annotations_code.png](https://raw.githubusercontent.com/darkrecher/squarity-doc/master/user_manual/annotations_code.png)
 
@@ -218,13 +218,13 @@ Ce qui est affichée dans la partie droite de l'écran s'appelle **l'aire de jeu
 
 Une case dans l'aire de jeu s'appelle une **tile**. Autres appellations : **tuile**, **case**. Ces tiles sont organisées sous forme d'un tableau en deux dimensions. Dans notre programme, ce tableau est enregistré dans la variable `self.tiles`.
 
-Pour repérer une tile dans le tableau, on utilise les coordonnées x et y.
+Pour repérer une tile dans ce tableau, on utilise les coordonnées x et y.
 
 X augmente lorsqu'on va vers la droite. Les tiles tout à gauche ont pour coordonnée x = 0. Les tiles tout à droite ont pour coordonnée x = 19.
 
 Y augmente lorsqu'on va vers le bas. Les tiles tout en haut ont pour coordonnée y = 0. Les tiles tout en bas ont pour coordonnée y = 13.
 
-Pour info : les graphiques des cours de maths ont la coordonnée Y dans l'autre sens : Y augmente lorsqu'on va vers le haut. En programmation, on préfère que l'axe des Y soit orienté vers le bas. C'est plus logique car ça correspond au sens de lecture, à l'ordre des pixels sur l'écran, etc.
+Pour info : les graphiques des cours de maths ont la coordonnée Y dans l'autre sens : Y augmente lorsqu'on va vers le haut. En programmation, on préfère que l'axe des Y soit orienté vers le bas. C'est plus logique car ça correspond au sens de lecture et à l'ordre des pixels sur l'écran.
 
 Les coordonnées sont comptées à partir de zéro, et non à partir de un, parce que c'est comme ça qu'on fait en informatique. Il y a une justification, mais ce serait un peu long de l'expliquer ici.
 
@@ -274,7 +274,7 @@ Lorsqu'on accède à des listes imbriquées, on donne les index dans le même or
 
 Le code `self.tiles[3][5]` signifie : "la ligne numéro 3, et dans cette ligne, la case numéro 5". On indique d'abord l'ordonnée (le y), et ensuite l'abscisse (le x).
 
-L'accès à la tile de coordonnée (x, y) se fait avec ce code : `self.tiles[y][x]`. C'est un peu embarrassant, car l'ordre est inversé par rapport à l'ordre habituel (d'abord le x, puis le y).
+L'accès à la tile de coordonnée (x, y) se fait avec ce code : `self.tiles[y][x]`. C'est embarrassant, car l'ordre est inversé par rapport à d'habitude (d'abord le x, puis le y).
 
 Pour avoir un code plus clair, nous allons créer une petite fonction qui renvoie une tile, avec les paramètres dans l'ordre.
 
@@ -356,7 +356,7 @@ Si vous n'y arrivez pas, ce n'est pas trop grave, vous pouvez quand même passer
 
 ## Plein d'objets et un plan du niveau
 
-Dans le champ *"Config du jeu"*, copier-collez la configuration suivante :
+Dans le champ *"Config du jeu"*, supprimer l'ancien texte et copier-collez la configuration suivante :
 
 ```
 {
@@ -371,7 +371,7 @@ Dans le champ *"Config du jeu"*, copier-collez la configuration suivante :
 }
 ```
 
-Dans le champ : *"Le code du jeu"*, copier-collez le code suivant :
+Dans le champ : *"Le code du jeu"*, supprimer l'ancien texte et copier-collez le code suivant :
 
 ```
 PLAN_DU_NIVEAU = (
@@ -455,7 +455,7 @@ Et si vous mettiez des listes de plusieurs game objects dans la correspondance e
 
 ## La réponse pour que ce soit plus beau
 
-Dans le code du jeu, remplacez ce code :
+Dans le code du jeu, remplacez cette partie :
 ```
 corresp_game_objects_a_partir_char = {
     " ": ["herbe"],
@@ -465,7 +465,7 @@ corresp_game_objects_a_partir_char = {
     ".": ["cible"]
 }
 ```
-Par celui-ci :
+Par ceci :
 ```
 corresp_game_objects_a_partir_char = {
     " ": ["herbe"],
@@ -517,7 +517,7 @@ Vous pouvez ensuite écrire du code dans la fonction, pour déclencher ce que vo
 
 Pour commencer, il faut que le personnage se déplace. C'est l'élément principal du jeu, il mérite bien quelques variables que pour lui.
 
-Au début de la fonction d'initialisation, c'est à dire juste après la ligne `def __init__(self):`, ajoutez ces deux lignes :
+Dans la fonction d'initialisation, juste après la ligne `def __init__(self):`, ajoutez ces deux lignes :
 ```
         self.personnage_x = 13
         self.personnage_y = 6
@@ -580,7 +580,7 @@ Cette fois-ci, le personnage devrait pouvoir se déplacer dans les 4 directions.
 
 Essayez de sortir des bords de l'aire de jeu. À droite et en bas, ça fera une erreur et vous devrez re-exécutez le jeu.
 
-En haut et à gauche, le personnage réapparaîtra de l'autre côté. Mais si vous traversez l'aire de jeu et ressortez par le même bord, ça fera une erreur.
+En haut et à gauche, le personnage réapparaîtra de l'autre côté.
 
 Il y a une raison à cela, provenant de la manière dont les éléments d'une liste sont indexés. Vous trouverez des explications à ce sujet dans des cours de python, si ça vous intéresse. Juste comme ça rapidement : `["a", "b", "c", "d"][0] == "a"` et `["a", "b", "c", "d"][-1] == "d"`.
 
@@ -588,15 +588,6 @@ Il y a une raison à cela, provenant de la manière dont les éléments d'une li
 
 
 ## Empêcher le personnage de dépasser les bords
-
-Nous avons besoin de variables temporaires.
-
- - D'abord, on définit `personnage_dest_x` et `personnage_dest_y`. On initialise ces variables aux coordonnées actuelles du personnage.
- - On modifie l'une de ces deux variables, selon le déplacement à faire, comme dans le chapitre précédent.
- - On vérifie si ça fait sortir par un bord.
- - Si ça sort, le mouvement n'est pas appliqué. On quitte directement la fonction, en utilisant l'instruction python `return`.
- - Si non, on applique le mouvement.
- - Comme précédemment, on enlève le game object, on modifie les coordonnées réelles du personnage, on rajoute le game object à la nouvelle position.
 
 Dans le code du jeu, remplacez toute la fonction `on_game_event` par ce code :
 
@@ -630,6 +621,15 @@ Dans le code du jeu, remplacez toute la fonction `on_game_event` par ce code :
 ```
 
 Le personnage ne peut plus sortir de l'aire de jeu.
+
+Voici ce que fait le code que nous venons d'ajouter :
+
+ - Création des variables temporaires `personnage_dest_x` et `personnage_dest_y`. Initialisation aux coordonnées actuelles du personnage.
+ - Modification de l'une de ces deux variables, selon le déplacement à faire, comme dans le chapitre précédent.
+ - Vérification que le personnage sort par un bord.
+ - Si il sort, le mouvement n'est pas appliqué. On quitte directement la fonction, en utilisant l'instruction python `return`.
+ - Si il ne sort pas, on applique le mouvement.
+ - Comme précédemment, on enlève le game object, on modifie les coordonnées réelles du personnage, on rajoute le game object à la nouvelle position.
 
 
 ## Placement initial du personnage
@@ -945,7 +945,7 @@ Exécutez le jeu. Essayez de pousser une caisse sur une autre caisse. Ça ne dev
 
 Le jeu est maintenant jouable, mais il n'est pas très fun.
 
-Le but est d'amener chaque caisse sur une cible. Mais si vous y parvenez, il ne se passera rien de spécial. Le minimum serait d'afficher un petit message de récompense.
+Le but est d'amener chaque caisse sur une cible. Mais si vous y parvenez, il ne se passera rien de spécial. Le minimum serait d'afficher un message de récompense.
 
 Il faut consulter toutes les tiles de l'aire de jeu. Si l'une d'elles contient une caisse mais pas de cible, cela signifie que les caisses n'ont pas toutes été rangées, et le jeu n'est pas gagné. Pas la peine de continuer la consultation des tiles. Mais si chaque caisse est sur une cible, alors on peut afficher un message.
 
@@ -976,16 +976,16 @@ Ajoutez ce morceau de code :
                 print("Bravo, vous avez gagné !")
 ```
 
-Exécutez le jeu. Placez chaque caisse sur une cible. Vous verrez votre superbe message de félicitations s'afficher en bas à gauche.
+Exécutez le jeu. Placez chaque caisse sur une cible. Vous verrez votre superbe message de félicitations s'afficher en bas.
 
 
 ## Le grand final
 
-Voilà, votre jeu est jouable et il récompense la personne qui joue par un petit message de victoire. C'est fun, yeah !
+Voilà, votre jeu est jouable et il affiche un message en cas de victoire. C'est fun, yeah !
 
 Il reste à ajouter quelques détails :
 
- - D'autres caractères dans le plan du niveau, pour représenter une tile contenant à la fois une caisse et une cible, et à la fois une cible et le personnage.
+ - D'autres caractères dans le plan du niveau, pour représenter une tile contenant à la fois une caisse et une cible, et une une tile contenant à la fois une cible et le personnage.
  - La possibilité de définir plusieurs niveaux. Le jeu passe automatiquement au niveau suivant après une victoire.
  - Lorsqu'on appuie deux fois de suite sur le bouton d'action numéro 1, le niveau en cours est réinitialisé.
 
