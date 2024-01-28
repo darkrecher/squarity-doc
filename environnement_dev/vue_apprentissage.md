@@ -702,3 +702,58 @@ Bien évidemment, l'indentation à 4 espaces fait râler ESLint, en plus de cert
 Ça m'embêterait de désactiver la règle des indentations juste pour un seul fichier. Et en plus, c'est pas vraiment un fichier contenant du javascript. Il contient des grandes chaînes de caractères constituant du python et du json. Donc pour ce fichier en particulier, on désactive ESLint (à l'aide d'un commentaire en première ligne). À terme (je sais juste pas à quel terme), ce fichier `gameExamples.js` sera amené à disparaître, et tout ce qu'il contient sera stocké dans un endroit un peu plus adapté.
 
 Pfiou ! C'était pas simple de reprendre ce projet. Allez, au boulot !
+
+
+## Modif linter suite à changement d'environnement de dev
+
+Le 2023-01-09, je suis passé à Linux. J'ai dû réinstaller VSCode, mon environnement de dev, etc. Le tout est décrit en détail dans le fichier `passage_vue_3.md`.
+
+Des tas de problèmes dû au linter se sont réglés tout seul, ne me demandez pas pourquoi ni comment. Je peux maintenant faire des boucles `for (... of ...)` sans que ça me gueule dessus, et les règles d'indentations bizarres décrites dans le chapitre précédent ne sont plus là. Et j'ai quand même un linter qui tient à peu près la route. C'est super, même si j'ai pas tout compris.
+
+Le linter n'est plus désactivé pour `gameExamples.js`, et rien n'explose quand je lance `npm run lint`.
+
+
+## Explications sur les tailles des canvas
+
+Il y a deux tailles : la taille interne du canvas (en pixel) et la taille d'affichage dans la page (en pixel ou en autre chose).
+
+La taille interne se définit avec les attributs HTML, la taille d'affichage se définit avec du CSS, comme d'habitude.
+
+La mise à l'échelle entre les deux se fait toute seul, bien entendu. On peut la configurer avec du CSS, d'où le `image-rendering: pixelated;` qui se trouve dans mon code.
+
+Source : https://webglfundamentals.org/webgl/lessons/webgl-resizing-the-canvas.html
+
+Extrait :
+
+> Here's an example of a canvas whose drawingbuffer is 10x15 pixels that is displayed 400x300 pixels on the page
+
+> `<canvas id="c" width="10" height="15" style="width: 400px; height: 300px;"></canvas>`
+
+Extraits de mes bouts de code, qui définissent la taille interne du canvas :
+
+```
+const canvasElem = this.$refs.game_canvas;
+this.ctx_canvas = canvasElem.getContext('2d');
+this.canvas_buffer = document.createElement('canvas');
+this.ctx_canvas_buffer = this.canvas_buffer.getContext('2d');
+
+this.canvas_width = this.nb_tile_width * this.tile_canvas_width;
+this.canvas_height = this.nb_tile_height * this.tile_canvas_height;
+
+const canvasElem = this.$refs.game_canvas;
+canvasElem.width = this.canvas_width;
+canvasElem.height = this.canvas_height;
+this.canvas_buffer.width = this.canvas_width;
+this.canvas_buffer.height = this.canvas_height;
+```
+
+Je dois le définir deux fois, pour l'objet `canvasElem` et pour l'objet `this.canvas_buffer`. J'utilise un buffer d'image interne pour dessiner les images de tile dessus, puis je balance tout le buffer dans le canvas. Pour que ce soit cohérent, ils doivent avoir tous les deux la même taille.
+
+La taille d'affichage du canvas est définie à la fin de la fonction de la mort `handleResize`, avec ce bout de code : `this.$refs.game_canvas.style = ...`.
+
+Ce bout de code redéfinit le CSS, et c'est bien normal.
+
+Lien vers une autre source (qui explique pas grand chose) : https://www.w3schools.com/tags/att_canvas_width.asp .
+
+Juste pour info : pour récupérer la taille rélle en pixel d'un élément HTML, telle qu'il est affiché dans la page : `elem.clientHeight` et `elem.clientWidth`.
+
