@@ -1,8 +1,11 @@
 # https://i.ibb.co/VjVQnxQ/koballd-tileset.png
+# https://gist.githubusercontent.com/darkrecher/24d6471c87d1065064ca830646709fea/raw/34a6a8059adba985d219f228c96bb9405c3a633b/koballd-crawler.txt
+# http://squarity.fr/#fetchez_githubgist_darkrecher/24d6471c87d1065064ca830646709fea/raw/koballd-crawler.txt
 
 """
 
   {
+    "name": "Koballd Crawler",
     "version": "1.0.0",
     "game_area": {
         "nb_tile_width": 21,
@@ -30,7 +33,53 @@
 
 """
 
+"""
+Koballd Crawler
+
+My contribution to Ludum Dare 55.
+
+Select one of the eight green balls, then click on a border of the map to launch it.
+The ball goes to its primary direction, to the opposite border of the map.
+When blocked by a wall, it goes to its secondary direction, indicated by the yellow arrow.
+The ball stops when the two directions are blocked.
+
+To restart a level, click twice on the button 1.
+
+Try to get the cake.
+
+I knew I would have very little time for this Ludum edition, so, it's not that bad.
+
+This is why I called my game “Koballd Crawler”.
+If I don't have time, the sprites would stay as green balls, like in “koBALLd”.
+If I had time, I would have drawn kobolds instead, like in KOballD.
+
+Looks like we sticked to green balls.
+
+Happy crawling!
+"""
+
 LEVEL_ONE = (
+    "#...............#",
+    ".................",
+    ".................",
+    ".................",
+    ".................",
+    ".................",
+    ".................",
+    ".......#...#.....",
+    ".......#.C.#.....",
+    ".......#...#.....",
+    ".......#####.....",
+    ".................",
+    ".................",
+    ".................",
+    ".................",
+    ".................",
+    "#...............#",
+)
+
+
+LEVEL_TWO = (
     "#...............#",
     "...####..........",
     ".................",
@@ -49,6 +98,28 @@ LEVEL_ONE = (
     "..#.#............",
     "#.#.#...........#",
 )
+
+LEVEL_THREE = (
+    "#...............#",
+    ".................",
+    ".....###....##...",
+    ".....#C#..#..#...",
+    "....##.####..#...",
+    "....#........#...",
+    "..#.#######..#...",
+    "..#.......#..#...",
+    "..#..#....#..#...",
+    "..#....#.........",
+    "..#....#.........",
+    "..#.####.........",
+    "..#.#.##.........",
+    ".................",
+    ".................",
+    ".....######......",
+    "#...............#",
+)
+
+LEVELS = (LEVEL_ONE, LEVEL_TWO, LEVEL_THREE)
 
 OFFSET_FROM_DIR_STR = {
     "up": (0, -1),
@@ -75,6 +146,13 @@ class MapTile:
             if gobj.startswith("kob"):
                 return False
         return True
+
+    def change_selection(self, selected):
+        if selected:
+            self.game_objects.append("selection")
+        else:
+            if "selection" in self.game_objects:
+                self.game_objects.remove("selection")
 
     def render(self):
         return self.game_objects
@@ -156,12 +234,12 @@ class GameModel():
         { "player_unlocks": ["walk_koballd"] }
     """
 
-    EVENT_RESULT_EXPLAIN_SELECTION = """
-        { "delayed_actions": [ {"name": "explain_selection", "delay_ms": 100} ], "player_locks": ["explain_selection"] }
+    EVENT_RESULT_TUTO_BLINK = """
+        { "delayed_actions": [ {"name": "tuto_blink", "delay_ms": 100} ], "player_locks": ["tuto_blink"] }
     """
 
-    EVENT_RESULT_EXPLAIN_SELECTION_END = """
-        { "player_unlocks": ["explain_selection"] }
+    EVENT_RESULT_TUTO_BLINK_END = """
+        { "player_unlocks": ["tuto_blink"] }
     """
 
 
@@ -211,10 +289,14 @@ class GameModel():
         self.koblaus[0].selected = True
         self.walking_koballd = None
         self.explained_selection = False
+        self.explained_border = False
         self.blink_selection = 0
-        self.koballd_to_blink = []
+        self.can_pass_level = False
+        self.reset_level = False
+        self.current_level = 0
+        self.tiles_to_blink = []
         self.init_ihm()
-        self.init_level(LEVEL_ONE)
+        self.init_level(LEVELS[self.current_level])
 
     def _make_adjacencies(self, x, y):
         """
@@ -256,6 +338,7 @@ class GameModel():
             self.rendered_tiles[koballd_launcher.y][koballd_launcher.x] = list(koballd_launcher.render())
 
     def init_level(self, level_definition):
+        self.can_pass_level = False
         CORRESP = {
             ".": ["ground"],
             "#": ["wall"],
@@ -283,7 +366,17 @@ class GameModel():
         return None
 
     def on_game_event(self, event_name):
-        if event_name == "walk_koballd":
+
+        if event_name == "action_1":
+            if self.reset_level:
+                self.init_level(LEVELS[self.current_level])
+                self.reset_level = False
+            else:
+                print("")
+                print("Click again on the button 1 to restart the level.")
+                self.reset_level = True
+
+        elif event_name == "walk_koballd":
             if self.walking_koballd:
                 if self.walking_koballd.walk():
                     return GameModel.EVENT_RESULT_WALK
@@ -296,29 +389,44 @@ class GameModel():
                         self.get_map_tile(self.walking_koballd.x, self.walking_koballd.y).game_objects.append(
                             self.walking_koballd.gobj_name
                         )
-                        print("You found the cake!")
+                        self.current_level += 1
+                        if self.current_level == len(LEVELS):
+                            print("")
+                            print("That was the last level.")
+                            print("Didn't have time to put more, sorry.")
+                            print("Let's restart everything!")
+                            self.current_level = 0
+                        else:
+                            print("")
+                            print("You found the cake!")
+                            print("Click anywhere to go to the next level.")
+                        self.can_pass_level = True
                     self.walking_koballd = None
                     return GameModel.EVENT_RESULT_WALK_END
             else:
                 # not supposed to happen.
                 return GameModel.EVENT_RESULT_WALK_END
 
-        elif event_name == "explain_selection":
+        elif event_name == "tuto_blink":
             self.blink_selection -= 1
             show_select = self.blink_selection % 2
-            for koballd_launcher in self.koballd_to_blink:
+            for koballd_launcher in self.tiles_to_blink:
                 koballd_launcher.change_selection(show_select)
             self.render_koballd_launcher()
             if self.blink_selection:
-                return GameModel.EVENT_RESULT_EXPLAIN_SELECTION
+                return GameModel.EVENT_RESULT_TUTO_BLINK
             else:
-                self.koballd_to_blink = []
-                return GameModel.EVENT_RESULT_EXPLAIN_SELECTION_END
+                self.tiles_to_blink = []
+                return GameModel.EVENT_RESULT_TUTO_BLINK_END
 
         else:
             print("Select a green ball, then click on a border of the map to launch it.")
 
     def on_click(self, x, y):
+
+        if self.can_pass_level:
+            self.init_level(LEVELS[self.current_level])
+            return None
 
         selected_koballd_launcher = None
         for koballd_launcher in self.koblaus:
@@ -355,28 +463,43 @@ class GameModel():
             if 0 < map_x < self.map_w - 1:
                 direction = "up"
 
-        if direction:
-            selected_koballd_launcher = self.get_selected_koballd_launcher(direction)
-            if selected_koballd_launcher:
-                self.walking_koballd = WalkingKoballd(
-                    map_x,
-                    map_y,
-                    selected_koballd_launcher,
-                    self
-                )
-                return GameModel.EVENT_RESULT_WALK
-            else:
-                self.blink_selection = 11
-                self.koballd_to_blink = []
-                for koballd_launcher in self.koblaus:
-                    if koballd_launcher.direction == direction:
-                        self.koballd_to_blink.append(koballd_launcher)
-                for koballd_launcher in self.koballd_to_blink:
-                    koballd_launcher.change_selection(True)
-                self.render_koballd_launcher()
-                if not self.explained_selection:
-                    self.explained_selection = True
-                    print("You must first select a green ball near the map border where you want to launch it.")
-                return GameModel.EVENT_RESULT_EXPLAIN_SELECTION
+        if not direction:
+            self.tiles_to_blink = []
+            for x in range(1, self.map_w - 1):
+                self.tiles_to_blink.append(self.get_map_tile(x, 0))
+                self.tiles_to_blink.append(self.get_map_tile(x, self.map_h - 1))
+            for y in range(1, self.map_h - 1):
+                self.tiles_to_blink.append(self.get_map_tile(0, y))
+                self.tiles_to_blink.append(self.get_map_tile(self.map_w - 1, y))
+            for koballd_launcher in self.tiles_to_blink:
+                koballd_launcher.change_selection(True)
+            if not self.explained_border:
+                self.explained_border = True
+                print("You must click on a border of the map to launch the selected green ball.")
+            self.blink_selection = 11
+            return GameModel.EVENT_RESULT_TUTO_BLINK
+
+        selected_koballd_launcher = self.get_selected_koballd_launcher(direction)
+        if selected_koballd_launcher:
+            self.walking_koballd = WalkingKoballd(
+                map_x,
+                map_y,
+                selected_koballd_launcher,
+                self
+            )
+            return GameModel.EVENT_RESULT_WALK
+        else:
+            self.tiles_to_blink = []
+            for koballd_launcher in self.koblaus:
+                if koballd_launcher.direction == direction:
+                    self.tiles_to_blink.append(koballd_launcher)
+            for koballd_launcher in self.tiles_to_blink:
+                koballd_launcher.change_selection(True)
+            self.render_koballd_launcher()
+            if not self.explained_selection:
+                self.explained_selection = True
+                print("You must first select a green ball near the map border where you want to launch it.")
+            self.blink_selection = 11
+            return GameModel.EVENT_RESULT_TUTO_BLINK
 
 
