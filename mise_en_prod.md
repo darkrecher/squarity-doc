@@ -397,7 +397,7 @@ Voici la config actuelle de tous les static files :
 Et maintenant ça marche !
 
 
-## Mise en prod 06 et 07
+## Mise en prod 06 et suivantes
 
 Mise en prod 06 : 2023-12-25
 
@@ -406,5 +406,11 @@ Mise en prod 07 : 2024-01-21
 Rien de spécial à signaler. Comme d'habitude : remplacement des fichiers dans pythonanywhere, rechargement du site.
 
 Pour la mise en prod 07, j'ai remplacé uniquement les fichiers dans la racine du répertoire `dist`, et les fichiers .js, .css et .svg du répertoire `dist/assets`. (Pas les fichiers .gif). Ça a fonctionné sans problème.
+
+Mise en prod 08 : 2024-06-30
+
+Rien de spécial à signaler.
+
+Pas de remplacement des .gif, ni des .svg, ni du répertoire pyodide. Tout va bien.
 
 
