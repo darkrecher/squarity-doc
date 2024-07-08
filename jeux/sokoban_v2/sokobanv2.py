@@ -148,7 +148,9 @@ class GameModel(squarity.GameModelBase):
     def on_start(self):
         self.transition_delay = 70
         self.layer_background = squarity.Layer(self, self.w, self.h, False)
+        self.layer_crate = squarity.Layer(self, self.w, self.h, True)
         self.layers.insert(0, self.layer_background)
+        self.layers.insert(1, self.layer_crate)
 
         self.gobj_avatar = squarity.GameObject(Coord(0, 0), "avatar")
         self.gobj_avatar.plock_transi = squarity.PlayerLockTransi.INVISIBLE
@@ -156,7 +158,6 @@ class GameModel(squarity.GameModelBase):
         self.delay_avatar = None
         self.current_level = 0
         self.initiate_level()
-        self.victory = False
         self.restart_level = False
 
     def initiate_level(self):
@@ -165,7 +166,7 @@ class GameModel(squarity.GameModelBase):
         layer_from_elem = {
             "herb": self.layer_background,
             "wall": self.layer_background,
-            "crate": self.main_layer,
+            "crate": self.layer_crate,
             "target": self.layer_background,
         }
         # TODO : itération à la con, of course.
@@ -174,13 +175,14 @@ class GameModel(squarity.GameModelBase):
 
                 coord = Coord(x, y)
                 self.layer_background.get_tile(coord).game_objects = []
+                self.layer_crate.get_tile(coord).game_objects = []
                 # TODO : C'est pas pratique du tout ça.
-                for gobj in self.main_layer.get_tile(coord).game_objects:
-                    if gobj.sprite_name == "crate":
+                # for gobj in self.main_layer.get_tile(coord).game_objects:
+                #     if gobj.sprite_name == "crate":
                         # TODO : la fonction Layer.remove_game_object est buggée !
                         #self.main_layer.remove_game_object(gobj)
-                        gobj.layer_owner = None
-                        self.main_layer.get_tile(coord).game_objects.remove(gobj)
+                        #gobj.layer_owner = None
+                        #self.main_layer.get_tile(coord).game_objects.remove(gobj)
 
                 char_def = level_map[y][x]
                 elems_to_add = ELEMS_FROM_CHAR[char_def]
@@ -201,13 +203,6 @@ class GameModel(squarity.GameModelBase):
         return True
 
     def on_button_direction(self, direction):
-        if self.victory:
-            self.victory = False
-            self.current_level += 1
-            if self.current_level >= len(LEVELS_AND_DESCRIPTIONS):
-                self.current_level = 0
-            self.initiate_level()
-            return
 
         self.restart_level = False
         # TODO : homogénéité move_to_dir et move_dir.
@@ -218,9 +213,9 @@ class GameModel(squarity.GameModelBase):
         tile_av_dest_bg = self.layer_background.get_tile(coord_avatar_dest)
         if get_gobj_with_sprite_name(tile_av_dest_bg, "wall") is not None:
             return
-        tile_av_dest_main = self.main_layer.get_tile(coord_avatar_dest)
+        tile_crate_av_dest = self.layer_crate.get_tile(coord_avatar_dest)
 
-        crate_to_push = get_gobj_with_sprite_name(tile_av_dest_main, "crate")
+        crate_to_push = get_gobj_with_sprite_name(tile_crate_av_dest, "crate")
         if crate_to_push is not None:
             coord_crate_dest = Coord(coord=coord_avatar_dest)
             coord_crate_dest.move_to_dir(direction)
@@ -229,8 +224,8 @@ class GameModel(squarity.GameModelBase):
             tile_cr_dest_bg = self.layer_background.get_tile(coord_crate_dest)
             if get_gobj_with_sprite_name(tile_cr_dest_bg, "wall") is not None:
                 return
-            tile_cr_dest_main = self.main_layer.get_tile(coord_crate_dest)
-            if get_gobj_with_sprite_name(tile_cr_dest_main, "crate") is not None:
+            tile_crate_cr_dest = self.layer_crate.get_tile(coord_crate_dest)
+            if get_gobj_with_sprite_name(tile_crate_cr_dest, "crate") is not None:
                 return
             crate_to_push.move_dir(direction)
 
@@ -239,22 +234,54 @@ class GameModel(squarity.GameModelBase):
 
     def check_crate_on_target(self):
 
-        all_crate_on_target = True
         # TODO : re itération à la con, of course.
         for y in range(self.h):
             for x in range(self.w):
                 coord = Coord(x, y)
                 tile_background = self.layer_background.get_tile(coord)
-                tile_main = self.main_layer.get_tile(coord)
+                tile_crate = self.layer_crate.get_tile(coord)
                 has_target = get_gobj_with_sprite_name(tile_background, "target") is not None
-                has_crate = get_gobj_with_sprite_name(tile_main, "crate") is not None
+                has_crate = get_gobj_with_sprite_name(tile_crate, "crate") is not None
                 if has_target ^ has_crate:
-                    all_crate_on_target = False
+                    # Il y a une target sans crate, ou une crate sans target.
+                    # Donc le jeu n'est pas encore gagné. On peut s'en aller tout de suite.
+                    return
 
-        if all_crate_on_target:
-            print("Victoire !")
-            print("Appuyez sur un bouton pour passer au niveau suivant.")
-            self.victory = True
+        print("Victoire !")
+        victory_dance = []
+        dir_jumps = (
+            squarity.dirs.UpLeft,
+            squarity.dirs.UpRight,
+            squarity.dirs.Up,
+            squarity.dirs.Up,
+        )
+        coord_jump_back = self.gobj_avatar.get_coord()
+        for dir_jump in dir_jumps:
+            coord_jump = Coord(coord=coord_jump_back)
+            coord_jump.move_to_dir(dir_jump)
+            if self.in_bounds(coord_jump):
+                victory_dance.append((150, coord_jump))
+                victory_dance.append((150, coord_jump_back))
+
+        if victory_dance:
+            self.gobj_avatar.add_transition(
+                squarity.TransitionSteps("coord", victory_dance)
+            )
+        self.gobj_avatar.add_transition(
+            squarity.DelayedCallBack(1800, self.end_anim_victory)
+        )
+        event_result = squarity.EventResult()
+        event_result.plocks_custom.append("victory_anim")
+        return event_result
+
+    def end_anim_victory(self):
+        self.current_level += 1
+        if self.current_level >= len(LEVELS_AND_DESCRIPTIONS):
+            self.current_level = 0
+        self.initiate_level()
+        event_result = squarity.EventResult()
+        event_result.punlocks_custom.append("victory_anim")
+        return event_result
 
     def on_button_action(self, action_name):
         if action_name == "action_1":
