@@ -1,10 +1,9 @@
 # https://raw.githubusercontent.com/darkrecher/squarity-doc/master/user_manual/sokoban_tileset.png
 
-# TODO : message d'erreur quand l'url de l'image ne permet pas de récupérer une image.
-
 """
 {
     "version": "2.0.0",
+    "name": "Sokoban v2",
     "tile_size": 32,
     "game_area": {
       "nb_tile_width": 20,
@@ -146,7 +145,6 @@ class GameModel(squarity.GameModelBase):
         self.gobj_avatar = squarity.GameObject(Coord(0, 0), "avatar")
         self.gobj_avatar.plock_transi = squarity.PlayerLockTransi.INVISIBLE
         self.layer_main.add_game_object(self.gobj_avatar)
-        self.delay_avatar = None
         self.current_level = 0
         self.initiate_level()
         self.restart_level = False
@@ -161,51 +159,36 @@ class GameModel(squarity.GameModelBase):
             "target": self.layer_background,
         }
         for coord in s.seq_iter(s.iter_on_rect(self.rect)):
-            # TODO : C'est pas un peu bourrin de tout virer comme ça ?
-            self.layer_background.get_tile(coord).game_objects = []
-            self.layer_crate.get_tile(coord).game_objects = []
+            self.layer_background.remove_at_coord(coord)
+            self.layer_crate.remove_at_coord(coord)
 
             elems_to_add = ELEMS_FROM_CHAR[level_map[coord.y][coord.x]]
             for elem in elems_to_add:
                 if elem == "avatar":
-                    # TODO: c'est idiot ce self.delay_avatar.
-                    # Mais c'est un souci dans le moteur, pas dans ce code.
-                    self.gobj_avatar.move_to(coord, self.delay_avatar)
+                    self.gobj_avatar.move_to(coord, 0)
                 else:
                     layer = layer_from_elem[elem]
                     layer.add_game_object(squarity.GameObject(coord, elem))
 
-        self.delay_avatar = 0
-
     def on_button_direction(self, direction):
 
         self.restart_level = False
-        coord_avatar_dest = self.gobj_avatar.get_coord().move_dir(direction)
-        if not self.rect.in_bounds(coord_avatar_dest):
+        avatar_dest = self.gobj_avatar.get_coord().move_dir(direction)
+        if not self.rect.in_bounds(avatar_dest):
+            return
+        if self.get_first_gobj(avatar_dest, ["wall"], self.layer_background):
             return
 
-        # TODO : Petite fonction dans le Sequencer qui fait tout ça.
-        if s.seq_first(
-            iter([coord_avatar_dest]),
-            s.gobj_on_layers([self.layer_background]),
-            s.filter_sprites("wall")
-        ):
-            return
-
-        crate_to_push = s.seq_first(
-            iter([coord_avatar_dest]),
-            s.gobj_on_layers([self.layer_crate]),
-            s.filter_sprites("crate")
+        crate_to_push = self.get_first_gobj(
+            avatar_dest,
+            ["crate"],
+            self.layer_crate,
         )
         if crate_to_push is not None:
-            coord_crate_dest = coord_avatar_dest.clone().move_dir(direction)
-            if not self.rect.in_bounds(coord_crate_dest):
+            crate_dest = avatar_dest.clone().move_dir(direction)
+            if not self.rect.in_bounds(crate_dest):
                 return
-            if s.seq_first(
-                iter([coord_crate_dest]),
-                s.gobj_on_layers([self.layer_background, self.layer_crate]),
-                s.filter_sprites(["wall", "crate"])
-            ):
+            if self.get_first_gobj(crate_dest, ["wall", "crate"]):
                 return
             crate_to_push.move_dir(direction)
 
