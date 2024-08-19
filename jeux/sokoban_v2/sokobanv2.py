@@ -2,8 +2,8 @@
 
 """
 {
-    "version": "2.0.0",
     "name": "Sokoban v2",
+    "version": "2.0.1",
     "tile_size": 32,
     "game_area": {
       "nb_tile_width": 20,
@@ -17,6 +17,18 @@
         "target": [32, 32]
     }
 }
+"""
+
+"""
+Petite démonstration de la V2 du moteur de Squarity,
+avec un grand classique: Soko-ban.
+
+C'est les mêmes images et les mêmes niveaux que le Soko-ban
+qui a été créés il y a quelques temps. Mais pas du tout le même code.
+
+Grâce à la v2, les objets se déplacent progressivement
+d'une case à une autre, et le personnage fait
+une petite danse de la victoire à la fin d'un niveau !
 """
 
 import squarity
