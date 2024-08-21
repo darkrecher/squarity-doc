@@ -5,8 +5,8 @@
     "name": "Un diamant cherche son pote",
     "version": "2.1.0",
     "game_area": {
-      "nb_tile_width": 7,
-      "nb_tile_height": 8
+      "nb_tile_width": 8,
+      "nb_tile_height": 9
     },
     "tile_size": 40,
     "img_coords": {
@@ -29,6 +29,22 @@ Coord = squarity.Coord
 d = squarity.dirs
 
 
+# TODO : dans la lib squarity ?
+def on_rect_border(rect, coord):
+    print("on border", rect, coord)
+    if not rect.in_bounds(coord):
+        return False
+    if coord.x == rect.x:
+        return True
+    if coord.y == rect.y:
+        return True
+    if coord.x == rect.x + rect.w - 1:
+        return True
+    if coord.y == rect.y + rect.h - 1:
+        return True
+    return False
+
+
 class GameObjectInBigWorld(squarity.GameObject):
 
     def more_init(self, coord_big_world, rect_visible):
@@ -49,7 +65,6 @@ class GameObjectInBigWorld(squarity.GameObject):
         if is_visible_prev and is_visible_cur:
             # TODO : argh. Va falloir un truc pour multiplier les coordonnées,
             # et les les additionner, et les soustraire ?
-            # self.move(Coord(-coord_vector.x, -coord_vector.y))
             self.add_transition(
                 squarity.TransitionSteps("coord", ((scroll_time, Coord(self._coord.x-coord_vector.x, self._coord.y-coord_vector.y)), ))
             )
@@ -65,12 +80,11 @@ class GameObjectInBigWorld(squarity.GameObject):
             print("area_offset_x", self.image_modifier.area_offset_x)
             if coord_vector.x:
                 self.image_modifier.add_transition(
-                    # TODO : le vilain 0.01 parce que sinon ça fait une erreur JS.
-                    squarity.TransitionSteps("area_offset_x", ((scroll_time, 0.01), ))
+                    squarity.TransitionSteps("area_offset_x", ((scroll_time, 0), ))
                 )
             if coord_vector.y:
                 self.image_modifier.add_transition(
-                    squarity.TransitionSteps("area_offset_y", ((scroll_time, 0.01), ))
+                    squarity.TransitionSteps("area_offset_y", ((scroll_time, 0), ))
                 )
             self.must_set_visible = True
         elif is_visible_prev and not is_visible_cur:
@@ -88,7 +102,10 @@ class GameObjectInBigWorld(squarity.GameObject):
 
 class GameModel(squarity.GameModelBase):
 
+    # TODO : foutre des constantes sur le coord upleft initial de la zone. Le déplacement x,y. La taille de la zone visible.
+
     def on_start(self):
+        self.rect_big_world = squarity.Rect(0, 0, 32, 20)
         self.layer_gem = squarity.Layer(self, self.w, self.h)
         self.layers.append(self.layer_gem)
         self.gobj_bg = squarity.GameObject(
@@ -96,14 +113,27 @@ class GameModel(squarity.GameModelBase):
             "background",
             image_modifier=squarity.ComponentImageModifier(
                 area_scale_x=2.0, area_scale_y=2.0,
-                img_offset_x=-20, img_offset_y=-20,
+                area_offset_x=1, area_offset_y=1,
                 img_size_x=640, img_size_y=400,
             )
         )
         self.gobj_bg.set_callback_end_transi(self.on_move_zone_end)
+        self.gobj_bg.plock_transi = squarity.PlayerLockTransi.LOCK
         self.layer_main.add_game_object(self.gobj_bg)
         self.coord_zone = Coord(0, 0)
         self.rect_visible = self.compute_rect_visible()
+
+        self.gem_green = GameObjectInBigWorld(
+            Coord(0, 0),
+            "gem_green",
+            image_modifier=squarity.ComponentImageModifier()
+        )
+        self.gem_green.plock_transi = squarity.PlayerLockTransi.LOCK
+        # self.gem_green.set_transition_delay(2000)
+        self.gem_green.more_init(Coord(3, 3), self.rect_visible)
+        if self.gem_green.must_set_visible:
+            self.layer_gem.add_game_object(self.gem_green)
+            self.gem_green.must_set_visible = False
 
         self.gem_yellow = GameObjectInBigWorld(
             Coord(0, 0),
@@ -113,96 +143,96 @@ class GameModel(squarity.GameModelBase):
         self.gem_yellow.more_init(Coord(8, 6), self.rect_visible)
         if self.gem_yellow.must_set_visible:
             self.layer_gem.add_game_object(self.gem_yellow)
+            self.gem_yellow.must_set_visible = False
+        self.debug_wesh_counter = 0
 
 
     def compute_rect_visible(self):
         rect_visible = squarity.Rect(
-            self.coord_zone.x * 7 - 1,
+            self.coord_zone.x * 6 - 1,
             self.coord_zone.y * 7 - 1,
-            7,
-            8
+            8,
+            9
         )
-        if self.coord_zone.x == 4:
-            rect_visible.x -= 1
         return rect_visible
 
 
+    def compute_move_details(self, rect_visible_prev, rect_visible_cur):
+        coord_vector = Coord(
+            rect_visible_cur.x - rect_visible_prev.x,
+            rect_visible_cur.y - rect_visible_prev.y,
+        )
+        scroll_time = (abs(coord_vector.x) + abs(coord_vector.y)) * 100
+        return coord_vector, scroll_time
+
+
     def on_button_direction(self, direction):
-        rect_visible_prev = self.compute_rect_visible()
-        # Faudra pas le calculer comme ça, ce truc. Évidemment.
-        scroll_time, coord_vector = self.move_zone(direction)
+        self.debug_wesh_counter += 1
+        print("wesh", self.debug_wesh_counter)
+        coord_test = self.gem_green.coord_big_world.clone().move_dir(direction)
+        if not self.rect_big_world.in_bounds(coord_test):
+            return
+        self.gem_green.coord_big_world.move_dir(direction)
+        # coord_green_test = self.gem_green._coord.clone().move_dir(direction)
+        if on_rect_border(self.rect_visible, self.gem_green.coord_big_world):
+            self.direction_move_zone = direction
+            self.gem_green.move_dir(direction, callback=self.on_green_move_borders)
+        else:
+            self.gem_green.move_dir(direction)
+        #self.gem_green.move_dir(direction)
+        #if on_rect_border(self.rect_visible, self.gem_green.coord_big_world):
+        #    self.direction_move_zone = direction
+        #    self.on_green_move_borders()
+
+
+    def on_green_move_borders(self):
+        rect_visible_prev = self.rect_visible
+        self.move_zone(self.direction_move_zone)
         self.rect_visible = self.compute_rect_visible()
+        coord_vector, scroll_time = self.compute_move_details(rect_visible_prev, self.rect_visible)
+
+        self.ack_zone_moved_for_background(rect_visible_prev, self.rect_visible, coord_vector, scroll_time)
         self.gem_yellow.ack_zone_moved(rect_visible_prev, self.rect_visible, coord_vector, scroll_time)
         if self.gem_yellow.must_set_visible:
             self.layer_gem.add_game_object(self.gem_yellow)
             self.gem_yellow.must_set_visible = False
+        self.gem_green.ack_zone_moved(rect_visible_prev, self.rect_visible, coord_vector, scroll_time)
+        if self.gem_green.must_set_visible:
+            self.layer_gem.add_game_object(self.gem_green)
+            self.gem_green.must_set_visible = False
         print("_transitions_to_record", self.gem_yellow.image_modifier._transitions_to_record)
-
-        #if rect_visible.in_bounds(self.gem_yellow.coord_global) and self.gem_yellow.layer_owner is None:
-        #    self.layer_gem.add_game_object(self.gem_yellow)
-        #if not rect_visible.in_bounds(self.gem_yellow.coord_global) and self.gem_yellow.layer_owner is not None:
-        #    self.layer_gem.remove_game_object(self.gem_yellow)
 
 
     def move_zone(self, direction):
-        scroll_vector = Coord(0, 0)
-        scroll_time = 0
         if direction == d.Right:
-            if self.coord_zone.x < 4:
+            if self.coord_zone.x < 6:
                 self.coord_zone.x += 1
-                if self.coord_zone.x == 4:
-                    scroll_vector = Coord(6, 0)
-                    scroll_time = 800
-                    transi_param = (scroll_time, -20 + 140 * self.coord_zone.x - 20)
-                else:
-                    scroll_vector = Coord(7, 0)
-                    scroll_time = 1000
-                    transi_param = (scroll_time, -20 + 140 * self.coord_zone.x)
-                # Haha. C'est area_offset et pas img_offset... J'ai vraiment tout mélangé.
-                self.gobj_bg.image_modifier.add_transition(
-                    squarity.TransitionSteps("img_offset_x", (transi_param, ))
-                )
         elif direction == d.Left:
             if self.coord_zone.x:
                 self.coord_zone.x -= 1
-                if self.coord_zone.x == 4:
-                    scroll_vector = Coord(-6, 0)
-                    scroll_time = 800
-                    transi_param = (scroll_time, -20 + 140 * self.coord_zone.x)
-                else:
-                    scroll_vector = Coord(-7, 0)
-                    scroll_time = 1000
-                    transi_param = (scroll_time, -20 + 140 * self.coord_zone.x)
-                self.gobj_bg.image_modifier.add_transition(
-                    squarity.TransitionSteps("img_offset_x", (transi_param, ))
-                )
         elif direction == d.Down:
-            if self.coord_zone.y < 2:
+            if self.coord_zone.y < 3:
                 self.coord_zone.y += 1
-                scroll_vector = Coord(0, 7)
-                scroll_time = 1000
-                transi_param = (scroll_time, -20 + 140 * self.coord_zone.y)
-                self.gobj_bg.image_modifier.add_transition(
-                    squarity.TransitionSteps("img_offset_y", (transi_param, ))
-                )
         elif direction == d.Up:
             if self.coord_zone.y:
                 self.coord_zone.y -= 1
-                scroll_vector = Coord(0, -7)
-                scroll_time = 1000
-                transi_param = (scroll_time, -20 + 140 * self.coord_zone.y)
-                self.gobj_bg.image_modifier.add_transition(
-                    squarity.TransitionSteps("img_offset_y", (transi_param, ))
-                )
-        return scroll_time, scroll_vector
+
+
+    def ack_zone_moved_for_background(self, rect_visible_prev, rect_visible_cur, coord_vector, scroll_time):
+        if coord_vector.x:
+            transi_param = (scroll_time, -rect_visible_cur.x)
+            self.gobj_bg.image_modifier.add_transition(
+                squarity.TransitionSteps("area_offset_x", (transi_param, ))
+            )
+        if coord_vector.y:
+            transi_param = (scroll_time, -rect_visible_cur.y)
+            self.gobj_bg.image_modifier.add_transition(
+                squarity.TransitionSteps("area_offset_y", (transi_param, ))
+            )
 
 
     def on_button_action(self, action_name):
-        print(action_name)
-        self.gem_yellow.image_modifier.add_transition(
-            squarity.TransitionSteps("area_offset_x", ((1000, 50), ))
-        )
-
+        print("Les boutons d'actions ne servent à rien dans ce jeu.")
 
 
     def on_move_zone_end(self):
@@ -210,6 +240,10 @@ class GameModel(squarity.GameModelBase):
         if self.gem_yellow.must_hide:
             self.layer_gem.remove_game_object(self.gem_yellow)
             self.gem_yellow.must_hide = False
+        if self.gem_green.must_hide:
+            self.layer_gem.remove_game_object(self.gem_green)
+            self.gem_green.must_hide = False
+
 
 
 
