@@ -200,9 +200,19 @@ C'est le cœur du système. Il faut mettre tout ça au propre dans un document d
 
 ### Ajouter des game objects qui dépassent de la tile
 
-Ça devrait être assez facile une fois qu'on aura les layers.
+Il y a 4 valeurs définissant ce qu'on prend dans le tileset : [img_offset_x, img_offset_y, img_size_x, img_size_y]. Par défaut, size_x et size_y valent tile_size (définie dans la config json). Tout est en pixels.
 
-Dans la définition du game object, on ajoute un hot point (x, y), et une taille (width, height).
+Il y a 4 valeurs définissant où on l'affiche dans l'aire de jeu. [area_offset_x, area_offset_y, area_scale_x, area_scale_y]. Tout est en fraction de squares, car ça définit l'endroit où on affiche l'objet dans l'aire de jeu. Or, cette aire de jeu constituée de squares. Par défaut, les valeurs sont [0.0, 0.0, 1.0, 1.0]. On ne peut pas définir ces valeurs en pixel perfect, puisque la taille réelle de l'aire de jeu ne peut pas être choisie en pixel perfect. Elle dépend de la taille de la fenêtre du navigateur.
+
+Ça fait deux scales qui se multiplient : scale_x * (img_size_x / tile_size). Ça reste logique.
+
+On peut avoir des transitions smooth sur ces 8 valeurs.
+
+On définit aussi une "anchor", indiquant où se trouve le point fixe de l'image lorsqu'on l'agrandit/rétrécit.
+
+Dans la config, chaque élément de img_coords doit définir 5 valeurs : [corner_x, corner_y, size_x, size_y, "center" ou bien "corner_upleft"].
+
+Les trois dernières sont facultatives. Si non définies, elles valent [tile_size, tile_size, "corner_upleft"].
 
 ### Vision : Un dialogue de visual novel
 
