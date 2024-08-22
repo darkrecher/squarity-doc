@@ -2,7 +2,7 @@
 
 """
   {
-    "name": "Un diamant cherche son pote",
+    "name": "Une émeraude cherche son ami",
     "version": "2.1.0",
     "game_area": {
       "nb_tile_width": 8,
@@ -18,8 +18,23 @@
 """
 
 """
-Origine de l'image de background:
+
+---------------------------
+À la recherche de votre ami
+---------------------------
+
+Vous êtes une émeraude verte à la recherche
+de votre fidèle ami le chrysobéryl jaune.
+
+Il s'agit d'un simple mini-jeu, pour montrer les nouvelles fonctionnalités
+de la version 2.1.0 du moteur de Squarity.
+
+Ces fonctionnalités seront documentées très prochainement.
+
+L'image de background plasma-lava a été créée par 'Downdate'.
+Elle est disponible ici :
 https://opengameart.org/content/centered-around-the-hero
+Licence CC-BY-3.0
 """
 
 import random
@@ -119,9 +134,11 @@ class ZoneMoveDetails():
         move_dist_manh = (abs(self.coord_vector.x) + abs(self.coord_vector.y))
         self.scroll_time = move_dist_manh * 75
 
+
 class GameModel(squarity.GameModelBase):
 
     def on_start(self):
+        print("Allez vers la droite pour retrouver votre ami le chrysobéryl jaune.")
         self.transition_delay = 100
         self.rect_big_world = squarity.Rect(0, 0, BIG_WORLD_W, BIG_WORLD_H)
         self.layer_gem = squarity.Layer(self, self.w, self.h)
@@ -308,9 +325,8 @@ class GameModel(squarity.GameModelBase):
         self.nb_found_yellow += 1
         if self.nb_found_yellow == 1:
             print(
-                "Vous avez trouvé votre ami le diamant jaune !",
-                "Mais il est parti batifoler ailleurs.",
-                "Il est aux coordonnées :",
+                "\nVous avez trouvé votre ami !",
+                "Mais il est parti batifoler aux coordonnées :",
                 new_yellow_coord.x,
                 new_yellow_coord.y
             )
@@ -339,6 +355,13 @@ class GameModel(squarity.GameModelBase):
                 )
             )
         if zmd.coord_vector.y:
+            # FUTURE :
+            #  - add_transition de area_offset et img_offset où on peut donner des coords.
+            #  - add_transition dans le game object,
+            #    qui transmet au image_modifier selon le field name.
+            #  - directement les paramètres, sans passer par le squarity.TransitionSteps.
+            #  - add_transi_step pour ajouter un seul step, (pas de tuple de tuple).
+            #  - rassemblement des transi sur un même field.
             self.gobj_bg.image_modifier.add_transition(
                 squarity.TransitionSteps(
                     "area_offset_y",
