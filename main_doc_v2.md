@@ -68,18 +68,40 @@ Il est possible d'ajouter d'autres valeurs après les deux entiers de la liste. 
 
 La seule information utile de la clé `version` est le premier nombre, situé avant le premier point.
 
-Si ce nombre est "1", la version utilisée sera "1.0.0". **Son fonctionnement est figé**, sauf pour la correction d'éventuels bugs majeurs.
+Si ce nombre est "1", la version utilisée sera "1.0.0".
 
 Si ce nombre est "2", la version utilisée sera la version 2.x.y la plus récente (actuellement : "2.1.0"). Vous n'avez donc pas accès aux précédentes versions 2.x.y, mais elles sont censées être rétro-compatibles.
 
 
-## Notions de base
+## Notions de base du "game code"
 
-GameModel, avec des callbacks.
-Layer.
-GameObject, avec des coordonnées et une image.
+Il s'agit du programme définissant la logique de votre jeu, il est écrit en langage python.
 
-schéma d'affichage, avec les différentes tailles.
+Dans l'interface, placez ce programme dans la zone de texte "Le code du jeu".
+
+Ce programme doit contenir une classe intitulée `GameModel`, qui hérite de la classe `squarity.GameModelBase`.
+
+Cette classe sera instanciée automatiquement par le moteur Squarity. Elle contient des fonctions de callback, que vous aurez éventuellement redéfinie. Ces fonctions sont appelées automatiquement sur certains événements (appui sur un bouton du jeu, clic de souris, etc.)
+
+Votre `GameModel` contient des objets de type `squarity.Layer`, ordonnés dans une liste. Chacun de ces layers contient un tableau de "tiles". Ce tableau est en 2 dimensions, la largeur et la hauteur correspondent à celles de l'aire de jeu (les valeurs `nb_tile_width` et `nb_tile_height` indiquées dans la config JSON).
+
+Une tile représente une case de l'aire de jeu. Chaque tile peut contenir des `squarity.GameObject`, représentant des objets de votre jeu. Un GameObject est toujours placé sur une seule tile de seul layer. Un GameObject possède des coordonnées (x, y) indiquant la tile d'appartenance dans le layer. Un GameObject possède une variable membre `sprite_name`, de type chaîne de caractère. Cette variable doit avoir pour valeur l'un des noms définis dans le dictionnaire `img_coords` de la configuration JSON.
+
+## Schéma d'affichage, calculs des tailles
+
+TODO.
+
+Vous ne pouvez pas définir la taille en pixel des cases réellement affichées. Cette-ci dépend de la taille de la fenêtre du navigateur affichant Squarity, elle est choisie par la personne qui joue et non pas par vous.
+
+Le calcul est effectué comme suit:
+
+ - calcul de la largeur possible et de la hauteur possible des tiles (en pixel à l'écran) :
+   - `largeur_possible = largeur_fenêtre_du_jeu / nb_tile_width`
+   - `hauteur_possible = hauteur_fenêtre_du_jeu / nb_tile_height`ç
+ - détermination de la taille réelle des tiles, en prenant la plus petites
+   - `taille_tile_ecran = min(largeur_possible, hauteur_possible)`
+
+
 
 ## Direction
 
