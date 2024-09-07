@@ -87,39 +87,170 @@ Votre `GameModel` contient des objets de type `squarity.Layer`, ordonnés dans u
 
 Une tile représente une case de l'aire de jeu. Chaque tile peut contenir des `squarity.GameObject`, représentant des objets de votre jeu. Un GameObject est toujours placé sur une seule tile de seul layer. Un GameObject possède des coordonnées (x, y) indiquant la tile d'appartenance dans le layer. Un GameObject possède une variable membre `sprite_name`, de type chaîne de caractère. Cette variable doit avoir pour valeur l'un des noms définis dans le dictionnaire `img_coords` de la configuration JSON.
 
+La suite de cette documentation contient des exemples de code. Vous pouvez les copier-coller dans Squarity puis cliquer sur le bouton "Executer". Vous devriez voir des informations apparaître dans la console (la fenêtre de texte en bas de l'aire de jeu). Pour les exemples un peu plus complexes, il faut trouver le bon endroit où placer le code, mais vous êtes très fort et vous allez y arriver.
+
+
 ## Schéma d'affichage, calculs des tailles
 
 TODO.
 
-Vous ne pouvez pas définir la taille en pixel des cases réellement affichées. Cette-ci dépend de la taille de la fenêtre du navigateur affichant Squarity, elle est choisie par la personne qui joue et non pas par vous.
+Vous ne pouvez pas définir la taille en pixel des cases réellement affichées. Cette-ci dépend de la taille de la fenêtre du navigateur affichant Squarity, qui est définie par la personne qui joue.
 
 Le calcul est effectué comme suit:
 
- - calcul de la largeur possible et de la hauteur possible des tiles (en pixel à l'écran) :
-   - `largeur_possible = largeur_fenêtre_du_jeu / nb_tile_width`
-   - `hauteur_possible = hauteur_fenêtre_du_jeu / nb_tile_height`ç
- - détermination de la taille réelle des tiles, en prenant la plus petites
+ - calcul de la largeur possible et de la hauteur possible des tiles (en pixel, à l'écran) :
+   - `largeur_possible = largeur_fenêtre_du_jeu / config.nb_tile_width`
+   - `hauteur_possible = hauteur_fenêtre_du_jeu / config.nb_tile_height`
+ - détermination de la taille réelle des tiles, en prenant la plus petite :
    - `taille_tile_ecran = min(largeur_possible, hauteur_possible)`
+ - application de cette taille pour la largeur et la hauteur à l'écran :
+   - `largeur_tile_ecran = taille_tile_ecran`
+   - `hauteur_tile_ecran = taille_tile_ecran`
+
+Ensuite, une mise à l'échelle est effectuée, pour afficher les images ayant une taille égale à `config.tile_size` (en pixel dans le tileset), vers des images ayant une taille égale à `taille_tile_ecran` (en pixel à l'écran).
+
+La mise à l'échelle est effectuée selon l'algorithme "proche voisin", sans aucun traitement ni anti-aliasing. C'est à dire que des gros pixels carrés seront visibles si vos images de tileset sont petites et que la personne qui joue a choisi une grande fenêtre de jeu.
 
 
+## class Direction
 
-## Direction
+### Liste des directions
 
-## Coord
+Il s'agit d'une classe dont il n'existe que 8 instances, 4 pour les directions de base (haut, droite, bas, gauche) et 4 autres pour les diagonales. Ces 8 instances sont stockées dans l'objet `squarity.dirs`.
 
-## Rect
+Les instances peuvent être comparées entre elles, par exemple : `my_dir == dirs.Up`. Elles peuvent être converties en entier et en string. Elles possèdent une variable `vector` qui est un tuple de deux éléments, indiquant respectivement son déplacement en X et son déplacement en Y.
 
-## GameObject
+Tableau récapitulatif des directions et de leurs caractéristiques :
+
+| `d = `           | `int(d)` | `str(d)`       | `d.vector[0]` | `d.vector[1]` |
+|------------------|----------|----------------|---------------|---------------|
+| `dirs.Up`        |    0     | `"up"`         |     0         |    -1         |
+| `dirs.UpRight`   |    1     | `"up_right"`   |    +1         |    -1         |
+| `dirs.Right`     |    2     | `"right"`      |    +1         |     0         |
+| `dirs.DownRight` |    3     | `"down_right"` |    +1         |    +1         |
+| `dirs.Down`      |    4     | `"down"`       |     0         |    +1         |
+| `dirs.DownLeft`  |    5     | `"down_left"`  |    -1         |    +1         |
+| `dirs.Left`      |    6     | `"left"`       |    -1         |     0         |
+| `dirs.UpLeft`    |    7     | `"up_left"`    |    -1         |    -1         |
+
+### Rotations
+
+Les méthodes `turn_cw` et `turn_ccw` renvoient une direction tournée, respectivement dans le sens des aiguilles d'une montre et dans le sens inverse. L'angle de rotation par défaut est de 90 degrés.
+
+```
+d = squarity.dirs.Right
+print(d.turn_cw())
+# La valeur 'down' s'affiche dans la console.
+```
+
+Le second paramètre permet de préciser l'angle de rotation. C'est un entier indiquant le nombre de pas de 45 degrés.
+
+```
+d = squarity.dirs.UpRight
+print(d.turn_ccw(3))
+# La valeur 'left' s'affiche dans la console.
+```
+
+## class Coord
+
+Cette classe sert à identifier une case dans l'aire de jeu ou dans un layer. Elle possède deux variables membres `x` et `y`, de type `int`.
+
+### Instanciation
+
+La classe peut être créée en indiquant un X et un Y, ou à partir d'une autre `Coord`. Les `Coord` peuvent être comparées entre elles.
+
+```
+coord_1 = squarity.Coord(5, 2)
+coord_2 = squarity.Coord(coord=coord_1)
+print(coord_1 == coord_2)
+# La valeur 'True' s'affiche dans la console
+```
+
+### Fonctions de base
+
+Les `Coord` peuvent être utilisées comme clés dans un dictionnaire. Elles ont une représentation textuelle, ce qui permet de les écrire avec un `print`. Elles peuvent être dupliquées avec la méthode `clone`.
+
+```
+coord_1 = squarity.Coord(5, 2)
+coord_2 = coord_1.clone()
+print(coord_2)
+# Le texte "<Coord 5, 2 >" s'affiche dans la console
+```
+
+### Fonctions de modification
+
+La méthode `move_dir` permet de modifier les coordonnées en la décalant dans une direction donnée, sur une distance donnée (avec un `int`). La distance par défaut est 1.
+
+```
+coord_1 = squarity.Coord(5, 2)
+coord_1.move_dir(squarity.dirs.Right, 2)
+print(coord_1)
+# "<Coord 7, 2 >"
+```
+
+La méthode `move_by_vect` permet de modifier les coordonnées en lui appliquant un décalage. Le décalage est spécifié par une `Coord` dans le paramètre `vector`, ou bien directement par les coordonnées `x` et `y`.
+
+Attention, il n'y a pas de blocage sur les bords. Les mouvements peuvent amener une coordonnée dans des zones négatives, ou en dehors de l'aire de jeu.
+
+```
+coord_1 = squarity.Coord(5, 2)
+coord_vect = squarity.Coord(0, -3)
+coord_1.move_by_vect(vector=coord_vect)
+coord_1.move_by_vect(x=1, y=-3)
+print(coord_1)
+# "<Coord 6, -4 >"
+```
+
+
+## class Rect
+
+Définit un rectangle, à partir de 4 paramètres de type `int` : le X et le Y du coin supérieur droit, la largeur la hauteur.
+
+Les coordonnées dans le rectangle s'étendent depuis X jusqu'à (X+largeur-1) en abscisse, et depuis Y jusqu'à (Y+hauteur-1) en ordonnée.
+
+### Fonction in_bounds
+
+Indique si une coordonnée se trouve à l'intérieur du rectangle.
+
+```
+rect = squarity.Rect(5, 2, 3, 5)
+# Les coordonnées dont le X vaut (5, 6 ou 7) et dont le Y vaut (2, 3, 4, 5 ou 6)
+# sont comprises dans le rectangle.
+print(rect.in_bounds(squarity.Coord(0, 0)))
+# La valeur False s'affichera dans la console.
+```
+
+### Fonction on_borders
+
+Indique si une coordonnée se trouve sur un bord du rectangle.
+
+```
+rect = squarity.Rect(5, 2, 3, 5)
+for x in range(4, 10):
+    coord_1 = squarity.Coord(x, 3)
+    border = rect.on_border(coord_1)
+    print(coord_1, "est-elle au bord ?", border)
+# Les informations suivantes vont s'afficher:
+# <Coord 4, 3 > est-elle au bord ? False
+# <Coord 5, 3 > est-elle au bord ? True
+# <Coord 6, 3 > est-elle au bord ? False
+# <Coord 7, 3 > est-elle au bord ? True
+# <Coord 8, 3 > est-elle au bord ? False
+# <Coord 9, 3 > est-elle au bord ? False
+```
+
+
+## class GameObject
 
 transition par défaut quand on change des coordonnées.
 
-## Layer
+## class Layer
 
-## GameModel
+## class GameModel
 
-## EventResult
+## class EventResult
 
-### DelayedCallBack
+### class DelayedCallBack
 
 ### plock custom
 
@@ -127,7 +258,7 @@ transition par défaut quand on change des coordonnées.
 
 TODO: je l'ai toujours ce truc ou pas ?
 
-## Transition
+## Transitions
 
 ### transition time
 
