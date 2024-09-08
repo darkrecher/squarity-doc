@@ -36,8 +36,8 @@ Exemple :
       "nb_tile_height": 14
     },
     "img_coords": {
-      "a_game_object": [0, 0],
-      "another_game_object": [32, 0]
+      "my_sprite": [0, 0],
+      "my_other_sprite": [32, 0]
     }
 }
 ```
@@ -242,11 +242,134 @@ for x in range(4, 10):
 
 ## class GameObject
 
-transition par défaut quand on change des coordonnées.
+Un Game Object (ou gobj) est un élément du jeu, qui s'affiche dans l'aire de jeu. Un Game Object possède des coordonnées (un objet `Coord`) et un nom de sprite (`sprite_name`). Le nom de sprite correspond à un nom référencé dans le dictionnaire `img_coords` de la config JSON.
+
+Pour que le Game Object s'affiche, il doit être placé dans un `Layer`. Un Game Object peut être transféré d'un Layer à un autre, il peut également n'appartenir à aucun Layer. Mais il n'est pas censé être placé dans plusieurs Layers en même temps.
+
+La coordonnée et le nom de sprite doivent être spécifiés dès l'instanciation du Game Object. L'ajout dans le Layer peut être effectué juste après (voir plus loin, la classe Layer).
+
+```
+gobj = squarity.GameObject(
+    squarity.Coord(5, 2),
+    "my_sprite"
+)
+print(gobj)
+# Le texte "<Gobj (5,2) my_sprite>" s'affiche dans la console.
+```
+
+Il existe d'autres paramètres facultatifs que l'on peut transmettre lors de l'instanciation. Ils sont détaillés plus loin dans cette documentation.
+
+### Nom du sprite
+
+L'aspect visuel du Game Object peut être directement changé en modifiant la variable membre `sprite_name`. La nouvelle image s'affichera, en fonction du tileset et de la config JSON.
+
+Attention, il n'y a pas de vérification sur le nom du sprite. Si vous indiquez un nom qui n'est pas référencé dans `config.img_coords`, le jeu va planter sans aucun message. (On améliorera ça dans les versions à venir).
+
+### Coordonnées (accès et modification)
+
+Le Game Object possède une variable membre interne appelée `_coord`. **Vous n'êtes pas censé y accéder directement**, sinon ça risque de désordonner l'indexation des Game Objects dans les Layers.
+
+Pour lire la coordonnée, utilisez la méthode `coord_clone = gobj.get_coord()`. Vous pouvez ensuite faire ce que vous voulez avec votre variable `coord_clone`, y compris la modifier. Mais les modifications ne seront pas reportés dans le Game Object.
+
+Pour déplacer un Game Object, utilisez les méthodes `move_xxx`. Il s'agit des méthodes suivantes :
+
+ - `move_to_xy` : déplace l'objet sur une case de destination, spécifiée par les paramètres X et Y (`int`).
+ - `move_to` : déplace l'objet sur une case de destination, spécifiée par le paramètre `dest_coord` (`Coord`).
+ - `move` : déplace l'objet de manière relative, selon un vecteur de déplacement spécifié par le paramètre `coord_offset` (`Coord`).
+ - `move_dir` : déplace l'objet de manière relative, spécifié par le paramètre `direction` (`Direction`) et le paramètre facultatif `distance` (`int`).
+
+```
+gobj = squarity.GameObject(
+    squarity.Coord(5, 2),
+    "my_sprite"
+)
+gobj.move_to_xy(15, 9)
+print(gobj)
+# Le texte "<Gobj (15,9) my_sprite>" s'affiche dans la console.
+gobj.move_to(squarity.Coord(7, 4))
+print(gobj)
+# Le texte "<Gobj (7,4) my_sprite>" s'affiche dans la console.
+gobj.move(squarity.Coord(1, -1))
+print(gobj)
+# Le texte "<Gobj (8,3) my_sprite>" s'affiche dans la console.
+gobj.move_dir(squarity.dirs.Right, 4)
+print(gobj)
+# Le texte "<Gobj (12,3) my_sprite>" s'affiche dans la console.
+```
+
+Ces 4 fonctions laissent le Game Object dans le même Layer. Voir la documentation de la classe Layer pour transférer un Game Object d'un Layer à un autre.
+
+### Transitions ajoutées automatiquement.
+
+Lorsque vous déplacez un Game Object, un déplacement de transition est automatiquement affichée. Durant 200 millisecondes, le Game Object se déplace progressivement (pixel par pixel) depuis sa case initiale vers sa case de destination.
+
+Ce déplacement de transition automatique est effectué en une seule ligne droite. Par exemple, si vous déplacez un objet des coordonnées (5, 3) vers les coordonnées 8, 2, la ligne de déplacement sera oblique.
+
+Si vous changez plusieurs fois les coordonnées dans le même tour de jeu, les valeurs intermédiaires ne seront pas prises en compte pour la transition. Les deux seules valeurs prises en compte sont celles avant l'exécution du code et celles après.
+
+Vous pouvez déclencher plusieurs transitions sur plusieurs Game Objects, en modifiant les coordonnées de chacun d'entre eux.
+
+Il est possible de définir des déplacements avec des étapes intermédiaires. Par exemple, un déplacement horizontal de x=5 vers x=8, puis un vertical de y=3 vers y=2. Voir plus loin (TODO : chapitres Transitions).
+
+Le temps de la transition peut être redéfini individuellement pour chaque Game Object, avec la fonction `gobj.set_transition_delay(transition_delay)`. Le paramètre `transition_delay` est un `int` indiquant le temps en millisecondes. Toutes les futures transitions dues à un changement de coordonnées utiliseront ce nouveau temps.
+
+Les 4 fonctions `move_xxx` possèdent un paramètre facultatif `transition_delay`, qui permet de définir un temps différent uniquement pour la prochaine transition.
+
+Vous pouvez définir un transition delay à 0 si vous voulez que votre objet se déplace instantanément.
+
+### Callback de fin de transition
+
+Il est possible d'indiquer a un Game Object une "callback de fin de transition". Il s'agit d'une fonction python qui sera automatiquement exécutée chaque fois que le Game Object aura fini toutes ses transitions en cours. Utilisez la méthode `gobj.set_callback_end_transi(callback_end_transi)`.
+
+Les callbacks ne peuvent pas avoir de paramètre, mais vous pouvez indiquer une fonction ou une méthode d'un objet spécifique.
+
+Pour enlever une callback, exécutez `set_callback_end_transi` en indiquant le paramètre `None`.
+
+Les 4 fonctions `move_xxx` possèdent un paramètre facultatif `callback`, qui permet de définir une callback différente uniquement pour la prochaine transition.
+
+```
+def my_callback():
+    print("coucou")
+
+gobj = squarity.GameObject(
+    squarity.Coord(5, 2),
+    "my_sprite"
+)
+gobj.set_callback_end_transi(my_callback)
+# (Cette exemple n'affiche rien dans la console, désolé)
+```
+
 
 ## class Layer
 
+On va utiliser des exemples "gem_yellow" et "gem_green". Pour que vous puissiez les copier-coller directement dans le jeu d'exemple des diamants.
+
 ## class GameModel
+
+(Pour faire fonctionner l'exemple ci-dessous, effacer tout le game code existant d'un jeu d'exemple, et ajouter un nom de sprite "my_sprite" dans la config).
+
+```
+import squarity
+
+def my_callback():
+    print("coucou")
+
+class GameModel(squarity.GameModelBase):
+    def on_start(self):
+        self.gobj = squarity.GameObject(
+            squarity.Coord(5, 2),
+            "my_sprite"
+        )
+        self.layer_main.add_game_object(self.gobj)
+        self.gobj.set_callback_end_transi(my_callback)
+
+    def on_click(self, coord):
+        self.gobj.move_to_xy(1, 1)
+
+# Exécutez le jeu, puis cliquez n'importe où dans l'aire de jeu.
+# L'objet se déplacera et le texte "coucou" s'affichera
+# dans la console à la fin du déplacement.
+```
 
 ## class EventResult
 
@@ -259,6 +382,8 @@ transition par défaut quand on change des coordonnées.
 TODO: je l'ai toujours ce truc ou pas ?
 
 ## Transitions
+
+Pour l'instant, on peut pas définir de vitesse. Seulement le temps.
 
 ### transition time
 
