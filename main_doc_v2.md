@@ -342,7 +342,63 @@ gobj.set_callback_end_transi(my_callback)
 
 ## class Layer
 
-On va utiliser des exemples "gem_yellow" et "gem_green". Pour que vous puissiez les copier-coller directement dans le jeu d'exemple des diamants.
+Un layer est un tableau en 2 dimensions, contenant des Game Objects. Votre aire de jeu peut contenir plusieurs Layers, qui seront affiché dans un ordre déterminé. Vous pouvez donc avoir un Layer pour vos objets du décor de fond, un pour les personnages et les bonus, un pour afficher des éléments d'interface, etc.
+
+L'ordre d'affichage des objets au sein d'un Layer n'est pas déterminé. Concrètement, c'est l'ordre d'ajout des Game Object dans le Layer, mais il s'agit d'un détail d'implémentation et ce comportement n'est pas garanti pour les versions ultérieures. Si vous souhaitez être sûr de l'ordre d'affichage de vos objets, utilisez plusieurs Layers.
+
+Si l'ordre importe peu pour votre jeu, vous pouvez utiliser le Layer créé par défaut : la variable membre `layer_main` dans le `GameModel`. Vous pouvez placer tous vos objets dans le `layer_main`.
+
+### Ajouter et retirer des Game Objects
+
+La méthode `layer.add_game_object(gobj)` permet d'ajouter un Game Object dans un Layer. (Les coordonnées du Game Object doivent être définies).
+
+La méthode `layer.remove_game_object(gobj)` permet d'enlever un Game Object d'un Layer. Une exception sera levée si vous tentez d'enlever un Game Object n'appartenant pas au Layer.
+
+La méthode `layer.remove_at_coord(coord)` permet d'enlever tous les Game Objects situés sur la coordonnée indiquée en paramètre.
+
+Après avoir été enlevé, le Game Object existe toujours, vous pouvez le réutiliser et le placer dans un autre Layer.
+
+Ci-dessous, un exemple de game code minimal, affichant un seul objet immobile. Pour l'exécuter, sélectionner le jeu d'exemple du diamant vert, supprimer tout le game code, puis copier-coller ce texte à la place.
+
+```
+import squarity
+
+class GameModel(squarity.GameModelBase):
+    def on_start(self):
+        self.gobj = squarity.GameObject(squarity.Coord(5, 2), "gem_green")
+        self.layer_main.add_game_object(self.gobj)
+```
+
+### Récupérer des Tiles et des Game Objects
+
+Chaque élément du tableau 2D d'un Layer est une `Tile`. Ces `Tile` sont utiles pour se déplacer de case en case dans un Layer, grâce à la variable `adjacencies`. Il s'agit d'une liste de 8 éléments, contenant les Tiles adjacentes (certains éléments peuvent être None pour les Tiles qui sont au bord).
+
+Les Game Objects d'une Tile sont stockés dans la variable membre `game_objects` (`list`).
+
+Les méthodes `layer.get_tile(coord)` et `layer.get_tile_xy(x, y)` permettent de récupérer une Tile.
+
+```
+        tile = self.layer_main.get_tile_xy(5, 1)
+        tile_down = tile.adjacencies[int(squarity.dirs.Down)]
+        print("Nombre d'objets sur la tile :", len(tile_down.game_objects))
+        print(tile_down.game_objects)
+```
+
+La méthode `layer.get_game_objects(coord)` permet de récupérer directement la liste de tous les Game Objects sur les coordonnées indiquées.
+
+La méthode `layer.iter_all_game_objects()` permet d'itérer sur tous les Game Objects d'un Layer.
+
+```
+        for gobj in self.layer_main.iter_all_game_objects():
+            print(gobj)
+```
+
+### Créer des layers et les ajouter dans le jeu
+
+(avec ou sans transitions)
+
+### LayerSparse
+
 
 ## class GameModel
 
