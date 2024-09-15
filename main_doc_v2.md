@@ -358,7 +358,7 @@ La méthode `layer.remove_at_coord(coord)` permet d'enlever tous les Game Object
 
 Après avoir été enlevé, le Game Object existe toujours, vous pouvez le réutiliser et le placer dans un autre Layer.
 
-Ci-dessous, un exemple de game code minimal, affichant un seul objet immobile. Pour l'exécuter, sélectionner le jeu d'exemple du diamant vert, supprimer tout le game code, puis copier-coller ce texte à la place.
+Ci-dessous, un exemple de game code minimal, affichant un seul objet immobile. Pour l'exécuter, sélectionnez le jeu d'exemple du diamant vert, supprimez tout le game code, puis copier-collez ce texte à la place.
 
 ```
 import squarity
@@ -395,37 +395,112 @@ La méthode `layer.iter_all_game_objects()` permet d'itérer sur tous les Game O
 
 ### Créer des layers et les ajouter dans le jeu
 
-(avec ou sans transitions)
+Les Layers doivent être placés dans la liste `layers` du `GameModel`, cette liste contient initialement le `layer_main`.
+
+L'ordre dans la liste `layers` est important, car il détermine l'ordre d'affichage des Layers. Le premier Layer de la liste est dessiné en premier, et apparaîtra donc en-dessous de tous les autres layers, et ainsi de suite.
+
+Vous pouvez ajouter, enlever et réordonner les Layers dans la liste à tout moment. Ce sera immédiatement pris en compte dans l'affichage de l'aire de jeu.
+
+Lors de l'instanciation, un Layer a besoin d'avoir une référence vers le `GameModel` dans lequel il est placé. Il faut également spécifier une largeur et une hauteur, en nombre de cases.
+
+```
+class GameModel(squarity.GameModelBase):
+    def on_start(self):
+        layer_second = Layer(self, self.w, self.h)
+        self.layers.append(layer_second)
+```
+
+Tous les Layers que vous placez dans `layers` doivent avoir les mêmes largeur et hauteur que votre aire de jeu. Ces dimensions sont déjà initialisés dans le `GameModel`, variables membres `game_model.w` et `game_model.h`
+
+Pour gérer la logique interne de votre jeu, vous pouvez utiliser des Layers de n'importe quelles dimensions, que vous ne placerez pas dans `layers`. Ils ne seront pas affichés.
+
+La fonction `Layer.__init__` possède un paramètre facultatif `show_transitions`, défini à True par défaut. Lorsqu'il est défini à False, le Layer ne gère aucune transition, ni pour les déplacements d'objets, ni pour les modifications graphiques (scaling, décalage, ...). Lorsque vous changez les coordonnées d'un objet dans un Layer sans transition, il sera instantanément déplacé vers sa case de destination.
+
+Les Layers sans transition sont gérés de manière optimisée par le moteur Squarity, et permettent d'effectuer des mouvements massifs et fréquents. Ils peuvent aussi être utiles pour afficher le décor de fond de votre jeu, qui change d'un seul coup en passant d'un niveau à un autre.
+
+Le choix d'avoir un Layer avec ou sans transition peut uniquement être effectué lors de son instanciation. Si vous modifiez la variable `layer.show_transitions` après avoir créé le Layer, ce ne sera pas pris en compte par le moteur. (Ce serait trop compliqué à gérer, on ne saurait pas quoi faire avec les transitions en cours, etc.)
 
 ### LayerSparse
+
+Il s'agit d'une classe ayant le même fonctionnement que `Layer` (les deux héritent de la classe `LayerBase`). Les Game Objects qu'il contient sont stockés différemment. Au lieu d'être indexés dans un tableau en deux dimensions, ils sont placés dans une liste unique.
+
+Selon les actions que vous effectuez, elles peuvent s'exécuter un peu plus rapidement sur un `LayerSparse`: l'ajout, la suppression et le parcours de tous les objets s'exécutent plus rapidement, mais la récupération d'objets à une coordonnée spécifique est plus lent.
+
+Si vous créez des jeux n'ayant pas de gros besoins en performance, vous n'avez pas besoin de vous soucier de ces détails et vous pouvez utiliser uniquement des `Layer`.
+
+Liste des méthodes communes aux `Layer` et aux `LayerSparse` :
+
+ - `get_game_objects`
+ - `iter_all_game_objects`
+ - `add_game_object`
+ - `remove_game_object`
+ - `remove_at_coord`
+ - `move_game_object`
+ - `move_game_object_xy`
+
+Les méthodes `get_tile` et `get_tile_xy` ne sont pas présentes dans un `LayerSparse`, puisqu'il n'y a pas de tableau en 2 dimensions contenant des objets `Tile`.
 
 
 ## class GameModel
 
-(Pour faire fonctionner l'exemple ci-dessous, effacer tout le game code existant d'un jeu d'exemple, et ajouter un nom de sprite "my_sprite" dans la config).
+La classe principale définissant la logique de votre jeu. Elle hérite de `GameModelBase`. Vous devez la définir, mais pas l'instancier, car c'est fait automatiquement par le moteur.
+
+Dans votre GameModel, vous pouvez définir des fonctions de callback spécifiques, qui seront automatiquement appelées sur certains événements dans le jeu.
+
+### Liste des fonctions de callback
+
+`on_start(self)` : cette fonction est appelée une seule fois au début du jeu. Il est conseillé de mettre votre code d'initialisation dans cette fonction, plutôt que dans la fonction `__init__`, car la fonction `on_start` permet de renvoyer un objet `EventResult` qui sera pris en compte. (TODO : voir plus loin).
+
+`on_click(self, coord)` : cette fonction est appelée chaque fois que la personne qui joue clique dans l'aire de jeu. Vous pouvez consulter le paramètre `coord` pour savoir sur quelle case le clic a eu lieu. Vous ne pouvez pas savoir précisément quel Game Object a été cliqué, ni la position exacte du clic dans la case, car le but du moteur de jeu Squarity est de rester simple, et de se spécialiser uniquement dans les jeux en 2D sur un quadrillage.
+
+Dans l'exemple ci-dessous, un diamant s'ajoute sur chaque case que vous cliquez. Pour l'exécuter, sélectionnez le jeu d'exemple du diamant vert, supprimez tout le game code et copier-collez ce texte à la place.
 
 ```
 import squarity
 
-def my_callback():
-    print("coucou")
+class GameModel(squarity.GameModelBase):
+    def on_click(self, coord):
+        if not self.layer_main.get_game_objects(coord):
+            self.gobj = squarity.GameObject(coord, "gem_yellow")
+            self.layer_main.add_game_object(self.gobj)
+```
+
+`on_button_direction(self, direction)` : cette fonction est appelée lorsque l'un des 4 boutons de direction est cliqué, ou que l'une des 4 touches de direction du clavier est appuyée. Le paramètre `direction` est un objet de type `Direction`, il indique quel bouton a été appuyé.
+
+Dans l'exemple ci-dessous, l'aire de jeu affiche un seul diamant. Celui-ci se déplace lorsque vous cliquez sur un bouton de direction, et reste bloqué dans les limites de l'aire de jeu.
+
+```
+import squarity
 
 class GameModel(squarity.GameModelBase):
     def on_start(self):
-        self.gobj = squarity.GameObject(
-            squarity.Coord(5, 2),
-            "my_sprite"
-        )
+        self.gobj = squarity.GameObject(squarity.Coord(5, 2), "gem_green")
         self.layer_main.add_game_object(self.gobj)
-        self.gobj.set_callback_end_transi(my_callback)
-
-    def on_click(self, coord):
-        self.gobj.move_to_xy(1, 1)
-
-# Exécutez le jeu, puis cliquez n'importe où dans l'aire de jeu.
-# L'objet se déplacera et le texte "coucou" s'affichera
-# dans la console à la fin du déplacement.
+    def on_button_direction(self, direction):
+        coord_dest = self.gobj.get_coord().move_dir(direction)
+        if self.rect.in_bounds(coord_dest):
+            self.gobj.move_to(coord_dest)
 ```
+
+`on_button_action(self, action_name)` : cette fonction est appelée lorsque l'un des boutons d'actions "1" ou "2" est cliqué, ou lorsque l'une des touches du clavier "1" ou "2" est appuyée (Les "1" et "2" au-dessus des lettres, ainsi que ceux du pavé numérique).
+
+### Autres méthodes et variables de GameModel
+
+Ces variables membres sont initialisées dès le départ. Il est fortement conseillé de les utiliser sans les modifier, car cela pourrait modifier le comportement de certaines fonctions.
+
+ - `self.w` : largeur de l'aire de jeu, en nombre de case. (Correspond à `nb_tile_width` dans la config json)
+ - `self.h` : hauteur de l'aire de jeu, en nombre de case. (Correspond à `nb_tile_height` dans la config json)
+ - `self.str_game_conf_json` : chaîne de caractère contenant la configuration json complète.
+ - `self.rect` : objet `Rect` ayant les dimensions de l'aire de jeu, c'est à dire `Rect(0, 0, self.w, self.h)`.
+
+La méthode `game_model.get_first_gobj(coord, sprite_names, layer)` permet de récupérer le premier Game Object présent dans l'aire de jeu, selon différents critères cumulables. Les 3 paramètres sont facultatifs. Si aucun objet n'est trouvé, la méthode renvoie None.
+
+ - paramètre `coord` : par défaut, l'objet est cherché sur tout l'aire de jeu. Sinon, ce paramètre peut être un `Rect` ou une `Coord`, indiquant dans quelle zone ou dans quelle coordonnée on cherche l'objet.
+ - paramètre `sprite_names` : par défaut, pas de filtre sur le nom de sprite. Sinon, ce paramètre doit être une liste de strings, indiquant le ou les noms de sprite recherché.
+ - paramètre `layer` : par défaut, on cherche dans tous les Layers placés dans la liste `game_model.layers`. Sinon, ce paramètre doit être un unique `Layer`, dans lequel on cherche l'objet.
+
+La variable membre `self.transition_delay` définit le temps par défaut (en millisecondes) de toutes les transitions effectuées suite à un changement de coordonnées d'un Game Object. Contrairement aux autres variables membres, celle-ci peut être modifiée. (TODO : voir plus loin).
+
 
 ## class EventResult
 
@@ -448,6 +523,8 @@ Pour l'instant, on peut pas définir de vitesse. Seulement le temps.
 ### TransitionSteps
 
 ## Info supplémentaires dans la config
+
+(dans img_coords)
 
 ## ComponentImageModifier
 
