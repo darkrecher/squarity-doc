@@ -504,23 +504,111 @@ La variable membre `self.transition_delay` définit le temps par défaut (en mil
 
 ## class EventResult
 
-### class DelayedCallBack
+Cette classe regroupe des informations générales que vous pouvez communiquer au moteur de jeu, après l'exécution de n'importe quelle fonction de callback (provenant du Game Model, d'un Game Object ou de n'importe quoi d'autres).
 
-### plock custom
+Par défaut, les fonctions de callback ne renvoient rien (pas de `return` dans la fonction). Dans ce cas, la valeur réellement renvoyée est `None`, ce qui est accepté par le moteur du jeu.
 
-### no redraw
+### Callback différée
 
-TODO: je l'ai toujours ce truc ou pas ?
+Vous pouvez indiquer au moteur d'exécuter plus tard une de vos fonctions (une callback).
+
+Instanciez une classe `DelayedCallBack`, en indiquant dans les paramètres le délai d'exécution en millisecondes, et la callback. Vous pouvez indiquer une fonction définie directement dans votre code, une méthode de votre Game Model (`self.my_callback`), une méthode d'un Game Object spécifique, etc. La callback ne peut pas avoir de paramètres.
+
+Ajoutez ensuite votre objet `DelayedCallBack` dans le Event Result, avec la fonction `event_result.add_delayed_callback`.
+
+Le code ci-dessous n'affiche rien dans l'aire de jeu, mais écrit "coucou" dans la console après un temps d'attente de 500 millisecondes.
+
+```
+import squarity
+
+def my_callback():
+    print("coucou")
+
+class GameModel(squarity.GameModelBase):
+    def on_start(self):
+        event_result = squarity.EventResult()
+        event_result.add_delayed_callback(
+            squarity.DelayedCallBack(500, my_callback)
+        )
+        return event_result
+```
+
+C'est un peu verbeux, on raccourcira le code dans une version ultérieure de Squarity.
+
+Vous ne pouvez pas annuler les callbacks. Lorsque vous avez renvoyé un Event Result contenant une callback, celle-ci sera forcément appelée. C'est à vous de gérer cela dans votre code.
+
+Il y a un bug : si vous redémarrez votre jeu, ou même si vous lancez un autre jeu, les callbacks du jeu précédent restent en mémoire et sont tout de même exécutées. On corrigera ça au plus vite.
+
+### Player Lock (plock) Custom
+
+Votre jeu aura peut-être besoin d'afficher des "cut scene" ou des petites animations courtes, durant lesquelles la personne qui joue n'est pas censé agir. Il est possible d'appliquer un "Player Lock", c'est à dire de bloquer temporairement les boutons et les clics.
+
+Il y a deux types de Player Locks:
+
+ - custom : c'est à vous d'indiquer explicitement, via le code, à quel moments ça locke et ça délocke.
+ - transition : les locks/delocks sont effectués automatiquement d'après les transitions de certains Game Object (TODO : voir plus loin).
+
+Pour les Locks Custom, le blocage est toujours montré dans l'interface : les boutons d'actions apparaissent grisé.
+
+Il est possible de locker/delocker avec plusieurs mots-clés (chaque mot-clé peut-être vue comme une raison pour locker). L'interface se délocke lorsqu'il n'y a plus aucun mot-clé de lock en cours.
+
+Pour locker, instancier un `EventResult` et ajouter une ou plusieurs strings dans la liste `event_result.plocks_custom`, représentant les mot-clés de lock. Pour délocker, utiliser la liste `event_result.punlocks_custom`.
+
+Attention, l'interface est entièrement bloquée dès le premier mot-clé. Cela signifie qu'il faut obligatoirement prévoir les delocks dans des fonctions de callbacks, qui sont, en général, déclarées au même moment que l'on ajoute un lock. Si ce n'est pas fait, la personne qui joue restera bloquée indéfiniment (au pire des cas, le bouton "exécuter le jeu" enlève systématiquement tous les locks, mais cela réinitialise aussi tout le jeu).
+
+Il est possible de delocker tous les mots-clés d'un seul coup en mettant une string `"*"` dans `punlocks_custom`.
+
+Le code ci-dessous n'affiche rien, il locke l'interface pendant 2 secondes à chaque fois que l'on clique dans l'aire de jeu.
+
+```
+import squarity
+
+def callback_unlock():
+    print("unlock")
+    event_result = squarity.EventResult()
+    event_result.punlocks_custom.append("*")
+    return event_result
+
+class GameModel(squarity.GameModelBase):
+    def on_click(self, coord):
+        print("lock")
+        event_result = squarity.EventResult()
+        event_result.plocks_custom.append("lock_a")
+        event_result.plocks_custom.append("lock_b")
+        event_result.add_delayed_callback(
+            squarity.DelayedCallBack(2000, callback_unlock)
+        )
+        return event_result
+```
+
+### Annuler le rendu de l'aire de jeu
+
+Certaines actions de votre jeu (en particulier, les fonctions de callback contenant peu de code) peuvent ne pas modifier la disposition ou l'état des Game Objects. Dans ce cas, vous pouvez indiquer au moteur qu'il n'est pas nécessaire de redessiner l'aire de jeu après la fonction callback.
+
+Instancier un `EventResult`, et définissez la variable `redraw` à False. N'oubliez pas de le renvoyer.
+
+```
+event_result = squarity.EventResult()
+event_result.redraw = False
+```
+
+À noter que s'il y a des transitions en cours, l'aire de jeu est régulièrement redessinée pour les afficher. Donc même si vous renvoyez un Event Result qui annule le rendu, il peut quand même y en avoir.
+
+Vous pouvez cumuler plusieurs éléments dans le même Event Result. Par exemple, vous pouvez déclarer plusieurs callbacks, tout en lockant l'interface avec 3 mot-clés et en délockant 4 autres mot-clés, le tout en annulant le rendu.
+
 
 ## Transitions
 
-Pour l'instant, on peut pas définir de vitesse. Seulement le temps.
+
 
 ### transition time
 
 ### plock transi
 
 ### TransitionSteps
+
+Pour l'instant, on peut pas définir de vitesse. Seulement le temps.
+
 
 ## Info supplémentaires dans la config
 
@@ -531,6 +619,8 @@ Pour l'instant, on peut pas définir de vitesse. Seulement le temps.
 ## ComponentBackCaller
 
 ## Itérer sur les GameObjects
+
+un bout de code qui place tous les sprites existants dans l'aire de jeu.
 
 ## Créer un lien direct vers votre jeu
 
