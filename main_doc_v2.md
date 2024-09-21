@@ -473,9 +473,11 @@ Dans l'exemple ci-dessous, l'aire de jeu affiche un seul diamant. Celui-ci se d�
 import squarity
 
 class GameModel(squarity.GameModelBase):
+
     def on_start(self):
         self.gobj = squarity.GameObject(squarity.Coord(5, 2), "gem_green")
         self.layer_main.add_game_object(self.gobj)
+
     def on_button_direction(self, direction):
         coord_dest = self.gobj.get_coord().move_dir(direction)
         if self.rect.in_bounds(coord_dest):
@@ -599,15 +601,84 @@ Vous pouvez cumuler plusieurs éléments dans le même Event Result. Par exemple
 
 ## Transitions
 
+Une transition représente la modification progressive d'une variable d'un Game Object, sur une période de temps définie. Il est possible d'appliquer une transition sur les coordonnées. L'objet se déplacera "pixel par pixel" de sa case de destination vers sa case d'arrivée. Visuellement, les coordonnées de votre objet deviennent des valeurs décimales, pour le placer entre deux cases. Dans votre code python, les coordonnées restent des nombres entiers, et passent directement de la valeur de départ à la valeur d'arriver.
 
+D'autres variables d'un Game Object peuvent également avoir des transitions, par exemple `area_scale_x` et `area_scale_y` dans le `ComponentImageModifier`. Ces variables permettent de grossir/rétrécir l'objet (TODO : voir plus loin).
 
-### transition time
+Le sprite name peut également avoir des transitions, mais elles ne sont pas progressives. L'image change d'un seul coup. L'intérêt étant de pouvoir enchaîner ces transitions : une première image pendant 100 millisecondes, une deuxième pendant les 100 millisecondes suivantes, etc.
 
-### plock transi
+Il existe deux moyens pour déclencher une transition : modifier directement une variable transitionnable ou exécuter la fonction `add_transition`.
 
-### TransitionSteps
+### Temps de transition
 
-Pour l'instant, on peut pas définir de vitesse. Seulement le temps.
+Les transitions ajoutées suite à une modification de variable doivent déterminer automatiquement le temps de transition. Ce temps est pris, par ordre de priorité :
+
+ - Le paramètre optionnel `transition_delay` d'une fonction `move_to_xxx`, si celui-ci a été défini.
+ - Le temps spécifique au Game Object, si celui-ci a été défini via la fonction `game_object.set_transition_delay(transition_delay)`.
+ - Le temps global de votre jeu, c'est à dire la variable membre `game_model.transition_delay` (initialisée à 200 millisecondes, que vous pouvez modifier).
+
+### Ajout d'une séquence de transitions
+
+La fonction `game_object.add_transition` nécessite deux paramètres :
+
+ - un nom de variable membre (`coord` ou `sprite_name`),
+ - une liste contenant des tuples de temps de délais et de valeurs.
+
+Avec `"coord"`, les valeurs doivent être des `Coord`. Le Game Object se déplacera vers ces coordonnées, les unes après les autres.
+
+Dans l'exemple ci-dessous, lorsqu'on clique dans l'aire de jeu, le diamant vert se déplace vers la coordonnée (3, 1), puis il se déplace très rapidement vers (7, 1), puis il revient plus lentement à son point de départ.
+
+```
+import squarity
+
+class GameModel(squarity.GameModelBase):
+
+    def on_start(self):
+        self.gobj = squarity.GameObject(squarity.Coord(5, 2), "gem_green")
+        self.layer_main.add_game_object(self.gobj)
+
+    def on_click(self, coord):
+        self.gobj.add_transition(
+            squarity.TransitionSteps(
+                "coord",
+                (
+                    (500, squarity.Coord(3, 1)),
+                    (200, squarity.Coord(7, 1)),
+                    (900, squarity.Coord(5, 2)),
+                )
+            )
+        )
+```
+
+Vous ne pouvez définir que le temps de déplacement, mais pas une vitesse générique. Par exemple, si vous souhaitez que votre Game Object se déplace toujours à la même vitesse, mais parfois à une case de distance et parfois à deux cases, vous allez devoir coder vous-même le calcul des temps de déplacement. (On fera mieux à la prochaine version).
+
+Lorsque le premier paramètre de `TransitionSteps` est `"sprite_name"`, les valeurs doivent être des strings correspondant à des noms de sprites. Le Game Object changera successivement d'apparence.
+
+Attention, le principe d'une transition est d'être appliquée dans le jeu dès qu'elle est démarrée, puis d'être affichée progressivement. Pour les coordonnées, c'est logique. Pour les noms de sprite, c'est un peu particulier, car ça ne peut pas être progressif. Le sprite change dès le début de la transition et reste tel quel durant le temps indiqué. Ce qui signifie que pour une transition sur un nom de sprite, le dernier temps n'est pas très utile et peut être zéro.
+
+Si votre Game Object a une callback de fin de transition, définie à l'aide de la fonction `game_object.set_callback_end_transi`, cellec-ci sera déclenchée à la fin de la liste des transitions.
+
+### Gestion des transitions
+
+Vous pouvez ajouter des transitions via la méthode `add_transition`, même si des anciennes transitions sont encore en cours. Celles-ci vont s'ajouter après les transitions existantes.
+
+La prise en compte des transitions par le moteur est effectuée à la fin de l'exécution du code en cours (`on_click`, `on_button_xxx`, une callback, ...). Si vous ajoutez plusieurs transitions dans le même code, elles seront déclenchées au même moment et seront exécutées en même temps. Cela permet, d'avoir un objet qui se déplace tout en changeant de sprites.
+
+Dans votre Game Object, les variables membres `coord` et `sprite_name` changent automatiquement, au fur et à mesure de l'enchaînement des transitions. Ce changement n'est pas progressif, il est appliqué au début de chaque transition. Cela permet de garder des nombres entiers dans les coordonnées, même si visuellement l'objet s'affiche entre les deux.
+
+**Attention** : il est fortement déconseillé d'avoir, sur un même Game Object, à la fois des transitions ajoutées automatiquement suite à la modification d'une variable, et à la fois des transitions ajoutées avec `add_transition`. C'est une situation ambigüe, dans laquelle on ne pourrait pas déterminer les valeurs des variables. Le moteur essaiera de le gérer comme il peut, c'est à dire pas très bien. Vous devez donc vous assurer des transitions en cours et de leurs origines, avant d'effectuer des actions qui vont en ajouter de nouvelles.
+
+Si vous n'êtes pas sûr de vous dans la gestion des transitions, le plus simple est de s'assurer qu'il n'y en a aucune en cours sur un Game Object, avant d'exécuter `add_transition`, une fonction `move_xxx` ou une modification de `sprite_name`.
+
+la variable qui dit combien qu'on en a en cours.
+
+paf, le gros exemple.
+
+### Blocage de l'interface
+
+ça permet de faciliter la vérif des transitions en cours.
+
+ plock transi
 
 
 ## Info supplémentaires dans la config
