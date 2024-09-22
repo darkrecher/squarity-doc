@@ -601,7 +601,7 @@ Vous pouvez cumuler plusieurs éléments dans le même Event Result. Par exemple
 
 ## Transitions
 
-Une transition représente la modification progressive d'une variable d'un Game Object, sur une période de temps définie. Il est possible d'appliquer une transition sur les coordonnées. L'objet se déplacera "pixel par pixel" de sa case de destination vers sa case d'arrivée. Visuellement, les coordonnées de votre objet deviennent des valeurs décimales, pour le placer entre deux cases. Dans votre code python, les coordonnées restent des nombres entiers, et passent directement de la valeur de départ à la valeur d'arriver.
+Une transition représente la modification progressive d'une variable d'un Game Object, sur une période de temps définie. Il est possible d'appliquer une transition sur les coordonnées. L'objet se déplacera "pixel par pixel" de sa case de destination vers sa case d'arrivée. Visuellement, les coordonnées de votre objet deviennent des valeurs décimales, pour le placer entre deux cases. Dans votre code python, les coordonnées restent des nombres entiers, et passent directement de la valeur de départ à la valeur d'arrivée.
 
 D'autres variables d'un Game Object peuvent également avoir des transitions, par exemple `area_scale_x` et `area_scale_y` dans le `ComponentImageModifier`. Ces variables permettent de grossir/rétrécir l'objet (TODO : voir plus loin).
 
@@ -656,6 +656,8 @@ Lorsque le premier paramètre de `TransitionSteps` est `"sprite_name"`, les vale
 
 Attention, le principe d'une transition est d'être appliquée dans le jeu dès qu'elle est démarrée, puis d'être affichée progressivement. Pour les coordonnées, c'est logique. Pour les noms de sprite, c'est un peu particulier, car ça ne peut pas être progressif. Le sprite change dès le début de la transition et reste tel quel durant le temps indiqué. Ce qui signifie que pour une transition sur un nom de sprite, le dernier temps n'est pas très utile et peut être zéro.
 
+Dans le futur, on changera l'ordre des paramèter. D'abord le sprite_name, puis le temps. Ce sera plus logique à comprendre.
+
 Si votre Game Object a une callback de fin de transition, définie à l'aide de la fonction `game_object.set_callback_end_transi`, cellec-ci sera déclenchée à la fin de la liste des transitions.
 
 ### Gestion des transitions
@@ -666,19 +668,105 @@ La prise en compte des transitions par le moteur est effectuée à la fin de l'e
 
 Dans votre Game Object, les variables membres `coord` et `sprite_name` changent automatiquement, au fur et à mesure de l'enchaînement des transitions. Ce changement n'est pas progressif, il est appliqué au début de chaque transition. Cela permet de garder des nombres entiers dans les coordonnées, même si visuellement l'objet s'affiche entre les deux.
 
-**Attention** : il est fortement déconseillé d'avoir, sur un même Game Object, à la fois des transitions ajoutées automatiquement suite à la modification d'une variable, et à la fois des transitions ajoutées avec `add_transition`. C'est une situation ambigüe, dans laquelle on ne pourrait pas déterminer les valeurs des variables. Le moteur essaiera de le gérer comme il peut, c'est à dire pas très bien. Vous devez donc vous assurer des transitions en cours et de leurs origines, avant d'effectuer des actions qui vont en ajouter de nouvelles.
+Le moteur essaye, autant que faire se peut, d'avoir le même type de gestion pour les transitions ajoutées suite à une modification d'une variable et les transitions ajoutées avec `add_transition` :
 
-Si vous n'êtes pas sûr de vous dans la gestion des transitions, le plus simple est de s'assurer qu'il n'y en a aucune en cours sur un Game Object, avant d'exécuter `add_transition`, une fonction `move_xxx` ou une modification de `sprite_name`.
+ - Durant une transition provenant d'une modification de variable, la variable contient la valeur finale. C'est normal, c'est vous même qui l'avez définie avec votre code python.
+ - Si vous remodifiez la variable pendant une transition, celle-ci va s'enchaîner après les transitions existantes. Dans tous les cas, votre code utilise toujours la valeur finale de tout l'enchaînement de transitions. Ça reste cohérent, c'est juste la représentation visuelle qui a du retard par rapport au code, le temps de dérouler les transitions.
+ - Durant les transitions provenant de `add_transition`, c'est le moteur du jeu qui modifie automatiquement la variable transitionnée. Cette modification se fait au début de chaque transition (comme si c'était votre code qui le changeait manuellement, à chaque fois que la transition précédente se termine).
 
-la variable qui dit combien qu'on en a en cours.
+**Attention** : il est fortement déconseillé d'avoir, sur un même Game Object, à la fois des transitions provenant de la modification d'une variable et à la fois des transitions provenant de `add_transition`. C'est une situation ambigüe, dans laquelle on ne pourrait pas déterminer les valeurs des variables. Le moteur essaiera de le gérer comme il peut, c'est à dire pas très bien. Vous devez donc vous assurer des transitions en cours et de leurs origines, avant d'effectuer des actions qui vont en ajouter de nouvelles.
 
-paf, le gros exemple.
+Si vous avez des doutes, le plus simple est de s'assurer qu'il n'y a aucune transition en cours sur un Game Object avant d'exécuter `add_transition`, ou une fonction `move_xxx`, ou une modification de `sprite_name`.
 
-### Blocage de l'interface
+La méthode `game_object.get_nb_undone_transitions()` renvoie le nombre de transitions d'un Game Object qui ne sont pas encore terminées ou pas commencées. Si cette fonction renvoie 0, vous pouvez ajouter des transitions en toute sécurité.
 
-ça permet de faciliter la vérif des transitions en cours.
+Dans l'exemple ci-dessous, lorsque vous appuyez sur un bouton de direction, le diamant se déplace tout en clignotant (jaune-vert-jaune-vert). Lorsque vous cliquez dans le jeu, la console affiche l'état actuel du diamant : coordonnées, nom du sprite et nombres de transitions restantes. Appuyez plusieurs fois sur un bouton, puis cliquez à fond dans le jeu pour avoir une démonstration de la manière dont sont gérées les transitions.
 
- plock transi
+```
+import squarity
+
+class GameModel(squarity.GameModelBase):
+
+    def on_start(self):
+        self.gobj = squarity.GameObject(squarity.Coord(5, 2), "gem_green")
+        self.layer_main.add_game_object(self.gobj)
+
+    def on_button_direction(self, direction):
+        self.gobj.add_transition(
+            squarity.TransitionSteps(
+                "coord",
+                (
+                    (500, squarity.Coord(3, 1)),
+                    (200, squarity.Coord(7, 1)),
+                    (900, squarity.Coord(5, 2)),
+                )
+            )
+        )
+        self.gobj.add_transition(
+            squarity.TransitionSteps(
+                "sprite_name",
+                (
+                    (400, "gem_yellow"),
+                    (400, "gem_green"),
+                    (400, "gem_yellow"),
+                    (0, "gem_green"),
+                )
+            )
+        )
+
+    def on_click(self, coord):
+        print("Coordonnées:", self.gobj.get_coord())
+        print("Nom du sprite:", self.gobj.sprite_name)
+        print("Transitions restantes:", self.gobj.get_nb_undone_transitions())
+```
+
+### Blocage de l'interface (Player Lock Transi)
+
+Si la personne qui joue reste appuyé sur une touche, la fonction `on_button_direction` ou `on_button_action` sera exécutée plusieurs fois très vite. Selon le code que vous avez écrit, cela peut poser problème.
+
+Il est possible de bloquer automatiquement toute l'interface du jeu (clics et boutons) tant qu'un Game Object a au moins une transition en cours. Ça peut être utile si votre jeu comporte un élément principal (héros/héroïne/avatar/etc.) dirigé par la personne qui joue. Si un bouton est appuyé durant le mouvement de cet élément, ce ne sera pas pris en compte.
+
+Modifiez la variable membre `plock_transi` de votre Game Object. Celle-ci peut prendre 3 valeurs:
+
+ - `PlayerLockTransi.NO_LOCK` : pas le blocage (valeur par défaut).
+ - `PlayerLockTransi.INVISIBLE` : blocage invisible. Les boutons ne changent pas d'apparence, mais rien ne se passe si on clique dessus.
+ - `PlayerLockTransi.LOCK` : blockage visible. Les boutons s'affichent en grisé.
+
+```
+self.gobj = squarity.GameObject(squarity.Coord(5, 2), "gem_green")
+self.gobj.plock_transi = squarity.PlayerLockTransi.INVISIBLE
+```
+
+En général, cette fonctionnalité déclenche des micro-blocage successifs, durant les mouvements de l'élément principal. Si les boutons d'interface sont grisés/dégrisés à chaque fois, c'est dérangeant pour la personne qui joue. C'est pourquoi il vaut mieux indiquer un blocage invisible. Les deux types de blocages ont exactement le même effet dans le fonctionnement du jeu, la différence est seulement visuelle.
+
+Les blocages visibles sont utiles pour les animations narratives (les "cut-scenes"). Ils permettent d'indiquer explicitement que ce n'est pas le moment de jouer, mais le moment de regarder (voire admirer) ce qu'il se passe dans le jeu.
+
+Ce type de blocage est appliqué pour tous les types de transitions, aussi bien celles provenant d'une modification de variable que celles ajoutées avec `add_transition`.
+
+Vous pouvez avoir plusieurs Game Object configurés pour bloquer l'interface. Dans ce cas, l'interface est utilisable lorsque tous ces objets n'ont aucune transition en cours.
+
+Vous pouvez ajouter des transitions à un objet bloqueur même s'il a déjà des transitions en cours.
+
+Ce type de blocage permet de simplifier la gestion des transitions, et le fait qu'il faille éviter d'avoir plusieurs types de transition en même temps sur un même Game Object.
+
+### Annuler les transitions en cours
+
+La méthode `game_object.clear_transitions_to_record()` permet de supprimer les transitions que vous auriez ajoutées via des méthodes `add_transition`, AVANT qu'elles aient été prises en compte par le moteur du jeu.
+
+La méthode `game_object.clear_all_transitions()` permet d'annuler toutes les transitions prises en compte. Dans le code, vous pouvez à la fois exécuter cette fonction, puis exécuter des `add_transition`. Dans ce cas, les transitions précédentes seront toutes annulées, puis celles que vous avez ajoutées seront prises en compte.
+
+Attention, si vous avez ajouté un enchaînement de transition et que vous l'annulez, la transition actuellement en cours est immédiatement terminée (l'objet se déplace instantanément à la destination de la transition). Les transitions qui n'étaient pas commencées sont entièrement annulées.
+
+Pour essayer, remettez le code du chapitre "Gestion des transitions", puis ajoutez ce code à la fin:
+
+```
+    def on_button_action(self, action_name):
+        self.gobj.clear_all_transitions()
+```
+
+Cliquez sur un bouton de direction, et immédiatement après cliquez sur un bouton d'action (le "1" ou le "2").
+
+Selon le moment où vous avez cliqué, le diamant s'arrêtera à un endroit différent, et il sera jaune ou vert.
 
 
 ## Info supplémentaires dans la config
