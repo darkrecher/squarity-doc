@@ -769,11 +769,143 @@ Cliquez sur un bouton de direction, et immédiatement après cliquez sur un bout
 Selon le moment où vous avez cliqué, le diamant s'arrêtera à un endroit différent, et il sera jaune ou vert.
 
 
-## Info supplémentaires dans la config
+## Info supplémentaires pour les sprites
 
-(dans img_coords)
+Chaque valeur du dictionnaire `img_coords` est une liste contenant au moins deux nombres entiers. D'autres valeurs facultatives peuvent être ajoutées après.
+
+Voici la liste complète (incluant les 2 premiers nombres obligatoires)
+
+ - 2 nombres entiers. Coordonnées x et y du coin supérieur gauche de l'image, dans le tileset. L'unité est le pixel de tileset.
+
+ - 2 nombres entiers, par défaut : config.tile_size. Taille (largeur, hauteur) de l'image prise dans l'atlas. L'unité est le pixel de tileset. Ces deux tailles ont également une influence sur la taille de l'image affichée dans l'aire de jeu. Par exemple, si on indique une largeur qui vaut un tiers de config.tile_size, l'image affichée aura une largeur de un tiers de case dans l'aire de jeu. La méthode de positionnement du sprite dans l'aire de jeu, par rapport à la taille de l'image d'atlas, est définie juste après.
+
+ - chaines de caractères : "center" ou "corner_upleft", par défaut : "corner_upleft". Indique où ancrer l'image du tileset par rapport à la case de l'aire de jeu, en particulier quand l'image et la case n'ont pas la même taille. Avec "corner_upleft", le coin haut gauche de l'image reste fixé sur le coin haut gauche de la case. Donc si on agrandit l'image, elle va dépasser vers le bas et vers la droite. Avec "center", le centre de l'image reste fixé sur le centre de la case. Si on agrandit l'image, elle va dépasser par les 4 côtés.
+
+TODO : faire un schéma pour ça aussi.
 
 ## ComponentImageModifier
+
+### Initialisation
+
+Cette classe doit être placée dans un Game Object, au moment de sa création. Elle permet de modifier la manière dont l'image du Game Object est affichée dans l'aire de jeu.
+
+Si le `ComponentImageModifier` est indiqué après la création du Game Object, il ne sera pas pris en compte. Il faut donc instancier votre Game Object comme ceci :
+
+```
+gobj = squarity.GameObject(
+    Coord(0, 0),
+    "gem_green",
+    image_modifier=squarity.ComponentImageModifier()
+)
+```
+
+### Variables membres
+
+Toutes les variables commençant par `img_` ont pour unité le nombre de pixels dans l'image de tileset. Ce sont des nombres entiers, positifs ou négatifs.
+
+Toutes les variables commençant par `area_` ont pour unité le nombre de cases dans l'aire de jeu. Ce sont des nombres décimaux, positifs ou négatifs. Il est donc possible d'indiquer des fractions de cases.
+
+`img_offset_x`, `img_offset_y` : décalage, dans le tileset, de l'image à afficher. Modifier ces valeurs revient à modifier, temporairement et pour un seul Game Object, les 2 premières valeurs du sprite name, dans `config.img_coords`.
+
+`img_size_x`, `img_size_y` : taille, dans le tileset, de l'image à afficher. Modifier ces valeurs revient à modifier, temporairement et pour un seul Game Object, les 3ème et 4ème valeurs du sprite name, dans `config.img_coords`. Par défaut, ces valeurs sont initialisées à `config.tile_size`.
+
+`area_offset_x`, `area_offset_y` : décalage, dans l'aire de jeu, de l'objet affiché. Ces variables permettent d'afficher un objet entre deux cases (même si, dans la logique du jeu, l'objet restera toujours contenu dans une seule case). Par exemple, si `area_offset_x = -1.25`, l'objet sera décalé vers la gauche, sur une distance de une case un quart. Il est possible d'afficher un objet partiellement en dehors de l'aire de jeu. Par défaut, ces deux valeurs valent 0.0.
+
+`area_scale_x`, `area_scale_y` : facteur d'échelle de l'image affichée dans l'aire de jeu. Par exemple, si `area_scale_x = 2.5`, l'image sera affichée 2,5 fois plus large que sa taille normale. Le positionnement de l'image retaillée est déterminée à l'aide de l'anchor (la valeur "center"/"corner_upleft" définie dans la configuration). Par défaut, ces deux valeurs valent 1.0.
+
+Ces 8 valeurs peuvent être définies lors de la création du `ComponentImageModifier`, et elles peuvent ensuite être modifiées pendant le jeu. Le composant se trouve dans la variable membre `image_modifier` du Game Object.
+
+Dans cet exemple, le diamant vert est affiché de manière écrasée. Appuyez sur la flèche de gauche ou de droite pour l'écraser encore plus, appuyez sur la flèche du haut ou du bas pour l'étirer.
+
+```
+import squarity
+
+d = squarity.dirs
+
+class GameModel(squarity.GameModelBase):
+
+    def on_start(self):
+        self.gobj = squarity.GameObject(
+            squarity.Coord(5, 2),
+            "gem_green",
+            image_modifier=squarity.ComponentImageModifier(
+                area_scale_x=2.0,
+                area_scale_y=0.8,
+            )
+        )
+        self.gobj.set_transition_delay(50)
+        self.layer_main.add_game_object(self.gobj)
+
+    def on_button_direction(self, direction):
+        if direction in (d.Up, d.Down):
+            if self.gobj.image_modifier.area_scale_x > 0.1:
+                self.gobj.image_modifier.area_scale_x -= 0.1
+                self.gobj.image_modifier.area_scale_y += 0.1
+        else:
+            if self.gobj.image_modifier.area_scale_y > 0.1:
+                self.gobj.image_modifier.area_scale_y -= 0.1
+                self.gobj.image_modifier.area_scale_x += 0.1
+```
+
+
+### Transitions de l'ImageModifier
+
+Les 8 valeurs de l'ImageModifier fonctionnent de la même manière que les coordonnées au niveau des transitions:
+
+ - Une simple modification de l'une de ces valeurs déclenche une transition entre la valeur courante et la valeur finale, sur une durée définie via `set_transition_delay`.
+ - Selon la valeur de `gobj.plock_transi`, l'interface peut être lockée durant une transition de l'ImageModifier.
+ - La fonction de callback de fin de transition sera appelée, si elle est définie.
+ - Il est possible d'ajouter et d'enchaîner des séquences de transition avec la fonction `gobj.image_modifier.add_transitions`.
+
+L'exemple ci-dessous reproduit la petite animation lorsque les deux diamants se rencontre, mais cette fois-ci il n'y a que le diamant vert. Cliquez dans l'aire de jeu pour déclencher l'animation.
+
+```
+import squarity
+
+class GameModel(squarity.GameModelBase):
+
+    def on_start(self):
+        self.gobj = squarity.GameObject(
+            squarity.Coord(5, 2),
+            "gem_green",
+            image_modifier=squarity.ComponentImageModifier()
+        )
+        self.layer_main.add_game_object(self.gobj)
+
+    def on_click(self, coord):
+        TRANSI_SCALE = (
+            (150, 0.5), (150, 1.5), (150, 0.5), (150, 1.5),
+            (150, 0.5), (150, 1.5), (150, 0.5), (150, 1.5),
+            (150, 0.5), (150, 1.5),
+            (150, 0.5), (75, 1),
+        )
+
+        self.gobj.image_modifier.add_transition(
+            squarity.TransitionSteps(
+                "area_offset_x",
+                ((200, -1), (400, -1), (400, 1), (400, 1), (400, -1), (200, 0))
+            )
+        )
+        self.gobj.image_modifier.add_transition(
+            squarity.TransitionSteps(
+                "area_offset_y",
+                ((200, 1), (400, -1), (400, -1), (400, 1), (400, 1), (200, 0))
+            )
+        )
+        self.gobj.image_modifier.add_transition(
+            squarity.TransitionSteps(
+                "area_scale_x",
+                TRANSI_SCALE
+            )
+        )
+        self.gobj.image_modifier.add_transition(
+            squarity.TransitionSteps(
+                "area_scale_y",
+                TRANSI_SCALE
+            )
+        )
+```
+
 
 ## ComponentBackCaller
 
