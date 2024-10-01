@@ -813,7 +813,7 @@ Toutes les variables commençant par `area_` ont pour unité le nombre de cases 
 
 `area_scale_x`, `area_scale_y` : facteur d'échelle de l'image affichée dans l'aire de jeu. Par exemple, si `area_scale_x = 2.5`, l'image sera affichée 2,5 fois plus large que sa taille normale. Le positionnement de l'image retaillée est déterminée à l'aide de l'anchor (la valeur "center"/"corner_upleft" définie dans la configuration). Par défaut, ces deux valeurs valent 1.0.
 
-Ces 8 valeurs peuvent être définies lors de la création du `ComponentImageModifier`, et elles peuvent ensuite être modifiées pendant le jeu. Le composant se trouve dans la variable membre `image_modifier` du Game Object.
+Ces 8 valeurs peuvent être définies lors de la création du `ComponentImageModifier` et peuvent ensuite être modifiées pendant le jeu. Le component se trouve dans la variable membre `image_modifier` du Game Object.
 
 Dans cet exemple, le diamant vert est affiché de manière écrasée. Appuyez sur la flèche de gauche ou de droite pour l'écraser encore plus, appuyez sur la flèche du haut ou du bas pour l'étirer.
 
@@ -873,11 +873,24 @@ class GameModel(squarity.GameModelBase):
         self.layer_main.add_game_object(self.gobj)
 
     def on_click(self, coord):
+
         TRANSI_SCALE = (
             (150, 0.5), (150, 1.5), (150, 0.5), (150, 1.5),
             (150, 0.5), (150, 1.5), (150, 0.5), (150, 1.5),
             (150, 0.5), (150, 1.5),
             (150, 0.5), (75, 1),
+        )
+        self.gobj.image_modifier.add_transition(
+            squarity.TransitionSteps(
+                "area_scale_x",
+                TRANSI_SCALE
+            )
+        )
+        self.gobj.image_modifier.add_transition(
+            squarity.TransitionSteps(
+                "area_scale_y",
+                TRANSI_SCALE
+            )
         )
 
         self.gobj.image_modifier.add_transition(
@@ -892,26 +905,106 @@ class GameModel(squarity.GameModelBase):
                 ((200, 1), (400, -1), (400, -1), (400, 1), (400, 1), (200, 0))
             )
         )
-        self.gobj.image_modifier.add_transition(
-            squarity.TransitionSteps(
-                "area_scale_x",
-                TRANSI_SCALE
-            )
-        )
-        self.gobj.image_modifier.add_transition(
-            squarity.TransitionSteps(
-                "area_scale_y",
-                TRANSI_SCALE
-            )
-        )
 ```
 
 
 ## ComponentBackCaller
 
+Cette classe doit être placée dans un Game Object, au moment de sa création. Elle permet d'exécuter des callbacks au bout d'un temps défini. C'est le même principe que les callbacks dans les `EventResult`, mais elles sont associées à un Game Object.
+
+Si le Game Object est supprimé, ou s'il est retiré de son Layer, les callbacks prévues ne sont pas exécutées.
+
+Utilisez le paramètre optionnel `back_caller` lors de la création du Game Object. Puis, utiliser la fonction `back_caller.add_callback(delayed_callback)` pour ajouter une callback.
+
+Contrairement aux transitions sur les coordonnées, l'image modifier, etc., lorsqu'il n'y a plus de callback à exécuter, cela ne déclenche pas la callback de fin des transitions.
+
+En revanche, les callbacks ajoutées et qui n'ont pas encore été exécutées sont comptées comme des transitions non réalisées par la fonction `get_nb_undone_transitions`. (Note: et c'est bizarre et on devrait avoir une fonction spéciale pour renvoyer le nombre de callback restantes).
+
+Dans le code ci-dessous, le diamant vert ajoute deux callbacks dès le lancement du jeu. L'une sera lancée au bout de 2 secondes, l'autre au bout de 4 secondes. Lorsque vous cliquez dans le jeu, le nombre de transitions restantes s'affiche dans la console. Ce nombre passera de 2 vers 1, puis vers 0.
+
+```
+import squarity
+
+def my_callback():
+    print("coucou de my_callback")
+
+class GameModel(squarity.GameModelBase):
+
+    def on_start(self):
+        self.gobj = squarity.GameObject(
+            squarity.Coord(5, 2),
+            "gem_green",
+            back_caller=squarity.ComponentBackCaller()
+        )
+        self.layer_main.add_game_object(self.gobj)
+        self.gobj.back_caller.add_callback(
+            squarity.DelayedCallBack(2000, my_callback)
+        )
+        self.gobj.back_caller.add_callback(
+            squarity.DelayedCallBack(4000, my_callback)
+        )
+
+    def on_click(self, coord):
+        print("Transitions restantes:", self.gobj.get_nb_undone_transitions())
+```
+
+
 ## Itérer sur les GameObjects
 
-un bout de code qui place tous les sprites existants dans l'aire de jeu.
+Il est très souvent nécessaire de parcourir tout ou une partie de l'aire de jeu, pour rechercher des Game Object spécifiques.
+
+La classe `Sequencer` est un outil permettant d'effectuer les itérations les plus communes.
+
+Cette classe contient uniquement des fonctions statiques (vous n'avez pas besoin de l'instancier).
+
+La fonction `Sequencer.seq_iter` renvoie un itérateur. Les paramètres de cette fonction sont des "mini-itérateurs" mis bout à bout. Selon ces paramètres, votre séquenceur renverra des coordonnées, des Game Objects ou des listes de Game Objects.
+
+Les mini-itérateurs sont créés à l'aide d'autres fonctions statiques du séquenceur.
+
+### Itérer sur des coordonnées
+
+Le séquenceur permet d'éviter deux itérations imbriquées sur x et sur y. Il nécessite un seul paramètre, renvoyé par `Sequencer.iter_on_rect(rect, instanciate_coord=False)`.
+
+`rect` doit être un objet `Rect`, `instanciate_coord` est un booléen, lorsqu'il vaut True, l'itérateur recrée un nouvel objet `Coord` à chaque itération. Il est nécessaire de le mettre à True uniquement dans des situations très particulières, où vous auriez besoin de modifier temporairement les coordonnées sur lesquelles vous itérez.
+
+L'exemple ci-dessous remplit l'aire de jeu avec une alternance de diamant vert et de diamant jaune, pour créer une sorte d'échiquier.
+
+```
+import squarity
+S = squarity.Sequencer
+
+class GameModel(squarity.GameModelBase):
+
+    def on_start(self):
+        color = "gem_green"
+        seq = S.seq_iter(S.iter_on_rect(self.rect))
+        for coord in seq:
+            if coord.x:
+                color = "gem_green" if color == "gem_yellow" else "gem_yellow"
+            self.gobj = squarity.GameObject(coord, color)
+            self.layer_main.add_game_object(self.gobj)
+```
+
+### Itérer sur des Game Objects
+
+Avec un deuxième paramètre, le séquenceur permet d'itérer sur les Game Objects d'un ou plusieurs layers.
+
+`Sequencer.gobj_on_layers(layers)` renverra les Game Objects les un après les autres, sur le Rect spécifié par `iter_on_rect`.
+
+`Sequencer.gobj_on_layers_by_coords(layers)` renverra des listes de Game Objects, en les groupant par coordonnées. Les coordonnées n'ayant aucun Game Objects généreront des listes vides.
+
+L'exemple ci-dessous place un diamant vert sur une case, et un diamant jaune + un diamant vert sur une autre. La flèche du haut itère sur les Game Objects et les affiche dans la console. La flèche du bas itère sur les listes.
+
+
+
+
+deux diamants verts et un jaune. 4 itérations possibles: gobj_on_layer, gobj_on_layer_by_coord, sans le filter by name, avec le filter.
+
+
+
+un bout de code qui place tous les sprites existants dans l'aire de jeu. (avec le sokoban)
+
+
 
 ## Créer un lien direct vers votre jeu
 
