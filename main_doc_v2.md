@@ -989,23 +989,110 @@ class GameModel(squarity.GameModelBase):
 
 Avec un deuxième paramètre, le séquenceur permet d'itérer sur les Game Objects d'un ou plusieurs layers.
 
-`Sequencer.gobj_on_layers(layers)` renverra les Game Objects les un après les autres, sur le Rect spécifié par `iter_on_rect`.
+`Sequencer.gobj_on_layers(layers)` renverra les Game Objects les un après les autres. Le paramètre `layers` est la liste de Layer dans laquelle on recherche les Game Objects. L'itération est effectuée sur le Rect spécifié par `iter_on_rect`.
 
 `Sequencer.gobj_on_layers_by_coords(layers)` renverra des listes de Game Objects, en les groupant par coordonnées. Les coordonnées n'ayant aucun Game Objects généreront des listes vides.
 
-L'exemple ci-dessous place un diamant vert sur une case, et un diamant jaune + un diamant vert sur une autre. La flèche du haut itère sur les Game Objects et les affiche dans la console. La flèche du bas itère sur les listes.
+Le troisième paramètre du séquenceur permet de filtrer sur des noms de sprites spécifique: `Sequencer.filter_sprites(sprite_names, skip_empty_lists=False)`. Le paramètre `sprite_names` doit être une liste de strings. Le paramètre `skip_empty_lists` est utile lorsqu'on utilise la fonction `gobj_on_layers_by_coords`, il permet de passer les cases ne contenant aucun Game Objects.
+
+L'exemple ci-dessous place un diamant vert sur une case, et deux diamants verts + un diamant jaune sur une autre. Chaque bouton de direction effectue une itération spécifique et logge les infos dans la console.
+
+ - La flèche du haut itère sur tous les Game Objects.
+ - La flèche du bas itère sur les listes de Game Objects (le log est moche mais c'est pas grave).
+ - La flèche de gauche itère sur les diamants vert.
+ - La flèche de gauche itère sur les listes de diamant verts, en passant les cases qui n'en contiennent pas.
+
+```
+import squarity
+S = squarity.Sequencer
+
+class GameModel(squarity.GameModelBase):
+
+    def on_start(self):
+        self.layer_other = squarity.Layer(self, self.w, self.h)
+        self.layers.append(self.layer_other)
+        self.layer_main.add_game_object(
+            squarity.GameObject(squarity.Coord(5, 2), "gem_green")
+        )
+        self.layer_main.add_game_object(
+            squarity.GameObject(squarity.Coord(2, 4), "gem_yellow")
+        )
+        self.layer_other.add_game_object(
+            squarity.GameObject(squarity.Coord(2, 4), "gem_green")
+        )
+        self.layer_other.add_game_object(
+            squarity.GameObject(squarity.Coord(2, 4), "gem_green")
+        )
+
+    def on_button_direction(self, direction):
+        print("#" * 20)
+        if direction == squarity.dirs.Up:
+            for gobj in S.seq_iter(
+                S.iter_on_rect(self.rect),
+                S.gobj_on_layers(self.layers)
+            ):
+                print(gobj)
+        elif direction == squarity.dirs.Down:
+            print(*S.seq_iter(
+                S.iter_on_rect(self.rect),
+                S.gobj_on_layers_by_coords(self.layers)
+            ))
+        elif direction == squarity.dirs.Left:
+            for gobj in S.seq_iter(
+                S.iter_on_rect(self.rect),
+                S.gobj_on_layers(self.layers),
+                S.filter_sprites(["gem_green"])
+            ):
+                print(gobj)
+        elif direction == squarity.dirs.Right:
+            for game_objects in S.seq_iter(
+                S.iter_on_rect(self.rect),
+                S.gobj_on_layers_by_coords(self.layers),
+                S.filter_sprites(["gem_green"], True)
+            ):
+               print(*game_objects)
+```
+
+### Récupérer le premier Game Object
+
+Il est possible de récupérer directement le premier élément renvoyé par un séquenceur, au lieu d'itérer avec. Pour cela, utilisez la fonction `Sequencer.seq_first` à la place de `Sequencer.seq_iter`. Le fonctionnement des paramètres est exactement le même. La fonction `seq_first` va itérer une seule fois sur la séquence que vous avez fournie et renverra le premier élément. Si l'itération ne peut pas du tout être effectuée, la fonction renvoie None.
+
+Pour information, la fonction `GameModel.get_first_gobj` utilise un séquenceur en interne.
 
 
+## Exemple bonus : afficher tous les sprites existants
 
+Attention, cet exemple n'utilise pas le jeu des diamants. Vous devez sélectionner le jeu d'exemple H2O. C'est plus amusant ainsi, car H2O contient beaucoup d'images.
 
-deux diamants verts et un jaune. 4 itérations possibles: gobj_on_layer, gobj_on_layer_by_coord, sans le filter by name, avec le filter.
+Dans la config, modifier l'information `version` de "1.0.0" vers "2.1.0".
 
+Ensuite, supprimez le code existant et remplacez-le par celui-ci:
+```
+import json
+import squarity
 
+class GameModel(squarity.GameModelBase):
 
-un bout de code qui place tous les sprites existants dans l'aire de jeu. (avec le sokoban)
+    def on_start(self):
+        game_conf = json.loads(self.str_game_conf_json)
 
+        seq = squarity.Sequencer.seq_iter(
+            squarity.Sequencer.iter_on_rect(self.rect)
+        )
+        for coord, sprite_name in zip(seq, game_conf["img_coords"].keys()):
+            self.layer_main.add_game_object(
+                squarity.GameObject(coord, sprite_name)
+            )
+```
+
+Vous verrez tous les sprites du jeu affiché les uns après les autres dans l'aire de jeu.
+
+Cet exemple de code fonctionne avec tous les jeux (à condition de les mettre en version 2). Il peut être utile, par exemple si vous voulez vérifier que vous avez bien défini toutes les coordonnées de tous les noms de sprites.
 
 
 ## Créer un lien direct vers votre jeu
 
+Le fonctionnement est le même que pour la version 1.
+
+Les explications sont ici : https://github.com/darkrecher/squarity-doc/blob/master/user_manual/main_page.md#partager-un-jeu
 
