@@ -1,5 +1,5 @@
 # https://i.ibb.co/LhK8pLm/skweek-breakout.png
-
+# https://i.ibb.co/fpvX9Kt/skweek-breakout.png
 
 """
 {
@@ -12,10 +12,30 @@
     "tile_size": 48,
     "img_coords": {
         "skweek": [0, 0, 48, 48, "center"],
-        "block_blue": [48, 0],
-        "block_white": [96, 0]
+        "block_blue": [50, 0],
+        "block_white": [100, 0],
+        "authorized_zone": [150, 0],
+        "bezel_blue": [0, 50],
+        "whatever": [50, 50],
+        "player_block": [100, 50],
+        "end": [0, 0]
     }
 }
+"""
+
+"""
+TODOs
+
+ - changer la taille selon le block touché
+ - seulement 2 player block dans le jeu
+ - init du niveau avec des blocks au milieu (de plus en plus difficile)
+ - détecter fin de niveau, et re-init niveau
+ - calcul du score, afficher à la fin
+ - augmentation progressive de la vitesse
+ - ajouter progressivement de l'authorized zone, en fonction du score
+ - regen (de moins en moins) les blocks du bord, à chaque fin de niveau.
+ - petit message de congrats à la fin d'un niveau
+
 """
 
 import math
@@ -44,10 +64,13 @@ class BouncePoint:
 
 
 class CollisionHandler:
+    # TODO : les bounce_points indexés par cbr_pos, dans un dict.
 
     def __init__(self):
+        self.reset()
+
+    def reset(self):
         self.bounce_points = []
-        # TODO : les bounce_points indexés par cbr_pos, dans un dict.
 
     def add_bounce_points(self, bounce_points):
         self.bounce_points.extend(bounce_points)
@@ -56,7 +79,7 @@ class CollisionHandler:
         self.bounce_points = [
             bounce_point for bounce_point
             in self.bounce_points
-            if self.bounce_points.block_owner != block
+            if bounce_point.block_owner != block
         ]
 
     def collides_with(self, skweek):
@@ -68,17 +91,17 @@ class CollisionHandler:
         if not collisions:
             return []
         nearest_colli = min(collisions, key=lambda x:x[0])
-        print("collision", nearest_colli[0], nearest_colli[1].cbr_pos)
+        # print("collision", nearest_colli[0], nearest_colli[1].cbr_pos)
         cbr_collision_pos = nearest_colli[1].cbr_pos
         collided_points = [
             bounce_point
             for (br_dist_sq, bounce_point) in collisions
             if bounce_point.cbr_pos == cbr_collision_pos
         ]
-        print("collided_points")
-        for p in collided_points:
-            print(p.cbr_pos, (p.bounce_angle*360)/(math.pi*2))
-        print("----------")
+        # print("collided_points")
+        # for p in collided_points:
+        #     print(p.cbr_pos, (p.bounce_angle*360)/(math.pi*2))
+        # print("----------")
         return collided_points
 
     def compute_bounced_angle(self, collided_points, skweek):
@@ -88,7 +111,7 @@ class CollisionHandler:
         # et des sacrifices de chèvres une nuit de pleine Lune.
         bounced_angle = 2 * bouncing_angle - skweek.angle + math.pi
         bounced_angle = bounced_angle % (2*math.pi)
-        print("bounced_angle", (bounced_angle*360)/(math.pi*2))
+        # print("bounced_angle", (bounced_angle*360)/(math.pi*2))
         return bounced_angle
 
 
@@ -138,6 +161,7 @@ class BlockTemplate():
             "block_blue": BlockTemplate.square_shape,
             "block_white": BlockTemplate.square_shape,
             "bezel_blue": BlockTemplate.bezel_shape,
+            "player_block": BlockTemplate.square_shape,
         }
 
 
@@ -162,6 +186,7 @@ class Block(squarity.GameObject):
 
     def on_hit_by_skweek(self, skweek):
         # J'aime pas ce truc de immune. Mais j'ai pas mieux.
+        # Ça ne sert que pour les blocks indestructibles ou ayant plusieurs points de vie.
         self.immune = 10
         self.must_remove = True
 
@@ -180,16 +205,18 @@ class Skweek(squarity.GameObject):
             rge_game_bounds.w*RATIO_GE_TO_BR + 2*margin,
             rge_game_bounds.h*RATIO_GE_TO_BR + 2*margin,
         )
-        print("rbr_game_bounds", self.rbr_game_bounds)
+        # print("rbr_game_bounds", self.rbr_game_bounds)
         self.cbr_move = Coord(1, 1)
-
-        self.cbr_pos = Coord(RATIO_GE_TO_BR * 11, RATIO_GE_TO_BR * 9 + RATIO_GE_TO_BR-5)
         self.angle = 0
         self.speed = 1
-        self.set_angle((random.randrange(360) * 2 * math.pi) / 360.0)
-        self.set_speed(25)
+        self.start_level()
+
+    def start_level(self):
+        self.cbr_pos = Coord(RATIO_GE_TO_BR * 8, RATIO_GE_TO_BR * 13)
+        self.set_angle((random.randrange(45, 135) * 2 * math.pi) / 360.0)
+        self.set_speed(15)
         self._set_vect_from_angle()
-        self.set_ray(120)
+        self.set_ray(24)
         self._update_pos_screen()
 
     def set_angle(self, angle):
@@ -218,7 +245,7 @@ class Skweek(squarity.GameObject):
     def _set_vect_from_angle(self):
         self.cbr_move.x = math.cos(self.angle) * self.speed
         self.cbr_move.y = -math.sin(self.angle) * self.speed
-        print("set vect", self.cbr_move)
+        # print("set vect", self.cbr_move)
 
     def _set_skweek_bounds(self):
         self.rbr_skweek_bounds = squarity.Rect(
@@ -241,31 +268,53 @@ class GameModel(squarity.GameModelBase):
 
     def on_start(self):
         self.transition_delay = 10
-        self.skweeks = []
         BlockTemplate.init_templates()
         self.collision_handler = CollisionHandler()
-        skweek = Skweek(
+
+        self.layer_skweek = squarity.Layer(self, self.w, self.h)
+        self.skweek = None
+        self.layers.append(self.layer_skweek)
+
+        self.layer_authorized_zone = squarity.Layer(self, self.w, self.h, show_transitions=False)
+        self.layers.insert(0, self.layer_authorized_zone)
+        return self.start_level()
+
+    def start_level(self):
+
+        if self.skweek is not None:
+            self.layer_skweek.remove_game_object(self.skweek)
+
+        self.skweek = Skweek(
             squarity.Coord(0, 0),
             "skweek",
             image_modifier=squarity.ComponentImageModifier()
         )
+        skweek = self.skweek
         skweek.intialize(self.rect)
-        self.skweeks.append(skweek)
-        layer_skweek = squarity.Layer(self, self.w, self.h)
-        layer_skweek.add_game_object(skweek)
-        self.layers.append(layer_skweek)
+        self.layer_skweek.add_game_object(skweek)
+        skweek.start_level()
 
-        """
-        block = Block(squarity.Coord(11, 5), "block_blue")
-        block.initialize()
-        self.layer_main.add_game_object(block)
-        self.collision_handler.add_bounce_points(block.bounce_points)
+        for coord in squarity.Sequencer.seq_iter(
+            squarity.Sequencer.iter_on_rect(self.rect)
+        ):
+            self.layer_authorized_zone.remove_at_coord(coord)
+            self.layer_main.remove_at_coord(coord)
+        self.collision_handler.reset()
 
-        block = Block(squarity.Coord(10, 5), "block_white")
-        block.initialize()
-        self.layer_main.add_game_object(block)
-        self.collision_handler.add_bounce_points(block.bounce_points)
-        """
+        for coord in squarity.Sequencer.seq_iter(
+            squarity.Sequencer.iter_on_rect(self.rect)
+        ):
+            if any(
+                (
+                    coord.x < 2,
+                    coord.y < 2,
+                    coord.x > self.w -3,
+                    coord.y > self.h -3,
+                )
+            ):
+                self.layer_authorized_zone.add_game_object(
+                    squarity.GameObject(coord, "authorized_zone")
+                )
         self.put_blocks()
 
         self.playing = True
@@ -276,12 +325,6 @@ class GameModel(squarity.GameModelBase):
         for x_tile in range(self.w):
             # TODO : duplicate code de gros dégueulasse.
             coord = Coord(x_tile, 0)
-            block = Block(coord, sprites[(coord.x+coord.y) % 2])
-            block.initialize()
-            self.layer_main.add_game_object(block)
-            self.collision_handler.add_bounce_points(block.bounce_points)
-
-            coord = Coord(x_tile, self.h-1)
             block = Block(coord, sprites[(coord.x+coord.y) % 2])
             block.initialize()
             self.layer_main.add_game_object(block)
@@ -301,8 +344,6 @@ class GameModel(squarity.GameModelBase):
             self.layer_main.add_game_object(block)
             self.collision_handler.add_bounce_points(block.bounce_points)
 
-
-
     def iter_on_blocks(self):
         for block in squarity.Sequencer.seq_iter(
             squarity.Sequencer.iter_on_rect(self.rect),
@@ -313,7 +354,7 @@ class GameModel(squarity.GameModelBase):
     def game_tick(self):
         if not self.playing:
             return
-        skweek = self.skweeks[0]
+        skweek = self.skweek
 
         for block in self.iter_on_blocks():
             block.decrease_immune()
@@ -333,10 +374,12 @@ class GameModel(squarity.GameModelBase):
         ]
         for block in blocks_to_remove:
             self.layer_main.remove_game_object(block)
+            self.collision_handler.on_destroyed_block(block)
 
         skweek.play_turn()
         if not skweek.is_in_game():
-            print("Le skweek est sorti")
+            print("The tiny skweek is dead.")
+            print("Press the button 1 or 2 to restart.")
             self.playing = False
             return
 
@@ -347,6 +390,23 @@ class GameModel(squarity.GameModelBase):
         event_result.no_redraw = True
         return event_result
 
+    def on_button_action(self, action_name):
+        if self.playing:
+            print("Game aborted. Press the button again to restart.")
+            self.playing = False
+        else:
+            return self.start_level()
+
     def on_click(self, coord):
-        print("plop")
-        self.playing = False
+        if not self.playing:
+            return
+        if self.layer_main.get_game_objects(coord):
+            return
+        if not self.layer_authorized_zone.get_game_objects(coord):
+            return
+
+        block = Block(coord, "player_block")
+        block.initialize()
+        self.layer_main.add_game_object(block)
+        self.collision_handler.add_bounce_points(block.bounce_points)
+
