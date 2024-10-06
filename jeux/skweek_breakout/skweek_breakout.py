@@ -1,9 +1,10 @@
-# https://i.ibb.co/LhK8pLm/skweek-breakout.png
-# https://i.ibb.co/fpvX9Kt/skweek-breakout.png
+# https://i.ibb.co/Gdc3yw5/skweek-breakout.png
+# https://i.ibb.co/NCNb4zY/skweek-breakout.png
+# https://i.ibb.co/fp5qrmZ/skweek-breakout.png
 
 """
 {
-    "name": "Skweek breakout",
+    "name": "Skweek Breakout",
     "version": "2.1.0",
     "game_area": {
         "nb_tile_width": 16,
@@ -18,24 +19,46 @@
         "bezel_blue": [0, 50],
         "whatever": [50, 50],
         "player_block": [100, 50],
+        "block_blue_crack_1": [0, 100],
+        "block_white_crack_1": [50, 100],
+        "block_blue_crack_2": [0, 150],
+        "block_white_crack_2": [50, 150],
+        "bezel_blue_crack_1": [150, 50],
+        "bezel_blue_crack_2": [200, 50],
+        "congrats": [100, 100, 300, 100],
         "end": [0, 0]
     }
 }
 """
 
 """
-TODOs
+Tiny skweek plays Breakout.
 
- - changer la taille selon le block touché
- - seulement 2 player block dans le jeu
- - init du niveau avec des blocks au milieu (de plus en plus difficile)
- - détecter fin de niveau, et re-init niveau
- - calcul du score, afficher à la fin
- - augmentation progressive de la vitesse
- - ajouter progressivement de l'authorized zone, en fonction du score
- - regen (de moins en moins) les blocks du bord, à chaque fin de niveau.
- - petit message de congrats à la fin d'un niveau
+Click on an empty blue square to add a solid square, on which your tiny skweek can bounce.
 
+Destroy all the blocks and score the maximum points.
+You don't have to destroy all the blocks on the borders to go to the next level,
+so, you should keep the border blocks as long as possible.
+
+The tiny skweek grows when you destroy a game block, but not one of your own block.
+The tiny skweek shrinks a little each time you place a block. So, you better place them wisely,
+instead of random-clicking everywhere.
+
+On the first levels, when there are only a few blocks left, they automatically decay,
+so that you don't have to precisely aim that damned last block.
+
+Click the button 1 or 2 to restart a new game.
+
+I developped this game with the Squarity engine (my personal project).
+This engine is supposed to create games based only on 2D grids (like the minesweeper, tic-tac-toe, etc.)
+But with the version 2 of the engine, we can do more things.
+So, why not create a game not based on 2D grids, with an engine supposed to manage only 2D grids ?
+
+This game is a tribute to two 1990's PC games, made by French video game studios:
+Super Skweek: https://en.wikipedia.org/wiki/Super_Skweek
+Popcorn: https://classicreload.com/popcorn.html#
+
+Enjoy !
 """
 
 import math
@@ -179,21 +202,34 @@ class Block(squarity.GameObject):
         ]
         self.immune = 0
         self.must_remove = False
+        self.decay_delay = 0
 
-    def decrease_immune(self):
-        if self.immune:
-            self.immune -= 1
+    def play_turn(self):
+        # Pas besoin de ce truc, car pas le temps
+        # de mettre des blocs indestructibles ou à point de vie.
+        #if self.immune:
+        #    self.immune -= 1
+        if self.decay_delay:
+            self.decay_delay -= 1
+            if self.decay_delay == 50:
+                self.sprite_name = self.sprite_name[:-1] + "2"
+            elif self.decay_delay == 0:
+                self.must_remove = True
 
     def on_hit_by_skweek(self, skweek):
         # J'aime pas ce truc de immune. Mais j'ai pas mieux.
-        # Ça ne sert que pour les blocks indestructibles ou ayant plusieurs points de vie.
-        self.immune = 10
+        # self.immune = 10
         self.must_remove = True
+
+    def start_decay(self):
+        self.decay_delay = 100
+        # print(self.sprite_name)
+        self.sprite_name += "_crack_1"
 
 
 class Skweek(squarity.GameObject):
 
-    def intialize(self, rge_game_bounds):
+    def intialize(self, rge_game_bounds, backup_speed=25):
         # RGE = Rect Game Engine. Les coordonnées avec les unités du moteur de jeu.
         # CBR = Coord Breakout. Les coordonnées avec les unités du jeu de casse-brique
         # Il suffit juste de faire un scaling pour changer
@@ -209,12 +245,14 @@ class Skweek(squarity.GameObject):
         self.cbr_move = Coord(1, 1)
         self.angle = 0
         self.speed = 1
+        self.backup_speed = backup_speed
         self.start_level()
 
     def start_level(self):
         self.cbr_pos = Coord(RATIO_GE_TO_BR * 8, RATIO_GE_TO_BR * 13)
         self.set_angle((random.randrange(45, 135) * 2 * math.pi) / 360.0)
-        self.set_speed(15)
+        self.set_speed(self.backup_speed)
+        # print("set speed to backup:", self.backup_speed)
         self._set_vect_from_angle()
         self.set_ray(24)
         self._update_pos_screen()
@@ -259,10 +297,6 @@ class Skweek(squarity.GameObject):
         self.image_modifier.area_offset_x = self.cbr_pos.x/RATIO_GE_TO_BR - 0.5
         self.image_modifier.area_offset_y = self.cbr_pos.y/RATIO_GE_TO_BR - 0.5
 
-    def print_state(self):
-        print("area offset: ", self.image_modifier.area_offset_x, self.image_modifier.area_offset_y)
-        print("coord cbr", self.cbr_pos)
-
 
 class GameModel(squarity.GameModelBase):
 
@@ -277,23 +311,17 @@ class GameModel(squarity.GameModelBase):
 
         self.layer_authorized_zone = squarity.Layer(self, self.w, self.h, show_transitions=False)
         self.layers.insert(0, self.layer_authorized_zone)
-        return self.start_level()
+        self.player_blocks = []
+        self.congrats = None
+        self.finished_level = False
 
-    def start_level(self):
+        return self.start_game()
 
-        if self.skweek is not None:
-            self.layer_skweek.remove_game_object(self.skweek)
+    def start_game(self):
 
-        self.skweek = Skweek(
-            squarity.Coord(0, 0),
-            "skweek",
-            image_modifier=squarity.ComponentImageModifier()
-        )
-        skweek = self.skweek
-        skweek.intialize(self.rect)
-        self.layer_skweek.add_game_object(skweek)
-        skweek.start_level()
-
+        self.level = 0
+        self.score = 0
+        self.backup_speed = 25
         for coord in squarity.Sequencer.seq_iter(
             squarity.Sequencer.iter_on_rect(self.rect)
         ):
@@ -315,12 +343,81 @@ class GameModel(squarity.GameModelBase):
                 self.layer_authorized_zone.add_game_object(
                     squarity.GameObject(coord, "authorized_zone")
                 )
-        self.put_blocks()
+        self.put_blocks_on_borders()
 
+        self.start_level()
         self.playing = True
         return self.game_tick()
 
-    def put_blocks(self):
+    def start_level(self):
+        if self.skweek is not None:
+            self.layer_skweek.remove_game_object(self.skweek)
+        self.skweek = Skweek(
+            squarity.Coord(0, 0),
+            "skweek",
+            image_modifier=squarity.ComponentImageModifier()
+        )
+        skweek = self.skweek
+        skweek.intialize(self.rect, self.backup_speed)
+        self.layer_skweek.add_game_object(skweek)
+        skweek.start_level()
+
+        x_margin = max((1, 3 - self.level))
+        y_margin = min((5, self.level))
+        proba_bezel = min(50, self.level * 7)
+        nb_blocks = 20
+        potential_coords = []
+        for x_tile in range(x_margin, self.w - x_margin):
+            for y_tile in range(9 - y_margin, 11 + y_margin):
+                potential_coords.append(Coord(x_tile, y_tile))
+
+        random.shuffle(potential_coords)
+        sprites = ["block_white", "block_blue"]
+        for coord in potential_coords[:nb_blocks]:
+            if random.randrange(100) < proba_bezel:
+                block = Block(coord, "bezel_blue")
+            else:
+                block = Block(coord, sprites[(coord.x+coord.y) % 2])
+            block.initialize()
+            self.layer_main.add_game_object(block)
+            self.collision_handler.add_bounce_points(block.bounce_points)
+
+    def check_end_level(self):
+        iter_blocks = squarity.Sequencer.seq_iter(
+            squarity.Sequencer.iter_on_rect(
+                squarity.Rect(1, 1, self.w-2, self.h-1)
+            ),
+            squarity.Sequencer.gobj_on_layers([self.layer_main]),
+            squarity.Sequencer.filter_sprites(
+                [
+                    "block_blue", "block_white", "bezel_blue",
+                    "block_blue_crack_1", "block_white_crack_1",
+                    "block_blue_crack_2", "block_white_crack_2",
+                    "bezel_blue_crack_1", "bezel_blue_crack_2",
+                ]
+            )
+        )
+        blocks_to_destroy = list(iter_blocks)
+        nb_blocks_to_destroy = len(blocks_to_destroy)
+        # print("nb_blocks_to_destroy", nb_blocks_to_destroy)
+        if not nb_blocks_to_destroy:
+            return True
+
+        if nb_blocks_to_destroy < 10 - self.level:
+            decayable_blocks = []
+            for block in blocks_to_destroy:
+                if "crack" in block.sprite_name:
+                    return False
+                else:
+                    decayable_blocks.append(block)
+            if decayable_blocks:
+                block_to_decay = random.choice(blocks_to_destroy)
+                # print("start decay")
+                block_to_decay.start_decay()
+
+        return False
+
+    def put_blocks_on_borders(self):
         sprites = ["block_white", "block_blue"]
         for x_tile in range(self.w):
             # TODO : duplicate code de gros dégueulasse.
@@ -357,7 +454,7 @@ class GameModel(squarity.GameModelBase):
         skweek = self.skweek
 
         for block in self.iter_on_blocks():
-            block.decrease_immune()
+            block.play_turn()
 
         collided_points = self.collision_handler.collides_with(skweek)
         if collided_points:
@@ -368,24 +465,44 @@ class GameModel(squarity.GameModelBase):
             skweek.set_angle(bounced_angle)
             for coll_p in collided_points:
                 coll_p.block_owner.on_hit_by_skweek(skweek)
+                if coll_p.block_owner.sprite_name == "player_block":
+                    skweek.set_speed(skweek.backup_speed)
+                else:
+                    skweek.set_speed(skweek.speed + 2)
+                    skweek.set_ray(min([skweek.br_ray + 5, 480]))
+                    self.score += skweek.br_ray
 
         blocks_to_remove = [
             block for block in self.iter_on_blocks() if block.must_remove
         ]
-        for block in blocks_to_remove:
-            self.layer_main.remove_game_object(block)
-            self.collision_handler.on_destroyed_block(block)
+        if blocks_to_remove:
+            for block in blocks_to_remove:
+                self.layer_main.remove_game_object(block)
+                self.collision_handler.on_destroyed_block(block)
+            if self.check_end_level():
+                print("score:", self.score)
+                if self.level == 0:
+                    print()
+                    print("Click in the game to start the next level.")
+                self.level += 1
+                self.backup_speed += 5
+                self.congrats = squarity.GameObject(Coord(6, 8), "congrats")
+                self.layer_main.add_game_object(self.congrats)
+                self.finished_level = True
+                self.playing = False
+                return
 
         skweek.play_turn()
         if not skweek.is_in_game():
             print("The tiny skweek is dead.")
+            print("final score:", self.score)
             print("Press the button 1 or 2 to restart.")
             self.playing = False
             return
 
         event_result = squarity.EventResult()
         event_result.add_delayed_callback(
-            squarity.DelayedCallBack(10, self.game_tick)
+            squarity.DelayedCallBack(20, self.game_tick)
         )
         event_result.no_redraw = True
         return event_result
@@ -395,11 +512,19 @@ class GameModel(squarity.GameModelBase):
             print("Game aborted. Press the button again to restart.")
             self.playing = False
         else:
-            return self.start_level()
+            return self.start_game()
 
     def on_click(self, coord):
         if not self.playing:
-            return
+            if self.finished_level:
+                self.finished_level = False
+                self.playing = True
+                if self.congrats is not None:
+                    self.layer_main.remove_game_object(self.congrats)
+                    self.congrats = None
+                self.start_level()
+                return self.game_tick()
+
         if self.layer_main.get_game_objects(coord):
             return
         if not self.layer_authorized_zone.get_game_objects(coord):
@@ -409,4 +534,9 @@ class GameModel(squarity.GameModelBase):
         block.initialize()
         self.layer_main.add_game_object(block)
         self.collision_handler.add_bounce_points(block.bounce_points)
+        self.player_blocks.append(block)
+        self.skweek.set_ray(max([self.skweek.br_ray - 1, 24]))
+        if len(self.player_blocks) > 2:
+            block_to_remove = self.player_blocks.pop(0)
+            block_to_remove.must_remove = True
 
