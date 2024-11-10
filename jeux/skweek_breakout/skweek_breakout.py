@@ -345,9 +345,22 @@ class GameModel(squarity.GameModelBase):
                 )
         self.put_blocks_on_borders()
 
-        self.start_level()
-        self.playing = True
-        return self.game_tick()
+        if self.skweek is not None:
+            self.layer_skweek.remove_game_object(self.skweek)
+        self.skweek = Skweek(
+            squarity.Coord(0, 0),
+            "skweek",
+            image_modifier=squarity.ComponentImageModifier()
+        )
+        skweek = self.skweek
+        skweek.intialize(self.rect, self.backup_speed)
+        self.layer_skweek.add_game_object(skweek)
+        skweek.start_level()
+
+        self.playing = False
+        self.finished_level = True
+        print("click in the game to start.")
+        # return self.game_tick()
 
     def start_level(self):
         if self.skweek is not None:
