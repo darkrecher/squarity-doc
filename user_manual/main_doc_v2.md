@@ -10,7 +10,7 @@ Un jeu est défini par trois informations :
  - la configuration,
  - le "game code".
 
-Pour l'instant, Squarity ne gère pas de comptes ni de profil personnel. Vous devez sauvegardez vos jeux par vous-même, sur votre disque dur ou ailleurs. Vous pouvez les publier sur un gist github (voir plus loin : TODO).
+Pour l'instant, Squarity ne gère pas de comptes ni de profil personnel. Vous devez sauvegardez vos jeux par vous-même, sur votre disque dur ou ailleurs. Vous pouvez [les publier sur un gist github](https://github.com/darkrecher/squarity-doc/blob/master/user_manual/main_page.md#partager-un-jeu).
 
 
 ## Le tileset
@@ -48,7 +48,7 @@ Dans l'interface, indiquez cette configuration dans la zone de texte "Config du 
 
 `name` (chaîne de caractère) : le nom de votre jeu. Il est écrit dans le "title" de la page web, précédé du texte "Squarity - ".
 
-`version` (chaîne de caractère) : version du moteur du jeu, indiquez "2.1.0". Voir plus loin : TODO.
+`version` (chaîne de caractère) : version du moteur du jeu, indiquez "2.1.0". ([Voir chapitre "Versions"](https://github.com/darkrecher/squarity-doc/blob/master/user_manual/main_doc_v2.md#versions-du-moteur-squarity)).
 
 `tile_size` (nombre entier) : la taille par défaut, en pixels dans le tileset, des images représentant les éléments de votre jeu.
 
@@ -62,7 +62,7 @@ Chaque clé de ce sous-dictionnaire est une chaîne de caractère que vous pourr
 
 Chaque valeur de ce sous-dictionnaire est une liste de 2 entiers. Ils représentent les coordonnées x et y, en pixels dans le tileset, du coin supérieur gauche de l'image.
 
-Il est possible d'ajouter d'autres valeurs après les deux entiers de la liste. Voir plus loin : TODO.
+Il est possible d'ajouter d'autres valeurs après les deux entiers de la liste. [Voir chapitre "Info supplémentaires pour les sprites"](#info-suppl%C3%A9mentaires-pour-les-sprites).
 
 ### Versions du moteur Squarity
 
@@ -83,7 +83,7 @@ Ce programme doit contenir une classe intitulée `GameModel`, qui hérite de la 
 
 Cette classe sera instanciée automatiquement par le moteur Squarity. Elle contient des fonctions de callback, que vous aurez éventuellement redéfinie. Ces fonctions sont appelées automatiquement sur certains événements (appui sur un bouton du jeu, clic de souris, etc.)
 
-Votre `GameModel` contient des objets de type `squarity.Layer`, ordonnés dans une liste. Chacun de ces layers contient un tableau de "tiles". Ce tableau est en 2 dimensions, la largeur et la hauteur correspondent à celles de l'aire de jeu (les valeurs `nb_tile_width` et `nb_tile_height` indiquées dans la config JSON).
+Votre `GameModel` contient des objets de type `squarity.Layer`, ordonnés dans une liste. Chacun de ces layers contient un tableau de "tiles". Ce tableau est en 2 dimensions, la largeur et la hauteur correspondent à celles de l'aire de jeu (les valeurs `nb_tile_width` et `nb_tile_height` indiquées dans la config JSON).
 
 Une tile représente une case de l'aire de jeu. Chaque tile peut contenir des `squarity.GameObject`, représentant des objets de votre jeu. Un GameObject est toujours placé sur une seule tile de seul layer. Un GameObject possède des coordonnées (x, y) indiquant la tile d'appartenance dans le layer. Un GameObject possède une variable membre `sprite_name`, de type chaîne de caractère. Cette variable doit avoir pour valeur l'un des noms définis dans le dictionnaire `img_coords` de la configuration JSON.
 
@@ -99,15 +99,15 @@ Vous ne pouvez pas définir la taille en pixel des cases réellement affichées.
 Le calcul est effectué comme suit:
 
  - calcul de la largeur possible et de la hauteur possible des tiles (en pixel, à l'écran) :
-   - `largeur_possible = largeur_fenêtre_du_jeu / config.nb_tile_width`
-   - `hauteur_possible = hauteur_fenêtre_du_jeu / config.nb_tile_height`
+   - `largeur_case_temp = largeur_affichage // config.game_area.nb_tile_width`
+   - `hauteur_case_temp = hauteur_affichage // config.game_area.nb_tile_height`
  - détermination de la taille réelle des tiles, en prenant la plus petite :
-   - `taille_tile_ecran = min(largeur_possible, hauteur_possible)`
+   - `taille_case_affichage = min(largeur_case_temp, hauteur_case_temp)`
  - application de cette taille pour la largeur et la hauteur à l'écran :
-   - `largeur_tile_ecran = taille_tile_ecran`
-   - `hauteur_tile_ecran = taille_tile_ecran`
+   - `largeur_case_affichage = taille_case_affichage`
+   - `hauteur_case_affichage = taille_case_affichage`
 
-Ensuite, une mise à l'échelle est effectuée, pour afficher les images ayant une taille égale à `config.tile_size` (en pixel dans le tileset), vers des images ayant une taille égale à `taille_tile_ecran` (en pixel à l'écran).
+Ensuite, une mise à l'échelle est effectuée, pour afficher les images ayant une taille égale à `config.tile_size` (en pixel dans le tileset), vers des images ayant une taille égale à `taille_case_ecran` (en pixel à l'écran).
 
 La mise à l'échelle est effectuée selon l'algorithme "proche voisin", sans aucun traitement ni anti-aliasing. C'est à dire que des gros pixels carrés seront visibles si vos images de tileset sont petites et que la personne qui joue a choisi une grande fenêtre de jeu.
 
@@ -309,7 +309,7 @@ Si vous changez plusieurs fois les coordonnées dans le même tour de jeu, les v
 
 Vous pouvez déclencher plusieurs transitions sur plusieurs Game Objects, en modifiant les coordonnées de chacun d'entre eux.
 
-Il est possible de définir des déplacements avec des étapes intermédiaires. Par exemple, un déplacement horizontal de x=5 vers x=8, puis un vertical de y=3 vers y=2. Voir plus loin (TODO : chapitres Transitions).
+Il est possible de définir des déplacements avec des étapes intermédiaires. Par exemple, un déplacement horizontal de x=5 vers x=8, puis un vertical de y=3 vers y=2. [Voir chapitres "Transitions"](#transitions).
 
 Le temps de la transition peut être redéfini individuellement pour chaque Game Object, avec la fonction `gobj.set_transition_delay(transition_delay)`. Le paramètre `transition_delay` est un `int` indiquant le temps en millisecondes. Toutes les futures transitions dues à un changement de coordonnées utiliseront ce nouveau temps.
 
