@@ -92,8 +92,6 @@ La suite de cette documentation contient des exemples de code. Vous pouvez les c
 
 ## Schéma d'affichage, calculs des tailles
 
-TODO.
-
 Vous ne pouvez pas définir la taille en pixel des cases réellement affichées. Cette-ci dépend de la taille de la fenêtre du navigateur affichant Squarity, qui est définie par la personne qui joue.
 
 Le calcul est effectué comme suit:
@@ -107,10 +105,11 @@ Le calcul est effectué comme suit:
    - `largeur_case_affichage = taille_case_affichage`
    - `hauteur_case_affichage = taille_case_affichage`
 
-Ensuite, une mise à l'échelle est effectuée, pour afficher les images ayant une taille égale à `config.tile_size` (en pixel dans le tileset), vers des images ayant une taille égale à `taille_case_ecran` (en pixel à l'écran).
+Ensuite, une mise à l'échelle est effectuée, pour afficher les images ayant une taille égale à `config.tile_size` (en pixel dans le tileset), vers des images ayant une taille égale à `taille_case_affichage` (en pixel à l'écran).
 
 La mise à l'échelle est effectuée selon l'algorithme "proche voisin", sans aucun traitement ni anti-aliasing. C'est à dire que des gros pixels carrés seront visibles si vos images de tileset sont petites et que la personne qui joue a choisi une grande fenêtre de jeu.
 
+![https://raw.githubusercontent.com/darkrecher/squarity-doc/master/user_manual/schema_game_sizes.png](https://raw.githubusercontent.com/darkrecher/squarity-doc/master/user_manual/schema_game_sizes.png)
 
 ## class Direction
 
