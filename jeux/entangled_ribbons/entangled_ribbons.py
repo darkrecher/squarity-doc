@@ -1,5 +1,6 @@
 # https://ibb.co/rHsfXWK
 # https://i.ibb.co/GRT3rhf/ent-rib-tileset.png
+# https://i.ibb.co/m9HwNJG/ent-rib-tileset.png
 
 """
   {
@@ -51,6 +52,10 @@
       "rib_blu_extr_0": [224, 96],
       "rib_blu_extr_4": [256, 96],
       "rib_blu_extr_2": [288, 96],
+
+      "icon_grap": [32, 0],
+      "icon_swap": [64, 0],
+      "hero": [96, 0],
       "background": [0, 0]
     }
   }
@@ -133,12 +138,54 @@ class Ribbon():
             return iter(self.gobjs[::-1])
         return None
 
+    def remove_gobjs(self, gobjs_to_remove):
+        self.gobjs = [g for g in self.gobjs if g not in gobjs_to_remove]
+        for gobj in gobjs_to_remove:
+            self.ribbons_world.remove_game_object(gobj)
+
+    def add_gobjs(self, gobjs_to_add, extremity):
+        for gobj in gobjs_to_add:
+            sprite_name = "rib_" + self.color + gobj.sprite_name[7:]
+            gobj_me = GameObject(gobj.get_coord(), sprite_name)
+            gobj_me.owner_ribbon = self
+            self.ribbons_world.add_game_object(gobj_me)
+            if extremity == 1:
+                self.gobjs.insert(0, gobj_me)
+            if extremity == -1:
+                self.gobjs.append(gobj_me)
+
+    def add_turning_gobj(self, coord, coord_adj_1, coord_adj_2, extremity):
+        four_dirs = (
+            squarity.dirs.Up,
+            squarity.dirs.Right,
+            squarity.dirs.Down,
+            squarity.dirs.Left,
+        )
+        adj_dirs = []
+        for direction in four_dirs:
+            adj_test = coord.clone().move_dir(direction)
+            if adj_test == coord_adj_1 or  adj_test == coord_adj_2:
+                adj_dirs.append(direction.int_dir)
+        adj_dirs.sort()
+        sprite_name = f"rib_{self.color}_turn_{adj_dirs[0]}{adj_dirs[1]}"
+        print(sprite_name)
+        gobj_new = GameObject(coord.clone(), sprite_name)
+        gobj_new.owner_ribbon = self
+        self.ribbons_world.add_game_object(gobj_new)
+        if extremity == 1:
+            self.gobjs.insert(0, gobj_new)
+        if extremity == -1:
+            self.gobjs.append(gobj_new)
+
 
 class RibbonWorldManager():
 
     def __init__(self, ribbons_world):
         self.ribbons_world = ribbons_world
         self.ribbons = []
+        self.reset_all_swap()
+
+    def reset_all_swap(self):
         self.coord_swap_1 = None
         self.ribbon_swap_1 = None
         self.extr_swap_1 = None
@@ -158,9 +205,7 @@ class RibbonWorldManager():
         # TODO LIB: ajouter des hasattr dans le coord.__eq__.
         if self.coord_swap_1 is not None and self.coord_swap_1 == coord_swap:
             # Déselection d'une coordonnée sélectionnée.
-            self.coord_swap_1 = None
-            self.ribbon_swap_1 = None
-            self.extr_swap_1 = None
+            self.reset_all_swap()
             return False
         gobj_ribs = self.ribbons_world.get_game_objects(coord_swap)
         if len(gobj_ribs) != 1:
@@ -184,6 +229,7 @@ class RibbonWorldManager():
             if self.check_can_swap():
                 print("We can swap")
                 self.make_swap()
+                self.reset_all_swap()
                 return True
             else:
                 print("We can not swap")
@@ -251,8 +297,72 @@ class RibbonWorldManager():
         )
         print("swap 1", self.ribbon_swap_1.color, coord_rib_1_adj_1, coord_rib_1_adj_2)
         print("swap 2", self.ribbon_swap_2.color, coord_rib_2_adj_1, coord_rib_2_adj_2)
+        self.ribbon_swap_1.remove_gobjs(self.gobjs_until_cross_1)
+        self.ribbon_swap_2.remove_gobjs(self.gobjs_until_cross_2)
+        self.ribbon_swap_1.add_turning_gobj(coord_cross, coord_rib_1_adj_1, coord_rib_1_adj_2, self.extr_swap_1)
+        self.ribbon_swap_2.add_turning_gobj(coord_cross, coord_rib_2_adj_1, coord_rib_2_adj_2, self.extr_swap_2)
+        # On ajoute les morceaux de ribbon en prenant la liste à l'envers,
+        # et on ne prend pas le dernier objet de la liste, qui correspond à la cross.
+        self.ribbon_swap_1.add_gobjs(self.gobjs_until_cross_2[-2::-1], self.extr_swap_1)
+        self.ribbon_swap_2.add_gobjs(self.gobjs_until_cross_1[-2::-1], self.extr_swap_2)
 
 
+# TODO LIB
+def coord_upleft_from_rect(rect):
+    return Coord(rect.x, rect.y)
+
+
+class Hero():
+
+    def __init__(self, layer_hero, view_rect, ribbons_world):
+        self.layer_hero = layer_hero
+        self.view_rect = view_rect
+        self.ribbons_world = ribbons_world
+        self.gobj_hero = GameObject(Coord(0, 0), "hero")
+        self.coord_hero_world = Coord(24, 23)
+
+    def render_hero(self):
+        view_corner = coord_upleft_from_rect(self.view_rect)
+        # TODO LIB: reverse a coord, you dumb!
+        view_corner.x = -view_corner.x
+        view_corner.y = -view_corner.y
+        if self.view_rect.in_bounds(self.coord_hero_world):
+            new_coord_hero = self.coord_hero_world.clone().move_by_vect(view_corner)
+            self.gobj_hero.move_to(new_coord_hero, transition_delay=0)
+            if not self.gobj_hero.layer_owner:
+                self.layer_hero.add_game_object(self.gobj_hero)
+        else:
+            if self.gobj_hero.layer_owner:
+                self.layer_hero.remove_game_object(self.gobj_hero)
+
+    def find_path(self, dest):
+        """Good old pathfinding"""
+        distances = {}
+        nexts = [(self.coord_hero_world, 0)]
+        while nexts and dest not in distances:
+            cur_coord, cur_dist = nexts.pop(0)
+            if cur_coord not in distances:
+                cur_tile = self.ribbons_world.get_tile(cur_coord)
+                if not cur_tile.game_objects or cur_coord == dest:
+                    distances[cur_coord] = cur_dist
+                    for adj_tile in cur_tile.adjacencies[::2]:
+                        if adj_tile is not None:
+                            nexts.append((adj_tile._coord, cur_dist + 1))
+
+        if dest not in distances:
+            return None
+        path = [dest]
+        cur_coord = dest
+        cur_dist = distances[dest]
+        while cur_dist:
+            cur_tile = self.ribbons_world.get_tile(cur_coord)
+            for adj_tile in cur_tile.adjacencies[::2]:
+                if adj_tile is not None and distances.get(adj_tile._coord) == cur_dist - 1:
+                    cur_coord = adj_tile._coord
+                    cur_dist -= 1
+                    path.append(cur_coord)
+                    break
+        return path[::-1]
 
 
 class GameModel(squarity.GameModelBase):
@@ -262,7 +372,7 @@ class GameModel(squarity.GameModelBase):
         self.ribbons_view = squarity.Layer(self, self.w, self.h)
         self.layers.append(self.ribbons_view)
         self.ribbon_world_manager = RibbonWorldManager(self.ribbons_world)
-        self.view_rect = squarity.Rect(15, 15, self.w-2, self.h-2)
+        self.view_rect = squarity.Rect(14, 14, self.w, self.h)
 
         rect_background = squarity.Rect(1, 1, self.w-2, self.h-2)
         for c in squarity.Sequencer.iter_on_rect(rect_background):
@@ -277,6 +387,13 @@ class GameModel(squarity.GameModelBase):
         rib_3 = Ribbon(self.ribbons_world, "grn")
         rib_3.hard_code_path_3()
         self.ribbon_world_manager.add_ribbon(rib_3)
+
+        self.layer_hero = squarity.Layer(self, self.w, self.h)
+        self.layers.append(self.layer_hero)
+        self.hero = Hero(self.layer_hero, self.view_rect, self.ribbons_world)
+        self.layer_ui = squarity.Layer(self, self.w, self.h, False)
+        self.layers.append(self.layer_ui)
+
         self.render_world()
 
     def render_world(self):
@@ -284,12 +401,13 @@ class GameModel(squarity.GameModelBase):
         view_corner_y = self.view_rect.y
         c_view = Coord(0, 0)
         for c_world in squarity.Sequencer.iter_on_rect(self.view_rect):
-            c_view.x = c_world.x - view_corner_x + 1
-            c_view.y = c_world.y - view_corner_y + 1
+            c_view.x = c_world.x - view_corner_x
+            c_view.y = c_world.y - view_corner_y
             self.ribbons_view.remove_at_coord(c_view)
             for gobj_world in self.ribbons_world.get_game_objects(c_world):
                 gobj_view = GameObject(c_view, gobj_world.sprite_name)
                 self.ribbons_view.add_game_object(gobj_view)
+        self.hero.render_hero()
 
     def on_button_direction(self, direction):
         # TODO LIB : appliquer un vecteur sur un rect pour bouger son corner upleft.
@@ -301,9 +419,13 @@ class GameModel(squarity.GameModelBase):
     def on_click(self, coord):
         # TODO : fonctions spécifiques world <-> view
         world_coord = Coord(
-            self.view_rect.x + coord.x - 1,
-            self.view_rect.y + coord.y - 1
+            self.view_rect.x + coord.x,
+            self.view_rect.y + coord.y
         )
-        self.ribbon_world_manager.select_coord_swap(world_coord)
+        if self.ribbon_world_manager.select_coord_swap(world_coord):
+            self.render_world()
+        # TODO debug test
+        else:
+            print(self.hero.find_path(world_coord))
 
 
