@@ -1,6 +1,6 @@
 # https://ibb.co/rHsfXWK
-# https://i.ibb.co/GRT3rhf/ent-rib-tileset.png
-# https://i.ibb.co/m9HwNJG/ent-rib-tileset.png
+# https://i.ibb.co/M52wPQZ/ent-rib-tileset.png
+# https://i.ibb.co/KX296zn/ent-rib-tileset.png
 
 """
   {
@@ -22,6 +22,8 @@
       "rib_red_extr_0": [224, 32],
       "rib_red_extr_4": [256, 32],
       "rib_red_extr_2": [288, 32],
+      "rib_red_horiz_below": [320, 32],
+      "rib_red_vertic_below": [352, 32],
       "rib_yel_horiz": [0, 128],
       "rib_yel_vertic": [32, 128],
       "rib_yel_turn_06": [64, 128],
@@ -32,6 +34,8 @@
       "rib_yel_extr_0": [224, 128],
       "rib_yel_extr_4": [256, 128],
       "rib_yel_extr_2": [288, 128],
+      "rib_yel_horiz_below": [320, 128],
+      "rib_yel_vertic_below": [352, 128],
       "rib_grn_horiz": [0, 64],
       "rib_grn_vertic": [32, 64],
       "rib_grn_turn_06": [64, 64],
@@ -42,6 +46,8 @@
       "rib_grn_extr_0": [224, 64],
       "rib_grn_extr_4": [256, 64],
       "rib_grn_extr_2": [288, 64],
+      "rib_grn_horiz_below": [320, 64],
+      "rib_grn_vertic_below": [352, 64],
       "rib_blu_horiz": [0, 96],
       "rib_blu_vertic": [32, 96],
       "rib_blu_turn_06": [64, 96],
@@ -52,13 +58,78 @@
       "rib_blu_extr_0": [224, 96],
       "rib_blu_extr_4": [256, 96],
       "rib_blu_extr_2": [288, 96],
+      "rib_blu_horiz_below": [320, 96],
+      "rib_blu_vertic_below": [352, 96],
 
-      "icon_grap": [32, 0],
+      "rib_glow_horiz": [0, 128],
+      "rib_glow_vertic": [32, 128],
+      "rib_glow_turn_06": [64, 128],
+      "rib_glow_turn_02": [96, 128],
+      "rib_glow_turn_24": [128, 128],
+      "rib_glow_turn_46": [160, 128],
+      "rib_glow_extr_6": [192, 128],
+      "rib_glow_extr_0": [224, 128],
+      "rib_glow_extr_4": [256, 128],
+      "rib_glow_extr_2": [288, 128],
+
+      "icon_grab": [32, 0],
       "icon_swap": [64, 0],
       "hero": [96, 0],
       "background": [0, 0]
     }
   }
+"""
+
+"""
+tuto:
+
+click anywhere in the game,
+then click on the red ribbon next to me to grab it.
+
+(You must click on a ribbon extremity)
+
+Great! Now click the hand icon on the upper left corner
+to activate the swap mode.
+
+Click the green ribbon, then the yellow ribbon
+to swap and un-entangle them.
+
+(I can swap ribbons only if they cross just after
+the two extremities you clicked)
+
+(I can't reach that extremity)
+
+Click the upper left icon to go back to grab mode
+and remove the two ribbons.
+
+[story dialogues]
+
+I learned laser eyes, I can now see very far!
+You can scroll the game area, with arrow keys or arrow icons.
+
+I learned telekinesis! I can now swap ribbons
+even if I can't reach them.
+
+I learned levitation!
+I can now grab a ribbon if it is above the others.
+Try it with the blue ribbon next to me.
+
+I learned planar shift! Click on a ribbon cross to magically
+reverse it. It will help to put any ribbon above.
+
+"""
+
+
+"""
+Bug dans le moteur, avec cette version du code du jeu.
+
+Au moins, c'est reproductible:
+aller tout à droite jusqu'à enlever le héros, puis refaire un dernier petit coup à droite.
+Cliquer en haut à droite. (ça marche).
+Aller tout à gauche au maximum. Puis cliquer en bas à gauche.
+On réessaye une dernière fois.
+Oui c'est ça. (Et il y a sûrement des moyens plus simple de reproduire.
+Mais au moins il y a ça).
 """
 
 import squarity
@@ -319,6 +390,7 @@ class Hero():
         self.view_rect = view_rect
         self.ribbons_world = ribbons_world
         self.gobj_hero = GameObject(Coord(0, 0), "hero")
+        self.gobj_hero.plock_transi = squarity.PlayerLockTransi.LOCK
         self.coord_hero_world = Coord(24, 23)
 
     def render_hero(self):
@@ -363,6 +435,44 @@ class Hero():
                     path.append(cur_coord)
                     break
         return path[::-1]
+
+    def record_transitions_in_view(self, path):
+        coords_in_view = []
+        start_in_view = True
+        for world_coord in path[::-1]:
+            if self.view_rect.in_bounds(world_coord):
+                coords_in_view.append(world_coord)
+            else:
+                start_in_view = False
+                break
+
+        print("coords_in_view", coords_in_view)
+        if not coords_in_view:
+            return
+
+        coords_in_view = coords_in_view[::-1]
+        if not start_in_view:
+            coord_in_view_first = coords_in_view.pop(0)
+            coord_in_view_first.x -= self.view_rect.x
+            coord_in_view_first.y -= self.view_rect.y
+            self.gobj_hero.move_to(coord_in_view_first)
+            self.layer_hero.add_game_object(self.gobj_hero)
+            print("coord_in_view_first", coord_in_view_first)
+        if not coords_in_view:
+            return
+
+        path_steps = []
+        for world_coord in coords_in_view:
+            view_coord = Coord(
+                world_coord.x - self.view_rect.x,
+                world_coord.y - self.view_rect.y
+            )
+            path_steps.append((50, view_coord))
+        print("path_steps")
+        print(path_steps)
+        self.gobj_hero.add_transition(
+            squarity.TransitionSteps("coord", path_steps)
+        )
 
 
 class GameModel(squarity.GameModelBase):
@@ -411,10 +521,21 @@ class GameModel(squarity.GameModelBase):
 
     def on_button_direction(self, direction):
         # TODO LIB : appliquer un vecteur sur un rect pour bouger son corner upleft.
-        dx, dy = direction.vector
-        self.view_rect.x += dx
-        self.view_rect.y += dy
-        self.render_world()
+        temp_view_corner = coord_upleft_from_rect(self.view_rect)
+        temp_view_corner.move_dir(direction)
+        if all(
+            (
+                temp_view_corner.x >= 0,
+                temp_view_corner.y >= 0,
+                temp_view_corner.x + self.view_rect.w < WORLD_WIDTH,
+                temp_view_corner.y + self.view_rect.h < WORLD_HEIGHT,
+            )
+        ):
+            self.view_rect.x = temp_view_corner.x
+            self.view_rect.y = temp_view_corner.y
+            self.render_world()
+        else:
+            print("You are at the world limits.")
 
     def on_click(self, coord):
         # TODO : fonctions spécifiques world <-> view
@@ -422,6 +543,16 @@ class GameModel(squarity.GameModelBase):
             self.view_rect.x + coord.x,
             self.view_rect.y + coord.y
         )
+        # TODO : check it's an extremity, add function in RibbonWorldManager.
+        # TODO : check it's an unselection. Do it immediatly without pathfinding. (It's in RibbonWorldManager too)
+        path_to_swap = self.hero.find_path(world_coord)
+        if path_to_swap is None:
+            print("I can't reach this ribbon extremity.")
+            return
+        if len(path_to_swap) >= 2:
+            self.hero.record_transitions_in_view(path_to_swap[1:-1])
+            self.hero.coord_hero_world = path_to_swap[-2]
+        return
         if self.ribbon_world_manager.select_coord_swap(world_coord):
             self.render_world()
         # TODO debug test
