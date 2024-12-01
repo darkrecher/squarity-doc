@@ -390,6 +390,7 @@ class Hero():
         self.view_rect = view_rect
         self.ribbons_world = ribbons_world
         self.gobj_hero = GameObject(Coord(0, 0), "hero")
+        self.layer_hero.add_game_object(self.gobj_hero)
         self.gobj_hero.plock_transi = squarity.PlayerLockTransi.LOCK
         self.coord_hero_world = Coord(24, 23)
 
@@ -400,12 +401,9 @@ class Hero():
         view_corner.y = -view_corner.y
         if self.view_rect.in_bounds(self.coord_hero_world):
             new_coord_hero = self.coord_hero_world.clone().move_by_vect(view_corner)
-            self.gobj_hero.move_to(new_coord_hero, transition_delay=0)
-            if not self.gobj_hero.layer_owner:
-                self.layer_hero.add_game_object(self.gobj_hero)
         else:
-            if self.gobj_hero.layer_owner:
-                self.layer_hero.remove_game_object(self.gobj_hero)
+            new_coord_hero = Coord(0, 0)
+        self.gobj_hero.move_to(new_coord_hero, transition_delay=0)
 
     def find_path(self, dest):
         """Good old pathfinding"""
@@ -438,28 +436,20 @@ class Hero():
 
     def record_transitions_in_view(self, path):
         coords_in_view = []
-        start_in_view = True
+        cur_delay = 50
+        total_delay = 0
         for world_coord in path[::-1]:
             if self.view_rect.in_bounds(world_coord):
                 coords_in_view.append(world_coord)
             else:
-                start_in_view = False
+                cur_delay = 0
                 break
+        if not self.view_rect.in_bounds(self.coord_hero_world):
+            cur_delay = 0
 
-        print("coords_in_view", coords_in_view)
         if not coords_in_view:
             return
-
         coords_in_view = coords_in_view[::-1]
-        if not start_in_view:
-            coord_in_view_first = coords_in_view.pop(0)
-            coord_in_view_first.x -= self.view_rect.x
-            coord_in_view_first.y -= self.view_rect.y
-            self.gobj_hero.move_to(coord_in_view_first)
-            self.layer_hero.add_game_object(self.gobj_hero)
-            print("coord_in_view_first", coord_in_view_first)
-        if not coords_in_view:
-            return
 
         path_steps = []
         for world_coord in coords_in_view:
@@ -467,12 +457,13 @@ class Hero():
                 world_coord.x - self.view_rect.x,
                 world_coord.y - self.view_rect.y
             )
-            path_steps.append((50, view_coord))
-        print("path_steps")
-        print(path_steps)
+            path_steps.append((cur_delay, view_coord))
+            total_delay += cur_delay
+            cur_delay = 50
         self.gobj_hero.add_transition(
             squarity.TransitionSteps("coord", path_steps)
         )
+        return total_delay
 
 
 class GameModel(squarity.GameModelBase):
@@ -502,6 +493,7 @@ class GameModel(squarity.GameModelBase):
         self.layers.append(self.layer_hero)
         self.hero = Hero(self.layer_hero, self.view_rect, self.ribbons_world)
         self.layer_ui = squarity.Layer(self, self.w, self.h, False)
+        self.ui_gobj_swap = GameObject(Coord(0, 0), "icon_swap")
         self.layers.append(self.layer_ui)
 
         self.render_world()
@@ -518,6 +510,18 @@ class GameModel(squarity.GameModelBase):
                 gobj_view = GameObject(c_view, gobj_world.sprite_name)
                 self.ribbons_view.add_game_object(gobj_view)
         self.hero.render_hero()
+
+        if self.ribbon_world_manager.coord_swap_1 is None:
+            if self.ui_gobj_swap.layer_owner is not None:
+                self.layer_ui.remove_game_object(self.ui_gobj_swap)
+        else:
+            coord_swap_view = Coord(
+                self.ribbon_world_manager.coord_swap_1.x - self.view_rect.x,
+                self.ribbon_world_manager.coord_swap_1.y - self.view_rect.y,
+            )
+            self.ui_gobj_swap.move_to(coord_swap_view)
+            if self.ui_gobj_swap.layer_owner is None:
+                self.layer_ui.add_game_object(self.ui_gobj_swap)
 
     def on_button_direction(self, direction):
         # TODO LIB : appliquer un vecteur sur un rect pour bouger son corner upleft.
@@ -549,14 +553,26 @@ class GameModel(squarity.GameModelBase):
         if path_to_swap is None:
             print("I can't reach this ribbon extremity.")
             return
-        if len(path_to_swap) >= 2:
-            self.hero.record_transitions_in_view(path_to_swap[1:-1])
+        if len(path_to_swap) > 2:
+            total_delay = self.hero.record_transitions_in_view(path_to_swap[1:-1])
             self.hero.coord_hero_world = path_to_swap[-2]
-        return
-        if self.ribbon_world_manager.select_coord_swap(world_coord):
-            self.render_world()
-        # TODO debug test
+            self.hero.coord_to_swap = world_coord
+            # TODO LIB : callback when all the current transitions, or all the blocking transitions, are finished.
+            event_res = squarity.EventResult()
+            event_res.add_delayed_callback(
+                squarity.DelayedCallBack(total_delay, self.callback_hero_arrived)
+            )
+            return event_res
         else:
-            print(self.hero.find_path(world_coord))
+            self.hero.coord_to_swap = world_coord
+            self.callback_hero_arrived()
 
+    # TODO: rename this function.
+    def callback_hero_arrived(self):
+        print("hero arrived")
+        # TODO : two steps: remove the swap icon, then swap the ribbons.
+        #        or three: add second swap icon, swap ribbons, remove the two icons.
+        self.ribbon_world_manager.select_coord_swap(self.hero.coord_to_swap)
+        # TODO : render world only if there was a swap, or if the first swap selection changed.
+        self.render_world()
 
