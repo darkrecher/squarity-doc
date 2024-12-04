@@ -157,7 +157,7 @@ class Ribbon():
             GameObject(Coord(18, 19), "rib_red_vertic"),
             GameObject(Coord(18, 20), "rib_red_turn_02"),
             GameObject(Coord(19, 20), "rib_red_horiz"),
-            GameObject(Coord(20, 20), "rib_red_horiz"),
+            GameObject(Coord(20, 20), "rib_red_horiz_below"),
             GameObject(Coord(21, 20), "rib_red_extr_6"),
         ]
         for gobj_rib in self.gobjs:
@@ -171,7 +171,7 @@ class Ribbon():
             GameObject(Coord(21, 16), "rib_yel_horiz"),
             GameObject(Coord(20, 16), "rib_yel_turn_24"),
             GameObject(Coord(20, 17), "rib_yel_vertic"),
-            GameObject(Coord(20, 18), "rib_yel_vertic"),
+            GameObject(Coord(20, 18), "rib_yel_vertic_below"),
             GameObject(Coord(20, 19), "rib_yel_vertic"),
             GameObject(Coord(20, 20), "rib_yel_vertic"),
             GameObject(Coord(20, 21), "rib_yel_vertic"),
@@ -187,7 +187,7 @@ class Ribbon():
         self.gobjs = [
             GameObject(Coord(16, 18), "rib_grn_extr_2"),
             GameObject(Coord(17, 18), "rib_grn_horiz"),
-            GameObject(Coord(18, 18), "rib_grn_horiz"),
+            GameObject(Coord(18, 18), "rib_grn_horiz_below"),
             GameObject(Coord(19, 18), "rib_grn_horiz"),
             GameObject(Coord(20, 18), "rib_grn_horiz"),
             GameObject(Coord(21, 18), "rib_grn_horiz"),
@@ -552,6 +552,25 @@ class Hero():
         return total_delay
 
 
+class Powers():
+    SWAP_EVERYWHERE = 1
+    SCROLL = 2
+    GRAB_EVERYWHERE = 3
+    GRAB_ABOVE = 4
+    SWAP_CROSS = 5
+
+    def __init__(self):
+        self.power_availability = {
+            pow_id: False for pow_id in range(6)
+        }
+
+    def grant_power(self, pow_id):
+        self.power_availability[pow_id] = True
+
+    def has_power(self, pow_id):
+        return self.power_availability[pow_id]
+
+
 class GameModel(squarity.GameModelBase):
 
     def on_start(self):
@@ -638,28 +657,76 @@ class GameModel(squarity.GameModelBase):
         print(self.interaction_mode)
 
     def on_click(self, coord):
-        if self.interaction_mode == "swap":
-            return self.on_click_swap(coord)
-        elif self.interaction_mode == "grab":
-            return self.on_click_grab(coord)
-
-    def on_click_grab(self, coord):
+        # TODO : fonctions spécifiques world <-> view
         world_coord = Coord(
             self.view_rect.x + coord.x,
             self.view_rect.y + coord.y
         )
+        if not self.ribbon_world_manager.ribbons_world.get_game_objects(world_coord):
+            return self.on_click_move(world_coord)
+        if self.interaction_mode == "swap":
+            return self.on_click_swap(world_coord)
+        elif self.interaction_mode == "grab":
+            return self.on_click_grab(world_coord)
+
+    def on_click_move(self, world_coord):
+        path_to_dest = self.hero.find_path(world_coord)
+        if path_to_dest is None:
+            print("I can't reach this place.")
+            return
+        if len(path_to_dest) > 1:
+            total_delay = self.hero.record_transitions_in_view(path_to_dest[1:])
+            self.hero.coord_hero_world = path_to_dest[-1]
+            event_res = squarity.EventResult()
+            event_res.plocks_custom.append("move_anim")
+            event_res.add_delayed_callback(
+                squarity.DelayedCallBack(total_delay, self.callback_hero_arrived)
+            )
+            return event_res
+
+    def callback_hero_arrived(self):
+        event_res = squarity.EventResult()
+        event_res.punlocks_custom.append("move_anim")
+        return event_res
+
+    def on_click_grab(self, world_coord):
+        path_to_grab = self.hero.find_path(world_coord)
+        if path_to_grab is None:
+            print("I can't reach this ribbon extremity.")
+            return
+        if len(path_to_grab) > 2:
+            total_delay = self.hero.record_transitions_in_view(path_to_grab[1:-1])
+            self.hero.coord_hero_world = path_to_grab[-2]
+            self.hero.coord_to_grab = world_coord
+            event_res = squarity.EventResult()
+            event_res.plocks_custom.append("grab_anim")
+            event_res.add_delayed_callback(
+                squarity.DelayedCallBack(total_delay, self.callback_hero_try_grab)
+            )
+            return event_res
+        else:
+            self.hero.coord_to_grab = world_coord
+            return self.callback_hero_try_grab()
+
+    def callback_hero_try_grab(self):
+        world_coord = self.hero.coord_to_grab
         rib_and_extr = self.ribbon_world_manager.get_ribbon_and_extremity(world_coord)
         if rib_and_extr is None:
-            return
+            # Raaaah. J'ai ce truc là partout. C'est vraiment horrible ce code.
+            event_res = squarity.EventResult()
+            event_res.punlocks_custom.append("grab_anim")
+            return event_res
         ribbon, extremity = rib_and_extr
         if not ribbon.check_can_be_grabbed(self.ribbons_world, False):
             print("This ribbon can't be grabbed.")
-            return
+            event_res = squarity.EventResult()
+            event_res.punlocks_custom.append("grab_anim")
+            return event_res
 
         self.ribbon_grabbing = ribbon
         self.ribbon_grabbing.start_highlight(extremity)
         event_res = squarity.EventResult()
-        event_res.plocks_custom.append("lock_grab_anim")
+        event_res.plocks_custom.append("grab_anim")
         event_res.add_delayed_callback(
             squarity.DelayedCallBack(50, self.callback_grabbing_ribbon)
         )
@@ -687,9 +754,8 @@ class GameModel(squarity.GameModelBase):
                 print("TODO : must remove ribbon from world")
                 self.render_world()
                 event_res = squarity.EventResult()
-                event_res.punlocks_custom.append("lock_grab_anim")
+                event_res.punlocks_custom.append("grab_anim")
                 return event_res
-
 
         highlight_in_view = False
         for gobj in gobj_highlights:
@@ -710,12 +776,7 @@ class GameModel(squarity.GameModelBase):
         )
         return event_res
 
-    def on_click_swap(self, coord):
-        # TODO : fonctions spécifiques world <-> view
-        world_coord = Coord(
-            self.view_rect.x + coord.x,
-            self.view_rect.y + coord.y
-        )
+    def on_click_swap(self, world_coord):
         path_to_swap = self.hero.find_path(world_coord)
         if path_to_swap is None:
             print("I can't reach this ribbon extremity.")
@@ -729,31 +790,30 @@ class GameModel(squarity.GameModelBase):
                 total_delay += 400
             # TODO LIB : callback when all the current transitions, or all the blocking transitions, are finished.
             event_res = squarity.EventResult()
-            event_res.plocks_custom.append("lock_swap_anim")
+            event_res.plocks_custom.append("swap_anim")
             event_res.add_delayed_callback(
-                squarity.DelayedCallBack(total_delay, self.callback_hero_arrived)
+                squarity.DelayedCallBack(total_delay, self.callback_hero_try_swap)
             )
             return event_res
         else:
             self.hero.coord_to_swap = world_coord
-            return self.callback_hero_arrived()
+            return self.callback_hero_try_swap()
 
-    # TODO: rename this function.
-    def callback_hero_arrived(self):
+    def callback_hero_try_swap(self):
         print("hero arrived")
         # TODO: bug if we select two extremities of the same ribbon, with a single cross in the middle.
         can_swap = self.ribbon_world_manager.select_coord_swap(self.hero.coord_to_swap)
         self.render_world()
         if can_swap:
             event_res = squarity.EventResult()
-            event_res.plocks_custom.append("lock_swap_anim")
+            event_res.plocks_custom.append("swap_anim")
             event_res.add_delayed_callback(
                 squarity.DelayedCallBack(400, self.callback_make_swap)
             )
             return event_res
         else:
             event_res = squarity.EventResult()
-            event_res.punlocks_custom.append("lock_swap_anim")
+            event_res.punlocks_custom.append("swap_anim")
             return event_res
 
     def callback_make_swap(self):
@@ -761,6 +821,6 @@ class GameModel(squarity.GameModelBase):
         self.ribbon_world_manager.reset_all_swap()
         self.render_world()
         event_res = squarity.EventResult()
-        event_res.punlocks_custom.append("lock_swap_anim")
+        event_res.punlocks_custom.append("swap_anim")
         return event_res
 
