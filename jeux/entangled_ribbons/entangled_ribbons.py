@@ -1,6 +1,4 @@
-# https://ibb.co/rHsfXWK
-# https://i.ibb.co/M52wPQZ/ent-rib-tileset.png
-# https://i.ibb.co/KX296zn/ent-rib-tileset.png
+# https://i.ibb.co/G30yFzv/ent-rib-tileset.png
 
 """
   {
@@ -75,6 +73,7 @@
       "icon_grab": [32, 0],
       "icon_swap": [64, 0],
       "hero": [96, 0],
+      "black": [128, 0],
       "background": [0, 0]
     }
   }
@@ -198,6 +197,23 @@ class Ribbon():
             gobj_rib.owner_ribbon = self
             self.ribbons_world.add_game_object(gobj_rib)
 
+    def hard_code_path_4(self):
+        self.gobjs = [
+            GameObject(Coord(16, 26), "rib_blu_extr_2"),
+            GameObject(Coord(17, 26), "rib_blu_horiz"),
+            GameObject(Coord(18, 26), "rib_blu_horiz"),
+            GameObject(Coord(19, 26), "rib_blu_turn_46"),
+            GameObject(Coord(19, 27), "rib_blu_turn_06"),
+            GameObject(Coord(18, 27), "rib_blu_horiz"),
+            GameObject(Coord(17, 27), "rib_blu_turn_02"),
+            GameObject(Coord(17, 26), "rib_blu_vertic_below"),
+            GameObject(Coord(17, 25), "rib_blu_vertic"),
+            GameObject(Coord(17, 24), "rib_blu_extr_4"),
+        ]
+        for gobj_rib in self.gobjs:
+            gobj_rib.owner_ribbon = self
+            self.ribbons_world.add_game_object(gobj_rib)
+
     def which_extremity(self, gobj_rib):
         """
         Si c'est l'extremité du début, renvoie 1.
@@ -281,7 +297,10 @@ class Ribbon():
         else:
             raise Exception("Not supposed to happen.")
 
-    def highlight_next_gobjs(self):
+    def highlight_next_gobjs(self, view_rect):
+        """
+        Renvoie None, ou un nouveau game object, qui devra être ajouté dans l'UI.
+        """
         if not (0 <= self.highlight_index < len(self.gobjs)):
             self.highlighting = False
             return None
@@ -289,37 +308,35 @@ class Ribbon():
         highlight_sprite_name = "rib_glow" + gobj.sprite_name[7:]
         if highlight_sprite_name.endswith("below"):
             highlight_sprite_name = highlight_sprite_name[:-6]
-        gobj_highlight = GameObject(gobj.get_coord(), highlight_sprite_name)
+        coord_in_view = gobj.get_coord().move_by_vect(x=-view_rect.x, y=-view_rect.y)
+        gobj_highlight = GameObject(coord_in_view, highlight_sprite_name)
         self.gobjs_highlight.append(gobj_highlight)
         self.highlight_index += self.highlight_step
-        return [gobj_highlight]
+        return gobj_highlight
 
     def unhighlight_next_gobjs(self):
         """
-        Enlève un gobj des highlight, et modifie le gobj suivant pour
-        que ça devienne une extrémité.
-        Renvoie True si l'un des changement est visible dans le view_rect.
+        Renvoie None, ou un tuple de deux éléments:
+         - un game object existant, qui devra être enlevé de l'UI.
+         - None, ou bien les coordonnée d'un un autre game object existant,
+           dont le sprite aura été modifié.
         """
         if not self.gobjs_highlight:
             return None
         if len(self.gobjs_highlight) <= 2:
             gobj = self.gobjs_highlight.pop()
-            gobj_highlight = GameObject(gobj.get_coord(), "")
-            return [gobj_highlight]
+            return gobj, None
         gobj_0 = self.gobjs_highlight.pop()
-        gobj_highlight_0 = GameObject(gobj_0.get_coord(), "")
-        coord_1 = self.gobjs_highlight[-1]._coord
+        gobj_1 = self.gobjs_highlight[-1]
+        coord_1 = gobj_1._coord
         coord_2 = self.gobjs_highlight[-2]._coord
         vector_1_to_2 = (coord_2.x - coord_1.x, coord_2.y - coord_1.y)
         for direc in squarity.dirs.as_list[::2]:
             if direc.vector == vector_1_to_2:
                 if int(direc) in (0, 2, 4, 6):
-                    gobj_highlight_1 = GameObject(
-                        coord_1,
-                        "rib_glow_extr_" + str(int(direc))
-                    )
-                    return [gobj_highlight_0, gobj_highlight_1]
-        return [gobj_highlight_0]
+                    gobj_1.sprite_name = "rib_glow_extr_" + str(int(direc))
+                    return gobj_0, coord_1
+        return gobj_0, None
 
 
 class RibbonWorldManager():
@@ -341,8 +358,14 @@ class RibbonWorldManager():
     def add_ribbon(self, ribbon):
         self.ribbons.append(ribbon)
 
-    def get_coord_swap_for_ui(self):
+    def get_coord_swap_for_ui(self, view_rect):
+        if self.coord_swap_1 is None:
+            return None
         if self.hide_temp_coord_swap:
+            return None
+        if not view_rect.in_bounds(self.coord_swap_1):
+            return None
+        if view_rect.on_border(self.coord_swap_1):
             return None
         return self.coord_swap_1
 
@@ -356,6 +379,9 @@ class RibbonWorldManager():
         if extremity is None:
             return None
         return ribbon, extremity
+
+    def remove_ribbon(self, ribbon):
+        self.ribbons.remove(ribbon)
 
     def select_coord_swap(self, coord_swap):
         """
@@ -414,6 +440,8 @@ class RibbonWorldManager():
             return False
 
         gobj_rib_cross_2, gobjs_until_cross_2 = find_result
+        if gobj_rib_cross_1 == gobj_rib_cross_2:
+            return False
         if gobj_rib_cross_1._coord == gobj_rib_cross_2._coord:
             self.gobjs_until_cross_1 = gobjs_until_cross_1
             self.gobjs_until_cross_2 = gobjs_until_cross_2
@@ -593,16 +621,37 @@ class GameModel(squarity.GameModelBase):
         rib_3 = Ribbon(self.ribbons_world, "grn")
         rib_3.hard_code_path_3()
         self.ribbon_world_manager.add_ribbon(rib_3)
+        rib_4 = Ribbon(self.ribbons_world, "blu")
+        rib_4.hard_code_path_4()
+        self.ribbon_world_manager.add_ribbon(rib_4)
 
         self.layer_hero = squarity.Layer(self, self.w, self.h)
         self.layers.append(self.layer_hero)
         self.hero = Hero(self.layer_hero, self.view_rect, self.ribbons_world)
         self.interaction_mode = "swap"
         self.layer_ui = squarity.Layer(self, self.w, self.h, False)
+        # TODO lib. iterateur sur les bords d'un squarity.Rect. (ça itère des Coord).
+        for x in range(self.w):
+            self.layer_ui.add_game_object(
+                GameObject(Coord(x, 0), "black")
+            )
+            self.layer_ui.add_game_object(
+                GameObject(Coord(x, self.h - 1), "black")
+            )
+        for y in range(1, self.h - 1):
+            self.layer_ui.add_game_object(
+                GameObject(Coord(0, y), "black")
+            )
+            self.layer_ui.add_game_object(
+                GameObject(Coord(self.w - 1, y), "black")
+            )
         self.ui_gobj_swap = GameObject(Coord(0, 0), "icon_swap")
         self.layers.append(self.layer_ui)
         self.ribbon_grabbing = None
 
+        self.powers = Powers()
+        # self.powers.grant_power(Powers.SWAP_EVERYWHERE)
+        # self.powers.grant_power(Powers.GRAB_EVERYWHERE)
         self.render_world()
 
     def render_world(self):
@@ -618,7 +667,7 @@ class GameModel(squarity.GameModelBase):
                 self.ribbons_view.add_game_object(gobj_view)
         self.hero.render_hero()
 
-        ui_coord_swap = self.ribbon_world_manager.get_coord_swap_for_ui()
+        ui_coord_swap = self.ribbon_world_manager.get_coord_swap_for_ui(self.view_rect)
         if ui_coord_swap is None:
             if self.ui_gobj_swap.layer_owner is not None:
                 self.layer_ui.remove_game_object(self.ui_gobj_swap)
@@ -650,6 +699,10 @@ class GameModel(squarity.GameModelBase):
             print("You are at the world limits.")
 
     def on_button_action(self, action_name):
+        # TODO : si on a les 2 pouvoirs "EVERYWHERE",
+        # et que l'on clique sur un ruban grabbable, alors ça le grab tout de suite,
+        # même si on est en mode swap.
+        # C'est un pouvoir supplémentaire: l'auto-grab. "le pouvoir de prescience".
         if self.interaction_mode == "swap":
             self.interaction_mode = "grab"
         else:
@@ -657,6 +710,9 @@ class GameModel(squarity.GameModelBase):
         print(self.interaction_mode)
 
     def on_click(self, coord):
+        if self.rect.on_border(coord):
+            return
+
         # TODO : fonctions spécifiques world <-> view
         world_coord = Coord(
             self.view_rect.x + coord.x,
@@ -690,6 +746,11 @@ class GameModel(squarity.GameModelBase):
         return event_res
 
     def on_click_grab(self, world_coord):
+
+        if self.powers.has_power(Powers.GRAB_EVERYWHERE):
+            self.hero.coord_to_grab = world_coord
+            return self.callback_hero_try_grab()
+
         path_to_grab = self.hero.find_path(world_coord)
         if path_to_grab is None:
             print("I can't reach this ribbon extremity.")
@@ -733,16 +794,10 @@ class GameModel(squarity.GameModelBase):
         return event_res
 
     def callback_grabbing_ribbon(self):
-        if self.ribbon_grabbing.highlighting:
-            highlighting = True
-            gobj_highlights = self.ribbon_grabbing.highlight_next_gobjs()
-        else:
-            highlighting = False
-            gobj_highlights = self.ribbon_grabbing.unhighlight_next_gobjs()
 
-        if gobj_highlights is None:
-            if highlighting:
-                print("Must remove ribbon, now")
+        if self.ribbon_grabbing.highlighting:
+            gobj_to_add = self.ribbon_grabbing.highlight_next_gobjs(self.view_rect)
+            if gobj_to_add is None:
                 self.ribbon_grabbing.remove_gobjs()
                 self.render_world()
                 event_res = squarity.EventResult()
@@ -751,32 +806,52 @@ class GameModel(squarity.GameModelBase):
                 )
                 return event_res
             else:
-                print("TODO : must remove ribbon from world")
+                if self.rect.in_bounds(gobj_to_add._coord) and not self.rect.on_border(gobj_to_add._coord):
+                    self.layer_ui.add_game_object(gobj_to_add)
+                    delay = 50
+                else:
+                    delay = 5
+                event_res = squarity.EventResult()
+                event_res.add_delayed_callback(
+                    squarity.DelayedCallBack(delay, self.callback_grabbing_ribbon)
+                )
+                return event_res
+
+        else:
+
+            unhighlight_result = self.ribbon_grabbing.unhighlight_next_gobjs()
+            if unhighlight_result is None:
+                self.ribbon_world_manager.remove_ribbon(self.ribbon_grabbing)
+                self.ribbon_grabbing = None
                 self.render_world()
                 event_res = squarity.EventResult()
                 event_res.punlocks_custom.append("grab_anim")
                 return event_res
-
-        highlight_in_view = False
-        for gobj in gobj_highlights:
-            if self.view_rect.in_bounds(gobj._coord):
-                highlight_in_view = True
-                c_view = Coord(
-                    gobj._coord.x - self.view_rect.x,
-                    gobj._coord.y - self.view_rect.y
+            else:
+                gobj_to_remove, coord_change = unhighlight_result
+                delay = 5
+                if gobj_to_remove.layer_owner is not None:
+                    delay = 50
+                    self.layer_ui.remove_game_object(gobj_to_remove)
+                if coord_change is not None:
+                    if self.rect.in_bounds(coord_change):
+                        delay = 50
+                event_res = squarity.EventResult()
+                event_res.add_delayed_callback(
+                    squarity.DelayedCallBack(delay, self.callback_grabbing_ribbon)
                 )
-                self.layer_ui.remove_at_coord(c_view)
-                if gobj.sprite_name:
-                    gobj_view = GameObject(c_view, gobj.sprite_name)
-                    self.layer_ui.add_game_object(gobj_view)
-        delay = 50 if highlight_in_view else 5
-        event_res = squarity.EventResult()
-        event_res.add_delayed_callback(
-            squarity.DelayedCallBack(delay, self.callback_grabbing_ribbon)
-        )
-        return event_res
+                return event_res
 
     def on_click_swap(self, world_coord):
+
+        if self.powers.has_power(Powers.SWAP_EVERYWHERE):
+            can_swap = self.ribbon_world_manager.select_coord_swap(world_coord)
+            if can_swap:
+                self.ribbon_world_manager.make_swap()
+                self.ribbon_world_manager.reset_all_swap()
+            self.render_world()
+            return
+
         path_to_swap = self.hero.find_path(world_coord)
         if path_to_swap is None:
             print("I can't reach this ribbon extremity.")
@@ -787,7 +862,7 @@ class GameModel(squarity.GameModelBase):
             self.hero.coord_to_swap = world_coord
             # Ça c'est dégueux, mais osef:
             if self.ribbon_world_manager.coord_swap_1 is not None:
-                total_delay += 400
+                total_delay += 200
             # TODO LIB : callback when all the current transitions, or all the blocking transitions, are finished.
             event_res = squarity.EventResult()
             event_res.plocks_custom.append("swap_anim")
@@ -808,7 +883,7 @@ class GameModel(squarity.GameModelBase):
             event_res = squarity.EventResult()
             event_res.plocks_custom.append("swap_anim")
             event_res.add_delayed_callback(
-                squarity.DelayedCallBack(400, self.callback_make_swap)
+                squarity.DelayedCallBack(200, self.callback_make_swap)
             )
             return event_res
         else:
