@@ -1,4 +1,5 @@
 # https://i.ibb.co/G30yFzv/ent-rib-tileset.png
+# https://i.ibb.co/Qk4PbCd/ent-rib-tileset.png
 
 """
   {
@@ -74,6 +75,17 @@
       "icon_swap": [64, 0],
       "hero": [96, 0],
       "black": [128, 0],
+      "lightgray": [320, 0],
+      "white": [32, 224],
+      "transp_black": [64, 224],
+      "bbl_0_corner_06": [0, 192],
+      "bbl_0_border_0": [32, 192],
+      "bbl_0_corner_02": [512, 192],
+      "bbl_0_border_2": [512, 224],
+      "bbl_0_corner_24": [512, 256],
+      "bbl_0_border_4": [32, 256],
+      "bbl_0_corner_46": [0, 256],
+      "bbl_0_border_6": [0, 224],
       "background": [0, 0]
     }
   }
@@ -625,11 +637,146 @@ class Powers():
         return self.power_availability[pow_id]
 
 
+class DialogUI():
+
+    RECT_DIALOG_UI = squarity.Rect(0, 17, 20, 3)
+    RECT_TRANSP_BLACK = squarity.Rect(0, 0, 20, 17)
+    ANIM_SHOW_HERO = 0
+    ANIM_REMOVE_HERO = 1
+    ANIM_HERO_TO_NPC = 2
+    ANIM_NPC_TO_HERO = 3
+    ANIM_SHOW_NPC = 4
+    ANIM_REMOVE_NPC = 5
+
+    def __init__(self, layer_dialog):
+        self.layer_dialog = layer_dialog
+        self.showing = False
+        self.anim_id = None
+        self.current_step = 0
+        self.gobjs_by_step = []
+        self.gobjs_text_bubble = []
+        self._init_gobjs_by_step()
+
+    def _init_gobjs_by_step(self):
+        for step_id in range(3):
+            gobjs_current_step = []
+            for c in squarity.Sequencer.iter_on_rect(DialogUI.RECT_TRANSP_BLACK):
+                gobjs_current_step.append(GameObject(c, "transp_black"))
+            self.gobjs_by_step.append(gobjs_current_step)
+        for c in squarity.Sequencer.iter_on_rect(DialogUI.RECT_DIALOG_UI):
+            self.gobjs_by_step[0].append(
+                GameObject(c, "lightgray")
+            )
+
+    def start_anim(self, anim_id):
+        self.anim_id = anim_id
+        self.current_step = 0
+        if anim_id == DialogUI.ANIM_SHOW_HERO:
+            self._init_bubble_text()
+            self.showing = True
+            return self.advance_step_anim_show()
+        else:
+            self.showing = False
+            return self.advance_step_anim_remove()
+
+    def _init_bubble_text(self):
+        if self.anim_id in (DialogUI.ANIM_SHOW_HERO, DialogUI.ANIM_NPC_TO_HERO):
+            rect_bubble_text = squarity.Rect(
+                DialogUI.RECT_DIALOG_UI.x + 3,
+                DialogUI.RECT_DIALOG_UI.y,
+                DialogUI.RECT_DIALOG_UI.w - 3,
+                DialogUI.RECT_DIALOG_UI.h,
+            )
+            y_lines = list(range(rect_bubble_text.y, rect_bubble_text.y + rect_bubble_text.h))
+            x_tiles = list(range(rect_bubble_text.x, rect_bubble_text.x + rect_bubble_text.w))
+
+            sprite_names = ("bbl_0_corner_06", "bbl_0_border_0", "bbl_0_corner_02")
+            y = y_lines[0]
+            x = x_tiles[0]
+            spr = sprite_names[0]
+            self.gobjs_text_bubble.append(GameObject(Coord(x, y), spr))
+            spr = sprite_names[1]
+            for x in x_tiles[1:-1]:
+                self.gobjs_text_bubble.append(GameObject(Coord(x, y), spr))
+            x = x_tiles[-1]
+            spr = sprite_names[-1]
+            self.gobjs_text_bubble.append(GameObject(Coord(x, y), spr))
+
+            sprite_names = ("bbl_0_border_6", "white", "bbl_0_border_2")
+            for y in y_lines[1:-1]:
+                x = x_tiles[0]
+                spr = sprite_names[0]
+                self.gobjs_text_bubble.append(GameObject(Coord(x, y), spr))
+                spr = sprite_names[1]
+                for x in x_tiles[1:-1]:
+                    self.gobjs_text_bubble.append(GameObject(Coord(x, y), spr))
+                x = x_tiles[-1]
+                spr = sprite_names[-1]
+                self.gobjs_text_bubble.append(GameObject(Coord(x, y), spr))
+
+            sprite_names = ("bbl_0_corner_46", "bbl_0_border_4", "bbl_0_corner_24")
+            y = y_lines[-1]
+            x = x_tiles[0]
+            spr = sprite_names[0]
+            self.gobjs_text_bubble.append(GameObject(Coord(x, y), spr))
+            spr = sprite_names[1]
+            for x in x_tiles[1:-1]:
+                self.gobjs_text_bubble.append(GameObject(Coord(x, y), spr))
+            x = x_tiles[-1]
+            spr = sprite_names[-1]
+            self.gobjs_text_bubble.append(GameObject(Coord(x, y), spr))
+
+    def advance_step_anim_show(self):
+
+        if self.current_step < 3:
+            for gobj in self.gobjs_by_step[self.current_step]:
+                self.layer_dialog.add_game_object(gobj)
+
+        if self.current_step == 3:
+            for gobj in self.gobjs_text_bubble:
+                self.layer_dialog.add_game_object(gobj)
+
+        self.current_step += 1
+        event_res = squarity.EventResult()
+        if self.current_step <= 3:
+            event_res.plocks_custom.append("dialog_anim")
+            event_res.add_delayed_callback(
+                squarity.DelayedCallBack(50, self.advance_step_anim_show)
+            )
+            return event_res
+        else:
+            event_res.punlocks_custom.append("dialog_anim")
+            return event_res
+
+    def advance_step_anim_remove(self):
+
+        if self.current_step == 0:
+            for gobj in self.gobjs_text_bubble:
+                self.layer_dialog.remove_game_object(gobj)
+            # TODO : peut être on peut garder la bubble, au lieu de tout péter et remettre à chaque fois.
+            self.gobjs_text_bubble = []
+        elif self.current_step <= 3:
+            for gobj in self.gobjs_by_step[3 - self.current_step]:
+                self.layer_dialog.remove_game_object(gobj)
+
+        self.current_step += 1
+        event_res = squarity.EventResult()
+        if self.current_step <= 3:
+            event_res.plocks_custom.append("dialog_anim")
+            event_res.add_delayed_callback(
+                squarity.DelayedCallBack(50, self.advance_step_anim_remove)
+            )
+            return event_res
+        else:
+            event_res.punlocks_custom.append("dialog_anim")
+            return event_res
+
+
 class GameModel(squarity.GameModelBase):
 
     def on_start(self):
         self.ribbons_world = squarity.Layer(self, WORLD_WIDTH, WORLD_HEIGHT)
-        self.ribbons_view = squarity.Layer(self, self.w, self.h)
+        self.ribbons_view = squarity.Layer(self, self.w, self.h, False)
         self.layers.append(self.ribbons_view)
         self.ribbon_world_manager = RibbonWorldManager(self.ribbons_world)
         self.view_rect = squarity.Rect(14, 14, self.w, self.h)
@@ -674,6 +821,9 @@ class GameModel(squarity.GameModelBase):
         self.ui_gobj_swap = GameObject(Coord(0, 0), "icon_swap")
         self.layers.append(self.layer_ui)
         self.ribbon_grabbing = None
+        self.layer_dialog = squarity.Layer(self, self.w, self.h)
+        self.layers.append(self.layer_dialog)
+        self.dialog_ui = DialogUI(self.layer_dialog)
 
         self.powers = Powers()
         # self.powers.grant_power(Powers.SWAP_EVERYWHERE)
@@ -727,10 +877,17 @@ class GameModel(squarity.GameModelBase):
             print("You are at the world limits.")
 
     def on_button_action(self, action_name):
+        # TODO WIP.
+        #if self.dialog_ui.showing:
+        #    return self.dialog_ui.start_anim(DialogUI.ANIM_REMOVE_HERO)
+        #else:
+        #    return self.dialog_ui.start_anim(DialogUI.ANIM_SHOW_HERO)
+
         # TODO : si on a les 2 pouvoirs "EVERYWHERE",
         # et que l'on clique sur un ruban grabbable, alors ça le grab tout de suite,
         # même si on est en mode swap.
         # C'est un pouvoir supplémentaire: l'auto-grab. "le pouvoir de prescience".
+        # ou pas...
         if self.interaction_mode == "swap":
             self.interaction_mode = "grab"
         else:
