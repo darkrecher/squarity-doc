@@ -241,6 +241,11 @@ class Ribbon():
             self.gobjs = [g for g in self.gobjs if g not in gobjs_to_remove]
         for gobj in gobjs_to_remove:
             self.ribbons_world.remove_game_object(gobj)
+            # On enlève les "below" des ribbons en-dessous, quand il y en a.
+            other_gobjs = self.ribbons_world.get_game_objects(gobj._coord)
+            for other_gobj in other_gobjs:
+                if "below" in other_gobj.sprite_name:
+                    other_gobj.sprite_name = other_gobj.sprite_name[:-6]
 
     def add_gobjs(self, gobjs_to_add, extremity):
         for gobj in gobjs_to_add:
@@ -276,15 +281,18 @@ class Ribbon():
         if extremity == -1:
             self.gobjs.append(gobj_new)
 
-    def check_can_be_grabbed(self, ribbons_world, with_levitate):
+    def check_can_be_grabbed(self, ribbons_world, can_grab_above):
         for gobj_rib in self.gobjs:
             gobj_ribs_cur = ribbons_world.get_game_objects(gobj_rib._coord)
             if len(gobj_ribs_cur) == 2 and "turn" not in gobj_rib.sprite_name:
-                if with_levitate:
-                    if "below" in gobj_rib.sprite_name:
-                        return False
-                else:
+                if not can_grab_above:
                     return False
+                if "below" in gobj_rib.sprite_name:
+                    gobj_rib_cur_1, gobj_rib_cur_2 = gobj_ribs_cur
+                    if gobj_rib_cur_1.owner_ribbon != self:
+                        return False
+                    if gobj_rib_cur_2.owner_ribbon != self:
+                        return False
         return True
 
     def start_highlight(self, which_extremity):
@@ -491,6 +499,24 @@ class RibbonWorldManager():
         self.ribbon_swap_1.add_gobjs(self.gobjs_until_cross_2[-2::-1], self.extr_swap_1)
         self.ribbon_swap_2.add_gobjs(self.gobjs_until_cross_1[-2::-1], self.extr_swap_2)
 
+    def swap_cross(self, world_coord):
+        gobjs = self.ribbons_world.get_game_objects(world_coord)
+        if len(gobjs) != 2:
+            return
+        gobj_above = None
+        gobj_below = None
+        for gobj in gobjs:
+            if "below" in gobj.sprite_name:
+                gobj_below = gobj
+            else:
+                gobj_above = gobj
+        if gobj_above is None or gobj_below is None:
+            return
+        if ("vertic" not in gobj_above.sprite_name) and ("horiz" not in gobj_above.sprite_name):
+            return
+        gobj_above.sprite_name += "_below"
+        gobj_below.sprite_name = gobj_below.sprite_name[:-6]
+
 
 # TODO LIB
 def coord_upleft_from_rect(rect):
@@ -652,6 +678,8 @@ class GameModel(squarity.GameModelBase):
         self.powers = Powers()
         # self.powers.grant_power(Powers.SWAP_EVERYWHERE)
         # self.powers.grant_power(Powers.GRAB_EVERYWHERE)
+        self.powers.grant_power(Powers.GRAB_ABOVE)
+        self.powers.grant_power(Powers.SWAP_CROSS)
         self.render_world()
 
     def render_world(self):
@@ -713,13 +741,22 @@ class GameModel(squarity.GameModelBase):
         if self.rect.on_border(coord):
             return
 
-        # TODO : fonctions spécifiques world <-> view
+        # TODO : fonctions spécifiques world <-> view. Ou pas...
         world_coord = Coord(
             self.view_rect.x + coord.x,
             self.view_rect.y + coord.y
         )
-        if not self.ribbon_world_manager.ribbons_world.get_game_objects(world_coord):
+        rib_gobjs = self.ribbon_world_manager.ribbons_world.get_game_objects(world_coord)
+        if not rib_gobjs:
             return self.on_click_move(world_coord)
+
+        if self.powers.has_power(Powers.SWAP_CROSS):
+            if any(("below" in gobj.sprite_name for gobj in rib_gobjs)):
+                self.ribbon_world_manager.swap_cross(world_coord)
+                self.render_world()
+                return
+
+        # TODO : specific UI negative feedback if not clicked on a ribbon extremity.
         if self.interaction_mode == "swap":
             return self.on_click_swap(world_coord)
         elif self.interaction_mode == "grab":
@@ -778,7 +815,10 @@ class GameModel(squarity.GameModelBase):
             event_res.punlocks_custom.append("grab_anim")
             return event_res
         ribbon, extremity = rib_and_extr
-        if not ribbon.check_can_be_grabbed(self.ribbons_world, False):
+        if not ribbon.check_can_be_grabbed(
+            self.ribbons_world,
+            self.powers.has_power(Powers.GRAB_ABOVE)
+        ):
             print("This ribbon can't be grabbed.")
             event_res = squarity.EventResult()
             event_res.punlocks_custom.append("grab_anim")
