@@ -89,6 +89,8 @@
       "bbl_0_border_6": [0, 224],
 
       "bonus_telegrab": [192, 0],
+      "bonus_teleswap": [160, 0],
+      "bonus_scroll": [256, 0],
 
       "text_blah": [404, 14, 64, 33],
       "background": [0, 0]
@@ -114,14 +116,14 @@ then remove the two ribbons.
 
 -------
 
-I learned telekineses! I can now grab ribbons even if
+I learned telekinesis! I can now grab ribbons even if
 I can't reach them.
-
-I learned laser eyes, I can now see very far!
-You can scroll the game area, with arrow keys or arrow icons.
 
 I learned super-telekinesis! I can now swap ribbons
 even if I can't reach them.
+
+I learned laser eyes, I can now see very far!
+You can scroll the game area, with arrow keys or arrow icons.
 
 I learned levitation!
 I can now grab a ribbon if it is above the others.
@@ -207,6 +209,7 @@ Oui c'est ça. (Et il y a sûrement des moyens plus simple de reproduire.
 Mais au moins il y a ça).
 """
 
+import random
 import squarity
 Coord = squarity.Coord
 GameObject = squarity.GameObject
@@ -214,9 +217,179 @@ GameObject = squarity.GameObject
 WORLD_WIDTH = 100
 WORLD_HEIGHT = 100
 
+# 0, 2, 4, 6: ribbon start, in the corresponding direction.
+# |-+ : cross, horiz, vertic. above/below is not defined, set it at random.
+# /`: ribbon turn. Can't have 2 turns in the same square, never mind.
+# * ribbon end.
+# # ribbon end, but with a specific color.
+# a, b, c, d, ... : specific things.
+
+# 7 0 1
+# 6   2
+# 5 4 3
+MAP = """
+
+ *
+2+----`   /6*`
+ |/-` |   | c|
+ ||b| |4  |*4|   *
+ |`-+``+* `++/   |
+2+-``+``---/`----+* *
+ 0 | `+`  /` *4/``--+6
+   |  `+` *|*++++--`|
+   |  4`+6 | 0`/*4a||
+   `--+**  |/---``-/|
+      |    ||4#``## |
+      ``  4|`+60k// |
+       `-``/m`---//-+*
+        2+---`/---+``6
+         *   ++   0|
+             *0    *
+
+
+
+"""
+
+class MapParser():
+
+    # TODO LIB: Direction doit être hashable.
+    CORRESPS = {
+        (int(squarity.dirs.Up), "|"): ("vertic", squarity.dirs.Up),
+        (int(squarity.dirs.Down), "|"): ("vertic", squarity.dirs.Down),
+        (int(squarity.dirs.Left), "-"): ("horiz", squarity.dirs.Left),
+        (int(squarity.dirs.Right), "-"): ("horiz", squarity.dirs.Right),
+        (int(squarity.dirs.Up), "+"): ("vertic", squarity.dirs.Up),
+        (int(squarity.dirs.Down), "+"): ("vertic", squarity.dirs.Down),
+        (int(squarity.dirs.Left), "+"): ("horiz", squarity.dirs.Left),
+        (int(squarity.dirs.Right), "+"): ("horiz", squarity.dirs.Right),
+        (int(squarity.dirs.Right), "/"): ("turn_06", squarity.dirs.Up),
+        (int(squarity.dirs.Down), "/"): ("turn_06", squarity.dirs.Left),
+        (int(squarity.dirs.Up), "/"): ("turn_24", squarity.dirs.Right),
+        (int(squarity.dirs.Left), "/"): ("turn_24", squarity.dirs.Down),
+        (int(squarity.dirs.Right), "`"): ("turn_46", squarity.dirs.Down),
+        (int(squarity.dirs.Down), "`"): ("turn_02", squarity.dirs.Right),
+        (int(squarity.dirs.Up), "`"): ("turn_46", squarity.dirs.Left),
+        (int(squarity.dirs.Left), "`"): ("turn_02", squarity.dirs.Up),
+        (int(squarity.dirs.Up), "*"): ("extr_4", None),
+        (int(squarity.dirs.Down), "*"): ("extr_0", None),
+        (int(squarity.dirs.Left), "*"): ("extr_2", None),
+        (int(squarity.dirs.Right), "*"): ("extr_6", None),
+        (int(squarity.dirs.Up), "#"): ("extr_4", None),
+        (int(squarity.dirs.Down), "#"): ("extr_0", None),
+        (int(squarity.dirs.Left), "#"): ("extr_2", None),
+        (int(squarity.dirs.Right), "#"): ("extr_6", None),
+    }
+
+    def __init__(self, coord_corner, map_rib=MAP):
+        map_rib = map_rib.split("\n")[1:-1]
+        self.coord_corner = coord_corner
+        self.map_w = max(len(line) for line in map_rib)
+        self.map_h = len(map_rib)
+        self.map_rib = [
+            line.ljust(self.map_w) for line in map_rib
+        ]
+        self.current_color = None
+        self.inter_gobjs = []
+        self.coord_start_hero = Coord(2, 2)
+
+    def _get_next_rib_start(self):
+        for y, line in enumerate(self.map_rib):
+            for x, char in enumerate(line):
+                if char in "0246":
+                    coord_start = Coord(x, y)
+                    rib_type_start = "extr_" + char
+                    direction = squarity.dirs.as_list[int(char)]
+                    return rib_type_start, coord_start, direction
+        return None
+
+    def _follow_path_one_step(self, coord_prev, direction_prev):
+        coord_cur = coord_prev.clone().move_dir(direction_prev)
+        char_cur = self.map_rib[coord_cur.y][coord_cur.x]
+        step_details = MapParser.CORRESPS.get((int(direction_prev), char_cur))
+        if step_details is None:
+            raise Exception("Fail map at", coord_prev, ":", char_cur)
+        rib_type_cur, direction_cur = step_details
+        if char_cur == "#":
+            color_map = {"6": "grn", "2": "red", "0": "blu", "4": "yel"}
+            self.current_color = color_map[rib_type_cur[-1]]
+        return rib_type_cur, coord_cur, direction_cur
+
+    def get_next_ribbon_path(self):
+        """
+        Renvoie des tuples (colored_rib_type, coordonnées)
+        """
+        self.current_color = None
+        rib_start_details = self._get_next_rib_start()
+        if rib_start_details is None:
+            return None
+        path = []
+        rib_type_start, coord_prev, direction_prev = rib_start_details
+        line = self.map_rib[coord_prev.y]
+        print("line", self.map_rib[coord_prev.y])
+        self.map_rib[coord_prev.y] = line[:coord_prev.x] + "." + line[coord_prev.x+1:]
+        print("line", self.map_rib[coord_prev.y])
+        path.append((rib_type_start, coord_prev))
+        while direction_prev is not None:
+            rib_type_cur, coord_cur, direction_cur = self._follow_path_one_step(
+                coord_prev, direction_prev
+            )
+            path.append((rib_type_cur, coord_cur))
+            direction_prev = direction_cur
+            coord_prev = coord_cur
+        if self.current_color is None:
+            self.current_color = random.choice(["red", "grn", "yel", "blu"])
+        final_path = [
+            (
+                "rib_" + self.current_color + "_" + rib_type,
+                coord_cur.clone().move_by_vect(self.coord_corner)
+            ) for rib_type, coord_cur
+            in path
+        ]
+        return final_path
+
+    def iter_ribbon_paths(self):
+        path = self.get_next_ribbon_path()
+        while path is not None:
+            yield path
+            path = self.get_next_ribbon_path()
+
+    def compute_interactable_objects(self):
+        for y, line in enumerate(self.map_rib):
+            for x, char in enumerate(line):
+                if char.isalpha():
+                    coord = Coord(x, y).move_by_vect(self.coord_corner)
+                    inter_gobj = None
+                    # ugly, and I don't care.
+                    if char == "a":
+                        inter_gobj = InteractableGobj(coord, "bonus_telegrab")
+                        inter_gobj.init_config(
+                            dialog_text="txt_bonus_telegrab",
+                            power_granted=Powers.GRAB_EVERYWHERE,
+                            console_text="I learned telekinesis! I can now grab ribbons even if I can't reach them."
+                        )
+                    if char == "b":
+                        inter_gobj = InteractableGobj(coord, "bonus_teleswap")
+                        inter_gobj.init_config(
+                            dialog_text="txt_bonus_teleswap",
+                            power_granted=Powers.SWAP_EVERYWHERE,
+                            console_text="I learned super-telekinesis! I can now swap ribbons even if I can't reach them."
+                        )
+                    if char == "c":
+                        inter_gobj = InteractableGobj(coord, "bonus_scroll")
+                        inter_gobj.init_config(
+                            dialog_text="txt_bonus_scroll",
+                            power_granted=Powers.SCROLL,
+                            console_text="I learned laser eyes, I can now see very far! You can scroll the game area, with arrow keys or arrow icons."
+                        )
+                    if char == "k":
+                        self.coord_start_hero = coord
+                    if inter_gobj is not None:
+                        self.inter_gobjs.append(inter_gobj)
+
+
 class Ribbon():
 
-    def __init__(self, ribbons_world, color):
+    def __init__(self, ribbons_world, color=None, rib_path=None):
         self.gobjs = []
         self.color = color
         self.ribbons_world = ribbons_world
@@ -224,6 +397,14 @@ class Ribbon():
         self.highlight_index = None
         self.highlight_step = None
         self.highlighting = False
+        if rib_path is not None:
+            # Hou, c'est vilain ça.
+            self.color = rib_path[0][0][4:7]
+            for rib_type, coord_cur in rib_path:
+                gobj = GameObject(coord_cur, rib_type)
+                self.gobjs.append(gobj)
+                gobj.owner_ribbon = self
+                self.ribbons_world.add_game_object(gobj)
 
     def hard_code_path_1(self):
         self.gobjs = [
@@ -601,14 +782,14 @@ def coord_upleft_from_rect(rect):
 
 class Hero():
 
-    def __init__(self, layer_hero, view_rect, ribbons_world):
+    def __init__(self, layer_hero, view_rect, ribbons_world, start_coord):
         self.layer_hero = layer_hero
         self.view_rect = view_rect
         self.ribbons_world = ribbons_world
         self.gobj_hero = GameObject(Coord(0, 0), "hero")
         self.layer_hero.add_game_object(self.gobj_hero)
         self.gobj_hero.plock_transi = squarity.PlayerLockTransi.LOCK
-        self.coord_hero_world = Coord(24, 23)
+        self.coord_hero_world = start_coord.clone()
 
     def render_hero(self):
         view_corner = coord_upleft_from_rect(self.view_rect)
@@ -868,6 +1049,7 @@ class StoryManager():
 
 
 class InteractableGobj(GameObject):
+    # TODO: disabling power.
     def init_config(
         self,
         must_have_path=True,
@@ -878,6 +1060,7 @@ class InteractableGobj(GameObject):
         auto_disable=False,
         sprite_hero_new=None,
         sprite_npc=None,
+        console_text=None,
     ):
         self.must_have_path = must_have_path
         self.power_granted = power_granted
@@ -887,6 +1070,7 @@ class InteractableGobj(GameObject):
         self.auto_disable = auto_disable
         self.hero_sprite = sprite_hero_new
         self.sprite_npc = sprite_npc
+        self.console_text = console_text
         self.enabled = True
 
 
@@ -898,32 +1082,39 @@ class GameModel(squarity.GameModelBase):
         self.ribbons_view = squarity.Layer(self, self.w, self.h, False)
         self.layers.append(self.ribbons_view)
         self.ribbon_world_manager = RibbonWorldManager(self.ribbons_world)
-        self.view_rect = squarity.Rect(14, 14, self.w, self.h)
+        self.view_rect = squarity.Rect(3, 7, self.w, self.h)
 
         rect_background = squarity.Rect(1, 1, self.w-2, self.h-2)
         for c in squarity.Sequencer.iter_on_rect(rect_background):
             self.layer_main.add_game_object(GameObject(c, "background"))
 
-        rib_1 = Ribbon(self.ribbons_world, "red")
-        rib_1.hard_code_path_1()
-        self.ribbon_world_manager.add_ribbon(rib_1)
-        rib_2 = Ribbon(self.ribbons_world, "yel")
-        rib_2.hard_code_path_2()
-        self.ribbon_world_manager.add_ribbon(rib_2)
-        rib_3 = Ribbon(self.ribbons_world, "grn")
-        rib_3.hard_code_path_3()
-        self.ribbon_world_manager.add_ribbon(rib_3)
-        rib_4 = Ribbon(self.ribbons_world, "blu")
-        rib_4.hard_code_path_4()
-        self.ribbon_world_manager.add_ribbon(rib_4)
+        map_parser = MapParser(Coord(2, 7))
+        for rib_path in map_parser.iter_ribbon_paths():
+            ribbon = Ribbon(self.ribbons_world, "red", rib_path=rib_path)
+            self.ribbon_world_manager.add_ribbon(ribbon)
 
-        inter_gobj = InteractableGobj(Coord(16, 16), "bonus_telegrab")
-        inter_gobj.init_config(dialog_text="txt_bonus_telegrab")
-        self.interactable_world.add_game_object(inter_gobj)
+        # TODO : remove that crap.
+        # rib_1 = Ribbon(self.ribbons_world, "red")
+        # rib_1.hard_code_path_1()
+        # self.ribbon_world_manager.add_ribbon(rib_1)
+        # rib_2 = Ribbon(self.ribbons_world, "yel")
+        # rib_2.hard_code_path_2()
+        # self.ribbon_world_manager.add_ribbon(rib_2)
+        # rib_3 = Ribbon(self.ribbons_world, "grn")
+        # rib_3.hard_code_path_3()
+        # self.ribbon_world_manager.add_ribbon(rib_3)
+        # rib_4 = Ribbon(self.ribbons_world, "blu")
+        # rib_4.hard_code_path_4()
+        # self.ribbon_world_manager.add_ribbon(rib_4)
+        #inter_gobj = InteractableGobj(Coord(16, 16), "bonus_telegrab")
+        #inter_gobj.init_config(dialog_text="txt_bonus_telegrab", power_granted=Powers.GRAB_EVERYWHERE)
+        map_parser.compute_interactable_objects()
+        for inter_gobj in map_parser.inter_gobjs:
+            self.interactable_world.add_game_object(inter_gobj)
 
         self.layer_hero = squarity.Layer(self, self.w, self.h)
         self.layers.append(self.layer_hero)
-        self.hero = Hero(self.layer_hero, self.view_rect, self.ribbons_world)
+        self.hero = Hero(self.layer_hero, self.view_rect, self.ribbons_world, map_parser.coord_start_hero)
         self.interaction_mode = "grab"
         self.layer_ui = squarity.Layer(self, self.w, self.h, False)
         # TODO lib. iterateur sur les bords d'un squarity.Rect. (ça itère des Coord).
@@ -953,10 +1144,10 @@ class GameModel(squarity.GameModelBase):
         self.dialog_ui = DialogUI(self.layer_dialog, self.layer_dialog_characters)
 
         self.powers = Powers()
-        # self.powers.grant_power(Powers.SWAP_EVERYWHERE)
-        # self.powers.grant_power(Powers.GRAB_EVERYWHERE)
-        self.powers.grant_power(Powers.GRAB_ABOVE)
-        self.powers.grant_power(Powers.SWAP_CROSS)
+        #self.powers.grant_power(Powers.SWAP_EVERYWHERE)
+        #self.powers.grant_power(Powers.GRAB_EVERYWHERE)
+        #self.powers.grant_power(Powers.GRAB_ABOVE)
+        #self.powers.grant_power(Powers.SWAP_CROSS)
         self.render_world()
 
         self.story_manager = StoryManager(self.dialog_ui)
@@ -964,11 +1155,14 @@ class GameModel(squarity.GameModelBase):
 
     def switch_interaction_mode(self):
         if not self.story_manager.grabbed_first_ribbon:
-            print("can't switch")
+            print("Begin by grabbing the red ribbon.")
             return
         if self.interaction_mode == "swap":
             self.interaction_mode = "grab"
             self.gobj_icon_interaction_mode.sprite_name = "icon_grab"
+            if self.ribbon_world_manager.coord_swap_1 is not None:
+                self.ribbon_world_manager.reset_all_swap()
+                self.render_world()
         else:
             self.interaction_mode = "swap"
             self.gobj_icon_interaction_mode.sprite_name = "icon_swap"
@@ -1248,6 +1442,7 @@ class GameModel(squarity.GameModelBase):
         self.ribbon_world_manager.reset_all_swap()
         self.render_world()
         if not self.story_manager.swapped_first_ribbon:
+            self.story_manager.swapped_first_ribbon = True
             event_res = self.dialog_ui.start_anim(DialogUI.ANIM_SHOW_HERO, "tuto_swap")
         else:
             event_res = squarity.EventResult()
@@ -1294,6 +1489,9 @@ class GameModel(squarity.GameModelBase):
         if inter_gobj.auto_remove:
             self.interactable_world.remove_game_object(inter_gobj)
             self.render_world()
+        if inter_gobj.console_text:
+            print("-----")
+            print(inter_gobj.console_text)
         # TODO : handle sprite_hero_new
         if inter_gobj.anim_id is not None:
             event_res = self.dialog_ui.start_anim(inter_gobj.anim_id, inter_gobj.dialog_text)
@@ -1301,4 +1499,6 @@ class GameModel(squarity.GameModelBase):
             event_res = squarity.EventResult()
         event_res.punlocks_custom.append("interact_anim")
         return event_res
+
+
 
