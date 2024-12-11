@@ -1,4 +1,7 @@
 # https://i.ibb.co/GH339NR/ent-rib-tileset.png
+# https://i.ibb.co/GF5GC3z/ent-rib-tileset.png
+# <a href="https://ibb.co/F0ys8C1"><img src="https://i.ibb.co/QCT8YtV/ent-rib-tileset.png" alt="ent-rib-tileset" border="0"></a>
+# <a href="https://ibb.co/0DPRtdF"><img src="https://i.ibb.co/3rt9zLM/ent-rib-tileset.png" alt="ent-rib-tileset" border="0"></a>
 
 """
   {
@@ -110,12 +113,34 @@
       "wall": [96, 320],
 
       "text_blah": [404, 14, 64, 33],
-      "tuto_00": [0, 350, 500, 100],
+      "tuto_00": [0, 366, 500, 100],
+      "tuto_switch_mode": [0, 494, 500, 100],
+      "tuto_grabbed_first": [0, 605, 540, 100],
+      "tuto_swap": [0, 710, 540, 100],
+      "txt_bonus_telegrab": [0, 825, 540, 100],
+      "txt_bonus_teleswap": [0, 922, 540, 100],
+      "txt_bonus_levitate": [0, 1002, 540, 100],
+
+
+
+
+
 
       "background": [0, 0]
     }
   }
 """
+
+AUTHORIZED_TEXTS = [
+    "text_blah",
+    "tuto_00",
+    "tuto_switch_mode",
+    "tuto_grabbed_first",
+    "tuto_swap",
+    "txt_bonus_telegrab",
+    "txt_bonus_teleswap",
+    "txt_bonus_levitate",
+]
 
 """
 
@@ -209,10 +234,18 @@ Click anywhere in the game,
 then click on the red ribbon extremity
 next to me to grab it.
 
-Click the green ribbon extremity, then the yellow ribbon extremity to swap and disentangle them.
-Great! Now click the hand icon on the upper left corner to activate the swap mode.
-Click the upper left icon to go back to grab mode, then remove the two ribbons.
-I learned planar shift! Click on a ribbon cross to magically reverse it.
+Click the green ribbon extremity,
+then the yellow ribbon extremity
+to swap and disentangle them.
+
+Great! Now click the hand icon on
+the upper left corner to activate the swap mode.
+
+Click the upper left icon to go back to grab mode,
+then remove the two ribbons.
+
+I learned planar shift! Click on a ribbon cross
+to magically reverse it.
 
 I learned telekinesis! I can now grab ribbons even if I can't reach them.
 I learned super-telekinesis! I can now swap ribbons even if I can't reach them.
@@ -277,7 +310,7 @@ MAP = """
 
  *
 2+----`   4  *
- |/-` |   |kc|
+ |/-` |   | c|
  ||b| |4  |*4|   *
  |`-+``+* `++/   |
 2+-``+``---/`----+* *
@@ -286,11 +319,12 @@ MAP = """
    |  4`+6 | 0`/*4a||
    `--+**  |/---``-/|
       |    ||4#``## |
-      `` 2`|`+60z// |
+      `` 2`|`+60k// |
        `-``/n`---//-+*      2-*
         2+---`/---+``6
          *   ++   0|
              *0    *
+
 
              m
 
@@ -1107,14 +1141,8 @@ class DialogUI():
         self.layer_dialog_characters.add_game_object(self.gobj_hero)
         self.gobj_npc.set_transition_delay(140)
         self.layer_dialog_characters.add_game_object(self.gobj_npc)
-        self.gobj_text_hero = GameObject(
-            Coord(4, 17),
-            "tuto_00",
-        )
-        self.gobj_text_npc = GameObject(
-            Coord(1, 17),
-            "text_blah",
-        )
+        self.gobj_text_hero = GameObject(Coord(4, 17), "text_blah")
+        self.gobj_text_npc = GameObject(Coord(1, 17), "text_blah")
         self.gobj_text_current = None
         self._init_gobjs_by_step()
 
@@ -1136,9 +1164,11 @@ class DialogUI():
             self._init_bubble_text(True)
             self.showing = True
             self.gobj_hero.image_modifier.area_offset_x = 0.0
-            # TODO : other texts
             self.gobj_text_current = self.gobj_text_hero
-            self.gobj_text_current.sprite_name = "tuto_00"
+            if text_id in AUTHORIZED_TEXTS:
+                self.gobj_text_current.sprite_name = text_id
+            else:
+                self.gobj_text_current.sprite_name = "text_blah"
             return self.advance_step_anim_show()
         elif anim_id == DialogUI.ANIM_REMOVE_HERO:
             self.showing = False
@@ -1150,9 +1180,11 @@ class DialogUI():
             if sprite_npc is not None:
                 self.gobj_npc.sprite_name = sprite_npc
             self.gobj_npc.image_modifier.area_offset_x = 0.0
-            # TODO : other texts
             self.gobj_text_current = self.gobj_text_npc
-            self.gobj_text_current.sprite_name = "text_blah"
+            if text_id in AUTHORIZED_TEXTS:
+                self.gobj_text_current.sprite_name = text_id
+            else:
+                self.gobj_text_current.sprite_name = "text_blah"
             return self.advance_step_anim_show()
         elif anim_id == DialogUI.ANIM_REMOVE_NPC:
             self.showing = False
