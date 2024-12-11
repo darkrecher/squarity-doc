@@ -1,5 +1,4 @@
-# https://i.ibb.co/1n5zTjV/ent-rib-tileset.png
-# https://i.ibb.co/9qBBZgm/ent-rib-tileset.png
+# https://i.ibb.co/GH339NR/ent-rib-tileset.png
 
 """
   {
@@ -99,12 +98,20 @@
       "bonus_teleswap": [160, 0],
       "bonus_scroll": [224, 0],
       "bonus_levitate": [256, 0],
+      "bonus_plane_shift": [288, 0],
       "scroll_arrow_2": [0, 288],
       "scroll_arrow_4": [32, 288],
       "scroll_arrow_6": [64, 288],
       "scroll_arrow_0": [96, 288],
+      "invisible": [128, 288],
+      "npc_wife": [0, 320],
+      "npc_daughter_1": [32, 320],
+      "npc_daughter_2": [64, 320],
+      "wall": [96, 320],
 
       "text_blah": [404, 14, 64, 33],
+      "tuto_00": [0, 350, 500, 100],
+
       "background": [0, 0]
     }
   }
@@ -114,17 +121,13 @@
 
 ## tuto:
 
-Click anywhere in the game,
-then click on the red ribbon next to me to grab it.
+Click anywhere in the game, then click on the red ribbon extremity next to me to grab it.
 
-Great! Now click the hand icon on the upper left corner
-to activate the swap mode.
+Great! Now click the hand icon on the upper left corner to activate the swap mode.
 
-Click the green ribbon, then the yellow ribbon
-to swap and disentangle them.
+Click the green ribbon extremity, then the yellow ribbon extremity to swap and disentangle them.
 
-Click the upper left icon to go back to grab mode,
-then remove the two ribbons.
+Click the upper left icon to go back to grab mode, then remove the two ribbons.
 
 -------
 
@@ -137,12 +140,9 @@ even if I can't reach them.
 I learned laser eyes, I can now see very far!
 You can scroll the game area, with arrow keys or arrow icons.
 
-I learned levitation!
-I can now grab a ribbon if it is above the others.
-Try it with the blue ribbon next to me.
+I learned levitation! I can now directly grab a ribbon if it is above the others.
 
-I learned planar shift! Click on a ribbon cross to magically
-reverse it. It will help me to put any ribbon above all the others.
+I learned planar shift! Click on a ribbon cross to magically reverse it. It will help me to put any ribbon above all the others.
 
 ## error messages
 
@@ -155,30 +155,25 @@ I can't reach that ribbon extremity.
 
 I can't reach that place.
 
-One extremity of this ribbon is stuck under the floor.
-I guess I will need a specific power to be able to grab it immediatly.
+One extremity of this ribbon is stuck under the wall. I guess I will need a specific power to be able to grab it.
 
-These ribbons are blocked and entangled.
-I will need all the existing powers to grab them.
+These ribbons are blocked and entangled. I will need all the existing powers to grab them.
 
 There are still mess in the room.
 
 ## story messages
 
-Ba... bu... bu... Daddy!
-Ba... bu... What is Christmas?
+Ba... bu... bu... Daddy! Ba... bu... What is Christmas?
 
-Hey Sweetie. Would you help me un-mess those ribbons ?
+Hey Sweetie. Would you help me sort out those wrapping paper ribbons ?
 
-Ho Dad. You look so smart.
-I'm sure you would be faster at doing it
-all by yourself. I would bother you if I try to help.
+Ho Dad. You look so smart. I'm sure you would be faster at doing it all by yourself. I would bother you if I try to help.
 
 You've sorted out all the ribbon.
 Thank you, honey! Would you help me for the Christmas Cookies?
 
 My love, I learned levitation, planar shift and super-telekinesis!
-Isn't it amazing!
+Isn't it amazing?
 
 Congrats. Please come in the kitchen. Those cookies won't cook by themselves.
 
@@ -210,6 +205,31 @@ Can't reach specific object
 
 
 """
+Click anywhere in the game,
+then click on the red ribbon extremity
+next to me to grab it.
+
+Click the green ribbon extremity, then the yellow ribbon extremity to swap and disentangle them.
+Great! Now click the hand icon on the upper left corner to activate the swap mode.
+Click the upper left icon to go back to grab mode, then remove the two ribbons.
+I learned planar shift! Click on a ribbon cross to magically reverse it.
+
+I learned telekinesis! I can now grab ribbons even if I can't reach them.
+I learned super-telekinesis! I can now swap ribbons even if I can't reach them.
+I learned laser eyes. I can see very far! Scroll the game area, with arrow keys or arrow icons.
+I learned levitation! I can now directly grab a ribbon if it is above the others.
+Hey Sweetie. Would you help me sort out those wrapping paper ribbons ?
+Ho Dad. You look so smart. I'm sure you would be faster if you do it all by yourself.
+Ba... bu... bu... Daddy! Ba... bu... What is Christmas?
+One extremity of this ribbon is stuck under the wall. I will need a specific power to grab it.
+
+These ribbons are blocked and entangled. I will need all the existing powers.
+Thank you for sorting out the ribbons, honey. Would you help me with the Christmas Cookies?
+My love, I learned levitation, planar shift and super-telekinesis! Isn't it amazing?
+Congrats. Please come in the kitchen. Those cookies won't cook by themselves.
+"""
+
+"""
 Bug dans le moteur, avec cette version du code du jeu.
 
 Au moins, c'est reproductible:
@@ -221,13 +241,27 @@ Oui c'est ça. (Et il y a sûrement des moyens plus simple de reproduire.
 Mais au moins il y a ça).
 """
 
+"""
+TODOs
+
+image text messages
+remove dumb prints, decorate the others.
+[different message if grabbed all ribbons]
+[end screen]
+remove glitches in images
+change world size, more ribbons
+expand initial map
+[potions instead of ugly bonuses]
+CHECK THE "PUT BACK THE HERO WHERE IT SHOULD BE !!" !!
+"""
+
 import random
 import squarity
 Coord = squarity.Coord
 GameObject = squarity.GameObject
 
-WORLD_WIDTH = 100
-WORLD_HEIGHT = 100
+WORLD_WIDTH = 36
+WORLD_HEIGHT = 39
 
 # 0, 2, 4, 6: ribbon start, in the corresponding direction.
 # |-+ : cross, horiz, vertic. above/below is not defined, set it at random.
@@ -242,8 +276,8 @@ WORLD_HEIGHT = 100
 MAP = """
 
  *
-2+----`   /6*`
- |/-` |   | c|
+2+----`   4  *
+ |/-` |   |kc|
  ||b| |4  |*4|   *
  |`-+``+* `++/   |
 2+-``+``---/`----+* *
@@ -252,13 +286,15 @@ MAP = """
    |  4`+6 | 0`/*4a||
    `--+**  |/---``-/|
       |    ||4#``## |
-      ``  4|`+60k// |
-       `-``/m`---//-+*
+      `` 2`|`+60z// |
+       `-``/n`---//-+*      2-*
         2+---`/---+``6
          *   ++   0|
              *0    *
 
+             m
 
+             d
 
 """
 
@@ -370,7 +406,6 @@ class MapParser():
             for x, char in enumerate(line):
                 if char.isalpha():
                     coord = Coord(x, y).move_by_vect(self.coord_corner)
-                    inter_gobj = None
                     # ugly, and I don't care.
                     if char == "a":
                         inter_gobj = InteractableGobj(coord, "bonus_telegrab")
@@ -379,6 +414,7 @@ class MapParser():
                             power_granted=Powers.GRAB_EVERYWHERE,
                             console_text="I learned telekinesis! I can now grab ribbons even if I can't reach them."
                         )
+                        self.inter_gobjs.append(inter_gobj)
                     if char == "b":
                         inter_gobj = InteractableGobj(coord, "bonus_teleswap")
                         inter_gobj.init_config(
@@ -386,6 +422,7 @@ class MapParser():
                             power_granted=Powers.SWAP_EVERYWHERE,
                             console_text="I learned super-telekinesis! I can now swap ribbons even if I can't reach them."
                         )
+                        self.inter_gobjs.append(inter_gobj)
                     if char == "c":
                         inter_gobj = InteractableGobj(coord, "bonus_scroll")
                         inter_gobj.init_config(
@@ -393,18 +430,190 @@ class MapParser():
                             power_granted=Powers.SCROLL,
                             console_text="I learned laser eyes, I can now see very far! You can scroll the game area, with arrow keys or arrow icons."
                         )
+                        self.inter_gobjs.append(inter_gobj)
+                    if char == "d":
+                        inter_gobj = InteractableGobj(coord, "bonus_levitate")
+                        inter_gobj.init_config(
+                            dialog_text="txt_bonus_levitate",
+                            power_granted=Powers.GRAB_ABOVE,
+                            console_text="I learned levitation! I can now directly grab a ribbon if it is above the others."
+                        )
+                        self.inter_gobjs.append(inter_gobj)
+                    if char == "n":
+                        inter_gobj = InteractableGobj(coord, "npc_daughter_1")
+                        inter_gobj.init_config(
+                            dialog_text="txt_npc_0_0",
+                            console_text="Hey Sweetie. Would you help me sort out those wrapping paper ribbons ?"
+                        )
+                        self.inter_gobjs.append(inter_gobj)
+                        inter_gobj = InteractableGobj(coord, "npc_daughter_1")
+                        inter_gobj.init_config(
+                            dialog_text="txt_npc_0_1",
+                            anim_id=DialogUI.ANIM_SHOW_NPC,
+                            auto_remove=False,
+                            auto_disable=True,
+                            sprite_npc="npc_daughter_1",
+                            console_text="Ho Dad. You look so smart. I'm sure you would be faster at doing it all by yourself. I would bother you if I try to help."
+                        )
+                        self.inter_gobjs.append(inter_gobj)
+                    if char == "m":
+                        inter_gobj = InteractableGobj(coord, "npc_daughter_2")
+                        inter_gobj.init_config(
+                            dialog_text="txt_npc_1_0",
+                            anim_id=DialogUI.ANIM_SHOW_NPC,
+                            auto_remove=False,
+                            sprite_npc="npc_daughter_2",
+                            console_text="Ba... bu... bu... Daddy! Ba... bu... What is Christmas?"
+                        )
+                        self.inter_gobjs.append(inter_gobj)
                     if char == "k":
                         self.coord_start_hero = coord
-                    if inter_gobj is not None:
-                        self.inter_gobjs.append(inter_gobj)
+
+
+class UglyHardDefiner():
+
+    def __init__(self, ribbons_world, ribbon_world_manager, interactable_world):
+        self.ribbons_world = ribbons_world
+        self.ribbon_world_manager = ribbon_world_manager
+        self.interactable_world = interactable_world
+
+    def do_ugly(self):
+        UPPER_LEFT_RIB_BLOCKED = Coord(10, 2)
+        raw_path_blocked = (
+            ("vertic", Coord(2, 0)),
+            ("vertic_below", Coord(2, 1)),
+            ("vertic", Coord(2, 2)),
+            ("turn_06", Coord(2, 3)),
+            ("horiz", Coord(1, 3)),
+            ("turn_02", Coord(0, 3)),
+            ("vertic", Coord(0, 2)),
+            ("turn_24", Coord(0, 1)),
+            ("horiz", Coord(1, 1)),
+            ("horiz", Coord(2, 1)),
+            ("extr_6", Coord(3, 1)),
+        )
+        UPPER_LEFT_RIB_TANGBLOCKED = Coord(30, 30)
+        raw_path_tangblocked_1 = (
+            ("horiz", Coord(2, 1)),
+            ("horiz_below", Coord(1, 1)),
+            ("turn_24", Coord(0, 1)),
+            ("vertic", Coord(0, 2)),
+            ("vertic", Coord(0, 3)),
+            ("turn_02", Coord(0, 4)),
+            ("horiz", Coord(1, 4)),
+            ("extr_6", Coord(2, 4)),
+        )
+        raw_path_tangblocked_2 = (
+            ("extr_4", Coord(1, 0)),
+            ("vertic", Coord(1, 1)),
+            ("vertic", Coord(1, 2)),
+            ("vertic", Coord(1, 3)),
+            ("vertic_below", Coord(1, 4)),
+            ("vertic", Coord(1, 5)),
+        )
+        colors = ["red", "grn", "yel", "blu"]
+        random.shuffle(colors)
+        coords_upper_left = (
+            UPPER_LEFT_RIB_BLOCKED,
+            UPPER_LEFT_RIB_TANGBLOCKED,
+            UPPER_LEFT_RIB_TANGBLOCKED,
+        )
+        raw_paths = (
+            raw_path_blocked,
+            raw_path_tangblocked_1,
+            raw_path_tangblocked_2,
+        )
+        for raw_path, coord_upper_left, color in zip(raw_paths, coords_upper_left, colors):
+            final_path = [
+                (
+                    "rib_" + color + "_" + rib_type,
+                    coord_cur.clone().move_by_vect(coord_upper_left)
+                ) for rib_type, coord_cur in raw_path
+            ]
+            ribbon = Ribbon(self.ribbons_world, rib_path=final_path)
+            self.ribbon_world_manager.add_ribbon(ribbon)
+
+        coord_inter = Coord(3, 1)
+        inter_gobj = InteractableGobj(
+            coord_inter.move_by_vect(UPPER_LEFT_RIB_BLOCKED),
+            "invisible"
+        )
+        inter_gobj.init_config(
+            dialog_text="txt_rib_blocked",
+            must_have_path=False,
+            canceling_power=Powers.GRAB_ABOVE,
+            console_text="One extremity of this ribbon is stuck under the wall. I guess I will need a specific power to be able to grab it."
+        )
+        self.interactable_world.add_game_object(inter_gobj)
+        coord_inter = Coord(1, 2)
+        inter_gobj = InteractableGobj(
+            coord_inter.move_by_vect(UPPER_LEFT_RIB_BLOCKED),
+            "bonus_plane_shift"
+        )
+        inter_gobj.init_config(
+            dialog_text="txt_power_plane_shift",
+            power_granted=Powers.SWAP_CROSS,
+            console_text="I learned planar shift! Click on a ribbon cross to magically reverse it. It will help me to put any ribbon above all the others."
+        )
+        self.interactable_world.add_game_object(inter_gobj)
+
+        for coord_inter in (Coord(2, 4), Coord(1, 0)):
+            inter_gobj = InteractableGobj(
+                coord_inter.move_by_vect(UPPER_LEFT_RIB_TANGBLOCKED),
+                "invisible"
+            )
+            inter_gobj.init_config(
+                dialog_text="txt_rib_tangblocked",
+                must_have_path=False,
+                canceling_power=Powers.SWAP_CROSS,
+                console_text="These ribbons are blocked and entangled. I will need all the existing powers to be able to grab them."
+            )
+            self.interactable_world.add_game_object(inter_gobj)
+
+        coord_inter = Coord(2, 2)
+        inter_gobj = InteractableGobj(
+            coord_inter.move_by_vect(UPPER_LEFT_RIB_TANGBLOCKED),
+            "npc_wife"
+        )
+        inter_gobj.init_config(
+            dialog_text="txt_npc_2_0",
+            anim_id=DialogUI.ANIM_SHOW_NPC,
+            sprite_npc="npc_wife",
+            console_text="Thank you for sorting out those ribbons, honey. Would you help me for the Christmas Cookies?"
+        )
+        self.interactable_world.add_game_object(inter_gobj)
+        coord_inter = Coord(2, 2)
+        inter_gobj = InteractableGobj(
+            coord_inter.move_by_vect(UPPER_LEFT_RIB_TANGBLOCKED),
+            "npc_wife"
+        )
+        inter_gobj.init_config(
+            dialog_text="txt_npc_2_1",
+            console_text="My love, I learned levitation, planar shift and super-telekinesis! Isn't it amazing?"
+        )
+        self.interactable_world.add_game_object(inter_gobj)
+        coord_inter = Coord(2, 2)
+        inter_gobj = InteractableGobj(
+            coord_inter.move_by_vect(UPPER_LEFT_RIB_TANGBLOCKED),
+            "npc_wife"
+        )
+        inter_gobj.init_config(
+            dialog_text="txt_npc_2_2",
+            anim_id=DialogUI.ANIM_SHOW_NPC,
+            auto_remove=False,
+            auto_disable=True,
+            sprite_npc="npc_wife",
+            console_text="Congrats. Please come in the kitchen. Those cookies won't cook by themselves."
+        )
+        self.interactable_world.add_game_object(inter_gobj)
 
 
 class Ribbon():
 
     def __init__(self, ribbons_world, color=None, rib_path=None):
         self.gobjs = []
-        self.color = color
         self.ribbons_world = ribbons_world
+        self.color=color
         self.gobjs_highlight = []
         self.highlight_index = None
         self.highlight_step = None
@@ -417,71 +626,6 @@ class Ribbon():
                 self.gobjs.append(gobj)
                 gobj.owner_ribbon = self
                 self.ribbons_world.add_game_object(gobj)
-
-    def hard_code_path_1(self):
-        self.gobjs = [
-            GameObject(Coord(18, 17), "rib_red_extr_4"),
-            GameObject(Coord(18, 18), "rib_red_vertic"),
-            GameObject(Coord(18, 19), "rib_red_vertic"),
-            GameObject(Coord(18, 20), "rib_red_turn_02"),
-            GameObject(Coord(19, 20), "rib_red_horiz"),
-            GameObject(Coord(20, 20), "rib_red_horiz_below"),
-            GameObject(Coord(21, 20), "rib_red_extr_6"),
-        ]
-        for gobj_rib in self.gobjs:
-            gobj_rib.owner_ribbon = self
-            self.ribbons_world.add_game_object(gobj_rib)
-
-    def hard_code_path_2(self):
-        self.gobjs = [
-            GameObject(Coord(23, 16), "rib_yel_extr_6"),
-            GameObject(Coord(22, 16), "rib_yel_horiz"),
-            GameObject(Coord(21, 16), "rib_yel_horiz"),
-            GameObject(Coord(20, 16), "rib_yel_turn_24"),
-            GameObject(Coord(20, 17), "rib_yel_vertic"),
-            GameObject(Coord(20, 18), "rib_yel_vertic_below"),
-            GameObject(Coord(20, 19), "rib_yel_vertic"),
-            GameObject(Coord(20, 20), "rib_yel_vertic"),
-            GameObject(Coord(20, 21), "rib_yel_vertic"),
-            GameObject(Coord(20, 22), "rib_yel_vertic"),
-            GameObject(Coord(20, 23), "rib_yel_vertic"),
-            GameObject(Coord(20, 24), "rib_yel_extr_0"),
-        ]
-        for gobj_rib in self.gobjs:
-            gobj_rib.owner_ribbon = self
-            self.ribbons_world.add_game_object(gobj_rib)
-
-    def hard_code_path_3(self):
-        self.gobjs = [
-            GameObject(Coord(16, 18), "rib_grn_extr_2"),
-            GameObject(Coord(17, 18), "rib_grn_horiz"),
-            GameObject(Coord(18, 18), "rib_grn_horiz_below"),
-            GameObject(Coord(19, 18), "rib_grn_horiz"),
-            GameObject(Coord(20, 18), "rib_grn_horiz"),
-            GameObject(Coord(21, 18), "rib_grn_horiz"),
-            GameObject(Coord(22, 18), "rib_grn_horiz"),
-            GameObject(Coord(23, 18), "rib_grn_extr_6"),
-        ]
-        for gobj_rib in self.gobjs:
-            gobj_rib.owner_ribbon = self
-            self.ribbons_world.add_game_object(gobj_rib)
-
-    def hard_code_path_4(self):
-        self.gobjs = [
-            GameObject(Coord(16, 26), "rib_blu_extr_2"),
-            GameObject(Coord(17, 26), "rib_blu_horiz"),
-            GameObject(Coord(18, 26), "rib_blu_horiz"),
-            GameObject(Coord(19, 26), "rib_blu_turn_46"),
-            GameObject(Coord(19, 27), "rib_blu_turn_06"),
-            GameObject(Coord(18, 27), "rib_blu_horiz"),
-            GameObject(Coord(17, 27), "rib_blu_turn_02"),
-            GameObject(Coord(17, 26), "rib_blu_vertic_below"),
-            GameObject(Coord(17, 25), "rib_blu_vertic"),
-            GameObject(Coord(17, 24), "rib_blu_extr_4"),
-        ]
-        for gobj_rib in self.gobjs:
-            gobj_rib.owner_ribbon = self
-            self.ribbons_world.add_game_object(gobj_rib)
 
     def which_extremity(self, gobj_rib):
         """
@@ -804,10 +948,12 @@ def coord_upleft_from_rect(rect):
 
 class Hero():
 
-    def __init__(self, layer_hero, view_rect, ribbons_world, start_coord):
+    def __init__(self, layer_hero, view_rect, ribbons_world, walls, interactable_world, start_coord):
         self.layer_hero = layer_hero
         self.view_rect = view_rect
         self.ribbons_world = ribbons_world
+        self.walls = walls
+        self.interactable_world = interactable_world
         self.gobj_hero = GameObject(Coord(0, 0), "hero")
         self.layer_hero.add_game_object(self.gobj_hero)
         self.gobj_hero.plock_transi = squarity.PlayerLockTransi.LOCK
@@ -832,7 +978,12 @@ class Hero():
             cur_coord, cur_dist = nexts.pop(0)
             if cur_coord not in distances:
                 cur_tile = self.ribbons_world.get_tile(cur_coord)
-                if not cur_tile.game_objects or cur_coord == dest:
+                can_pass = (
+                    not cur_tile.game_objects
+                    and not self.walls.get_game_objects(cur_coord)
+                    and not self.interactable_world.get_game_objects(cur_coord)
+                )
+                if can_pass or cur_coord == dest:
                     distances[cur_coord] = cur_dist
                     for adj_tile in cur_tile.adjacencies[::2]:
                         if adj_tile is not None:
@@ -896,9 +1047,20 @@ class Powers():
         self.power_availability = {
             pow_id: False for pow_id in range(6)
         }
+        self.interactable_world = None
+
+    def set_interactable_world(self, interactable_world):
+        self.interactable_world = interactable_world
 
     def grant_power(self, pow_id):
         self.power_availability[pow_id] = True
+        if self.interactable_world is not None:
+            gobjs_to_remove = []
+            for gobj in self.interactable_world.iter_all_game_objects():
+                if gobj.canceling_power == pow_id:
+                    gobjs_to_remove.append(gobj)
+            for gobj in gobjs_to_remove:
+                self.interactable_world.remove_game_object(gobj)
 
     def has_power(self, pow_id):
         return self.power_availability[pow_id]
@@ -947,11 +1109,11 @@ class DialogUI():
         self.layer_dialog_characters.add_game_object(self.gobj_npc)
         self.gobj_text_hero = GameObject(
             Coord(4, 17),
-            "text_blah",
+            "tuto_00",
         )
         self.gobj_text_npc = GameObject(
             Coord(1, 17),
-            "bonus_scroll",
+            "text_blah",
         )
         self.gobj_text_current = None
         self._init_gobjs_by_step()
@@ -967,7 +1129,7 @@ class DialogUI():
                 GameObject(c, "lightgray")
             )
 
-    def start_anim(self, anim_id, text_id=None):
+    def start_anim(self, anim_id, text_id=None, sprite_npc=None):
         self.anim_id = anim_id
         self.current_step = 0
         if anim_id == DialogUI.ANIM_SHOW_HERO:
@@ -976,7 +1138,7 @@ class DialogUI():
             self.gobj_hero.image_modifier.area_offset_x = 0.0
             # TODO : other texts
             self.gobj_text_current = self.gobj_text_hero
-            self.gobj_text_current.sprite_name = "text_blah"
+            self.gobj_text_current.sprite_name = "tuto_00"
             return self.advance_step_anim_show()
         elif anim_id == DialogUI.ANIM_REMOVE_HERO:
             self.showing = False
@@ -985,10 +1147,12 @@ class DialogUI():
         elif anim_id == DialogUI.ANIM_SHOW_NPC:
             self._init_bubble_text(False)
             self.showing = True
+            if sprite_npc is not None:
+                self.gobj_npc.sprite_name = sprite_npc
             self.gobj_npc.image_modifier.area_offset_x = 0.0
             # TODO : other texts
             self.gobj_text_current = self.gobj_text_npc
-            self.gobj_text_current.sprite_name = "bonus_scroll"
+            self.gobj_text_current.sprite_name = "text_blah"
             return self.advance_step_anim_show()
         elif anim_id == DialogUI.ANIM_REMOVE_NPC:
             self.showing = False
@@ -1126,6 +1290,7 @@ class InteractableGobj(GameObject):
         auto_disable=False,
         sprite_hero_new=None,
         sprite_npc=None,
+        canceling_power=None,
         console_text=None,
     ):
         self.must_have_path = must_have_path
@@ -1136,6 +1301,7 @@ class InteractableGobj(GameObject):
         self.auto_disable = auto_disable
         self.hero_sprite = sprite_hero_new
         self.sprite_npc = sprite_npc
+        self.canceling_power=canceling_power
         self.console_text = console_text
         self.enabled = True
 
@@ -1145,6 +1311,7 @@ class GameModel(squarity.GameModelBase):
     def on_start(self):
         self.ribbons_world = squarity.Layer(self, WORLD_WIDTH, WORLD_HEIGHT)
         self.interactable_world = squarity.Layer(self, WORLD_WIDTH, WORLD_HEIGHT)
+        self.walls = squarity.Layer(self, WORLD_WIDTH, WORLD_HEIGHT)
         self.ribbons_view = squarity.Layer(self, self.w, self.h, False)
         self.layers.append(self.ribbons_view)
         self.ribbon_world_manager = RibbonWorldManager(self.ribbons_world)
@@ -1153,19 +1320,29 @@ class GameModel(squarity.GameModelBase):
         rect_background = squarity.Rect(1, 1, self.w-2, self.h-2)
         for c in squarity.Sequencer.iter_on_rect(rect_background):
             self.layer_main.add_game_object(GameObject(c, "background"))
+        # TODO LIB: damned missing border iterator.
+        for x in range(1, WORLD_WIDTH - 1):
+            self.walls.add_game_object(GameObject(Coord(x, 1), "wall"))
+            self.walls.add_game_object(GameObject(Coord(x, WORLD_HEIGHT - 3), "wall"))
+        for y in range(2, WORLD_HEIGHT - 2):
+            self.walls.add_game_object(GameObject(Coord(1, y), "wall"))
+            self.walls.add_game_object(GameObject(Coord(WORLD_WIDTH - 3, y), "wall"))
+        self.walls.remove_at_coord(Coord(WORLD_WIDTH - 3, WORLD_HEIGHT - 6))
 
         map_parser = MapParser(Coord(2, 7))
         for rib_path in map_parser.iter_ribbon_paths():
-            ribbon = Ribbon(self.ribbons_world, "red", rib_path=rib_path)
+            ribbon = Ribbon(self.ribbons_world, rib_path=rib_path)
             self.ribbon_world_manager.add_ribbon(ribbon)
         self.ribbon_world_manager.shuffle_aboves_and_belows()
         map_parser.compute_interactable_objects()
         for inter_gobj in map_parser.inter_gobjs:
             self.interactable_world.add_game_object(inter_gobj)
+        ugly_hard_definer = UglyHardDefiner(self.ribbons_world, self.ribbon_world_manager, self.interactable_world)
+        ugly_hard_definer.do_ugly()
 
         self.layer_hero = squarity.Layer(self, self.w, self.h)
         self.layers.append(self.layer_hero)
-        self.hero = Hero(self.layer_hero, self.view_rect, self.ribbons_world, map_parser.coord_start_hero)
+        self.hero = Hero(self.layer_hero, self.view_rect, self.ribbons_world, self.walls, self.interactable_world, map_parser.coord_start_hero)
         self.interaction_mode = "grab"
         self.layer_ui = squarity.Layer(self, self.w, self.h, False)
         # TODO lib. iterateur sur les bords d'un squarity.Rect. (ça itère des Coord).
@@ -1195,6 +1372,7 @@ class GameModel(squarity.GameModelBase):
         self.dialog_ui = DialogUI(self.layer_dialog, self.layer_dialog_characters)
 
         self.powers = Powers()
+        self.powers.set_interactable_world(self.interactable_world)
         #self.powers.grant_power(Powers.SWAP_EVERYWHERE)
         #self.powers.grant_power(Powers.GRAB_EVERYWHERE)
         #self.powers.grant_power(Powers.GRAB_ABOVE)
@@ -1208,6 +1386,7 @@ class GameModel(squarity.GameModelBase):
             Coord(0, self.h // 2): squarity.dirs.Left,
         }
         self.story_manager = StoryManager(self.dialog_ui)
+        print("Click anywhere in the game, then click on the red ribbon extremity next to me to grab it.")
         return self.dialog_ui.start_anim(DialogUI.ANIM_SHOW_HERO, "tuto_00")
 
     def switch_interaction_mode(self):
@@ -1225,6 +1404,8 @@ class GameModel(squarity.GameModelBase):
             self.gobj_icon_interaction_mode.sprite_name = "icon_swap"
         if not self.story_manager.switched_first_mode:
             self.story_manager.switched_first_mode = True
+            print("------")
+            print("Click the green ribbon extremity, then the yellow ribbon extremity to swap and disentangle them.")
             return self.dialog_ui.start_anim(DialogUI.ANIM_SHOW_HERO, "tuto_switch_mode")
 
     def render_world(self):
@@ -1238,6 +1419,7 @@ class GameModel(squarity.GameModelBase):
             gobjs_world = (
                 self.ribbons_world.get_game_objects(c_world)
                 + self.interactable_world.get_game_objects(c_world)
+                + self.walls.get_game_objects(c_world)
             )
             for gobj_world in gobjs_world:
                 gobj_view = GameObject(c_view, gobj_world.sprite_name)
@@ -1288,6 +1470,8 @@ class GameModel(squarity.GameModelBase):
         # même si on est en mode swap.
         # C'est un pouvoir supplémentaire: l'auto-grab. "le pouvoir de prescience".
         # ou pas...
+        if action_name == "action_2":
+            print("The action button number 2 is useless.")
         if self.dialog_ui.showing:
             return self.dialog_ui.start_removal_anim()
         return self.switch_interaction_mode()
@@ -1434,6 +1618,8 @@ class GameModel(squarity.GameModelBase):
 
                 if not self.story_manager.grabbed_first_ribbon:
                     self.story_manager.grabbed_first_ribbon = True
+                    print("------")
+                    print("Great! Now click the hand icon on the upper left corner to activate the swap mode.")
                     event_res = self.dialog_ui.start_anim(DialogUI.ANIM_SHOW_HERO, "tuto_grabbed_first")
                 else:
                     event_res = squarity.EventResult()
@@ -1509,6 +1695,8 @@ class GameModel(squarity.GameModelBase):
         self.render_world()
         if not self.story_manager.swapped_first_ribbon:
             self.story_manager.swapped_first_ribbon = True
+            print("------")
+            print("Click the upper left icon to go back to grab mode, then remove the two ribbons.")
             event_res = self.dialog_ui.start_anim(DialogUI.ANIM_SHOW_HERO, "tuto_swap")
         else:
             event_res = squarity.EventResult()
@@ -1541,7 +1729,6 @@ class GameModel(squarity.GameModelBase):
             return self.callback_hero_interact()
 
     def callback_hero_interact(self):
-        print("let's interact !")
         inter_gobj = self.hero.inter_gobj
         if not inter_gobj.enabled:
             event_res = squarity.EventResult()
@@ -1564,9 +1751,8 @@ class GameModel(squarity.GameModelBase):
         if inter_gobj.console_text:
             print("-----")
             print(inter_gobj.console_text)
-        # TODO : handle sprite_hero_new
         if inter_gobj.anim_id is not None:
-            event_res = self.dialog_ui.start_anim(inter_gobj.anim_id, inter_gobj.dialog_text)
+            event_res = self.dialog_ui.start_anim(inter_gobj.anim_id, inter_gobj.dialog_text, inter_gobj.sprite_npc)
         else:
             event_res = squarity.EventResult()
         event_res.punlocks_custom.append("interact_anim")
