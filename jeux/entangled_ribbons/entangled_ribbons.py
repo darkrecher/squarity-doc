@@ -1,7 +1,4 @@
-# https://i.ibb.co/GH339NR/ent-rib-tileset.png
-# https://i.ibb.co/GF5GC3z/ent-rib-tileset.png
-# <a href="https://ibb.co/F0ys8C1"><img src="https://i.ibb.co/QCT8YtV/ent-rib-tileset.png" alt="ent-rib-tileset" border="0"></a>
-# <a href="https://ibb.co/0DPRtdF"><img src="https://i.ibb.co/3rt9zLM/ent-rib-tileset.png" alt="ent-rib-tileset" border="0"></a>
+# https://i.ibb.co/brj7PGx/ent-rib-tileset.png
 
 """
   {
@@ -114,17 +111,22 @@
 
       "text_blah": [404, 14, 64, 33],
       "tuto_00": [0, 366, 500, 100],
-      "tuto_switch_mode": [0, 494, 500, 100],
+      "tuto_switch_mode": [0, 491, 500, 100],
       "tuto_grabbed_first": [0, 605, 540, 100],
       "tuto_swap": [0, 710, 540, 100],
       "txt_bonus_telegrab": [0, 825, 540, 100],
-      "txt_bonus_teleswap": [0, 922, 540, 100],
-      "txt_bonus_levitate": [0, 1002, 540, 100],
-
-
-
-
-
+      "txt_bonus_teleswap": [0, 912, 540, 100],
+      "txt_bonus_levitate": [0, 1012, 540, 100],
+      "txt_npc_0_0": [0, 1105, 540, 100],
+      "txt_npc_0_1": [0, 1210, 540, 100],
+      "txt_npc_1_0": [0, 1326, 540, 100],
+      "txt_rib_blocked": [0, 1428, 540, 100],
+      "txt_rib_tangblocked": [0, 1552, 540, 100],
+      "txt_npc_2_0": [0, 1678, 540, 100],
+      "txt_npc_2_1": [0, 1794, 540, 100],
+      "txt_npc_2_2": [0, 1890, 540, 100],
+      "txt_bonus_scroll": [0, 1992, 540, 100],
+      "txt_power_plane_shift": [0, 2100, 540, 100],
 
       "background": [0, 0]
     }
@@ -140,152 +142,32 @@ AUTHORIZED_TEXTS = [
     "txt_bonus_telegrab",
     "txt_bonus_teleswap",
     "txt_bonus_levitate",
+    "txt_npc_0_0",
+    "txt_npc_0_1",
+    "txt_npc_1_0",
+    "txt_rib_blocked",
+    "txt_rib_tangblocked",
+    "txt_npc_2_0",
+    "txt_npc_2_1",
+    "txt_npc_2_2",
+    "txt_bonus_scroll",
+    "txt_power_plane_shift",
 ]
 
 """
 
-## tuto:
-
-Click anywhere in the game, then click on the red ribbon extremity next to me to grab it.
-
-Great! Now click the hand icon on the upper left corner to activate the swap mode.
-
-Click the green ribbon extremity, then the yellow ribbon extremity to swap and disentangle them.
-
-Click the upper left icon to go back to grab mode, then remove the two ribbons.
-
--------
-
-I learned telekinesis! I can now grab ribbons even if
-I can't reach them.
-
-I learned super-telekinesis! I can now swap ribbons
-even if I can't reach them.
-
-I learned laser eyes, I can now see very far!
-You can scroll the game area, with arrow keys or arrow icons.
-
-I learned levitation! I can now directly grab a ribbon if it is above the others.
-
-I learned planar shift! Click on a ribbon cross to magically reverse it. It will help me to put any ribbon above all the others.
-
-## error messages
-
-You must click on a ribbon extremity.
-
-I can swap ribbons only if they cross just after
-the two extremities you clicked.
-
-I can't reach that ribbon extremity.
-
-I can't reach that place.
-
-One extremity of this ribbon is stuck under the wall. I guess I will need a specific power to be able to grab it.
-
-These ribbons are blocked and entangled. I will need all the existing powers to grab them.
-
-There are still mess in the room.
-
-## story messages
-
-Ba... bu... bu... Daddy! Ba... bu... What is Christmas?
-
-Hey Sweetie. Would you help me sort out those wrapping paper ribbons ?
-
-Ho Dad. You look so smart. I'm sure you would be faster at doing it all by yourself. I would bother you if I try to help.
-
-You've sorted out all the ribbon.
-Thank you, honey! Would you help me for the Christmas Cookies?
-
-My love, I learned levitation, planar shift and super-telekinesis!
-Isn't it amazing?
-
-Congrats. Please come in the kitchen. Those cookies won't cook by themselves.
-
-(the end)
-
-## Story and error events
-
-Click on a specific object, if pathfind
-
-[Click while there is a dialog]
-
-Ribbon grabbed
-
-Switched mode
-
-Swapped ribbons
-
-Swap fail
-
-Clicked on a not-extremity
-
-Can't reach place
-
-Can't reach extremity
-
-Can't reach specific object
-
-"""
+    SECRET SANTA !!
 
 
-"""
-Click anywhere in the game,
-then click on the red ribbon extremity
-next to me to grab it.
-
-Click the green ribbon extremity,
-then the yellow ribbon extremity
-to swap and disentangle them.
-
-Great! Now click the hand icon on
-the upper left corner to activate the swap mode.
-
-Click the upper left icon to go back to grab mode,
-then remove the two ribbons.
-
-I learned planar shift! Click on a ribbon cross
-to magically reverse it.
-
-I learned telekinesis! I can now grab ribbons even if I can't reach them.
-I learned super-telekinesis! I can now swap ribbons even if I can't reach them.
-I learned laser eyes. I can see very far! Scroll the game area, with arrow keys or arrow icons.
-I learned levitation! I can now directly grab a ribbon if it is above the others.
-Hey Sweetie. Would you help me sort out those wrapping paper ribbons ?
-Ho Dad. You look so smart. I'm sure you would be faster if you do it all by yourself.
-Ba... bu... bu... Daddy! Ba... bu... What is Christmas?
-One extremity of this ribbon is stuck under the wall. I will need a specific power to grab it.
-
-These ribbons are blocked and entangled. I will need all the existing powers.
-Thank you for sorting out the ribbons, honey. Would you help me with the Christmas Cookies?
-My love, I learned levitation, planar shift and super-telekinesis! Isn't it amazing?
-Congrats. Please come in the kitchen. Those cookies won't cook by themselves.
-"""
-
-"""
-Bug dans le moteur, avec cette version du code du jeu.
-
-Au moins, c'est reproductible:
-aller tout à droite jusqu'à enlever le héros, puis refaire un dernier petit coup à droite.
-Cliquer en haut à droite. (ça marche).
-Aller tout à gauche au maximum. Puis cliquer en bas à gauche.
-On réessaye une dernière fois.
-Oui c'est ça. (Et il y a sûrement des moyens plus simple de reproduire.
-Mais au moins il y a ça).
 """
 
 """
 TODOs
 
-image text messages
-remove dumb prints, decorate the others.
 [different message if grabbed all ribbons]
 [end screen]
-remove glitches in images
 change world size, more ribbons
-expand initial map
 [potions instead of ugly bonuses]
-CHECK THE "PUT BACK THE HERO WHERE IT SHOULD BE !!" !!
 """
 
 import random
@@ -306,7 +188,8 @@ WORLD_HEIGHT = 39
 # 7 0 1
 # 6   2
 # 5 4 3
-MAP = """
+
+MAP_OLD = """
 
  *
 2+----`   4  *
@@ -329,6 +212,35 @@ MAP = """
              m
 
              d
+
+"""
+
+MAP = """
+            *       *
+4          2+-------+-*
+`-----------/       |
+2`                  |
+ |/-`               |
+*/|c|               |
+  `-+`    /----6*--```
+   ``+`   `--------//+-6
+     `+`  /` *4/`   |0
+      `+` *|*++++--`|
+       `+6 | 0`/*4a||
+        *  |/---``-/|
+           ||4#``## |
+         2`|`+60k// | *
+          `/n`---/  |2+`    2-*
+          /--------``-/`-`
+          |        |     ``
+          0        */-`   ``
+                    |2+-`  `-`
+                    | 0 ``  b|
+                    |    `---+*
+/--------`    /-----+-6      *
+|  4    *+----+6    *
+`--+*    0   m*
+   *         d
 
 """
 
@@ -407,9 +319,9 @@ class MapParser():
         path = []
         rib_type_start, coord_prev, direction_prev = rib_start_details
         line = self.map_rib[coord_prev.y]
-        print("line", self.map_rib[coord_prev.y])
+        #print("line", self.map_rib[coord_prev.y])
         self.map_rib[coord_prev.y] = line[:coord_prev.x] + "." + line[coord_prev.x+1:]
-        print("line", self.map_rib[coord_prev.y])
+        #print("line", self.map_rib[coord_prev.y])
         path.append((rib_type_start, coord_prev))
         while direction_prev is not None:
             rib_type_cur, coord_cur, direction_cur = self._follow_path_one_step(
@@ -503,6 +415,17 @@ class MapParser():
                     if char == "k":
                         self.coord_start_hero = coord
 
+"""
+Bug dans le moteur, avec cette version du code du jeu.
+
+Au moins, c'est reproductible:
+aller tout à droite jusqu'à enlever le héros, puis refaire un dernier petit coup à droite.
+Cliquer en haut à droite. (ça marche).
+Aller tout à gauche au maximum. Puis cliquer en bas à gauche.
+On réessaye une dernière fois.
+Oui c'est ça. (Et il y a sûrement des moyens plus simple de reproduire.
+Mais au moins il y a ça).
+"""
 
 class UglyHardDefiner():
 
@@ -719,7 +642,6 @@ class Ribbon():
                 adj_dirs.append(direction.int_dir)
         adj_dirs.sort()
         sprite_name = f"rib_{self.color}_turn_{adj_dirs[0]}{adj_dirs[1]}"
-        print(sprite_name)
         gobj_new = GameObject(coord.clone(), sprite_name)
         gobj_new.owner_ribbon = self
         self.ribbons_world.add_game_object(gobj_new)
@@ -869,18 +791,16 @@ class RibbonWorldManager():
             self.coord_swap_1 = coord_swap.clone()
             self.ribbon_swap_1 = ribbon
             self.extr_swap_1 = extr_swap
-            print("Selected a first ribbon extremity.")
             return False
         else:
             self.coord_swap_2 = coord_swap.clone()
             self.ribbon_swap_2 = ribbon
             self.extr_swap_2 = extr_swap
             if self.check_can_swap():
-                print("We can swap")
                 self.hide_temp_coord_swap = True
                 return True
             else:
-                print("We can not swap")
+                print("-- We can not swap those ribbons --")
                 self.coord_swap_2 = None
                 self.ribbon_swap_2 = None
                 self.extr_swap_2 = None
@@ -916,7 +836,6 @@ class RibbonWorldManager():
 
     def _compute_new_adj_coords(self, coord_cross, gobjs_until_cross_me, gobjs_until_cross_other):
         sprite_name = gobjs_until_cross_me[-1].sprite_name
-        print(sprite_name)
         rib_vertic = "vertic" in sprite_name
         rib_horiz = "horiz" in sprite_name
         if not (rib_vertic ^ rib_horiz):
@@ -945,8 +864,6 @@ class RibbonWorldManager():
         coord_rib_2_adj_1, coord_rib_2_adj_2 = self._compute_new_adj_coords(
             coord_cross, self.gobjs_until_cross_2, self.gobjs_until_cross_1
         )
-        print("swap 1", self.ribbon_swap_1.color, coord_rib_1_adj_1, coord_rib_1_adj_2)
-        print("swap 2", self.ribbon_swap_2.color, coord_rib_2_adj_1, coord_rib_2_adj_2)
         self.ribbon_swap_1.remove_gobjs(self.gobjs_until_cross_1)
         self.ribbon_swap_2.remove_gobjs(self.gobjs_until_cross_2)
         self.ribbon_swap_1.add_turning_gobj(coord_cross, coord_rib_1_adj_1, coord_rib_1_adj_2, self.extr_swap_1)
@@ -1361,7 +1278,7 @@ class GameModel(squarity.GameModelBase):
             self.walls.add_game_object(GameObject(Coord(WORLD_WIDTH - 3, y), "wall"))
         self.walls.remove_at_coord(Coord(WORLD_WIDTH - 3, WORLD_HEIGHT - 6))
 
-        map_parser = MapParser(Coord(2, 7))
+        map_parser = MapParser(Coord(2, 5))
         for rib_path in map_parser.iter_ribbon_paths():
             ribbon = Ribbon(self.ribbons_world, rib_path=rib_path)
             self.ribbon_world_manager.add_ribbon(ribbon)
@@ -1423,7 +1340,7 @@ class GameModel(squarity.GameModelBase):
 
     def switch_interaction_mode(self):
         if not self.story_manager.grabbed_first_ribbon:
-            print("Begin by grabbing the red ribbon.")
+            print("-- Begin by grabbing the red ribbon --")
             return
         if self.interaction_mode == "swap":
             self.interaction_mode = "grab"
@@ -1486,8 +1403,6 @@ class GameModel(squarity.GameModelBase):
             self.view_rect.x = temp_view_corner.x
             self.view_rect.y = temp_view_corner.y
             self.render_world()
-        else:
-            print("You are at the world limits.")
 
     def on_button_direction(self, direction):
         if self.dialog_ui.showing:
@@ -1503,7 +1418,7 @@ class GameModel(squarity.GameModelBase):
         # C'est un pouvoir supplémentaire: l'auto-grab. "le pouvoir de prescience".
         # ou pas...
         if action_name == "action_2":
-            print("The action button number 2 is useless.")
+            print("-- The action button number 2 is useless --")
         if self.dialog_ui.showing:
             return self.dialog_ui.start_removal_anim()
         return self.switch_interaction_mode()
@@ -1548,7 +1463,7 @@ class GameModel(squarity.GameModelBase):
     def on_click_move(self, world_coord):
         path_to_dest = self.hero.find_path(world_coord)
         if path_to_dest is None:
-            print("I can't reach this place.")
+            print("-- I can't reach this place --")
             return
         if len(path_to_dest) > 1:
             total_delay = self.hero.record_transitions_in_view(path_to_dest[1:])
@@ -1573,7 +1488,7 @@ class GameModel(squarity.GameModelBase):
 
         path_to_grab = self.hero.find_path(world_coord)
         if path_to_grab is None:
-            print("I can't reach this ribbon extremity.")
+            print("-- I can't reach this ribbon extremity --")
             return
         if len(path_to_grab) > 2:
             total_delay = self.hero.record_transitions_in_view(path_to_grab[1:-1])
@@ -1602,7 +1517,7 @@ class GameModel(squarity.GameModelBase):
             self.ribbons_world,
             self.powers.has_power(Powers.GRAB_ABOVE)
         ):
-            print("This ribbon can't be grabbed.")
+            print("-- This ribbon can't be grabbed --")
             event_res = squarity.EventResult()
             event_res.punlocks_custom.append("grab_anim")
             return event_res
@@ -1684,7 +1599,7 @@ class GameModel(squarity.GameModelBase):
 
         path_to_swap = self.hero.find_path(world_coord)
         if path_to_swap is None:
-            print("I can't reach this ribbon extremity.")
+            print("-- I can't reach this ribbon extremity --")
             return
         if len(path_to_swap) > 2:
             total_delay = self.hero.record_transitions_in_view(path_to_swap[1:-1])
@@ -1705,8 +1620,6 @@ class GameModel(squarity.GameModelBase):
             return self.callback_hero_try_swap()
 
     def callback_hero_try_swap(self):
-        print("hero arrived")
-        # TODO: bug if we select two extremities of the same ribbon, with a single cross in the middle.
         can_swap = self.ribbon_world_manager.select_coord_swap(self.hero.coord_to_swap)
         self.render_world()
         if can_swap:
@@ -1744,7 +1657,7 @@ class GameModel(squarity.GameModelBase):
 
         path_to_gobj = self.hero.find_path(world_coord)
         if path_to_gobj is None:
-            print("I can't reach this place.")
+            print("-- I can't reach this place --")
             return
         if len(path_to_gobj) > 2:
             total_delay = self.hero.record_transitions_in_view(path_to_gobj[1:-1])
