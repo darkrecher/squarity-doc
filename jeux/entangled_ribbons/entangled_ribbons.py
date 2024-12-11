@@ -1,6 +1,5 @@
-# https://i.ibb.co/G30yFzv/ent-rib-tileset.png
-# https://i.ibb.co/Qk4PbCd/ent-rib-tileset.png
 # https://i.ibb.co/1n5zTjV/ent-rib-tileset.png
+# https://i.ibb.co/9qBBZgm/ent-rib-tileset.png
 
 """
   {
@@ -81,16 +80,29 @@
       "transp_black": [64, 224],
       "bbl_0_corner_06": [0, 192],
       "bbl_0_border_0": [32, 192],
-      "bbl_0_corner_02": [512, 192],
-      "bbl_0_border_2": [512, 224],
-      "bbl_0_corner_24": [512, 256],
+      "bbl_0_corner_02": [128, 192],
+      "bbl_0_border_2": [128, 224],
+      "bbl_0_corner_24": [128, 256],
       "bbl_0_border_4": [32, 256],
       "bbl_0_corner_46": [0, 256],
       "bbl_0_border_6": [0, 224],
+      "bbl_1_corner_06": [160, 192],
+      "bbl_1_border_0": [32, 192],
+      "bbl_1_corner_02": [96, 192],
+      "bbl_1_border_2": [96, 224],
+      "bbl_1_corner_24": [96, 256],
+      "bbl_1_border_4": [32, 256],
+      "bbl_1_corner_46": [160, 256],
+      "bbl_1_border_6": [160, 224],
 
       "bonus_telegrab": [192, 0],
       "bonus_teleswap": [160, 0],
-      "bonus_scroll": [256, 0],
+      "bonus_scroll": [224, 0],
+      "bonus_levitate": [256, 0],
+      "scroll_arrow_2": [0, 288],
+      "scroll_arrow_4": [32, 288],
+      "scroll_arrow_6": [64, 288],
+      "scroll_arrow_0": [96, 288],
 
       "text_blah": [404, 14, 64, 33],
       "background": [0, 0]
@@ -611,6 +623,16 @@ class RibbonWorldManager():
         self.ribbons = []
         self.reset_all_swap()
 
+    def shuffle_aboves_and_belows(self):
+        rect_world = squarity.Rect(0, 0, WORLD_WIDTH, WORLD_HEIGHT)
+        for c in squarity.Sequencer.iter_on_rect(rect_world):
+            rib_gobjs = self.ribbons_world.get_game_objects(c)
+            if len(rib_gobjs) == 2:
+                gobj_1, gobj_2 = rib_gobjs
+                if "horiz" in gobj_1.sprite_name or "horiz" in gobj_2.sprite_name:
+                    gobj_below = random.choice([gobj_1, gobj_2])
+                    gobj_below.sprite_name += "_below"
+
     def reset_all_swap(self):
         self.hide_temp_coord_swap = False
         self.coord_swap_1 = None
@@ -910,12 +932,28 @@ class DialogUI():
                 area_scale_y=3.0,
             )
         )
+        self.gobj_npc = GameObject(
+            Coord(DialogUI.RECT_DIALOG_UI.w - 3, DialogUI.RECT_DIALOG_UI.y),
+            "bonus_scroll",
+            image_modifier=squarity.ComponentImageModifier(
+                area_offset_x=+3.0,
+                area_scale_x=3.0,
+                area_scale_y=3.0,
+            )
+        )
         self.gobj_hero.set_transition_delay(140)
         self.layer_dialog_characters.add_game_object(self.gobj_hero)
+        self.gobj_npc.set_transition_delay(140)
+        self.layer_dialog_characters.add_game_object(self.gobj_npc)
         self.gobj_text_hero = GameObject(
             Coord(4, 17),
             "text_blah",
         )
+        self.gobj_text_npc = GameObject(
+            Coord(1, 17),
+            "bonus_scroll",
+        )
+        self.gobj_text_current = None
         self._init_gobjs_by_step()
 
     def _init_gobjs_by_step(self):
@@ -933,29 +971,58 @@ class DialogUI():
         self.anim_id = anim_id
         self.current_step = 0
         if anim_id == DialogUI.ANIM_SHOW_HERO:
-            self._init_bubble_text()
+            self._init_bubble_text(True)
             self.showing = True
             self.gobj_hero.image_modifier.area_offset_x = 0.0
             # TODO : other texts
-            self.gobj_text_hero.sprite_name = "text_blah"
+            self.gobj_text_current = self.gobj_text_hero
+            self.gobj_text_current.sprite_name = "text_blah"
             return self.advance_step_anim_show()
-        else:
+        elif anim_id == DialogUI.ANIM_REMOVE_HERO:
             self.showing = False
             self.gobj_hero.image_modifier.area_offset_x = -3.0
             return self.advance_step_anim_remove()
+        elif anim_id == DialogUI.ANIM_SHOW_NPC:
+            self._init_bubble_text(False)
+            self.showing = True
+            self.gobj_npc.image_modifier.area_offset_x = 0.0
+            # TODO : other texts
+            self.gobj_text_current = self.gobj_text_npc
+            self.gobj_text_current.sprite_name = "bonus_scroll"
+            return self.advance_step_anim_show()
+        elif anim_id == DialogUI.ANIM_REMOVE_NPC:
+            self.showing = False
+            self.gobj_npc.image_modifier.area_offset_x = 3.0
+            return self.advance_step_anim_remove()
 
-    def _init_bubble_text(self):
-        if self.anim_id in (DialogUI.ANIM_SHOW_HERO, DialogUI.ANIM_NPC_TO_HERO):
-            rect_bubble_text = squarity.Rect(
-                DialogUI.RECT_DIALOG_UI.x + 3,
-                DialogUI.RECT_DIALOG_UI.y,
-                DialogUI.RECT_DIALOG_UI.w - 3,
-                DialogUI.RECT_DIALOG_UI.h,
-            )
+    def start_removal_anim(self):
+        if self.anim_id == DialogUI.ANIM_SHOW_HERO:
+            return self.start_anim(DialogUI.ANIM_REMOVE_HERO)
+        if self.anim_id == DialogUI.ANIM_SHOW_NPC:
+            return self.start_anim(DialogUI.ANIM_REMOVE_NPC)
+
+    def _init_bubble_text(self, is_hero=True):
+        if self.anim_id in (DialogUI.ANIM_SHOW_HERO, DialogUI.ANIM_SHOW_NPC):
+            if is_hero:
+                rect_bubble_text = squarity.Rect(
+                    DialogUI.RECT_DIALOG_UI.x + 3,
+                    DialogUI.RECT_DIALOG_UI.y,
+                    DialogUI.RECT_DIALOG_UI.w - 3,
+                    DialogUI.RECT_DIALOG_UI.h,
+                )
+                index_bbl = "0"
+            else:
+                rect_bubble_text = squarity.Rect(
+                    DialogUI.RECT_DIALOG_UI.x,
+                    DialogUI.RECT_DIALOG_UI.y,
+                    DialogUI.RECT_DIALOG_UI.w - 3,
+                    DialogUI.RECT_DIALOG_UI.h,
+                )
+                index_bbl = "1"
             y_lines = list(range(rect_bubble_text.y, rect_bubble_text.y + rect_bubble_text.h))
             x_tiles = list(range(rect_bubble_text.x, rect_bubble_text.x + rect_bubble_text.w))
 
-            sprite_names = ("bbl_0_corner_06", "bbl_0_border_0", "bbl_0_corner_02")
+            sprite_names = ("bbl_" + index_bbl + "_corner_06", "bbl_" + index_bbl + "_border_0", "bbl_" + index_bbl + "_corner_02")
             y = y_lines[0]
             x = x_tiles[0]
             spr = sprite_names[0]
@@ -967,7 +1034,7 @@ class DialogUI():
             spr = sprite_names[-1]
             self.gobjs_text_bubble.append(GameObject(Coord(x, y), spr))
 
-            sprite_names = ("bbl_0_border_6", "white", "bbl_0_border_2")
+            sprite_names = ("bbl_" + index_bbl + "_border_6", "white", "bbl_" + index_bbl + "_border_2")
             for y in y_lines[1:-1]:
                 x = x_tiles[0]
                 spr = sprite_names[0]
@@ -979,7 +1046,7 @@ class DialogUI():
                 spr = sprite_names[-1]
                 self.gobjs_text_bubble.append(GameObject(Coord(x, y), spr))
 
-            sprite_names = ("bbl_0_corner_46", "bbl_0_border_4", "bbl_0_corner_24")
+            sprite_names = ("bbl_" + index_bbl + "_corner_46", "bbl_" + index_bbl + "_border_4", "bbl_" + index_bbl + "_corner_24")
             y = y_lines[-1]
             x = x_tiles[0]
             spr = sprite_names[0]
@@ -1000,8 +1067,7 @@ class DialogUI():
         if self.current_step == 3:
             for gobj in self.gobjs_text_bubble:
                 self.layer_dialog.add_game_object(gobj)
-            # TODO : set sprite_name of gobj_text_hero
-            self.layer_dialog_characters.add_game_object(self.gobj_text_hero)
+            self.layer_dialog_characters.add_game_object(self.gobj_text_current)
 
         self.current_step += 1
         event_res = squarity.EventResult()
@@ -1020,7 +1086,7 @@ class DialogUI():
         if self.current_step == 0:
             for gobj in self.gobjs_text_bubble:
                 self.layer_dialog.remove_game_object(gobj)
-            self.layer_dialog_characters.remove_game_object(self.gobj_text_hero)
+            self.layer_dialog_characters.remove_game_object(self.gobj_text_current)
             # TODO : peut être on peut garder la bubble, au lieu de tout péter et remettre à chaque fois.
             self.gobjs_text_bubble = []
         elif self.current_step <= 3:
@@ -1092,22 +1158,7 @@ class GameModel(squarity.GameModelBase):
         for rib_path in map_parser.iter_ribbon_paths():
             ribbon = Ribbon(self.ribbons_world, "red", rib_path=rib_path)
             self.ribbon_world_manager.add_ribbon(ribbon)
-
-        # TODO : remove that crap.
-        # rib_1 = Ribbon(self.ribbons_world, "red")
-        # rib_1.hard_code_path_1()
-        # self.ribbon_world_manager.add_ribbon(rib_1)
-        # rib_2 = Ribbon(self.ribbons_world, "yel")
-        # rib_2.hard_code_path_2()
-        # self.ribbon_world_manager.add_ribbon(rib_2)
-        # rib_3 = Ribbon(self.ribbons_world, "grn")
-        # rib_3.hard_code_path_3()
-        # self.ribbon_world_manager.add_ribbon(rib_3)
-        # rib_4 = Ribbon(self.ribbons_world, "blu")
-        # rib_4.hard_code_path_4()
-        # self.ribbon_world_manager.add_ribbon(rib_4)
-        #inter_gobj = InteractableGobj(Coord(16, 16), "bonus_telegrab")
-        #inter_gobj.init_config(dialog_text="txt_bonus_telegrab", power_granted=Powers.GRAB_EVERYWHERE)
+        self.ribbon_world_manager.shuffle_aboves_and_belows()
         map_parser.compute_interactable_objects()
         for inter_gobj in map_parser.inter_gobjs:
             self.interactable_world.add_game_object(inter_gobj)
@@ -1150,6 +1201,12 @@ class GameModel(squarity.GameModelBase):
         #self.powers.grant_power(Powers.SWAP_CROSS)
         self.render_world()
 
+        self.SCROLL_DIR_FROM_POS = {
+            Coord(self.w // 2, 0): squarity.dirs.Up,
+            Coord(self.w - 1, self.h // 2): squarity.dirs.Right,
+            Coord(self.w // 2, self.h - 1): squarity.dirs.Down,
+            Coord(0, self.h // 2): squarity.dirs.Left,
+        }
         self.story_manager = StoryManager(self.dialog_ui)
         return self.dialog_ui.start_anim(DialogUI.ANIM_SHOW_HERO, "tuto_00")
 
@@ -1200,11 +1257,7 @@ class GameModel(squarity.GameModelBase):
             if self.ui_gobj_swap.layer_owner is None:
                 self.layer_ui.add_game_object(self.ui_gobj_swap)
 
-    def on_button_direction(self, direction):
-
-        if self.dialog_ui.showing:
-            return self.dialog_ui.start_anim(DialogUI.ANIM_REMOVE_HERO)
-
+    def scroll(self, direction):
         # TODO LIB : appliquer un vecteur sur un rect pour bouger son corner upleft.
         temp_view_corner = coord_upleft_from_rect(self.view_rect)
         temp_view_corner.move_dir(direction)
@@ -1222,6 +1275,13 @@ class GameModel(squarity.GameModelBase):
         else:
             print("You are at the world limits.")
 
+    def on_button_direction(self, direction):
+        if self.dialog_ui.showing:
+            return self.dialog_ui.start_removal_anim()
+        if not self.powers.has_power(Powers.SCROLL):
+            return
+        self.scroll(direction)
+
     def on_button_action(self, action_name):
         # TODO : si on a les 2 pouvoirs "EVERYWHERE",
         # et que l'on clique sur un ruban grabbable, alors ça le grab tout de suite,
@@ -1229,15 +1289,21 @@ class GameModel(squarity.GameModelBase):
         # C'est un pouvoir supplémentaire: l'auto-grab. "le pouvoir de prescience".
         # ou pas...
         if self.dialog_ui.showing:
-            return self.dialog_ui.start_anim(DialogUI.ANIM_REMOVE_HERO)
+            return self.dialog_ui.start_removal_anim()
         return self.switch_interaction_mode()
 
     def on_click(self, coord):
         if self.dialog_ui.showing:
-            return self.dialog_ui.start_anim(DialogUI.ANIM_REMOVE_HERO)
-        if coord.x == 0 and coord.y == 0:
-            return self.switch_interaction_mode()
+            return self.dialog_ui.start_removal_anim()
+
         if self.rect.on_border(coord):
+            if coord.x == 0 and coord.y == 0:
+                return self.switch_interaction_mode()
+            if not self.powers.has_power(Powers.SCROLL):
+                return
+            direction = self.SCROLL_DIR_FROM_POS.get(coord)
+            if direction is not None:
+                self.scroll(direction)
             return
 
         # TODO : fonctions spécifiques world <-> view. Ou pas...
@@ -1484,6 +1550,12 @@ class GameModel(squarity.GameModelBase):
 
         if inter_gobj.power_granted:
             self.powers.grant_power(inter_gobj.power_granted)
+            if inter_gobj.power_granted == Powers.SCROLL:
+                for coord, direction in self.SCROLL_DIR_FROM_POS.items():
+                    self.layer_ui.add_game_object(
+                        GameObject(coord, "scroll_arrow_" + str(int(direction)))
+                    )
+
         if inter_gobj.auto_disable:
             inter_gobj.enabled = False
         if inter_gobj.auto_remove:
