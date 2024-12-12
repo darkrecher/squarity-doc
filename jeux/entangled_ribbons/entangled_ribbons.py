@@ -134,31 +134,9 @@
   }
 """
 
-AUTHORIZED_TEXTS = [
-    "text_blah",
-    "tuto_00",
-    "tuto_switch_mode",
-    "tuto_grabbed_first",
-    "tuto_swap",
-    "txt_bonus_telegrab",
-    "txt_bonus_teleswap",
-    "txt_bonus_levitate",
-    "txt_npc_0_0",
-    "txt_npc_0_1",
-    "txt_npc_1_0",
-    "txt_rib_blocked",
-    "txt_rib_tangblocked",
-    "txt_npc_2_0",
-    "txt_npc_2_1",
-    "txt_npc_2_2",
-    "txt_bonus_scroll",
-    "txt_power_plane_shift",
-]
-
 """
 
     SECRET SANTA !!
-
 
 """
 
@@ -180,32 +158,6 @@ WORLD_HEIGHT = 54
 # 7 0 1
 # 6   2
 # 5 4 3
-
-MAP_OLD = """
-
- *
-2+----`   4  *
- |/-` |   | c|
- ||b| |4  |*4|   *
- |`-+``+* `++/   |
-2+-``+``---/`----+* *
- 0 | `+`  /` *4/``--+6
-   |  `+` *|*++++--`|
-   |  4`+6 | 0`/*4a||
-   `--+**  |/---``-/|
-      |    ||4#``## |
-      `` 2`|`+60k// |
-       `-``/n`---//-+*      2-*
-        2+---`/---+``6
-         *   ++   0|
-             *0    *
-
-
-             m
-
-             d
-
-"""
 
 MAP = """
             *       *
@@ -254,6 +206,27 @@ MAP = """
   0   * | |  0
         0 *
 """
+
+AUTHORIZED_TEXTS = [
+    "text_blah",
+    "tuto_00",
+    "tuto_switch_mode",
+    "tuto_grabbed_first",
+    "tuto_swap",
+    "txt_bonus_telegrab",
+    "txt_bonus_teleswap",
+    "txt_bonus_levitate",
+    "txt_npc_0_0",
+    "txt_npc_0_1",
+    "txt_npc_1_0",
+    "txt_rib_blocked",
+    "txt_rib_tangblocked",
+    "txt_npc_2_0",
+    "txt_npc_2_1",
+    "txt_npc_2_2",
+    "txt_bonus_scroll",
+    "txt_power_plane_shift",
+]
 
 class MapParser():
 
@@ -822,7 +795,7 @@ class RibbonWorldManager():
                 self.hide_temp_coord_swap = True
                 return True
             else:
-                print("-- We can not swap those ribbons --")
+                print("-- I can not swap these ribbons. Swappable ribbons must have a common cross near their extremities. --")
                 self.coord_swap_2 = None
                 self.ribbon_swap_2 = None
                 self.extr_swap_2 = None
@@ -1540,7 +1513,7 @@ class GameModel(squarity.GameModelBase):
             self.ribbons_world,
             self.powers.has_power(Powers.GRAB_ABOVE)
         ):
-            print("-- This ribbon can't be grabbed --")
+            print("-- This ribbon can't be grabbed, you have to disentangle it --")
             event_res = squarity.EventResult()
             event_res.punlocks_custom.append("grab_anim")
             return event_res
