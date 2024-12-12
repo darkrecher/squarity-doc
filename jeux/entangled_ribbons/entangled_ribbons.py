@@ -127,6 +127,7 @@
       "txt_npc_2_2": [0, 1890, 540, 100],
       "txt_bonus_scroll": [0, 1992, 540, 100],
       "txt_power_plane_shift": [0, 2100, 540, 100],
+      "the_end": [288, 260, 236, 79],
 
       "background": [0, 0]
     }
@@ -161,22 +162,13 @@ AUTHORIZED_TEXTS = [
 
 """
 
-"""
-TODOs
-
-[different message if grabbed all ribbons]
-[end screen]
-change world size, more ribbons
-[potions instead of ugly bonuses]
-"""
-
 import random
 import squarity
 Coord = squarity.Coord
 GameObject = squarity.GameObject
 
 WORLD_WIDTH = 36
-WORLD_HEIGHT = 39
+WORLD_HEIGHT = 54
 
 # 0, 2, 4, 6: ribbon start, in the corresponding direction.
 # |-+ : cross, horiz, vertic. above/below is not defined, set it at random.
@@ -234,14 +226,33 @@ MAP = """
           /--------``-/`-`
           |        |     ``
           0        */-`   ``
-                    |2+-`  `-`
-                    | 0 ``  b|
-                    |    `---+*
-/--------`    /-----+-6      *
-|  4    *+----+6    *
-`--+*    0   m*
-   *         d
+                    |2+-`  ``
+                    | 0 ``  ``
+                    |    ``  |
+/--------`    /-----+-6   ``b|
+|  4    *+----+6    *      `-+*
+`--+*    0    *              *
+   *
 
+           4        4     4
+/` 4 /-`  2+**/` /`2+-*  2+*/-`
+|``| *m|   | ||`-/|2+*    | * |
+| `+*4 |   | ||   |2+-*   | 4 |
+0  * `-/   * 00   * *     * `-/
+
+ 4             *         4   *
+2+` /-`  /-`  2+`*/-`/-`2+-*2+`
+ |``* |  |d|  *+/|| *| *2+* *+/
+ |//4 | 2+-+* 2+`||2`|2`2+-*2+`
+*+/ `-/  | |  *+/0`-/`-/ *   0*
+ *       0 *   0
+
+             *
+  /` /` /-` 2+-`
+  |`-/| | | *+-/
+  |   |2+-+* |
+  0   * | |  0
+        0 *
 """
 
 class MapParser():
@@ -449,7 +460,7 @@ class UglyHardDefiner():
             ("horiz", Coord(2, 1)),
             ("extr_6", Coord(3, 1)),
         )
-        UPPER_LEFT_RIB_TANGBLOCKED = Coord(30, 30)
+        UPPER_LEFT_RIB_TANGBLOCKED = Coord(30, 45)
         raw_path_tangblocked_1 = (
             ("horiz", Coord(2, 1)),
             ("horiz_below", Coord(1, 1)),
@@ -557,10 +568,21 @@ class UglyHardDefiner():
         inter_gobj.init_config(
             dialog_text="txt_npc_2_2",
             anim_id=DialogUI.ANIM_SHOW_NPC,
-            auto_remove=False,
-            auto_disable=True,
             sprite_npc="npc_wife",
             console_text="Congrats. Please come in the kitchen. Those cookies won't cook by themselves."
+        )
+        self.interactable_world.add_game_object(inter_gobj)
+        coord_inter = Coord(2, 2)
+        inter_gobj = InteractableGobj(
+            coord_inter.move_by_vect(UPPER_LEFT_RIB_TANGBLOCKED),
+            "npc_wife"
+        )
+        inter_gobj.init_config(
+            dialog_text=None,
+            anim_id=None,
+            sprite_npc="npc_wife",
+            the_end=True,
+            console_text="Click the button `Exécuter` to play again."
         )
         self.interactable_world.add_game_object(inter_gobj)
 
@@ -1228,7 +1250,6 @@ class StoryManager():
 
 
 class InteractableGobj(GameObject):
-    # TODO: disabling power.
     def init_config(
         self,
         must_have_path=True,
@@ -1240,6 +1261,7 @@ class InteractableGobj(GameObject):
         sprite_hero_new=None,
         sprite_npc=None,
         canceling_power=None,
+        the_end=False,
         console_text=None,
     ):
         self.must_have_path = must_have_path
@@ -1250,7 +1272,8 @@ class InteractableGobj(GameObject):
         self.auto_disable = auto_disable
         self.hero_sprite = sprite_hero_new
         self.sprite_npc = sprite_npc
-        self.canceling_power=canceling_power
+        self.canceling_power = canceling_power
+        self.the_end = the_end
         self.console_text = console_text
         self.enabled = True
 
@@ -1673,6 +1696,16 @@ class GameModel(squarity.GameModelBase):
             self.hero.inter_gobj = inter_gobj
             return self.callback_hero_interact()
 
+    def show_end(self):
+        for c in squarity.Sequencer.iter_on_rect(self.rect):
+            self.layer_ui.add_game_object(GameObject(c, "black"))
+        self.layer_ui.add_game_object(GameObject(Coord(5, self.h // 2), "npc_wife"))
+        self.layer_ui.add_game_object(GameObject(Coord(8, self.h // 2), "hero"))
+        self.layer_ui.add_game_object(GameObject(Coord(11, self.h // 2), "npc_daughter_1"))
+        self.layer_ui.add_game_object(GameObject(Coord(14, self.h // 2), "npc_daughter_2"))
+        # Complètement à l'arrache. Osef.
+        self.layer_dialog_characters.add_game_object(GameObject(Coord(7, self.h // 4), "the_end"))
+
     def callback_hero_interact(self):
         inter_gobj = self.hero.inter_gobj
         if not inter_gobj.enabled:
@@ -1687,7 +1720,6 @@ class GameModel(squarity.GameModelBase):
                     self.layer_ui.add_game_object(
                         GameObject(coord, "scroll_arrow_" + str(int(direction)))
                     )
-
         if inter_gobj.auto_disable:
             inter_gobj.enabled = False
         if inter_gobj.auto_remove:
@@ -1696,6 +1728,13 @@ class GameModel(squarity.GameModelBase):
         if inter_gobj.console_text:
             print("-----")
             print(inter_gobj.console_text)
+
+        if inter_gobj.the_end:
+            self.show_end()
+            event_res = squarity.EventResult()
+            event_res.plocks_custom.append("the_end")
+            return event_res
+
         if inter_gobj.anim_id is not None:
             event_res = self.dialog_ui.start_anim(inter_gobj.anim_id, inter_gobj.dialog_text, inter_gobj.sprite_npc)
         else:
