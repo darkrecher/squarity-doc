@@ -583,8 +583,12 @@ class Ribbon():
         """
         Si c'est l'extremité du début, renvoie 1.
         Si c'est celle de la fin, renvoie -1.
-        Sinon, renvoie None
+        Et il faut que ce soit une vraie extremité de ruban, pas un bout
+        de ruban coincé sous un mur.
+        Sinon, ça renvoie None
         """
+        if "extr" not in gobj_rib.sprite_name:
+            return None
         if self.gobjs[0] == gobj_rib:
             return 1
         if self.gobjs[-1] == gobj_rib:
