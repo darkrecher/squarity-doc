@@ -922,6 +922,9 @@ class Hero():
 
     def find_path(self, dest):
         """Good old pathfinding"""
+        # We shouldn't go into walls.
+        if self.walls.get_game_objects(dest):
+            return None
         distances = {}
         nexts = [(self.coord_hero_world, 0)]
         while nexts and dest not in distances:
