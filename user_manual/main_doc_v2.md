@@ -17,7 +17,7 @@ Pour l'instant, Squarity ne gère pas de comptes ni de profil personnel. Vous de
 
 Le tileset est comme un atlas : c'est une image regroupant toutes les "sous-images" des éléments de votre jeu (décor, personnages, bonus, ...).
 
-Pour que votre tileset soit accessible dans Squarity, il doit être publié sur internet : dans un repository github, sur site d'hébergement d'images, etc.
+Pour que votre tileset soit accessible dans Squarity, il doit être publié sur internet : dans un repository github, sur un site d'hébergement d'images, etc.
 
 Dans l'interface de Squarity, indiquez le lien direct vers votre fichier image dans le champ "Url de l'image".
 
@@ -42,13 +42,13 @@ Exemple :
 }
 ```
 
-Dans l'interface, indiquez cette configuration dans la zone de texte "Config du jeu".
+Dans l'interface, cette configuration doit être écrite dans la zone de texte "Config du jeu".
 
-### Informations génériques
+### Informations générales de la config
 
 `name` (chaîne de caractère) : le nom de votre jeu. Il est écrit dans le "title" de la page web, précédé du texte "Squarity - ".
 
-`version` (chaîne de caractère) : version du moteur du jeu, indiquez "2.1.0". ([Voir chapitre "Versions"](https://github.com/darkrecher/squarity-doc/blob/master/user_manual/main_doc_v2.md#versions-du-moteur-squarity)).
+`version` (chaîne de caractère) : version du moteur du jeu, indiquez "2.1.0". ([Voir Versions"](#versions-du-moteur-squarity)).
 
 `tile_size` (nombre entier) : la taille par défaut, en pixels dans le tileset, des images représentant les éléments de votre jeu.
 
@@ -62,7 +62,7 @@ Chaque clé de ce sous-dictionnaire est une chaîne de caractère que vous pourr
 
 Chaque valeur de ce sous-dictionnaire est une liste de 2 entiers. Ils représentent les coordonnées x et y, en pixels dans le tileset, du coin supérieur gauche de l'image.
 
-Il est possible d'ajouter d'autres valeurs après les deux entiers de la liste. [Voir chapitre "Info supplémentaires pour les sprites"](#info-suppl%C3%A9mentaires-pour-les-sprites).
+Il est possible d'ajouter d'autres valeurs après les deux entiers de la liste. [Voir "Info supplémentaires pour les sprites"](#info-suppl%C3%A9mentaires-pour-les-sprites).
 
 ### Versions du moteur Squarity
 
@@ -70,24 +70,32 @@ La seule information utile de la clé `version` est le premier nombre, situé av
 
 Si ce nombre est "1", la version utilisée sera "1.0.0".
 
-Si ce nombre est "2", la version utilisée sera la version 2.x.y la plus récente (actuellement : "2.1.0"). Vous n'avez donc pas accès aux précédentes versions 2.x.y, mais elles sont censées être rétro-compatibles.
+Si ce nombre est "2", la version utilisée sera la version 2.x.y la plus récente (actuellement : "2.1.0"). Vous n'avez pas accès aux précédentes versions 2.x.y, mais elles sont censées être rétro-compatibles.
 
 
 ## Notions de base du "game code"
 
 Il s'agit du programme définissant la logique de votre jeu, il est écrit en langage python.
 
-Dans l'interface, placez ce programme dans la zone de texte "Le code du jeu".
+Dans l'interface, placez ce programme dans la zone de texte intitulée "Le code du jeu".
 
 Ce programme doit contenir une classe intitulée `GameModel`, qui hérite de la classe `squarity.GameModelBase`.
 
-Cette classe sera instanciée automatiquement par le moteur Squarity. Elle contient des fonctions de callback, que vous aurez éventuellement redéfinie. Ces fonctions sont appelées automatiquement sur certains événements (appui sur un bouton du jeu, clic de souris, etc.)
+Cette classe sera instanciée automatiquement par le moteur Squarity. Elle contient des fonctions de callback qui seront appelées automatiquement sur certains événements (appui sur un bouton du jeu, clic de souris, etc.)
 
-Votre `GameModel` contient des objets de type `squarity.Layer`, ordonnés dans une liste. Chacun de ces layers contient un tableau de "tiles". Ce tableau est en 2 dimensions, la largeur et la hauteur correspondent à celles de l'aire de jeu (les valeurs `nb_tile_width` et `nb_tile_height` indiquées dans la config JSON).
+Votre `GameModel` contient des objets de type `squarity.Layer`, ordonnés dans une liste. Chacun de ces layers contient un tableau de "tiles". Ce tableau est en 2 dimensions, la largeur et la hauteur correspondent à celles de l'aire de jeu (c'est à dire les valeurs `nb_tile_width` et `nb_tile_height` indiquées dans la config JSON).
 
-Une tile représente une case de l'aire de jeu. Chaque tile peut contenir des `squarity.GameObject`, représentant des objets de votre jeu. Un GameObject est toujours placé sur une seule tile de seul layer. Un GameObject possède des coordonnées (x, y) indiquant la tile d'appartenance dans le layer. Un GameObject possède une variable membre `sprite_name`, de type chaîne de caractère. Cette variable doit avoir pour valeur l'un des noms définis dans le dictionnaire `img_coords` de la configuration JSON.
+Une tile représente une case de l'aire de jeu. Chaque tile peut contenir des `squarity.GameObject`, représentant des objets de votre jeu.
 
-La suite de cette documentation contient des exemples de code. Vous pouvez les copier-coller dans Squarity puis cliquer sur le bouton "Executer". Vous devriez voir des informations apparaître dans la console (la fenêtre de texte en bas de l'aire de jeu). Pour les exemples un peu plus complexes, il faut trouver le bon endroit où placer le code, mais vous êtes très fort et vous allez y arriver.
+ - Un GameObject est toujours placé sur une seule tile de un seul layer.
+ - Un GameObject possède des coordonnées (x, y) indiquant la tile d'appartenance dans le layer.
+ - Un GameObject possède une variable membre `sprite_name`, de type chaîne de caractère. Cette variable doit avoir pour valeur l'un des noms définis dans le dictionnaire `img_coords` de la configuration JSON.
+
+La suite de cette documentation contient des exemples de code. Pour les essayer, commencez par charger le jeu de l'émeraude verte (qui fonctionne en version 2.1.0), copier-collez le code dans la fenêtre du code, puis cliquez sur le bouton "Exécuter". Vous devriez voir des informations apparaître dans la fenêtre de texte en bas de l'aire de jeu.
+
+Les exemples de code ne commençant pas par la ligne `import squarity` doivent être ajoutés dans le code existant, juste après la ligne `import squarity` déjà présente.
+
+Les exemples de code commençant par `import squarity` sont plus complets, ils doivent remplacer tout le code existant.
 
 
 ## Schéma d'affichage, calculs des tailles
@@ -107,15 +115,16 @@ Le calcul est effectué comme suit:
 
 Ensuite, une mise à l'échelle est effectuée, pour afficher les images ayant une taille égale à `config.tile_size` (en pixel dans le tileset), vers des images ayant une taille égale à `taille_case_affichage` (en pixel à l'écran).
 
-La mise à l'échelle est effectuée selon l'algorithme "proche voisin", sans aucun traitement ni anti-aliasing. C'est à dire que des gros pixels carrés seront visibles si vos images de tileset sont petites et que la personne qui joue a choisi une grande fenêtre de jeu.
+La mise à l'échelle est effectuée selon l'algorithme "proche voisin", sans aucun traitement ni anti-aliasing. Vous verrez donc des gros pixels carrés si vos images de tileset sont petites et que vous jouez dans une grande fenêtre.
 
 ![https://raw.githubusercontent.com/darkrecher/squarity-doc/master/user_manual/schema_game_sizes.png](https://raw.githubusercontent.com/darkrecher/squarity-doc/master/user_manual/schema_game_sizes.png)
 
+
 ## class Direction
 
-### Liste des directions
+Il s'agit d'une classe python dont il n'existe que 8 instances, 4 pour les directions de base (haut, droite, bas, gauche) et 4 autres pour les diagonales. Ces 8 instances sont stockées dans l'objet `squarity.dirs`.
 
-Il s'agit d'une classe dont il n'existe que 8 instances, 4 pour les directions de base (haut, droite, bas, gauche) et 4 autres pour les diagonales. Ces 8 instances sont stockées dans l'objet `squarity.dirs`.
+### Liste des directions
 
 Les instances peuvent être comparées entre elles, par exemple : `my_dir == dirs.Up`. Elles peuvent être converties en entier et en string. Elles possèdent une variable `vector` qui est un tuple de deux éléments, indiquant respectivement son déplacement en X et son déplacement en Y.
 
@@ -149,6 +158,7 @@ d = squarity.dirs.UpRight
 print(d.turn_ccw(3))
 # La valeur 'left' s'affiche dans la console.
 ```
+
 
 ## class Coord
 
@@ -203,7 +213,7 @@ print(coord_1)
 
 ## class Rect
 
-Définit un rectangle, à partir de 4 paramètres de type `int` : le X et le Y du coin supérieur droit, la largeur la hauteur.
+Définit un rectangle, à partir de 4 paramètres de type `int` : le X et le Y du coin supérieur droit, la largeur, la hauteur.
 
 Les coordonnées dans le rectangle s'étendent depuis X jusqu'à (X+largeur-1) en abscisse, et depuis Y jusqu'à (Y+hauteur-1) en ordonnée.
 
@@ -308,7 +318,7 @@ Si vous changez plusieurs fois les coordonnées dans le même tour de jeu, les v
 
 Vous pouvez déclencher plusieurs transitions sur plusieurs Game Objects, en modifiant les coordonnées de chacun d'entre eux.
 
-Il est possible de définir des déplacements avec des étapes intermédiaires. Par exemple, un déplacement horizontal de x=5 vers x=8, puis un vertical de y=3 vers y=2. [Voir chapitres "Transitions"](#transitions).
+Il est possible de définir des déplacements avec des étapes intermédiaires. Par exemple, un déplacement horizontal de x=5 vers x=8, puis un vertical de y=3 vers y=2. [Voir "Transitions"](#transitions).
 
 Le temps de la transition peut être redéfini individuellement pour chaque Game Object, avec la fonction `gobj.set_transition_delay(transition_delay)`. Le paramètre `transition_delay` est un `int` indiquant le temps en millisecondes. Toutes les futures transitions dues à un changement de coordonnées utiliseront ce nouveau temps.
 
@@ -448,7 +458,7 @@ Dans votre GameModel, vous pouvez définir des fonctions de callback spécifique
 
 ### Liste des fonctions de callback
 
-`on_start(self)` : cette fonction est appelée une seule fois au début du jeu. Il est conseillé de mettre votre code d'initialisation dans cette fonction, plutôt que dans la fonction `__init__`, car la fonction `on_start` permet de renvoyer un objet `EventResult` qui sera pris en compte. (TODO : voir plus loin).
+`on_start(self)` : cette fonction est appelée une seule fois au début du jeu. Il est conseillé de mettre votre code d'initialisation dans cette fonction, plutôt que dans la fonction `__init__`, car la fonction `on_start` permet de renvoyer un objet `EventResult` qui sera pris en compte. [Voir la classe "EventResult"](#class-eventresult)
 
 `on_click(self, coord)` : cette fonction est appelée chaque fois que la personne qui joue clique dans l'aire de jeu. Vous pouvez consulter le paramètre `coord` pour savoir sur quelle case le clic a eu lieu. Vous ne pouvez pas savoir précisément quel Game Object a été cliqué, ni la position exacte du clic dans la case, car le but du moteur de jeu Squarity est de rester simple, et de se spécialiser uniquement dans les jeux en 2D sur un quadrillage.
 
@@ -498,9 +508,9 @@ La méthode `game_model.get_first_gobj(coord, sprite_names, layer)` permet de r�
 
  - paramètre `coord` : par défaut, l'objet est cherché sur tout l'aire de jeu. Sinon, ce paramètre peut être un `Rect` ou une `Coord`, indiquant dans quelle zone ou dans quelle coordonnée on cherche l'objet.
  - paramètre `sprite_names` : par défaut, pas de filtre sur le nom de sprite. Sinon, ce paramètre doit être une liste de strings, indiquant le ou les noms de sprite recherché.
- - paramètre `layer` : par défaut, on cherche dans tous les Layers placés dans la liste `game_model.layers`. Sinon, ce paramètre doit être un unique `Layer`, dans lequel on cherche l'objet.
+ - paramètre `layer` : par défaut, on cherche dans tous les Layers placés dans la liste `game_model.layers`. Sinon, ce paramètre doit être un unique `Layer`, dans lequel on cherche l'objet.
 
-La variable membre `self.transition_delay` définit le temps par défaut (en millisecondes) de toutes les transitions effectuées suite à un changement de coordonnées d'un Game Object. Contrairement aux autres variables membres, celle-ci peut être modifiée. (TODO : voir plus loin).
+La variable membre `self.transition_delay` définit le temps par défaut (en millisecondes) de toutes les transitions effectuées suite à un changement de coordonnées d'un Game Object. Contrairement aux autres variables membres, celle-ci peut être modifiée. [Voir "Transitions"](#transitions)
 
 
 ## class EventResult
@@ -547,7 +557,7 @@ Votre jeu aura peut-être besoin d'afficher des "cut scene" ou des petites anima
 Il y a deux types de Player Locks:
 
  - custom : c'est à vous d'indiquer explicitement, via le code, à quel moments ça locke et ça délocke.
- - transition : les locks/delocks sont effectués automatiquement d'après les transitions de certains Game Object (TODO : voir plus loin).
+ - transition : les locks/delocks sont effectués automatiquement d'après les transitions de certains Game Object ([Voir "Player Lock Transi"](#blocage-de-linterface-player-lock-transi)).
 
 Pour les Locks Custom, le blocage est toujours montré dans l'interface : les boutons d'actions apparaissent grisé.
 
@@ -602,9 +612,9 @@ Vous pouvez cumuler plusieurs éléments dans le même Event Result. Par exemple
 
 Une transition représente la modification progressive d'une variable d'un Game Object, sur une période de temps définie. Il est possible d'appliquer une transition sur les coordonnées. L'objet se déplacera "pixel par pixel" de sa case de destination vers sa case d'arrivée. Visuellement, les coordonnées de votre objet deviennent des valeurs décimales, pour le placer entre deux cases. Dans votre code python, les coordonnées restent des nombres entiers, et passent directement de la valeur de départ à la valeur d'arrivée.
 
-D'autres variables d'un Game Object peuvent également avoir des transitions, par exemple `area_scale_x` et `area_scale_y` dans le `ComponentImageModifier`. Ces variables permettent de grossir/rétrécir l'objet (TODO : voir plus loin).
+D'autres variables d'un Game Object peuvent également avoir des transitions, par exemple `area_scale_x` et `area_scale_y` dans le `ComponentImageModifier`. Ces variables permettent de grossir/rétrécir l'objet ([Voir "ComponentImageModifier"](#componentimagemodifier)).
 
-Le sprite name peut également avoir des transitions, mais elles ne sont pas progressives. L'image change d'un seul coup. L'intérêt étant de pouvoir enchaîner ces transitions : une première image pendant 100 millisecondes, une deuxième pendant les 100 millisecondes suivantes, etc.
+Le sprite name peut également avoir des transitions, mais elles ne sont pas progressives. L'image change d'un seul coup. L'intérêt étant de pouvoir enchaîner ces transitions : une première image pendant 100 millisecondes, une deuxième pendant les 100 millisecondes suivantes, etc.
 
 Il existe deux moyens pour déclencher une transition : modifier directement une variable transitionnable ou exécuter la fonction `add_transition`.
 
@@ -725,9 +735,9 @@ Si la personne qui joue reste appuyé sur une touche, la fonction `on_button_dir
 
 Il est possible de bloquer automatiquement toute l'interface du jeu (clics et boutons) tant qu'un Game Object a au moins une transition en cours. Ça peut être utile si votre jeu comporte un élément principal (héros/héroïne/avatar/etc.) dirigé par la personne qui joue. Si un bouton est appuyé durant le mouvement de cet élément, ce ne sera pas pris en compte.
 
-Modifiez la variable membre `plock_transi` de votre Game Object. Celle-ci peut prendre 3 valeurs:
+Modifiez la variable membre `plock_transi` de votre Game Object. Celle-ci peut prendre 3 valeurs:
 
- - `PlayerLockTransi.NO_LOCK` : pas le blocage (valeur par défaut).
+ - `PlayerLockTransi.NO_LOCK` : pas le blocage (valeur par défaut).
  - `PlayerLockTransi.INVISIBLE` : blocage invisible. Les boutons ne changent pas d'apparence, mais rien ne se passe si on clique dessus.
  - `PlayerLockTransi.LOCK` : blockage visible. Les boutons s'affichent en grisé.
 
@@ -780,7 +790,8 @@ Voici la liste complète (incluant les 2 premiers nombres obligatoires)
 
  - chaines de caractères : "center" ou "corner_upleft", par défaut : "corner_upleft". Indique où ancrer l'image du tileset par rapport à la case de l'aire de jeu, en particulier quand l'image et la case n'ont pas la même taille. Avec "corner_upleft", le coin haut gauche de l'image reste fixé sur le coin haut gauche de la case. Donc si on agrandit l'image, elle va dépasser vers le bas et vers la droite. Avec "center", le centre de l'image reste fixé sur le centre de la case. Si on agrandit l'image, elle va dépasser par les 4 côtés.
 
-TODO : faire un schéma pour ça aussi.
+![https://raw.githubusercontent.com/darkrecher/squarity-doc/master/user_manual/schema_sprite_infos.png](https://raw.githubusercontent.com/darkrecher/squarity-doc/master/user_manual/schema_sprite_infos.png)
+
 
 ## ComponentImageModifier
 
@@ -1094,4 +1105,5 @@ Cet exemple de code fonctionne avec tous les jeux (à condition de les mettre en
 Le fonctionnement est le même que pour la version 1.
 
 Les explications sont ici : https://github.com/darkrecher/squarity-doc/blob/master/user_manual/main_page.md#partager-un-jeu
+
 
