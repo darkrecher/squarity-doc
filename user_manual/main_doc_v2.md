@@ -1,6 +1,6 @@
 # Documentation de référence de Squarity V2
 
-Squarity est un espace de création et de partage de jeux vidéo jouables dans un navigateur web. Les jeux se déroulent sur une grille en 2D composée de carrés. La "game logic" (le fonctionnement et les règles du jeu) est définie par du code en python.
+Squarity est un espace de création et de partage de jeux vidéo jouables dans un navigateur web. Les jeux se déroulent sur une grille en 2D composée de carrés. Le fonctionnement et les règles du jeu sont définis par du code en python.
 
 Ce document décrit les fonctionnalités de la version 2.1.0 du moteur de Squarity. Il suppose que vous avez déjà un minimum de connaissance en python. Si ce n'est pas le cas, vous pouvez les acquérir avec ce tutoriel en français : https://python.doctor/
 
@@ -10,7 +10,7 @@ Un jeu est défini par trois informations :
  - la configuration,
  - le "game code".
 
-Pour l'instant, Squarity ne gère pas de comptes ni de profil personnel. Vous devez sauvegardez vos jeux par vous-même, sur votre disque dur ou ailleurs. Vous pouvez [les publier sur un gist github](https://github.com/darkrecher/squarity-doc/blob/master/user_manual/main_page.md#partager-un-jeu).
+Pour l'instant, Squarity ne gère pas de comptes ni de profil personnel. Vous devez sauvegardez vos jeux par vous-même, sur votre disque dur ou ailleurs. Vous pouvez les distribuer en [les publiant sur un gist github](https://github.com/darkrecher/squarity-doc/blob/master/user_manual/main_page.md#partager-un-jeu).
 
 
 ## Le tileset
@@ -46,9 +46,9 @@ Dans l'interface, cette configuration doit être écrite dans la zone de texte "
 
 ### Informations générales de la config
 
-`name` (chaîne de caractère) : le nom de votre jeu. Il est écrit dans le "title" de la page web, précédé du texte "Squarity - ".
+`name` (chaîne de caractère) : le nom de votre jeu. Il est écrit dans le titre de la page web, précédé du texte "Squarity - ".
 
-`version` (chaîne de caractère) : version du moteur du jeu, indiquez "2.1.0". ([Voir Versions"](#versions-du-moteur-squarity)).
+`version` (chaîne de caractère) : version du moteur du jeu, indiquez "2.1.0". ([Voir Version"](#version-du-moteur-squarity)).
 
 `tile_size` (nombre entier) : la taille par défaut, en pixels dans le tileset, des images représentant les éléments de votre jeu.
 
@@ -58,13 +58,13 @@ Dans l'interface, cette configuration doit être écrite dans la zone de texte "
 
 Il s'agit des images représentant les éléments de votre jeu (les "Game Objects"). Elles sont définies dans un sous-dictionnaire, identifié par la clé `img_coords`.
 
-Chaque clé de ce sous-dictionnaire est une chaîne de caractère que vous pourrez utiliser dans votre code python, pour identifier une image de Game Object.
+Chaque clé de ce sous-dictionnaire est une chaîne de caractère que vous pourrez utiliser dans votre code python, pour spécifier l'image d'un Game Object.
 
-Chaque valeur de ce sous-dictionnaire est une liste de 2 entiers. Ils représentent les coordonnées x et y, en pixels dans le tileset, du coin supérieur gauche de l'image.
+Chaque valeur de ce sous-dictionnaire est une liste de 2 entiers, représentant les coordonnées x et y, en pixels dans le tileset, du coin supérieur gauche de l'image.
 
-Il est possible d'ajouter d'autres valeurs après les deux entiers de la liste. [Voir "Info supplémentaires pour les sprites"](#info-suppl%C3%A9mentaires-pour-les-sprites).
+Il est possible d'ajouter d'autres valeurs après ces deux entiers. [Voir "Info supplémentaires pour les sprites"](#info-suppl%C3%A9mentaires-pour-les-sprites).
 
-### Versions du moteur Squarity
+### Version du moteur Squarity
 
 La seule information utile de la clé `version` est le premier nombre, situé avant le premier point.
 
@@ -85,22 +85,28 @@ Cette classe sera instanciée automatiquement par le moteur Squarity. Elle conti
 
 Votre `GameModel` contient des objets de type `squarity.Layer`, ordonnés dans une liste. Chacun de ces layers contient un tableau de "tiles". Ce tableau est en 2 dimensions, la largeur et la hauteur correspondent à celles de l'aire de jeu (c'est à dire les valeurs `nb_tile_width` et `nb_tile_height` indiquées dans la config JSON).
 
-Une tile représente une case de l'aire de jeu. Chaque tile peut contenir des `squarity.GameObject`, représentant des objets de votre jeu.
+Une tile représente une case de l'aire de jeu. Chaque tile peut contenir plusieurs `squarity.GameObject`, représentant des objets de votre jeu.
 
  - Un GameObject est toujours placé sur une seule tile de un seul layer.
  - Un GameObject possède des coordonnées (x, y) indiquant la tile d'appartenance dans le layer.
  - Un GameObject possède une variable membre `sprite_name`, de type chaîne de caractère. Cette variable doit avoir pour valeur l'un des noms définis dans le dictionnaire `img_coords` de la configuration JSON.
 
-La suite de cette documentation contient des exemples de code. Pour les essayer, commencez par charger le jeu de l'émeraude verte (qui fonctionne en version 2.1.0), copier-collez le code dans la fenêtre du code, puis cliquez sur le bouton "Exécuter". Vous devriez voir des informations apparaître dans la fenêtre de texte en bas de l'aire de jeu.
+La suite de cette documentation contient des exemples de code. Pour les essayer :
 
-Les exemples de code ne commençant pas par la ligne `import squarity` doivent être ajoutés dans le code existant, juste après la ligne `import squarity` déjà présente.
+ - chargez le jeu de l'émeraude verte (qui fonctionne en version 2.1.0),
+ - copier-collez le code d'exemple dans la fenêtre du code,
+ - cliquez sur le bouton "Exécuter".
 
-Les exemples de code commençant par `import squarity` sont plus complets, ils doivent remplacer tout le code existant.
+Vous devriez voir des informations apparaître dans la fenêtre de texte en bas de l'aire de jeu.
+
+Les exemples de code qui ne commencent pas par la ligne `import squarity` doivent être **ajoutés** dans le code existant, juste après la ligne `import squarity` déjà présente.
+
+Les exemples de code commençant par `import squarity` sont plus complets, ils doivent **remplacer** tout le code existant.
 
 
 ## Schéma d'affichage, calculs des tailles
 
-Vous ne pouvez pas définir la taille en pixel des cases réellement affichées. Cette-ci dépend de la taille de la fenêtre du navigateur affichant Squarity, qui est définie par la personne qui joue.
+Vous ne pouvez pas définir la taille en pixel des cases réellement affichées, car cette taille s'adapte automatiquement à la fenêtre du navigateur affichant Squarity.
 
 Le calcul est effectué comme suit:
 
@@ -113,9 +119,9 @@ Le calcul est effectué comme suit:
    - `largeur_case_affichage = taille_case_affichage`
    - `hauteur_case_affichage = taille_case_affichage`
 
-Ensuite, une mise à l'échelle est effectuée, pour afficher les images ayant une taille égale à `config.tile_size` (en pixel dans le tileset), vers des images ayant une taille égale à `taille_case_affichage` (en pixel à l'écran).
+Ensuite, une mise à l'échelle est effectuée, pour afficher les images ayant une taille égale à `config.tile_size` (en pixel de tileset), vers des images ayant une taille égale à `taille_case_affichage` (en pixel d'écran).
 
-La mise à l'échelle est effectuée selon l'algorithme "proche voisin", sans aucun traitement ni anti-aliasing. Vous verrez donc des gros pixels carrés si vos images de tileset sont petites et que vous jouez dans une grande fenêtre.
+La mise à l'échelle est effectuée selon l'algorithme "proche voisin", sans traitement ni anti-aliasing. Vous verrez donc des gros pixels carrés si vos images de tileset sont petites et que vous jouez dans une grande fenêtre.
 
 ![https://raw.githubusercontent.com/darkrecher/squarity-doc/master/user_manual/schema_game_sizes.png](https://raw.githubusercontent.com/darkrecher/squarity-doc/master/user_manual/schema_game_sizes.png)
 
@@ -151,7 +157,7 @@ print(d.turn_cw())
 # La valeur 'down' s'affiche dans la console.
 ```
 
-Le second paramètre permet de préciser l'angle de rotation. C'est un entier indiquant le nombre de pas de 45 degrés.
+Un paramètre optionnel (nombre entier) permet de préciser l'angle de rotation, en multiple de 45 degrés.
 
 ```
 d = squarity.dirs.UpRight
@@ -188,7 +194,7 @@ print(coord_2)
 
 ### Fonctions de modification
 
-La méthode `move_dir` permet de modifier les coordonnées en la décalant dans une direction donnée, sur une distance donnée (avec un `int`). La distance par défaut est 1.
+La méthode `move_dir` permet de modifier une `Coord` en la déplaçant dans une direction donnée, sur une distance donnée (indiquée par un `int`). La distance par défaut est 1.
 
 ```
 coord_1 = squarity.Coord(5, 2)
@@ -197,9 +203,9 @@ print(coord_1)
 # "<Coord 7, 2 >"
 ```
 
-La méthode `move_by_vect` permet de modifier les coordonnées en lui appliquant un décalage. Le décalage est spécifié par une `Coord` dans le paramètre `vector`, ou bien directement par les coordonnées `x` et `y`.
+La méthode `move_by_vect` permet de modifier une `Coord` en lui appliquant un déplacement, spécifié par le paramètre `vector` (de type `Coord`), ou bien par les paramètres `x` et `y`.
 
-Attention, il n'y a pas de blocage sur les bords. Les mouvements peuvent amener une coordonnée dans des zones négatives, ou en dehors de l'aire de jeu.
+Attention, il n'y a pas de blocage sur les bords. Les mouvements peuvent amener une coordonnée en négatif ou en dehors de l'aire de jeu.
 
 ```
 coord_1 = squarity.Coord(5, 2)
@@ -213,9 +219,14 @@ print(coord_1)
 
 ## class Rect
 
-Définit un rectangle, à partir de 4 paramètres de type `int` : le X et le Y du coin supérieur droit, la largeur, la hauteur.
+Définit un rectangle, à partir de 4 paramètres de type `int` :
 
-Les coordonnées dans le rectangle s'étendent depuis X jusqu'à (X+largeur-1) en abscisse, et depuis Y jusqu'à (Y+hauteur-1) en ordonnée.
+ - X du coin supérieur droit,
+ - Y du coin supérieur droit,
+ - largeur,
+ - hauteur.
+
+Les coordonnées dans le rectangle s'étendent de X jusqu'à (X+largeur-1) en abscisse, et de Y jusqu'à (Y+hauteur-1) en ordonnée.
 
 ### Fonction in_bounds
 
@@ -223,10 +234,10 @@ Indique si une coordonnée se trouve à l'intérieur du rectangle.
 
 ```
 rect = squarity.Rect(5, 2, 3, 5)
-# Les coordonnées dont le X vaut (5, 6 ou 7) et dont le Y vaut (2, 3, 4, 5 ou 6)
-# sont comprises dans le rectangle.
 print(rect.in_bounds(squarity.Coord(0, 0)))
 # La valeur False s'affichera dans la console.
+print(rect.in_bounds(squarity.Coord(5, 4)))
+# La valeur True s'affichera dans la console.
 ```
 
 ### Fonction on_borders
@@ -251,47 +262,41 @@ for x in range(4, 10):
 
 ## class GameObject
 
-Un Game Object (ou gobj) est un élément du jeu, qui s'affiche dans l'aire de jeu. Un Game Object possède des coordonnées (un objet `Coord`) et un nom de sprite (`sprite_name`). Le nom de sprite correspond à un nom référencé dans le dictionnaire `img_coords` de la config JSON.
+Un "game object" (ou gobj) est un élément qui s'affiche dans l'aire de jeu. Un game object possède des coordonnées et un nom de sprite (`sprite_name`). Le nom de sprite correspond à un nom référencé dans le dictionnaire `img_coords` de la config JSON.
 
-Pour que le Game Object s'affiche, il doit être placé dans un `Layer`. Un Game Object peut être transféré d'un Layer à un autre, il peut également n'appartenir à aucun Layer. Mais il n'est pas censé être placé dans plusieurs Layers en même temps.
+Pour que le game object s'affiche, il doit être placé dans un `squarity.Layer`. Un game object peut être transféré d'un layer à un autre. Il peut également n'appartenir à aucun layer, dans ce cas il ne s'affichera pas.
 
-La coordonnée et le nom de sprite doivent être spécifiés dès l'instanciation du Game Object. L'ajout dans le Layer peut être effectué juste après (voir plus loin, la classe Layer).
+Les coordonnées et le nom de sprite doivent être spécifiés dès l'instanciation du game object. L'ajout dans le layer peut être effectué juste après, voir [la classe squarity.Layer](#class-layer).
 
 ```
-gobj = squarity.GameObject(
-    squarity.Coord(5, 2),
-    "my_sprite"
-)
+gobj = squarity.GameObject(squarity.Coord(5, 2), "my_sprite")
 print(gobj)
 # Le texte "<Gobj (5,2) my_sprite>" s'affiche dans la console.
 ```
 
-Il existe d'autres paramètres facultatifs que l'on peut transmettre lors de l'instanciation. Ils sont détaillés plus loin dans cette documentation.
+Il existe d'autres paramètres facultatifs que l'on peut indiquer à l'instanciation. Ils sont détaillés plus loin dans cette doc.
 
 ### Nom du sprite
 
-L'aspect visuel du Game Object peut être directement changé en modifiant la variable membre `sprite_name`. La nouvelle image s'affichera, en fonction du tileset et de la config JSON.
+L'aspect visuel du game object peut être directement changé en modifiant la variable membre `sprite_name`. La nouvelle image s'affichera, en fonction du tileset et de la config JSON.
 
 Attention, il n'y a pas de vérification sur le nom du sprite. Si vous indiquez un nom qui n'est pas référencé dans `config.img_coords`, le jeu va planter sans aucun message. (On améliorera ça dans les versions à venir).
 
 ### Coordonnées (accès et modification)
 
-Le Game Object possède une variable membre interne appelée `_coord`. **Vous n'êtes pas censé y accéder directement**, sinon ça risque de désordonner l'indexation des Game Objects dans les Layers.
+Le game object possède une variable membre interne appelée `_coord`. **Vous n'êtes pas censé y accéder directement**, au risque de désordonner l'indexation des game objects dans les layers.
 
-Pour lire la coordonnée, utilisez la méthode `coord_clone = gobj.get_coord()`. Vous pouvez ensuite faire ce que vous voulez avec votre variable `coord_clone`, y compris la modifier. Mais les modifications ne seront pas reportés dans le Game Object.
+Pour lire les coordonnées, utilisez la méthode `coord_clone = gobj.get_coord()`. Vous pouvez ensuite utilisez la variable `coord_clone` comme vous le souhaitez, ainsi que la modifier. Les modifications ne seront pas reportées dans le game object.
 
-Pour déplacer un Game Object, utilisez les méthodes `move_xxx`. Il s'agit des méthodes suivantes :
+Pour déplacer un game object, utilisez les méthodes `move_xxx` :
 
  - `move_to_xy` : déplace l'objet sur une case de destination, spécifiée par les paramètres X et Y (`int`).
  - `move_to` : déplace l'objet sur une case de destination, spécifiée par le paramètre `dest_coord` (`Coord`).
- - `move` : déplace l'objet de manière relative, selon un vecteur de déplacement spécifié par le paramètre `coord_offset` (`Coord`).
+ - `move` : déplace l'objet de manière relative, selon un vecteur de déplacement spécifié par le paramètre `coord_offset` (`Coord`). TODO : faut renommer ça en coord_vect.
  - `move_dir` : déplace l'objet de manière relative, spécifié par le paramètre `direction` (`Direction`) et le paramètre facultatif `distance` (`int`).
 
 ```
-gobj = squarity.GameObject(
-    squarity.Coord(5, 2),
-    "my_sprite"
-)
+gobj = squarity.GameObject(squarity.Coord(5, 2), "my_sprite")
 gobj.move_to_xy(15, 9)
 print(gobj)
 # Le texte "<Gobj (15,9) my_sprite>" s'affiche dans la console.
@@ -306,25 +311,25 @@ print(gobj)
 # Le texte "<Gobj (12,3) my_sprite>" s'affiche dans la console.
 ```
 
-Ces 4 fonctions laissent le Game Object dans le même Layer. Voir la documentation de la classe Layer pour transférer un Game Object d'un Layer à un autre.
+Ces 4 fonctions laissent le game object dans le même layer. Voir la documentation de la classe layer pour transférer un game object d'un layer à un autre.
 
 ### Transitions ajoutées automatiquement.
 
-Lorsque vous déplacez un Game Object, un déplacement de transition est automatiquement affichée. Durant 200 millisecondes, le Game Object se déplace progressivement (pixel par pixel) depuis sa case initiale vers sa case de destination.
+Lorsque vous déplacez un game object, une "transition" est automatiquement affichée. Durant 200 millisecondes, le game object se déplace progressivement (pixel par pixel) depuis sa case initiale vers sa case de destination.
 
-Ce déplacement de transition automatique est effectué en une seule ligne droite. Par exemple, si vous déplacez un objet des coordonnées (5, 3) vers les coordonnées 8, 2, la ligne de déplacement sera oblique.
+Ce déplacement de transition automatique est effectué en une seule ligne droite. Par exemple, si vous déplacez un objet des coordonnées (5, 3) vers les coordonnées (8, 2), la ligne de déplacement sera oblique.
 
 Si vous changez plusieurs fois les coordonnées dans le même tour de jeu, les valeurs intermédiaires ne seront pas prises en compte pour la transition. Les deux seules valeurs prises en compte sont celles avant l'exécution du code et celles après.
 
-Vous pouvez déclencher plusieurs transitions sur plusieurs Game Objects, en modifiant les coordonnées de chacun d'entre eux.
+Vous pouvez déclencher des transitions sur plusieurs game objects, en modifiant les coordonnées de chacun d'entre eux.
 
 Il est possible de définir des déplacements avec des étapes intermédiaires. Par exemple, un déplacement horizontal de x=5 vers x=8, puis un vertical de y=3 vers y=2. [Voir "Transitions"](#transitions).
 
-Le temps de la transition peut être redéfini individuellement pour chaque Game Object, avec la fonction `gobj.set_transition_delay(transition_delay)`. Le paramètre `transition_delay` est un `int` indiquant le temps en millisecondes. Toutes les futures transitions dues à un changement de coordonnées utiliseront ce nouveau temps.
+Le temps de la transition peut être redéfini individuellement pour chaque game object, avec la fonction `gobj.set_transition_delay(transition_delay)`. Le paramètre `transition_delay` est un `int` indiquant le temps en millisecondes. Toutes les futures transitions dues à un changement de coordonnées utiliseront ce nouveau temps.
 
 Les 4 fonctions `move_xxx` possèdent un paramètre facultatif `transition_delay`, qui permet de définir un temps différent uniquement pour la prochaine transition.
 
-Vous pouvez définir un transition delay à 0 si vous voulez que votre objet se déplace instantanément.
+Si transition_delay est défini à 0, l'objet se déplacera instantanément.
 
 ### Callback de fin de transition
 
@@ -340,10 +345,7 @@ Les 4 fonctions `move_xxx` possèdent un paramètre facultatif `callback`, qui p
 def my_callback():
     print("coucou")
 
-gobj = squarity.GameObject(
-    squarity.Coord(5, 2),
-    "my_sprite"
-)
+gobj = squarity.GameObject(squarity.Coord(5, 2), "my_sprite")
 gobj.set_callback_end_transi(my_callback)
 # (Cette exemple n'affiche rien dans la console, désolé)
 ```
@@ -351,23 +353,23 @@ gobj.set_callback_end_transi(my_callback)
 
 ## class Layer
 
-Un layer est un tableau en 2 dimensions, contenant des Game Objects. Votre aire de jeu peut contenir plusieurs Layers, qui seront affiché dans un ordre déterminé. Vous pouvez donc avoir un Layer pour vos objets du décor de fond, un pour les personnages et les bonus, un pour afficher des éléments d'interface, etc.
+Un layer est un tableau en 2 dimensions, contenant des game objects. Votre aire de jeu peut contenir plusieurs layers, affichés dans un ordre déterminé. Vous pouvez donc avoir un layer pour le décor de fond, un pour les personnages et les bonus, un pour les éléments d'interface, etc.
 
-L'ordre d'affichage des objets au sein d'un Layer n'est pas déterminé. Concrètement, c'est l'ordre d'ajout des Game Object dans le Layer, mais il s'agit d'un détail d'implémentation et ce comportement n'est pas garanti pour les versions ultérieures. Si vous souhaitez être sûr de l'ordre d'affichage de vos objets, utilisez plusieurs Layers.
+L'ordre d'affichage des objets au sein d'un layer n'est pas déterminé. Concrètement, c'est l'ordre d'ajout des game objects dans le layer, mais il s'agit d'un détail d'implémentation et ce comportement n'est pas garanti pour les versions ultérieures. Pour être sûr de l'ordre d'affichage des objets, utilisez plusieurs layers.
 
-Si l'ordre importe peu pour votre jeu, vous pouvez utiliser le Layer créé par défaut : la variable membre `layer_main` dans le `GameModel`. Vous pouvez placer tous vos objets dans le `layer_main`.
+Si l'ordre importe peu, vous pouvez placer tous vos objets dans l'unique layer créé par défaut : la variable membre `layer_main`, dans le `GameModel`.
 
-### Ajouter et retirer des Game Objects
+### Ajouter et retirer des game objects
 
-La méthode `layer.add_game_object(gobj)` permet d'ajouter un Game Object dans un Layer. (Les coordonnées du Game Object doivent être définies).
+La méthode `layer.add_game_object(gobj)` permet d'ajouter un game object dans un layer. Les coordonnées du game object doivent être définies.
 
-La méthode `layer.remove_game_object(gobj)` permet d'enlever un Game Object d'un Layer. Une exception sera levée si vous tentez d'enlever un Game Object n'appartenant pas au Layer.
+La méthode `layer.remove_game_object(gobj)` permet d'enlever un game object d'un layer. Une exception sera levée si vous tentez d'enlever un game object n'appartenant pas au layer.
 
-La méthode `layer.remove_at_coord(coord)` permet d'enlever tous les Game Objects situés sur la coordonnée indiquée en paramètre.
+La méthode `layer.remove_at_coord(coord)` permet d'enlever tous les game objects situés aux coordonnées indiquées en paramètre.
 
-Après avoir été enlevé, le Game Object existe toujours, vous pouvez le réutiliser et le placer dans un autre Layer.
+Après avoir été enlevé, le game object existe toujours. Vous pouvez le réutiliser et le placer dans un autre layer.
 
-Ci-dessous, un exemple de game code minimal, affichant un seul objet immobile. Pour l'exécuter, sélectionnez le jeu d'exemple du diamant vert, supprimez tout le game code, puis copier-collez ce texte à la place.
+Ci-dessous, un exemple de game code minimal affichant un seul objet immobile. Pour l'exécuter, sélectionnez le jeu d'exemple de l'émeraude verte, supprimez tout le game code, puis copier-collez ce texte à la place.
 
 ```
 import squarity
@@ -378,13 +380,15 @@ class GameModel(squarity.GameModelBase):
         self.layer_main.add_game_object(self.gobj)
 ```
 
-### Récupérer des Tiles et des Game Objects
+### Récupérer des tiles et des game objects
 
-Chaque élément du tableau 2D d'un Layer est une `Tile`. Ces `Tile` sont utiles pour se déplacer de case en case dans un Layer, grâce à la variable `adjacencies`. Il s'agit d'une liste de 8 éléments, contenant les Tiles adjacentes (certains éléments peuvent être None pour les Tiles qui sont au bord).
+Chaque élément du tableau 2D d'un layer est un objet `squarity.Tile`. Ces tiles sont utiles pour se déplacer dans un layer, grâce à la variable `adjacencies`. Il s'agit d'une liste de 8 éléments, contenant les tiles adjacentes (certains éléments peuvent être `None` pour les tiles qui sont au bord).
 
-Les Game Objects d'une Tile sont stockés dans la variable membre `game_objects` (`list`).
+Les game objects d'une tile sont stockés dans la variable membre `game_objects` (de type `list`).
 
-Les méthodes `layer.get_tile(coord)` et `layer.get_tile_xy(x, y)` permettent de récupérer une Tile.
+Les méthodes `layer.get_tile(coord)` et `layer.get_tile_xy(x, y)` permettent de récupérer une tile.
+
+Ajoutez ce code après le code d'exemple précédent pour tester une récupération de game object.
 
 ```
         tile = self.layer_main.get_tile_xy(5, 1)
@@ -393,9 +397,9 @@ Les méthodes `layer.get_tile(coord)` et `layer.get_tile_xy(x, y)` permettent de
         print(tile_down.game_objects)
 ```
 
-La méthode `layer.get_game_objects(coord)` permet de récupérer directement la liste de tous les Game Objects sur les coordonnées indiquées.
+La méthode `layer.get_game_objects(coord)` permet de récupérer directement tous les game objects aux coordonnées indiquées.
 
-La méthode `layer.iter_all_game_objects()` permet d'itérer sur tous les Game Objects d'un Layer.
+La méthode `layer.iter_all_game_objects()` permet d'itérer sur tous les game objects d'un layer.
 
 ```
         for gobj in self.layer_main.iter_all_game_objects():
@@ -404,13 +408,13 @@ La méthode `layer.iter_all_game_objects()` permet d'itérer sur tous les Game O
 
 ### Créer des layers et les ajouter dans le jeu
 
-Les Layers doivent être placés dans la liste `layers` du `GameModel`, cette liste contient initialement le `layer_main`.
+Les layers doivent être placés dans la liste `layers` du `GameModel`, cette liste contient initialement le `layer_main`.
 
-L'ordre dans la liste `layers` est important, car il détermine l'ordre d'affichage des Layers. Le premier Layer de la liste est dessiné en premier, et apparaîtra donc en-dessous de tous les autres layers, et ainsi de suite.
+L'ordre dans la liste `layers` détermine leur ordre d'affichage. Le premier layer de la liste est dessiné en premier et apparaîtra donc en-dessous de tous les autres layers. Le dernier layer de la liste apparaîtra au-dessus de tous les autres.
 
-Vous pouvez ajouter, enlever et réordonner les Layers dans la liste à tout moment. Ce sera immédiatement pris en compte dans l'affichage de l'aire de jeu.
+Vous pouvez ajouter, enlever et réordonner les layers dans la liste à tout moment. Ce sera immédiatement pris en compte dans l'affichage de l'aire de jeu.
 
-Lors de l'instanciation, un Layer a besoin d'avoir une référence vers le `GameModel` dans lequel il est placé. Il faut également spécifier une largeur et une hauteur, en nombre de cases.
+Lors de l'instanciation, un layer a besoin d'avoir une référence vers le `GameModel` dans lequel il est placé. Il faut également spécifier une largeur et une hauteur, en nombre de cases.
 
 ```
 class GameModel(squarity.GameModelBase):
@@ -419,25 +423,25 @@ class GameModel(squarity.GameModelBase):
         self.layers.append(layer_second)
 ```
 
-Tous les Layers que vous placez dans `layers` doivent avoir les mêmes largeur et hauteur que votre aire de jeu. Ces dimensions sont déjà initialisés dans le `GameModel`, variables membres `game_model.w` et `game_model.h`
+Tous les layers que vous placez dans `layers` doivent avoir les mêmes largeur et hauteur que votre aire de jeu. Ces dimensions sont déjà initialisés dans le `GameModel`, variables membres `game_model.w` et `game_model.h`
 
-Pour gérer la logique interne de votre jeu, vous pouvez utiliser des Layers de n'importe quelles dimensions, que vous ne placerez pas dans `layers`. Ils ne seront pas affichés.
+Pour gérer la logique interne de votre jeu, vous pouvez utiliser des layers de n'importe quelles dimensions, que vous ne placerez pas dans `layers`. Ils ne seront pas affichés.
 
-La fonction `Layer.__init__` possède un paramètre facultatif `show_transitions`, défini à True par défaut. Lorsqu'il est défini à False, le Layer ne gère aucune transition, ni pour les déplacements d'objets, ni pour les modifications graphiques (scaling, décalage, ...). Lorsque vous changez les coordonnées d'un objet dans un Layer sans transition, il sera instantanément déplacé vers sa case de destination.
+La fonction `Layer.__init__` possède un paramètre facultatif `show_transitions`, défini à True par défaut. Lorsqu'il est défini à False, le layer ne gère aucune transition, ni pour les déplacements d'objets ni pour les modifications graphiques (scaling, décalage, ...). Lorsque vous changez les coordonnées d'un objet dans un layer sans transition, il sera instantanément déplacé vers sa case de destination.
 
-Les Layers sans transition sont gérés de manière optimisée par le moteur Squarity, et permettent d'effectuer des mouvements massifs et fréquents. Ils peuvent aussi être utiles pour afficher le décor de fond de votre jeu, qui change d'un seul coup en passant d'un niveau à un autre.
+Les layers sans transition sont gérés de manière optimisée par le moteur Squarity, ils permettent des mouvements massifs et fréquents. Ils peuvent être utiles, par exemple, pour afficher le décor de fond de votre jeu, qui change d'un seul coup en passant d'un niveau à un autre.
 
-Le choix d'avoir un Layer avec ou sans transition peut uniquement être effectué lors de son instanciation. Si vous modifiez la variable `layer.show_transitions` après avoir créé le Layer, ce ne sera pas pris en compte par le moteur. (Ce serait trop compliqué à gérer, on ne saurait pas quoi faire avec les transitions en cours, etc.)
+Le choix d'avoir ou pas des transitions peut être effectué uniquement à l'instanciation du layer. Si vous modifiez la variable `layer.show_transitions` après l'avoir créé, ce ne sera pas pris en compte par le moteur.
 
 ### LayerSparse
 
-Il s'agit d'une classe ayant le même fonctionnement que `Layer` (les deux héritent de la classe `LayerBase`). Les Game Objects qu'il contient sont stockés différemment. Au lieu d'être indexés dans un tableau en deux dimensions, ils sont placés dans une liste unique.
+Il s'agit d'une classe ayant le même fonctionnement que la classe `Layer` (les deux héritent de `LayerBase`). Les game objects contenus dans un `LayerSparse` ne sont pas indexés dans un tableau en deux dimensions, mais placés dans une liste unique.
 
-Selon les actions que vous effectuez, elles peuvent s'exécuter un peu plus rapidement sur un `LayerSparse`: l'ajout, la suppression et le parcours de tous les objets s'exécutent plus rapidement, mais la récupération d'objets à une coordonnée spécifique est plus lent.
+L'ajout, la suppression et le parcours d'objets sont plus rapides avec un `LayerSparse`, mais la récupération d'objets à une coordonnée spécifique est plus lent.
 
-Si vous créez des jeux n'ayant pas de gros besoins en performance, vous n'avez pas besoin de vous soucier de ces détails et vous pouvez utiliser uniquement des `Layer`.
+Si vous créez des jeux n'ayant pas de gros besoins en performance, vous n'avez pas besoin de vous soucier de ces détails. Vous pouvez utiliser uniquement des classes `Layer`, avec gestion des transitions.
 
-Liste des méthodes communes aux `Layer` et aux `LayerSparse` :
+Liste des méthodes communes aux classes `Layer` et `LayerSparse` :
 
  - `get_game_objects`
  - `iter_all_game_objects`
@@ -447,22 +451,22 @@ Liste des méthodes communes aux `Layer` et aux `LayerSparse` :
  - `move_game_object`
  - `move_game_object_xy`
 
-Les méthodes `get_tile` et `get_tile_xy` ne sont pas présentes dans un `LayerSparse`, puisqu'il n'y a pas de tableau en 2 dimensions contenant des objets `Tile`.
+Les méthodes `get_tile` et `get_tile_xy` ne sont pas présentes dans un `LayerSparse`, puisqu'il n'y a pas de tableau en 2 dimensions contenant des tiles.
 
 
-## class GameModel
+## GameModel
 
-La classe principale définissant la logique de votre jeu. Elle hérite de `GameModelBase`. Vous devez la définir, mais pas l'instancier, car c'est fait automatiquement par le moteur.
+Il s'agit de la classe principale définissant la logique de votre jeu. Elle hérite de `GameModelBase`. Vous devez la définir, mais pas l'instancier, car c'est fait automatiquement par le moteur.
 
-Dans votre GameModel, vous pouvez définir des fonctions de callback spécifiques, qui seront automatiquement appelées sur certains événements dans le jeu.
+Dans votre game model, vous pouvez définir des fonctions de callback spécifiques, qui seront automatiquement appelées sur certains événements dans le jeu.
 
-### Liste des fonctions de callback
+### Liste des callbacks
 
-`on_start(self)` : cette fonction est appelée une seule fois au début du jeu. Il est conseillé de mettre votre code d'initialisation dans cette fonction, plutôt que dans la fonction `__init__`, car la fonction `on_start` permet de renvoyer un objet `EventResult` qui sera pris en compte. [Voir la classe "EventResult"](#class-eventresult)
+`on_start(self)` : cette fonction est appelée une seule fois au début du jeu. Il est conseillé de mettre votre code d'initialisation dans cette fonction plutôt que dans `__init__`, car `on_start` permet de renvoyer un objet `EventResult` qui sera pris en compte. [Voir la classe "EventResult"](#class-eventresult)
 
-`on_click(self, coord)` : cette fonction est appelée chaque fois que la personne qui joue clique dans l'aire de jeu. Vous pouvez consulter le paramètre `coord` pour savoir sur quelle case le clic a eu lieu. Vous ne pouvez pas savoir précisément quel Game Object a été cliqué, ni la position exacte du clic dans la case, car le but du moteur de jeu Squarity est de rester simple, et de se spécialiser uniquement dans les jeux en 2D sur un quadrillage.
+`on_click(self, coord)` : cette fonction est appelée chaque fois que la personne qui joue clique dans l'aire de jeu. Vous pouvez consulter le paramètre `coord` pour savoir sur quelle case le clic a eu lieu. Vous ne pouvez pas savoir précisément quel Game Object a été cliqué, ni la position exacte du clic au pixel près, car le but de Squarity est de rester simple et de se spécialiser uniquement dans les jeux en 2D sur un quadrillage.
 
-Dans l'exemple ci-dessous, un diamant s'ajoute sur chaque case que vous cliquez. Pour l'exécuter, sélectionnez le jeu d'exemple du diamant vert, supprimez tout le game code et copier-collez ce texte à la place.
+Dans l'exemple ci-dessous, un diamant s'ajoute sur chaque case que vous cliquez.
 
 ```
 import squarity
@@ -474,9 +478,9 @@ class GameModel(squarity.GameModelBase):
             self.layer_main.add_game_object(self.gobj)
 ```
 
-`on_button_direction(self, direction)` : cette fonction est appelée lorsque l'un des 4 boutons de direction est cliqué, ou que l'une des 4 touches de direction du clavier est appuyée. Le paramètre `direction` est un objet de type `Direction`, il indique quel bouton a été appuyé.
+`on_button_direction(self, direction)` : cette fonction est appelée lorsque l'un des 4 boutons de direction est cliqué, ou que l'une des 4 touches de direction du clavier est appuyée. Le paramètre `direction` est un objet de type `Direction`.
 
-Dans l'exemple ci-dessous, l'aire de jeu affiche un seul diamant. Celui-ci se déplace lorsque vous cliquez sur un bouton de direction, et reste bloqué dans les limites de l'aire de jeu.
+Dans l'exemple ci-dessous, l'aire de jeu affiche un seul diamant. Celui-ci se déplace lorsque vous cliquez sur un bouton de direction. Il reste bloqué dans les limites de l'aire de jeu.
 
 ```
 import squarity
@@ -493,7 +497,7 @@ class GameModel(squarity.GameModelBase):
             self.gobj.move_to(coord_dest)
 ```
 
-`on_button_action(self, action_name)` : cette fonction est appelée lorsque l'un des boutons d'actions "1" ou "2" est cliqué, ou lorsque l'une des touches du clavier "1" ou "2" est appuyée (Les "1" et "2" au-dessus des lettres, ainsi que ceux du pavé numérique).
+`on_button_action(self, action_name)` : cette fonction est appelée lorsque l'un des boutons d'actions "1" ou "2" est cliqué, ou lorsque l'une des touches du clavier "1" ou "2" est appuyée. Ça fonctionne avec les touches "1" et "2" au-dessus des lettres, ainsi que celles du pavé numérique.
 
 ### Autres méthodes et variables de GameModel
 
@@ -504,30 +508,30 @@ Ces variables membres sont initialisées dès le départ. Il est fortement conse
  - `self.str_game_conf_json` : chaîne de caractère contenant la configuration json complète.
  - `self.rect` : objet `Rect` ayant les dimensions de l'aire de jeu, c'est à dire `Rect(0, 0, self.w, self.h)`.
 
-La méthode `game_model.get_first_gobj(coord, sprite_names, layer)` permet de récupérer le premier Game Object présent dans l'aire de jeu, selon différents critères cumulables. Les 3 paramètres sont facultatifs. Si aucun objet n'est trouvé, la méthode renvoie None.
+La méthode `self.get_first_gobj(coord, sprite_names, layer)` permet de récupérer le premier game object présent dans l'aire de jeu, selon différents critères cumulables. Les 3 paramètres sont facultatifs. Si aucun objet n'est trouvé, la méthode renvoie None.
 
- - paramètre `coord` : par défaut, l'objet est cherché sur tout l'aire de jeu. Sinon, ce paramètre peut être un `Rect` ou une `Coord`, indiquant dans quelle zone ou dans quelle coordonnée on cherche l'objet.
- - paramètre `sprite_names` : par défaut, pas de filtre sur le nom de sprite. Sinon, ce paramètre doit être une liste de strings, indiquant le ou les noms de sprite recherché.
+ - paramètre `coord` : par défaut, l'objet est cherché sur toute l'aire de jeu. Sinon, ce paramètre peut être un `Rect` ou une `Coord`, indiquant dans quelle zone ou sur quelles coordonnées on cherche l'objet.
+ - paramètre `sprite_names` : par défaut, pas de filtre sur le nom de sprite. Sinon, ce paramètre doit être une liste de strings, indiquant le ou les noms de sprite recherchés.
  - paramètre `layer` : par défaut, on cherche dans tous les Layers placés dans la liste `game_model.layers`. Sinon, ce paramètre doit être un unique `Layer`, dans lequel on cherche l'objet.
 
-La variable membre `self.transition_delay` définit le temps par défaut (en millisecondes) de toutes les transitions effectuées suite à un changement de coordonnées d'un Game Object. Contrairement aux autres variables membres, celle-ci peut être modifiée. [Voir "Transitions"](#transitions)
+La variable membre `self.transition_delay` définit le temps par défaut (en millisecondes) de toutes les transitions effectuées suite à un changement de coordonnées d'un game object. Contrairement aux autres variables membres, celle-ci peut être modifiée. [Voir "Transitions"](#transitions)
 
 
 ## class EventResult
 
-Cette classe regroupe des informations générales que vous pouvez communiquer au moteur de jeu, après l'exécution de n'importe quelle fonction de callback (provenant du Game Model, d'un Game Object ou de n'importe quoi d'autres).
+Cette classe regroupe des informations générales que vous pouvez communiquer au moteur du jeu, après l'exécution de n'importe quelle fonction de callback (provenant du game model, d'un game object ou de n'importe quoi d'autres).
 
-Par défaut, les fonctions de callback ne renvoient rien (pas de `return` dans la fonction). Dans ce cas, la valeur réellement renvoyée est `None`, ce qui est accepté par le moteur du jeu.
+Par défaut, ces fonctions de callback ne renvoient rien (il n'y a pas de `return` dans la fonction). Dans ce cas, la valeur réellement renvoyée est `None`. Vous pouvez renvoyer un objet `EventResult` à la place.
 
 ### Callback différée
 
-Vous pouvez indiquer au moteur d'exécuter plus tard une de vos fonctions (une callback).
+Vous pouvez indiquer dans un `EventResult` que le moteur doit exécuter une de vos fonctions (une autre callback) après un délai spécifié.
 
-Instanciez une classe `DelayedCallBack`, en indiquant dans les paramètres le délai d'exécution en millisecondes, et la callback. Vous pouvez indiquer une fonction définie directement dans votre code, une méthode de votre Game Model (`self.my_callback`), une méthode d'un Game Object spécifique, etc. La callback ne peut pas avoir de paramètres.
+Instanciez une classe `DelayedCallBack`, en indiquant le délai d'exécution en millisecondes et la callback. Vous pouvez indiquer une fonction de votre code, une méthode de votre game model (`self.my_callback`), une méthode d'un game object spécifique, etc. La callback ne peut pas avoir de paramètres.
 
-Ajoutez ensuite votre objet `DelayedCallBack` dans le Event Result, avec la fonction `event_result.add_delayed_callback`.
+Ajoutez ensuite cet objet `DelayedCallBack` dans votre event result, avec la fonction `event_result.add_delayed_callback`.
 
-Le code ci-dessous n'affiche rien dans l'aire de jeu, mais écrit "coucou" dans la console après un temps d'attente de 500 millisecondes.
+Le code ci-dessous écrit "coucou" dans la console après un temps d'attente de 500 millisecondes.
 
 ```
 import squarity
@@ -544,32 +548,32 @@ class GameModel(squarity.GameModelBase):
         return event_result
 ```
 
-C'est un peu verbeux, on raccourcira le code dans une version ultérieure de Squarity.
+C'est un peu verbeux, on raccourcira ce code dans une version ultérieure de Squarity.
 
-Vous ne pouvez pas annuler les callbacks. Lorsque vous avez renvoyé un Event Result contenant une callback, celle-ci sera forcément appelée. C'est à vous de gérer cela dans votre code.
+Vous ne pouvez pas annuler les callbacks. Lorsque vous avez renvoyé un event result contenant une callback, celle-ci sera forcément appelée. C'est à vous de le gérer dans votre code.
 
-Il y a un bug : si vous redémarrez votre jeu, ou même si vous lancez un autre jeu, les callbacks du jeu précédent restent en mémoire et sont tout de même exécutées. On corrigera ça au plus vite.
+Il y a un bug : si vous redémarrez votre jeu, ou même si vous lancez un autre jeu, les callbacks du jeu précédent restent en mémoire et sont tout de même exécutées. Ce sera corrigé au plus vite.
 
 ### Player Lock (plock) Custom
 
-Votre jeu aura peut-être besoin d'afficher des "cut scene" ou des petites animations courtes, durant lesquelles la personne qui joue n'est pas censé agir. Il est possible d'appliquer un "Player Lock", c'est à dire de bloquer temporairement les boutons et les clics.
+Votre jeu aura peut-être besoin d'afficher des petites animations courtes, durant lesquelles la personne qui joue n'est pas censée agir. Il est possible d'appliquer un "Player Lock", c'est à dire de bloquer temporairement les boutons et les clics.
 
-Il y a deux types de Player Locks:
+Il y a deux types de Player Locks :
 
- - custom : c'est à vous d'indiquer explicitement, via le code, à quel moments ça locke et ça délocke.
- - transition : les locks/delocks sont effectués automatiquement d'après les transitions de certains Game Object ([Voir "Player Lock Transi"](#blocage-de-linterface-player-lock-transi)).
+ - custom : c'est à vous d'indiquer explicitement, via le code, à quel moments se passent les locks et unlocks.
+ - transition : les locks/unlocks sont effectués automatiquement d'après les transitions de certains game objects ([Voir "Player Lock Transi"](#blocage-de-linterface-player-lock-transi)).
 
-Pour les Locks Custom, le blocage est toujours montré dans l'interface : les boutons d'actions apparaissent grisé.
+Pour les locks custom, le blocage est toujours montré dans l'interface : les boutons d'actions apparaissent grisé.
 
-Il est possible de locker/delocker avec plusieurs mots-clés (chaque mot-clé peut-être vue comme une raison pour locker). L'interface se délocke lorsqu'il n'y a plus aucun mot-clé de lock en cours.
+Il est possible de locker/delocker avec plusieurs mots-clés (chaque mot-clé est vu comme une raison pour locker). L'interface redevient active lorsqu'il n'y a plus aucun mot-clé de lock en cours.
 
-Pour locker, instancier un `EventResult` et ajouter une ou plusieurs strings dans la liste `event_result.plocks_custom`, représentant les mot-clés de lock. Pour délocker, utiliser la liste `event_result.punlocks_custom`.
+Pour locker : instanciez un `EventResult` et ajoutez une ou plusieurs strings dans la liste `event_result.plocks_custom`, représentant les mot-clés de lock. Pour enlever des locks : utilisez la liste `event_result.punlocks_custom`.
 
-Attention, l'interface est entièrement bloquée dès le premier mot-clé. Cela signifie qu'il faut obligatoirement prévoir les delocks dans des fonctions de callbacks, qui sont, en général, déclarées au même moment que l'on ajoute un lock. Si ce n'est pas fait, la personne qui joue restera bloquée indéfiniment (au pire des cas, le bouton "exécuter le jeu" enlève systématiquement tous les locks, mais cela réinitialise aussi tout le jeu).
+Attention, l'interface est entièrement bloquée dès le premier mot-clé. Cela signifie qu'il faut obligatoirement prévoir les unlocks dans des fonctions de callbacks, qui sont, en général, déclarées au même moment de l'ajout d'un lock. Si ce n'est pas fait, la personne qui joue restera bloquée indéfiniment. Il est toujours possible d'appuyer sur le bouton "Exécuter le jeu", qui enlève systématiquement tous les locks, mais la partie recommence depuis le début.
 
-Il est possible de delocker tous les mots-clés d'un seul coup en mettant une string `"*"` dans `punlocks_custom`.
+Il est possible d'enlever tous les mots-clés de lock d'un seul coup, en indiquant la string `"*"` dans `punlocks_custom`.
 
-Le code ci-dessous n'affiche rien, il locke l'interface pendant 2 secondes à chaque fois que l'on clique dans l'aire de jeu.
+Le code ci-dessous locke l'interface pendant 2 secondes à chaque fois que l'on clique dans l'aire de jeu.
 
 ```
 import squarity
@@ -594,48 +598,57 @@ class GameModel(squarity.GameModelBase):
 
 ### Annuler le rendu de l'aire de jeu
 
-Certaines actions de votre jeu (en particulier, les fonctions de callback contenant peu de code) peuvent ne pas modifier la disposition ou l'état des Game Objects. Dans ce cas, vous pouvez indiquer au moteur qu'il n'est pas nécessaire de redessiner l'aire de jeu après la fonction callback.
+Certaines actions de votre jeu (en particulier, les fonctions de callback contenant peu de code) ne modifient pas forcément la disposition ou l'état des game objects. Dans ce cas, vous pouvez indiquer au moteur qu'il n'est pas nécessaire de redessiner l'aire de jeu.
 
-Instancier un `EventResult`, et définissez la variable `redraw` à False. N'oubliez pas de le renvoyer.
+Instancier un `EventResult`, définissez la variable `redraw` à False, puis renvoyez-le avec un `return`.
 
 ```
-event_result = squarity.EventResult()
-event_result.redraw = False
+        event_result = squarity.EventResult()
+        event_result.redraw = False
+        return event_result
 ```
 
-À noter que s'il y a des transitions en cours, l'aire de jeu est régulièrement redessinée pour les afficher. Donc même si vous renvoyez un Event Result qui annule le rendu, il peut quand même y en avoir.
+À noter que s'il y a des transitions en cours, l'aire de jeu est régulièrement redessinée pour les afficher. Le fait de renvoyer un event result annulant le rendu n'empêche pas les autres événements de faire leurs rendus à eux.
 
-Vous pouvez cumuler plusieurs éléments dans le même Event Result. Par exemple, vous pouvez déclarer plusieurs callbacks, tout en lockant l'interface avec 3 mot-clés et en délockant 4 autres mot-clés, le tout en annulant le rendu.
+Vous pouvez cumuler plusieurs éléments dans le même event result. Par exemple, vous pouvez déclarer plusieurs callbacks, locker l'interface avec 3 mot-clés, enlever 4 autres mot-clés de locks, le tout en annulant le rendu.
 
 
 ## Transitions
 
-Une transition représente la modification progressive d'une variable d'un Game Object, sur une période de temps définie. Il est possible d'appliquer une transition sur les coordonnées. L'objet se déplacera "pixel par pixel" de sa case de destination vers sa case d'arrivée. Visuellement, les coordonnées de votre objet deviennent des valeurs décimales, pour le placer entre deux cases. Dans votre code python, les coordonnées restent des nombres entiers, et passent directement de la valeur de départ à la valeur d'arrivée.
+Une transition représente la modification progressive d'une variable d'un game object, sur une période de temps définie.
 
-D'autres variables d'un Game Object peuvent également avoir des transitions, par exemple `area_scale_x` et `area_scale_y` dans le `ComponentImageModifier`. Ces variables permettent de grossir/rétrécir l'objet ([Voir "ComponentImageModifier"](#componentimagemodifier)).
+Les coordonnées sont des variables transitionnables. L'objet se déplacera pixel par pixel de sa case de destination vers sa case d'arrivée. Visuellement, les coordonnées de votre game object deviennent des valeurs décimales, afin de le placer entre deux cases. Dans votre code python, les coordonnées restent des nombres entiers et passent directement de la valeur de départ à la valeur d'arrivée.
 
-Le sprite name peut également avoir des transitions, mais elles ne sont pas progressives. L'image change d'un seul coup. L'intérêt étant de pouvoir enchaîner ces transitions : une première image pendant 100 millisecondes, une deuxième pendant les 100 millisecondes suivantes, etc.
+Les variables permettant de décaler et agrandir l'image d'un game object sont elles aussi transitionnables, [voir "ComponentImageModifier"](#componentimagemodifier).
 
-Il existe deux moyens pour déclencher une transition : modifier directement une variable transitionnable ou exécuter la fonction `add_transition`.
+Le sprite name peut avoir des transitions, mais elles ne sont pas progressives. L'image change d'un seul coup. Il est possible d'enchaîner ces changements : une première image pendant 100 millisecondes, une deuxième pendant les 100 millisecondes suivantes, etc.
 
-### Temps de transition
+Il existe deux moyens pour déclencher une transition : modifier directement une variable transitionnable ou exécuter la fonction `game_object.add_transition`.
 
-Les transitions ajoutées suite à une modification de variable doivent déterminer automatiquement le temps de transition. Ce temps est pris, par ordre de priorité :
+### Modification d'une variable transitionnable
 
- - Le paramètre optionnel `transition_delay` d'une fonction `move_to_xxx`, si celui-ci a été défini.
- - Le temps spécifique au Game Object, si celui-ci a été défini via la fonction `game_object.set_transition_delay(transition_delay)`.
- - Le temps global de votre jeu, c'est à dire la variable membre `game_model.transition_delay` (initialisée à 200 millisecondes, que vous pouvez modifier).
+#### Pour les coordonnées
 
-### Ajout d'une séquence de transitions
+Il faut appeler une fonction `move_to_xxx`. Le temps de la transition sera déterminé automatiquement. Il prend la première valeur définie parmi :
 
-La fonction `game_object.add_transition` nécessite deux paramètres :
+ - le paramètre optionnel `transition_delay` de la fonction `move_to_xxx`,
+ - le temps spécifique au game object, défini via la fonction `game_object.set_transition_delay(transition_delay)`,
+ - la variable membre `game_model.transition_delay` (initialisée à 200 millisecondes, que vous pouvez modifier).
+
+#### Pour le sprite name
+
+Il suffit de changer directement la valeur dans le game object. La transition sera instantanée.
+
+### Fonction add_transition
+
+Cette fonction permet d'ajouter une séquence, pouvant contenir plusieurs transitions, elle nécessite deux paramètres :
 
  - un nom de variable membre (`coord` ou `sprite_name`),
- - une liste contenant des tuples de temps de délais et de valeurs.
+ - une liste contenant des tuples de délais et de valeurs.
 
 Avec `"coord"`, les valeurs doivent être des `Coord`. Le Game Object se déplacera vers ces coordonnées, les unes après les autres.
 
-Dans l'exemple ci-dessous, lorsqu'on clique dans l'aire de jeu, le diamant vert se déplace vers la coordonnée (3, 1), puis il se déplace très rapidement vers (7, 1), puis il revient plus lentement à son point de départ.
+Dans l'exemple ci-dessous, lorsqu'on clique dans l'aire de jeu, le diamant vert se déplace normalement vers la coordonnée (3, 1), puis très rapidement vers (7, 1), puis lentement vers (5, 2).
 
 ```
 import squarity
@@ -659,37 +672,35 @@ class GameModel(squarity.GameModelBase):
         )
 ```
 
-Vous ne pouvez définir que le temps de déplacement, mais pas une vitesse générique. Par exemple, si vous souhaitez que votre Game Object se déplace toujours à la même vitesse, mais parfois à une case de distance et parfois à deux cases, vous allez devoir coder vous-même le calcul des temps de déplacement. (On fera mieux à la prochaine version).
+Vous ne pouvez définir que le temps de déplacement, et non pas une vitesse générique. Par exemple, si vous souhaitez que votre game object se déplace toujours à la même vitesse quel que soit la distance à parcourir, vous allez devoir coder vous-même le calcul des temps de déplacement. (On fera mieux à la prochaine version de Squarity).
 
-Lorsque le premier paramètre de `TransitionSteps` est `"sprite_name"`, les valeurs doivent être des strings correspondant à des noms de sprites. Le Game Object changera successivement d'apparence.
+Lorsque le premier paramètre de `TransitionSteps` est `"sprite_name"`, les valeurs doivent être des strings correspondant à des noms de sprites. Le game object changera successivement d'apparence.
 
-Attention, le principe d'une transition est d'être appliquée dans le jeu dès qu'elle est démarrée, puis d'être affichée progressivement. Pour les coordonnées, c'est logique. Pour les noms de sprite, c'est un peu particulier, car ça ne peut pas être progressif. Le sprite change dès le début de la transition et reste tel quel durant le temps indiqué. Ce qui signifie que pour une transition sur un nom de sprite, le dernier temps n'est pas très utile et peut être zéro.
+Une transition est affichée progressivement, mais elle est appliquée dans le jeu dès qu'elle est démarrée. Pour les coordonnées, c'est simple à comprendre. Pour un sprite name, l'image change dès le début de la transition et reste telle quelle durant le temps indiqué. Donc pour une transition sur un sprite name, le dernier temps n'est pas très utile et peut être zéro.
 
-Dans le futur, on changera l'ordre des paramèter. D'abord le sprite_name, puis le temps. Ce sera plus logique à comprendre.
+Dans le futur, on changera l'ordre des paramètres. D'abord le sprite name, puis le temps. Ce sera plus logique à comprendre.
 
-Si votre Game Object a une callback de fin de transition, définie à l'aide de la fonction `game_object.set_callback_end_transi`, cellec-ci sera déclenchée à la fin de la liste des transitions.
+Si votre game object a une callback de fin de transition, définie à l'aide de la fonction `game_object.set_callback_end_transi`, cellec-ci sera déclenchée à la fin de la liste des transitions.
 
 ### Gestion des transitions
 
-Vous pouvez ajouter des transitions via la méthode `add_transition`, même si des anciennes transitions sont encore en cours. Celles-ci vont s'ajouter après les transitions existantes.
+Vous pouvez ajouter des transitions via la méthode `add_transition`, même si d'autres transitions sont encore en cours. Les nouvelles vont s'ajouter après les transitions existantes.
 
-La prise en compte des transitions par le moteur est effectuée à la fin de l'exécution du code en cours (`on_click`, `on_button_xxx`, une callback, ...). Si vous ajoutez plusieurs transitions dans le même code, elles seront déclenchées au même moment et seront exécutées en même temps. Cela permet, d'avoir un objet qui se déplace tout en changeant de sprites.
+La prise en compte des transitions par le moteur est effectuée à la fin de l'exécution du code en cours (`on_click`, `on_button_xxx`, une callback, ...). Si vous ajoutez plusieurs transitions dans le même code, elles seront déclenchées au même moment et seront exécutées en même temps. Cela permet d'avoir un objet qui se déplace tout en changeant de sprite.
 
-Dans votre Game Object, les variables membres `coord` et `sprite_name` changent automatiquement, au fur et à mesure de l'enchaînement des transitions. Ce changement n'est pas progressif, il est appliqué au début de chaque transition. Cela permet de garder des nombres entiers dans les coordonnées, même si visuellement l'objet s'affiche entre les deux.
+Dans votre game object, les variables membres `coord` et `sprite_name` changent automatiquement, au fur et à mesure de l'enchaînement des transitions. Ce changement n'est pas progressif, il est appliqué au début de chaque transition. Cela permet de garder des nombres entiers dans les coordonnées, même si visuellement l'objet s'affiche entre les deux.
 
-Le moteur essaye, autant que faire se peut, d'avoir le même type de gestion pour les transitions ajoutées suite à une modification d'une variable et les transitions ajoutées avec `add_transition` :
+Le moteur essaye, autant que faire se peut, d'avoir le même type de gestion pour les transitions ajoutées suite à une modification de variable et les transitions ajoutées avec `add_transition` :
 
  - Durant une transition provenant d'une modification de variable, la variable contient la valeur finale. C'est normal, c'est vous même qui l'avez définie avec votre code python.
  - Si vous remodifiez la variable pendant une transition, celle-ci va s'enchaîner après les transitions existantes. Dans tous les cas, votre code utilise toujours la valeur finale de tout l'enchaînement de transitions. Ça reste cohérent, c'est juste la représentation visuelle qui a du retard par rapport au code, le temps de dérouler les transitions.
- - Durant les transitions provenant de `add_transition`, c'est le moteur du jeu qui modifie automatiquement la variable transitionnée. Cette modification se fait au début de chaque transition (comme si c'était votre code qui le changeait manuellement, à chaque fois que la transition précédente se termine).
+ - Durant les transitions provenant de `add_transition`, c'est le moteur du jeu qui modifie automatiquement la variable transitionnée. Cette modification se fait au début de chaque transition, comme si c'était votre code qui le changeait manuellement, à chaque fois que la transition précédente se termine.
 
-**Attention** : il est fortement déconseillé d'avoir, sur un même Game Object, à la fois des transitions provenant de la modification d'une variable et à la fois des transitions provenant de `add_transition`. C'est une situation ambigüe, dans laquelle on ne pourrait pas déterminer les valeurs des variables. Le moteur essaiera de le gérer comme il peut, c'est à dire pas très bien. Vous devez donc vous assurer des transitions en cours et de leurs origines, avant d'effectuer des actions qui vont en ajouter de nouvelles.
+**Attention** : il est fortement déconseillé d'avoir, sur un même game object et à un même instant, des transitions provenant de modifications de variable et des transitions provenant de `add_transition`. C'est une situation ambigüe, dans laquelle on ne pourrait pas déterminer les valeurs des variables. Le moteur essaiera de le gérer comme il peut, c'est à dire pas très bien. Avant d'ajouter de nouvelles transitions, vous devez donc vous assurer des transitions en cours et de leurs origines.
 
-Si vous avez des doutes, le plus simple est de s'assurer qu'il n'y a aucune transition en cours sur un Game Object avant d'exécuter `add_transition`, ou une fonction `move_xxx`, ou une modification de `sprite_name`.
+Si vous avez des doutes, le plus simple est de s'assurer qu'il n'y a aucune transition en cours sur un game object avant d'effectuer des actions qui en ajouteraient. La méthode `game_object.get_nb_undone_transitions()` renvoie le nombre de transitions restant à effectuer. Si cette fonction renvoie 0, vous pouvez ajouter des transitions en toute sécurité sur ce game object.
 
-La méthode `game_object.get_nb_undone_transitions()` renvoie le nombre de transitions d'un Game Object qui ne sont pas encore terminées ou pas commencées. Si cette fonction renvoie 0, vous pouvez ajouter des transitions en toute sécurité.
-
-Dans l'exemple ci-dessous, lorsque vous appuyez sur un bouton de direction, le diamant se déplace tout en clignotant (jaune-vert-jaune-vert). Lorsque vous cliquez dans le jeu, la console affiche l'état actuel du diamant : coordonnées, nom du sprite et nombres de transitions restantes. Appuyez plusieurs fois sur un bouton, puis cliquez à fond dans le jeu pour avoir une démonstration de la manière dont sont gérées les transitions.
+Dans l'exemple ci-dessous, lorsque vous appuyez sur un bouton de direction, le diamant se déplace tout en clignotant (jaune-vert-jaune-vert). Lorsque vous cliquez, la console affiche son état actuel : coordonnées, nom du sprite et nombres de transitions restantes. Appuyez plusieurs fois sur un bouton, puis cliquez à fond dans le jeu pour avoir une démonstration de la manière dont les transitions peuvent s'accumuler.
 
 ```
 import squarity
@@ -731,13 +742,13 @@ class GameModel(squarity.GameModelBase):
 
 ### Blocage de l'interface (Player Lock Transi)
 
-Si la personne qui joue reste appuyé sur une touche, la fonction `on_button_direction` ou `on_button_action` sera exécutée plusieurs fois très vite. Selon le code que vous avez écrit, cela peut poser problème.
+Si une touche d'action ou de direction reste appuyée, la fonction de callback correspondante sera exécutée plusieurs fois très vite, ce qui peut poser problème.
 
-Il est possible de bloquer automatiquement toute l'interface du jeu (clics et boutons) tant qu'un Game Object a au moins une transition en cours. Ça peut être utile si votre jeu comporte un élément principal (héros/héroïne/avatar/etc.) dirigé par la personne qui joue. Si un bouton est appuyé durant le mouvement de cet élément, ce ne sera pas pris en compte.
+Il est possible de bloquer automatiquement toute l'interface du jeu (clics et boutons) tant qu'un game object spécifique a au moins une transition en cours. C'est utile si votre jeu comporte un objet principal dirigé par la personne qui joue (héros/héroïne/avatar/etc.). Si un bouton est appuyé durant le mouvement de cet objet, ce ne sera pas pris en compte.
 
-Modifiez la variable membre `plock_transi` de votre Game Object. Celle-ci peut prendre 3 valeurs:
+Modifiez la variable membre `plock_transi` de votre game object principal. Celle-ci peut prendre 3 valeurs:
 
- - `PlayerLockTransi.NO_LOCK` : pas le blocage (valeur par défaut).
+ - `PlayerLockTransi.NO_LOCK` : pas de blocage (valeur par défaut).
  - `PlayerLockTransi.INVISIBLE` : blocage invisible. Les boutons ne changent pas d'apparence, mais rien ne se passe si on clique dessus.
  - `PlayerLockTransi.LOCK` : blockage visible. Les boutons s'affichent en grisé.
 
@@ -746,23 +757,21 @@ self.gobj = squarity.GameObject(squarity.Coord(5, 2), "gem_green")
 self.gobj.plock_transi = squarity.PlayerLockTransi.INVISIBLE
 ```
 
-En général, cette fonctionnalité déclenche des micro-blocage successifs, durant les mouvements de l'élément principal. Si les boutons d'interface sont grisés/dégrisés à chaque fois, c'est dérangeant pour la personne qui joue. C'est pourquoi il vaut mieux indiquer un blocage invisible. Les deux types de blocages ont exactement le même effet dans le fonctionnement du jeu, la différence est seulement visuelle.
+Cette fonctionnalité provoque un micro-blocage à chaque mouvement de l'objet. Si les boutons d'interface sont grisés/dégrisés à chaque fois, ce qui peut être déroutant. C'est pourquoi il vaut mieux indiquer un blocage invisible. Les deux types de blocages ont exactement le même effet dans le fonctionnement du jeu, la différence est seulement visuelle.
 
-Les blocages visibles sont utiles pour les animations narratives (les "cut-scenes"). Ils permettent d'indiquer explicitement que ce n'est pas le moment de jouer, mais le moment de regarder (voire admirer) ce qu'il se passe dans le jeu.
+Les blocages visibles sont utiles pour les animations narratives (les "cut-scenes"). Ils permettent d'indiquer explicitement que ce n'est pas le moment de jouer, mais de regarder ce qu'il se passe dans le jeu.
 
-Ce type de blocage est appliqué pour tous les types de transitions, aussi bien celles provenant d'une modification de variable que celles ajoutées avec `add_transition`.
+Les blocages "Player Lock Transi" sont appliqués avec tous les types de transitions, aussi bien celles provenant d'une modification de variable que celles ajoutées avec `add_transition`.
 
-Vous pouvez avoir plusieurs Game Object configurés pour bloquer l'interface. Dans ce cas, l'interface est utilisable lorsque tous ces objets n'ont aucune transition en cours.
+Vous pouvez avoir plusieurs game objects bloquant l'interface. Dans ce cas, l'interface est utilisable lorsqu'aucun de ces objets n'a de transition en cours.
 
-Vous pouvez ajouter des transitions à un objet bloqueur même s'il a déjà des transitions en cours.
-
-Ce type de blocage permet de simplifier la gestion des transitions, et le fait qu'il faille éviter d'avoir plusieurs types de transition en même temps sur un même Game Object.
+Vous pouvez ajouter des transitions à un objet bloquant même s'il a déjà des transitions en cours.
 
 ### Annuler les transitions en cours
 
-La méthode `game_object.clear_transitions_to_record()` permet de supprimer les transitions que vous auriez ajoutées via des méthodes `add_transition`, AVANT qu'elles aient été prises en compte par le moteur du jeu.
+La méthode `game_object.clear_transitions_to_record()` permet de supprimer les transitions que vous auriez ajoutées via des méthodes `add_transition`, **avant** qu'elles aient été prises en compte par le moteur du jeu.
 
-La méthode `game_object.clear_all_transitions()` permet d'annuler toutes les transitions prises en compte. Dans le code, vous pouvez à la fois exécuter cette fonction, puis exécuter des `add_transition`. Dans ce cas, les transitions précédentes seront toutes annulées, puis celles que vous avez ajoutées seront prises en compte.
+La méthode `game_object.clear_all_transitions()` permet d'annuler toutes les transitions prises en compte par le moteur. Dans le code, vous pouvez exécuter cette fonction, puis exécuter des `add_transition`. Dans ce cas, les transitions précédentes seront toutes annulées, celles que vous avez ajoutées seront prises en compte.
 
 Attention, si vous avez ajouté un enchaînement de transition et que vous l'annulez, la transition actuellement en cours est immédiatement terminée (l'objet se déplace instantanément à la destination de la transition). Les transitions qui n'étaient pas commencées sont entièrement annulées.
 
@@ -1105,5 +1114,6 @@ Cet exemple de code fonctionne avec tous les jeux (à condition de les mettre en
 Le fonctionnement est le même que pour la version 1.
 
 Les explications sont ici : https://github.com/darkrecher/squarity-doc/blob/master/user_manual/main_page.md#partager-un-jeu
+
 
 
