@@ -433,7 +433,7 @@ Les layers sans transition sont gérés de manière optimisée par le moteur Squ
 
 Le choix d'avoir ou pas des transitions peut être effectué uniquement à l'instanciation du layer. Si vous modifiez la variable `layer.show_transitions` après l'avoir créé, ce ne sera pas pris en compte par le moteur.
 
-### LayerSparse
+### class LayerSparse
 
 Il s'agit d'une classe ayant le même fonctionnement que la classe `Layer` (les deux héritent de `LayerBase`). Les game objects contenus dans un `LayerSparse` ne sont pas indexés dans un tableau en deux dimensions, mais placés dans une liste unique.
 
@@ -454,7 +454,7 @@ Liste des méthodes communes aux classes `Layer` et `LayerSparse` :
 Les méthodes `get_tile` et `get_tile_xy` ne sont pas présentes dans un `LayerSparse`, puisqu'il n'y a pas de tableau en 2 dimensions contenant des tiles.
 
 
-## GameModel
+## class GameModel
 
 Il s'agit de la classe principale définissant la logique de votre jeu. Elle hérite de `GameModelBase`. Vous devez la définir, mais pas l'instancier, car c'est fait automatiquement par le moteur.
 
@@ -619,7 +619,7 @@ Une transition représente la modification progressive d'une variable d'un game 
 
 Les coordonnées sont des variables transitionnables. L'objet se déplacera pixel par pixel de sa case de destination vers sa case d'arrivée. Visuellement, les coordonnées de votre game object deviennent des valeurs décimales, afin de le placer entre deux cases. Dans votre code python, les coordonnées restent des nombres entiers et passent directement de la valeur de départ à la valeur d'arrivée.
 
-Les variables permettant de décaler et agrandir l'image d'un game object sont elles aussi transitionnables, [voir "ComponentImageModifier"](#componentimagemodifier).
+Les variables permettant de décaler et agrandir l'image d'un game object sont elles aussi transitionnables, [voir la classe ComponentImageModifier](#class-componentimagemodifier).
 
 Le sprite name peut avoir des transitions, mais elles ne sont pas progressives. L'image change d'un seul coup. Il est possible d'enchaîner ces changements : une première image pendant 100 millisecondes, une deuxième pendant les 100 millisecondes suivantes, etc.
 
@@ -789,26 +789,28 @@ Selon le moment où vous avez cliqué, le diamant s'arrêtera à un endroit diff
 
 ## Info supplémentaires pour les sprites
 
-Chaque valeur du dictionnaire `img_coords` est une liste contenant au moins deux nombres entiers. D'autres valeurs facultatives peuvent être ajoutées après.
+Chaque valeur du dictionnaire `config.img_coords` (dans la config JSON) définit un sprite. Elle est constituée d'une liste. Les deux premiers éléments sont obligatoires, les 3 suivants optionnels. Il s'agit des éléments suivants :
 
-Voici la liste complète (incluant les 2 premiers nombres obligatoires)
+ - Un nombre entier. Coordonnée x du coin supérieur gauche de l'image, dans le tileset. L'unité est le pixel de tileset.
 
- - 2 nombres entiers. Coordonnées x et y du coin supérieur gauche de l'image, dans le tileset. L'unité est le pixel de tileset.
+ - Coordonnée y du coin supérieur gauche de l'image.
 
- - 2 nombres entiers, par défaut : config.tile_size. Taille (largeur, hauteur) de l'image prise dans l'atlas. L'unité est le pixel de tileset. Ces deux tailles ont également une influence sur la taille de l'image affichée dans l'aire de jeu. Par exemple, si on indique une largeur qui vaut un tiers de config.tile_size, l'image affichée aura une largeur de un tiers de case dans l'aire de jeu. La méthode de positionnement du sprite dans l'aire de jeu, par rapport à la taille de l'image d'atlas, est définie juste après.
+ - Un nombre entier, par défaut : `config.tile_size`. Largeur de l'image prise dans le tileset. L'unité est le pixel de tileset. La largeur et la hauteur ont une influence sur la taille de l'image affichée dans l'aire de jeu. Par exemple, si on indique une largeur qui vaut un tiers de `config.tile_size`, l'image affichée fera un tiers de case dans l'aire de jeu. La méthode de positionnement du sprite dans l'aire de jeu est définie par le dernier élément de cette liste.
 
- - chaines de caractères : "center" ou "corner_upleft", par défaut : "corner_upleft". Indique où ancrer l'image du tileset par rapport à la case de l'aire de jeu, en particulier quand l'image et la case n'ont pas la même taille. Avec "corner_upleft", le coin haut gauche de l'image reste fixé sur le coin haut gauche de la case. Donc si on agrandit l'image, elle va dépasser vers le bas et vers la droite. Avec "center", le centre de l'image reste fixé sur le centre de la case. Si on agrandit l'image, elle va dépasser par les 4 côtés.
+ - Un nombre entier, par défaut : `config.tile_size`. Hauteur de l'image prise dans le tileset.
 
-![https://raw.githubusercontent.com/darkrecher/squarity-doc/master/user_manual/schema_sprite_infos.png](https://raw.githubusercontent.com/darkrecher/squarity-doc/master/user_manual/schema_sprite_infos.png)
+ - Une chaine de caractères qui vaut "center" ou "corner_upleft", par défaut : "corner_upleft". Indique où ancrer l'image par rapport à la case de l'aire de jeu, en particulier quand l'image et la case n'ont pas la même taille. Avec "corner_upleft", le coin haut gauche de l'image reste fixé sur le coin haut gauche de la case. Si on agrandit l'image, elle va dépasser vers le bas et vers la droite. Avec "center", le centre de l'image reste fixé sur le centre de la case. Si on agrandit l'image, elle va dépasser par les 4 côtés.
+
+Voir schéma dans le chapitre suivant (class ComponentImageModifier).
 
 
-## ComponentImageModifier
+## class ComponentImageModifier
 
 ### Initialisation
 
-Cette classe doit être placée dans un Game Object, au moment de sa création. Elle permet de modifier la manière dont l'image du Game Object est affichée dans l'aire de jeu.
+Cette classe doit être placée dans un game object, au moment de sa création. Elle permet de modifier la manière dont il est affiché dans l'aire de jeu.
 
-Si le `ComponentImageModifier` est indiqué après la création du Game Object, il ne sera pas pris en compte. Il faut donc instancier votre Game Object comme ceci :
+Si le `ComponentImageModifier` est ajouté après la création du game object, il ne sera pas pris en compte. Il faut donc instancier votre game object comme ceci :
 
 ```
 gobj = squarity.GameObject(
@@ -820,19 +822,21 @@ gobj = squarity.GameObject(
 
 ### Variables membres
 
-Toutes les variables commençant par `img_` ont pour unité le nombre de pixels dans l'image de tileset. Ce sont des nombres entiers, positifs ou négatifs.
+Toutes les variables commençant par `img_` représentent un nombre de pixels dans l'image de tileset. Ce sont des nombres entiers, positifs ou négatifs.
 
-Toutes les variables commençant par `area_` ont pour unité le nombre de cases dans l'aire de jeu. Ce sont des nombres décimaux, positifs ou négatifs. Il est donc possible d'indiquer des fractions de cases.
+Toutes les variables commençant par `area_` représentent un nombre de cases dans l'aire de jeu. Ce sont des nombres décimaux, positifs ou négatifs. Il est donc possible d'indiquer des fractions de cases.
 
-`img_offset_x`, `img_offset_y` : décalage, dans le tileset, de l'image à afficher. Modifier ces valeurs revient à modifier, temporairement et pour un seul Game Object, les 2 premières valeurs du sprite name, dans `config.img_coords`.
+Le `ComponentImageModifier` possède les variables suivantes :
 
-`img_size_x`, `img_size_y` : taille, dans le tileset, de l'image à afficher. Modifier ces valeurs revient à modifier, temporairement et pour un seul Game Object, les 3ème et 4ème valeurs du sprite name, dans `config.img_coords`. Par défaut, ces valeurs sont initialisées à `config.tile_size`.
+ - `img_offset_x`, `img_offset_y` : décalage, dans le tileset, de l'image à afficher. Modifier ces valeurs revient à modifier, temporairement et pour un seul game object, les 2 premières valeurs du sprite name, dans `config.img_coords`.
 
-`area_offset_x`, `area_offset_y` : décalage, dans l'aire de jeu, de l'objet affiché. Ces variables permettent d'afficher un objet entre deux cases (même si, dans la logique du jeu, l'objet restera toujours contenu dans une seule case). Par exemple, si `area_offset_x = -1.25`, l'objet sera décalé vers la gauche, sur une distance de une case un quart. Il est possible d'afficher un objet partiellement en dehors de l'aire de jeu. Par défaut, ces deux valeurs valent 0.0.
+ - `img_size_x`, `img_size_y` : taille, dans le tileset, de l'image à afficher. Modifier ces valeurs revient à modifier, temporairement et pour un seul game object, les 3ème et 4ème valeurs du sprite name, dans `config.img_coords`. Par défaut, ces valeurs sont initialisées à `config.tile_size`.
 
-`area_scale_x`, `area_scale_y` : facteur d'échelle de l'image affichée dans l'aire de jeu. Par exemple, si `area_scale_x = 2.5`, l'image sera affichée 2,5 fois plus large que sa taille normale. Le positionnement de l'image retaillée est déterminée à l'aide de l'anchor (la valeur "center"/"corner_upleft" définie dans la configuration). Par défaut, ces deux valeurs valent 1.0.
+ - `area_offset_x`, `area_offset_y` : décalage, dans l'aire de jeu, de l'objet affiché. Ces variables permettent d'afficher un objet entre deux cases (même si, dans la logique du jeu, l'objet appartient toujours à une seule case). Par exemple, si `area_offset_x = -1.25`, l'objet sera décalé vers la gauche, sur une distance de une case et un quart. Il est possible d'afficher un objet partiellement en dehors de l'aire de jeu. Par défaut, les valeurs `area_offset` valent 0.0.
 
-Ces 8 valeurs peuvent être définies lors de la création du `ComponentImageModifier` et peuvent ensuite être modifiées pendant le jeu. Le component se trouve dans la variable membre `image_modifier` du Game Object.
+ - `area_scale_x`, `area_scale_y` : facteur d'échelle de l'image affichée dans l'aire de jeu. Par exemple, si `area_scale_x = 2.5`, l'image sera affichée 2,5 fois plus large que sa taille normale. Le positionnement de l'image retaillée est déterminée à l'aide de l'anchor (la valeur "center"/"corner_upleft" définie dans `config.img_coords`). Par défaut, les valeurs `area_scale` valent 1.0.
+
+Ces 8 valeurs peuvent être définies lors de la création du `ComponentImageModifier`, puis modifiées pendant le jeu. Le component se trouve dans la variable membre `image_modifier` du game object.
 
 Dans cet exemple, le diamant vert est affiché de manière écrasée. Appuyez sur la flèche de gauche ou de droite pour l'écraser encore plus, appuyez sur la flèche du haut ou du bas pour l'étirer.
 
@@ -866,17 +870,18 @@ class GameModel(squarity.GameModelBase):
                 self.gobj.image_modifier.area_scale_x += 0.1
 ```
 
+![https://raw.githubusercontent.com/darkrecher/squarity-doc/master/user_manual/schema_sprite_infos.png](https://raw.githubusercontent.com/darkrecher/squarity-doc/master/user_manual/schema_sprite_infos.png)
 
-### Transitions de l'ImageModifier
+### Transitions
 
-Les 8 valeurs de l'ImageModifier fonctionnent de la même manière que les coordonnées au niveau des transitions:
+Les 8 valeurs du `ComponentImageModifier` sont transitionnables, comme les coordonnées d'un game object.
 
- - Une simple modification de l'une de ces valeurs déclenche une transition entre la valeur courante et la valeur finale, sur une durée définie via `set_transition_delay`.
- - Selon la valeur de `gobj.plock_transi`, l'interface peut être lockée durant une transition de l'ImageModifier.
- - La fonction de callback de fin de transition sera appelée, si elle est définie.
+ - Une simple modification de l'une de ces valeurs déclenche une transition entre la valeur courante et la valeur finale, sur une durée définie via `game_object.set_transition_delay`.
+ - Selon la valeur de `game_object.plock_transi`, l'interface peut être lockée durant une transition.
+ - La fonction de callback de fin de transition du game object sera appelée, si elle est définie.
  - Il est possible d'ajouter et d'enchaîner des séquences de transition avec la fonction `gobj.image_modifier.add_transitions`.
 
-L'exemple ci-dessous reproduit la petite animation lorsque les deux diamants se rencontre, mais cette fois-ci il n'y a que le diamant vert. Cliquez dans l'aire de jeu pour déclencher l'animation.
+L'exemple ci-dessous effectue une petite animation avec le diamant vert. Cliquez dans l'aire de jeu pour la déclencher.
 
 ```
 import squarity
@@ -900,16 +905,10 @@ class GameModel(squarity.GameModelBase):
             (150, 0.5), (75, 1),
         )
         self.gobj.image_modifier.add_transition(
-            squarity.TransitionSteps(
-                "area_scale_x",
-                TRANSI_SCALE
-            )
+            squarity.TransitionSteps("area_scale_x", TRANSI_SCALE)
         )
         self.gobj.image_modifier.add_transition(
-            squarity.TransitionSteps(
-                "area_scale_y",
-                TRANSI_SCALE
-            )
+            squarity.TransitionSteps("area_scale_y", TRANSI_SCALE)
         )
 
         self.gobj.image_modifier.add_transition(
@@ -927,19 +926,19 @@ class GameModel(squarity.GameModelBase):
 ```
 
 
-## ComponentBackCaller
+## class ComponentBackCaller
 
-Cette classe doit être placée dans un Game Object, au moment de sa création. Elle permet d'exécuter des callbacks au bout d'un temps défini. C'est le même principe que les callbacks dans les `EventResult`, mais elles sont associées à un Game Object.
+Cette classe doit être placée dans un game object, au moment de sa création. Elle permet d'exécuter des callbacks au bout d'un temps défini. C'est le même principe que les callbacks dans les `EventResult`, mais elles sont associées à un game object.
 
-Si le Game Object est supprimé, ou s'il est retiré de son Layer, les callbacks prévues ne sont pas exécutées.
+Si le game object est supprimé ou s'il est retiré de son layer, les callbacks prévues ne sont pas exécutées.
 
-Utilisez le paramètre optionnel `back_caller` lors de la création du Game Object. Puis, utiliser la fonction `back_caller.add_callback(delayed_callback)` pour ajouter une callback.
+Lors de l'instanciation du game object, indiquez le `ComponentBackCaller` avec le paramètre optionnel `back_caller`. Puis, utilisez la fonction `back_caller.add_callback(delayed_callback)` pour ajouter une callback.
 
-Contrairement aux transitions sur les coordonnées, l'image modifier, etc., lorsqu'il n'y a plus de callback à exécuter, cela ne déclenche pas la callback de fin des transitions.
+Contrairement aux autres transitions (coordonnées, sprite name, image modifier), lorsqu'il n'y a plus de callback à exécuter, cela ne déclenche pas la callback de fin de transition du game object.
 
 En revanche, les callbacks ajoutées et qui n'ont pas encore été exécutées sont comptées comme des transitions non réalisées par la fonction `get_nb_undone_transitions`. (Note: et c'est bizarre et on devrait avoir une fonction spéciale pour renvoyer le nombre de callback restantes).
 
-Dans le code ci-dessous, le diamant vert ajoute deux callbacks dès le lancement du jeu. L'une sera lancée au bout de 2 secondes, l'autre au bout de 4 secondes. Lorsque vous cliquez dans le jeu, le nombre de transitions restantes s'affiche dans la console. Ce nombre passera de 2 vers 1, puis vers 0.
+Dans le code ci-dessous, le diamant vert ajoute deux callbacks dès le lancement du jeu. L'une sera lancée au bout de 2 secondes, l'autre au bout de 4 secondes. Lorsque vous cliquez dans le jeu, le nombre de transitions restantes s'affiche dans la console.
 
 ```
 import squarity
@@ -970,13 +969,11 @@ class GameModel(squarity.GameModelBase):
 
 ## Itérer sur les GameObjects
 
-Il est très souvent nécessaire de parcourir tout ou une partie de l'aire de jeu, pour rechercher des Game Object spécifiques.
+Il est très souvent nécessaire de parcourir tout ou une partie de l'aire de jeu, pour rechercher des game objects spécifiques. La classe `Sequencer` permet d'effectuer les itérations les plus communes.
 
-La classe `Sequencer` est un outil permettant d'effectuer les itérations les plus communes.
+Cette classe contient uniquement des fonctions statiques, vous n'avez pas besoin de l'instancier.
 
-Cette classe contient uniquement des fonctions statiques (vous n'avez pas besoin de l'instancier).
-
-La fonction `Sequencer.seq_iter` renvoie un itérateur. Les paramètres de cette fonction sont des "mini-itérateurs" mis bout à bout. Selon ces paramètres, votre séquenceur renverra des coordonnées, des Game Objects ou des listes de Game Objects.
+La fonction `Sequencer.seq_iter` renvoie un itérateur. Les paramètres de cette fonction sont des "mini-itérateurs" mis bout à bout. Selon ces paramètres, votre séquenceur renverra des coordonnées, des game objects ou des listes de game objects.
 
 Les mini-itérateurs sont créés à l'aide d'autres fonctions statiques du séquenceur.
 
@@ -984,7 +981,7 @@ Les mini-itérateurs sont créés à l'aide d'autres fonctions statiques du séq
 
 Le séquenceur permet d'éviter deux itérations imbriquées sur x et sur y. Il nécessite un seul paramètre, renvoyé par `Sequencer.iter_on_rect(rect, instanciate_coord=False)`.
 
-`rect` doit être un objet `Rect`, `instanciate_coord` est un booléen, lorsqu'il vaut True, l'itérateur recrée un nouvel objet `Coord` à chaque itération. Il est nécessaire de le mettre à True uniquement dans des situations très particulières, où vous auriez besoin de modifier temporairement les coordonnées sur lesquelles vous itérez.
+Le paramètre `rect` est un objet `Rect`. Le paramètre `instanciate_coord` est un booléen. Lorsqu'il vaut True, l'itérateur recrée un nouvel objet `Coord` à chaque itération. C'est nécessaire dans une situation où vous auriez besoin de modifier temporairement les coordonnées sur lesquelles vous itérez.
 
 L'exemple ci-dessous remplit l'aire de jeu avec une alternance de diamant vert et de diamant jaune, pour créer une sorte d'échiquier.
 
@@ -992,33 +989,39 @@ L'exemple ci-dessous remplit l'aire de jeu avec une alternance de diamant vert e
 import squarity
 S = squarity.Sequencer
 
+def get_changed_gem(sprite_name):
+    if sprite_name == "gem_yellow":
+        return "gem_green"
+    else:
+        return "gem_yellow"
+
 class GameModel(squarity.GameModelBase):
 
     def on_start(self):
-        color = "gem_green"
+        sprite_name = "gem_green"
         seq = S.seq_iter(S.iter_on_rect(self.rect))
         for coord in seq:
             if coord.x:
-                color = "gem_green" if color == "gem_yellow" else "gem_yellow"
-            self.gobj = squarity.GameObject(coord, color)
+                sprite_name = get_changed_gem(sprite_name)
+            self.gobj = squarity.GameObject(coord, sprite_name)
             self.layer_main.add_game_object(self.gobj)
 ```
 
 ### Itérer sur des Game Objects
 
-Avec un deuxième paramètre, le séquenceur permet d'itérer sur les Game Objects d'un ou plusieurs layers.
+Avec un deuxième paramètre, le séquenceur permet d'itérer sur les game objects d'un ou plusieurs layers.
 
-`Sequencer.gobj_on_layers(layers)` renverra les Game Objects les un après les autres. Le paramètre `layers` est la liste de Layer dans laquelle on recherche les Game Objects. L'itération est effectuée sur le Rect spécifié par `iter_on_rect`.
+`Sequencer.gobj_on_layers(layers)` renverra les game objects les un après les autres. Le paramètre `layers` est la liste de layers dans laquelle on recherche les game objects. L'itération est effectuée sur le rectangle spécifié par `iter_on_rect`.
 
-`Sequencer.gobj_on_layers_by_coords(layers)` renverra des listes de Game Objects, en les groupant par coordonnées. Les coordonnées n'ayant aucun Game Objects généreront des listes vides.
+`Sequencer.gobj_on_layers_by_coords(layers)` renverra des listes de game objects, en les groupant par coordonnées. Les coordonnées n'ayant aucun game objects généreront des listes vides.
 
-Le troisième paramètre du séquenceur permet de filtrer sur des noms de sprites spécifique: `Sequencer.filter_sprites(sprite_names, skip_empty_lists=False)`. Le paramètre `sprite_names` doit être une liste de strings. Le paramètre `skip_empty_lists` est utile lorsqu'on utilise la fonction `gobj_on_layers_by_coords`, il permet de passer les cases ne contenant aucun Game Objects.
+Le troisième paramètre du séquenceur permet de filtrer sur des noms de sprites spécifique: `Sequencer.filter_sprites(sprite_names, skip_empty_lists=False)`. Le paramètre `sprite_names` est une liste de strings. Le paramètre `skip_empty_lists` est utile lorsqu'on utilise la fonction `gobj_on_layers_by_coords`, il permet de passer les cases ne contenant aucun game objects.
 
-L'exemple ci-dessous place un diamant vert sur une case, et deux diamants verts + un diamant jaune sur une autre. Chaque bouton de direction effectue une itération spécifique et logge les infos dans la console.
+L'exemple ci-dessous place un diamant vert sur une case et deux diamants verts + un diamant jaune sur une autre. Chaque bouton de direction effectue une itération spécifique et logge les infos dans la console.
 
  - La flèche du haut itère sur tous les Game Objects.
  - La flèche du bas itère sur les listes de Game Objects (le log est moche mais c'est pas grave).
- - La flèche de gauche itère sur les diamants vert.
+ - La flèche de gauche itère sur les diamants verts.
  - La flèche de gauche itère sur les listes de diamant verts, en passant les cases qui n'en contiennent pas.
 
 ```
@@ -1074,9 +1077,9 @@ class GameModel(squarity.GameModelBase):
 
 ### Récupérer le premier Game Object
 
-Il est possible de récupérer directement le premier élément renvoyé par un séquenceur, au lieu d'itérer avec. Pour cela, utilisez la fonction `Sequencer.seq_first` à la place de `Sequencer.seq_iter`. Le fonctionnement des paramètres est exactement le même. La fonction `seq_first` va itérer une seule fois sur la séquence que vous avez fournie et renverra le premier élément. Si l'itération ne peut pas du tout être effectuée, la fonction renvoie None.
+Il est possible de récupérer directement le premier élément renvoyé par un séquenceur, au lieu d'itérer avec. Pour cela, utilisez la fonction `Sequencer.seq_first` à la place de `Sequencer.seq_iter`. Le fonctionnement des paramètres est le même. La fonction `seq_first` itère une seule fois sur la séquence que vous avez fournie et renvoie le premier élément. Si l'itération ne peut pas du tout être effectuée, la fonction renvoie `None`.
 
-Pour information, la fonction `GameModel.get_first_gobj` utilise un séquenceur en interne.
+Pour information, la fonction `GameModel.get_first_gobj` utilise un séquenceur.
 
 
 ## Exemple bonus : afficher tous les sprites existants
@@ -1106,14 +1109,6 @@ class GameModel(squarity.GameModelBase):
 
 Vous verrez tous les sprites du jeu affiché les uns après les autres dans l'aire de jeu.
 
-Cet exemple de code fonctionne avec tous les jeux (à condition de les mettre en version 2). Il peut être utile, par exemple si vous voulez vérifier que vous avez bien défini toutes les coordonnées de tous les noms de sprites.
-
-
-## Créer un lien direct vers votre jeu
-
-Le fonctionnement est le même que pour la version 1.
-
-Les explications sont ici : https://github.com/darkrecher/squarity-doc/blob/master/user_manual/main_page.md#partager-un-jeu
-
+Cet exemple de code fonctionne avec tous les jeux (à condition de les mettre en version 2). Il peut être utile si vous voulez vérifier que vous avez bien défini toutes les coordonnées de tous les noms de sprites.
 
 
