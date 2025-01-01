@@ -399,18 +399,34 @@ Et maintenant ça marche !
 
 ## Mise en prod 06 et suivantes
 
-Mise en prod 06 : 2023-12-25
+### Mise en prod 06
 
-Mise en prod 07 : 2024-01-21
+2023-12-25
+
+### Mise en prod 07
+
+2024-01-21
 
 Rien de spécial à signaler. Comme d'habitude : remplacement des fichiers dans pythonanywhere, rechargement du site.
 
 Pour la mise en prod 07, j'ai remplacé uniquement les fichiers dans la racine du répertoire `dist`, et les fichiers .js, .css et .svg du répertoire `dist/assets`. (Pas les fichiers .gif). Ça a fonctionné sans problème.
 
-Mise en prod 08 : 2024-06-30
+### Mise en prod 08
+
+2024-06-30
 
 Rien de spécial à signaler.
 
 Pas de remplacement des .gif, ni des .svg, ni du répertoire pyodide. Tout va bien.
+
+### Mise en prod 09
+
+2025-01-01
+
+Pas de remplacement des .gif ni des .svg.
+
+Remplacement du fichier `pyodide/v0.15.0/pyodide.asm.data.js`, car j'ai effectué une modification dedans ! Les autres fichiers de pyodide n'ont pas été modifié, ni remplacé dans pythonanywhere.
+
+Pour une explication détaillée de la raison pour laquelle il a fallu modifier ce fichier, voir doc `trucs_internes/barre_progress_descrip.md` dans ce repository.
 
 
