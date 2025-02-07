@@ -10,7 +10,7 @@ Un jeu est défini par trois informations :
  - la configuration,
  - le "game code".
 
-Pour l'instant, Squarity ne gère pas de comptes ni de profil personnel. Vous devez sauvegardez vos jeux par vous-même, sur votre disque dur ou ailleurs. Vous pouvez les distribuer en [les publiant sur un gist github](https://github.com/darkrecher/squarity-doc/blob/master/user_manual/main_page.md#partager-un-jeu).
+Pour l'instant, Squarity ne gère pas de comptes ni de profil personnel. Vous devez sauvegarder vos jeux par vous-même. Vous pouvez les distribuer en [les publiant sur un gist github](https://github.com/darkrecher/squarity-doc/blob/master/user_manual/main_doc_v1.md#partager-un-jeu).
 
 
 ## Le tileset
@@ -46,7 +46,7 @@ Dans l'interface, cette configuration doit être écrite dans la zone de texte "
 
 ### Informations générales de la config
 
-`name` (chaîne de caractère) : le nom de votre jeu. Il est écrit dans le titre de la page web, précédé du texte "Squarity - ".
+`name` (chaîne de caractère) : le nom de votre jeu. Il sera écrit dans le titre de la page web, précédé du texte "Squarity - ".
 
 `version` (chaîne de caractère) : version du moteur du jeu, indiquez "2.1.0". ([Voir Version"](#version-du-moteur-squarity)).
 
@@ -56,7 +56,7 @@ Dans l'interface, cette configuration doit être écrite dans la zone de texte "
 
 ### Définition des images
 
-Il s'agit des images représentant les éléments de votre jeu (les "Game Objects"). Elles sont définies dans un sous-dictionnaire, identifié par la clé `img_coords`.
+Il s'agit des images représentant les éléments de votre jeu (les "Game Objects"). Elles sont définies par un sous-dictionnaire, situé dans `img_coords`.
 
 Chaque clé de ce sous-dictionnaire est une chaîne de caractère que vous pourrez utiliser dans votre code python, pour spécifier l'image d'un Game Object.
 
@@ -66,7 +66,7 @@ Il est possible d'ajouter d'autres valeurs après ces deux entiers. [Voir "Info 
 
 ### Version du moteur Squarity
 
-La seule information utile de la clé `version` est le premier nombre, situé avant le premier point.
+La seule information utile de la clé `version` est le premier nombre.
 
 Si ce nombre est "1", la version utilisée sera "1.0.0".
 
@@ -81,9 +81,9 @@ Dans l'interface, placez ce programme dans la zone de texte intitulée "Le code 
 
 Ce programme doit contenir une classe intitulée `GameModel`, qui hérite de la classe `squarity.GameModelBase`.
 
-Cette classe sera instanciée automatiquement par le moteur Squarity. Elle contient des fonctions de callback qui seront appelées automatiquement sur certains événements (appui sur un bouton du jeu, clic de souris, etc.)
+Cette classe sera instanciée par le moteur Squarity. Elle contient des fonctions de callback qui seront automatiquement appelées sur certains événements (appui sur un bouton du jeu, clic de souris, etc.)
 
-Votre `GameModel` contient des objets de type `squarity.Layer`, ordonnés dans une liste. Chacun de ces layers contient un tableau de "tiles". Ce tableau est en 2 dimensions, la largeur et la hauteur correspondent à celles de l'aire de jeu (c'est à dire les valeurs `nb_tile_width` et `nb_tile_height` indiquées dans la config JSON).
+Votre `GameModel` contient des objets de type `squarity.Layer`, ordonnés dans une liste. Chacun de ces layers contient un tableau en 2 dimensions avec des "tiles". La largeur et la hauteur correspondent à celles de l'aire de jeu (c'est à dire les valeurs `nb_tile_width` et `nb_tile_height` indiquées dans la config JSON).
 
 Une tile représente une case de l'aire de jeu. Chaque tile peut contenir plusieurs `squarity.GameObject`, représentant des objets de votre jeu.
 
@@ -108,9 +108,9 @@ Les exemples de code commençant par `import squarity` sont plus complets, ils d
 
 Vous ne pouvez pas définir la taille en pixel des cases réellement affichées, car cette taille s'adapte automatiquement à la fenêtre du navigateur affichant Squarity.
 
-Le calcul est effectué comme suit:
+Le calcul est effectué comme suit :
 
- - calcul de la largeur possible et de la hauteur possible des tiles (en pixel, à l'écran) :
+ - détermination des plus grandes valeurs possibles pour la largeur et la hauteur des tiles (en pixel, à l'écran) :
    - `largeur_case_temp = largeur_affichage // config.game_area.nb_tile_width`
    - `hauteur_case_temp = hauteur_affichage // config.game_area.nb_tile_height`
  - détermination de la taille réelle des tiles, en prenant la plus petite :
@@ -119,7 +119,7 @@ Le calcul est effectué comme suit:
    - `largeur_case_affichage = taille_case_affichage`
    - `hauteur_case_affichage = taille_case_affichage`
 
-Ensuite, une mise à l'échelle est effectuée, pour afficher les images ayant une taille égale à `config.tile_size` (en pixel de tileset), vers des images ayant une taille égale à `taille_case_affichage` (en pixel d'écran).
+Ensuite, une mise à l'échelle des images est effectuée. On part de la taille définie par `config.tile_size` (en pixel de tileset), pour arriver à des images ayant une taille égale à `taille_case_affichage` (en pixel d'écran).
 
 La mise à l'échelle est effectuée selon l'algorithme "proche voisin", sans traitement ni anti-aliasing. Vous verrez donc des gros pixels carrés si vos images de tileset sont petites et que vous jouez dans une grande fenêtre.
 
