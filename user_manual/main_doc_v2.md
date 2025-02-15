@@ -123,16 +123,20 @@ Ensuite, une mise à l'échelle des images est effectuée. On part de la taille 
 
 La mise à l'échelle est effectuée selon l'algorithme "proche voisin", sans traitement ni anti-aliasing. Vous verrez donc des gros pixels carrés si vos images de tileset sont petites et que vous jouez dans une grande fenêtre.
 
+TODO : il manque des guillemets dans la config json de l'image. Bouuuh !
+
+Et il manque aussi un espace dans les divisions "300/ 5" et "200/ 9".
+
 ![https://raw.githubusercontent.com/darkrecher/squarity-doc/master/user_manual/schema_game_sizes.png](https://raw.githubusercontent.com/darkrecher/squarity-doc/master/user_manual/schema_game_sizes.png)
 
 
 ## class Direction
 
-Il s'agit d'une classe python dont il n'existe que 8 instances, 4 pour les directions de base (haut, droite, bas, gauche) et 4 autres pour les diagonales. Ces 8 instances sont stockées dans l'objet `squarity.dirs`.
+Il s'agit d'une classe python dont il n'existe que 8 instances : 4 pour les directions de base (haut, droite, bas, gauche) et 4 pour les diagonales. Ces 8 instances sont stockées dans l'objet `squarity.dirs`.
 
 ### Liste des directions
 
-Les instances peuvent être comparées entre elles, par exemple : `my_dir == dirs.Up`. Elles peuvent être converties en entier et en string. Elles possèdent une variable `vector` qui est un tuple de deux éléments, indiquant respectivement son déplacement en X et son déplacement en Y.
+Les instances peuvent être comparées entre elles, par exemple : `my_dir == dirs.Up`. Elles peuvent être converties en entier et en string. Elles possèdent une variable `vector` : un tuple de deux éléments indiquant respectivement le déplacement en X et le déplacement en Y.
 
 Tableau récapitulatif des directions et de leurs caractéristiques :
 
@@ -149,7 +153,7 @@ Tableau récapitulatif des directions et de leurs caractéristiques :
 
 ### Rotations
 
-Les méthodes `turn_cw` et `turn_ccw` renvoient une direction tournée, respectivement dans le sens des aiguilles d'une montre et dans le sens inverse. L'angle de rotation par défaut est de 90 degrés.
+La méthode `turn_cw` renvoie une direction tournée dans le sens des aiguilles d'une montre. La méthode `turn_ccw` renvoie une direction tournée dans le sens inverse. L'angle de rotation par défaut est de 90 degrés.
 
 ```
 d = squarity.dirs.Right
@@ -172,7 +176,7 @@ Cette classe sert à identifier une case dans l'aire de jeu ou dans un layer. El
 
 ### Instanciation
 
-La classe peut être créée en indiquant un X et un Y, ou à partir d'une autre `Coord`. Les `Coord` peuvent être comparées entre elles.
+La classe peut être instanciée en indiquant un X et un Y, ou une autre `Coord`. Les objets `Coord` peuvent être comparés entre eux.
 
 ```
 coord_1 = squarity.Coord(5, 2)
@@ -194,16 +198,16 @@ print(coord_2)
 
 ### Fonctions de modification
 
-La méthode `move_dir` permet de modifier une `Coord` en la déplaçant dans une direction donnée, sur une distance donnée (indiquée par un `int`). La distance par défaut est 1.
+La méthode `move_dir` permet de se déplacer dans une direction donnée, sur une distance donnée (indiquée par un `int`). La distance par défaut est 1.
 
 ```
 coord_1 = squarity.Coord(5, 2)
 coord_1.move_dir(squarity.dirs.Right, 2)
 print(coord_1)
-# "<Coord 7, 2 >"
+# Affichage de "<Coord 7, 2 >"
 ```
 
-La méthode `move_by_vect` permet de modifier une `Coord` en lui appliquant un déplacement, spécifié par le paramètre `vector` (de type `Coord`), ou bien par les paramètres `x` et `y`.
+La méthode `move_by_vect` permet d'appliquer un déplacement, spécifié par le paramètre `vector` (de type `Coord`), ou spécifié par les paramètres `x` et `y`.
 
 Attention, il n'y a pas de blocage sur les bords. Les mouvements peuvent amener une coordonnée en négatif ou en dehors de l'aire de jeu.
 
@@ -213,20 +217,20 @@ coord_vect = squarity.Coord(0, -3)
 coord_1.move_by_vect(vector=coord_vect)
 coord_1.move_by_vect(x=1, y=-3)
 print(coord_1)
-# "<Coord 6, -4 >"
+# Affichage de "<Coord 6, -4 >"
 ```
 
 
 ## class Rect
 
-Définit un rectangle, à partir de 4 paramètres de type `int` :
+Définit un rectangle à partir de 4 paramètres de type `int` :
 
  - X du coin supérieur droit,
  - Y du coin supérieur droit,
  - largeur,
  - hauteur.
 
-Les coordonnées dans le rectangle s'étendent de X jusqu'à (X+largeur-1) en abscisse, et de Y jusqu'à (Y+hauteur-1) en ordonnée.
+Les coordonnées dans le rectangle s'étendent de X jusqu'à (X+largeur-1) en abscisse, et de Y jusqu'à (Y+hauteur-1) en ordonnée. C'est le même principe que la fonction python `range`.
 
 ### Fonction in_bounds
 
@@ -264,9 +268,9 @@ for x in range(4, 10):
 
 Un "game object" (ou gobj) est un élément qui s'affiche dans l'aire de jeu. Un game object possède des coordonnées et un nom de sprite (`sprite_name`). Le nom de sprite correspond à un nom référencé dans le dictionnaire `img_coords` de la config JSON.
 
-Pour que le game object s'affiche, il doit être placé dans un `squarity.Layer`. Un game object peut être transféré d'un layer à un autre. Il peut également n'appartenir à aucun layer, dans ce cas il ne s'affichera pas.
+Pour que le game object s'affiche, il doit être placé dans un `squarity.Layer`. Un game object peut être transféré d'un layer à un autre. Il peut également n'appartenir à aucun layer.
 
-Les coordonnées et le nom de sprite doivent être spécifiés dès l'instanciation du game object. L'ajout dans le layer peut être effectué juste après, voir [la classe squarity.Layer](#class-layer).
+Les coordonnées et le nom de sprite doivent être spécifiés dès l'instanciation du game object. L'ajout dans le layer peut être effectué juste après (voir [la classe squarity.Layer](#class-layer)).
 
 ```
 gobj = squarity.GameObject(squarity.Coord(5, 2), "my_sprite")
@@ -274,11 +278,11 @@ print(gobj)
 # Le texte "<Gobj (5,2) my_sprite>" s'affiche dans la console.
 ```
 
-Il existe d'autres paramètres facultatifs que l'on peut indiquer à l'instanciation. Ils sont détaillés plus loin dans cette doc.
+L'instanciation possède d'autres paramètres facultatifs. Ils sont détaillés plus loin dans cette doc.
 
 ### Nom du sprite
 
-L'aspect visuel du game object peut être directement changé en modifiant la variable membre `sprite_name`. La nouvelle image s'affichera, en fonction du tileset et de la config JSON.
+L'aspect visuel du game object peut être directement changé en modifiant la variable membre `sprite_name`. La nouvelle image s'affichera en fonction du tileset et de la config JSON.
 
 Attention, il n'y a pas de vérification sur le nom du sprite. Si vous indiquez un nom qui n'est pas référencé dans `config.img_coords`, le jeu va planter sans aucun message. (On améliorera ça dans les versions à venir).
 
@@ -286,29 +290,29 @@ Attention, il n'y a pas de vérification sur le nom du sprite. Si vous indiquez 
 
 Le game object possède une variable membre interne appelée `_coord`. **Vous n'êtes pas censé y accéder directement**, au risque de désordonner l'indexation des game objects dans les layers.
 
-Pour lire les coordonnées, utilisez la méthode `coord_clone = gobj.get_coord()`. Vous pouvez ensuite utilisez la variable `coord_clone` comme vous le souhaitez, ainsi que la modifier. Les modifications ne seront pas reportées dans le game object.
+Pour lire les coordonnées, utilisez la méthode `coord_clone = gobj.get_coord()`. Si vous changez le contenu de la variable `coord_clone`, vos modifications ne seront pas reportées dans le game object.
 
 Pour déplacer un game object, utilisez les méthodes `move_xxx` :
 
  - `move_to_xy` : déplace l'objet sur une case de destination, spécifiée par les paramètres X et Y (`int`).
  - `move_to` : déplace l'objet sur une case de destination, spécifiée par le paramètre `dest_coord` (`Coord`).
- - `move` : déplace l'objet de manière relative, selon un vecteur de déplacement spécifié par le paramètre `coord_offset` (`Coord`). TODO : faut renommer ça en coord_vect.
- - `move_dir` : déplace l'objet de manière relative, spécifié par le paramètre `direction` (`Direction`) et le paramètre facultatif `distance` (`int`).
+ - `move` : déplace l'objet de manière relative, selon un vecteur de déplacement spécifié par le paramètre `vector` (`Coord`).
+ - `move_dir` : déplace l'objet de manière relative, selon le paramètre `direction` (`Direction`) et le paramètre facultatif `distance` (`int`).
 
 ```
 gobj = squarity.GameObject(squarity.Coord(5, 2), "my_sprite")
 gobj.move_to_xy(15, 9)
 print(gobj)
-# Le texte "<Gobj (15,9) my_sprite>" s'affiche dans la console.
+# Affichage de "<Gobj (15,9) my_sprite>".
 gobj.move_to(squarity.Coord(7, 4))
 print(gobj)
-# Le texte "<Gobj (7,4) my_sprite>" s'affiche dans la console.
+#   --------->        (7,4)
 gobj.move(squarity.Coord(1, -1))
 print(gobj)
-# Le texte "<Gobj (8,3) my_sprite>" s'affiche dans la console.
+#   --------->        (8,3)
 gobj.move_dir(squarity.dirs.Right, 4)
 print(gobj)
-# Le texte "<Gobj (12,3) my_sprite>" s'affiche dans la console.
+#   --------->        (12,3)
 ```
 
 Ces 4 fonctions laissent le game object dans le même layer. Voir la documentation de la classe layer pour transférer un game object d'un layer à un autre.
@@ -317,29 +321,29 @@ Ces 4 fonctions laissent le game object dans le même layer. Voir la documentati
 
 Lorsque vous déplacez un game object, une "transition" est automatiquement affichée. Durant 200 millisecondes, le game object se déplace progressivement (pixel par pixel) depuis sa case initiale vers sa case de destination.
 
-Ce déplacement de transition automatique est effectué en une seule ligne droite. Par exemple, si vous déplacez un objet des coordonnées (5, 3) vers les coordonnées (8, 2), la ligne de déplacement sera oblique.
+Ce déplacement automatique est effectué en une seule ligne droite. Par exemple, si vous déplacez un objet des coordonnées (5, 3) vers les coordonnées (8, 2), la ligne de déplacement sera oblique.
 
-Si vous changez plusieurs fois les coordonnées dans le même tour de jeu, les valeurs intermédiaires ne seront pas prises en compte pour la transition. Les deux seules valeurs prises en compte sont celles avant l'exécution du code et celles après.
+Si vous changez plusieurs fois les coordonnées dans un même tour de jeu, la transition n'utilisera pas les valeurs intermédiaires. Les deux seules valeurs prises en compte sont celles avant et après l'exécution du code.
 
-Vous pouvez déclencher des transitions sur plusieurs game objects, en modifiant les coordonnées de chacun d'entre eux.
+Vous pouvez déclencher des transitions simultanées sur plusieurs game objects, en modifiant les coordonnées de chacun d'entre eux.
 
 Il est possible de définir des déplacements avec des étapes intermédiaires. Par exemple, un déplacement horizontal de x=5 vers x=8, puis un vertical de y=3 vers y=2. [Voir "Transitions"](#transitions).
 
-Le temps de la transition peut être redéfini individuellement pour chaque game object, avec la fonction `gobj.set_transition_delay(transition_delay)`. Le paramètre `transition_delay` est un `int` indiquant le temps en millisecondes. Toutes les futures transitions dues à un changement de coordonnées utiliseront ce nouveau temps.
+Le temps de la transition peut être redéfini individuellement pour chaque game object, avec la fonction `gobj.set_transition_delay(transition_delay)`. Le paramètre `transition_delay` est un `int`, en millisecondes. Toutes les futures transitions dues à un changement de coordonnées utiliseront ce nouveau temps.
 
-Les 4 fonctions `move_xxx` possèdent un paramètre facultatif `transition_delay`, qui permet de définir un temps différent uniquement pour la prochaine transition.
+Les 4 fonctions `move_xxx` possèdent un paramètre facultatif `transition_delay`, permettant de définir un temps spécifique uniquement pour la prochaine transition.
 
 Si transition_delay est défini à 0, l'objet se déplacera instantanément.
 
 ### Callback de fin de transition
 
-Il est possible d'indiquer a un Game Object une "callback de fin de transition". Il s'agit d'une fonction python qui sera automatiquement exécutée chaque fois que le Game Object aura fini toutes ses transitions en cours. Utilisez la méthode `gobj.set_callback_end_transi(callback_end_transi)`.
+Il s'agit d'une fonction python que vous définissez et que vous associez à un game object. Elle sera automatiquement exécutée chaque fois que le game object aura fini toutes ses transitions en cours. Pour associer une callback, utilisez la méthode `gobj.set_callback_end_transi(callback_end_transi)`.
 
 Les callbacks ne peuvent pas avoir de paramètre, mais vous pouvez indiquer une fonction ou une méthode d'un objet spécifique.
 
-Pour enlever une callback, exécutez `set_callback_end_transi` en indiquant le paramètre `None`.
+Pour enlever une callback, exécutez `set_callback_end_transi` avec le paramètre `None`.
 
-Les 4 fonctions `move_xxx` possèdent un paramètre facultatif `callback`, qui permet de définir une callback différente uniquement pour la prochaine transition.
+Les 4 fonctions `move_xxx` possèdent un paramètre facultatif `callback`, permettant de définir une callback différente uniquement pour la prochaine transition.
 
 ```
 def my_callback():
@@ -355,7 +359,7 @@ gobj.set_callback_end_transi(my_callback)
 
 Un layer est un tableau en 2 dimensions, contenant des game objects. Votre aire de jeu peut contenir plusieurs layers, affichés dans un ordre déterminé. Vous pouvez donc avoir un layer pour le décor de fond, un pour les personnages et les bonus, un pour les éléments d'interface, etc.
 
-L'ordre d'affichage des objets au sein d'un layer n'est pas déterminé. Concrètement, c'est l'ordre d'ajout des game objects dans le layer, mais il s'agit d'un détail d'implémentation et ce comportement n'est pas garanti pour les versions ultérieures. Pour être sûr de l'ordre d'affichage des objets, utilisez plusieurs layers.
+L'ordre d'affichage des objets au sein d'un layer n'est pas déterminé. Pour être sûr de l'ordre, vous devez utiliser plusieurs layers.
 
 Si l'ordre importe peu, vous pouvez placer tous vos objets dans l'unique layer créé par défaut : la variable membre `layer_main`, dans le `GameModel`.
 
@@ -369,7 +373,7 @@ La méthode `layer.remove_at_coord(coord)` permet d'enlever tous les game object
 
 Après avoir été enlevé, le game object existe toujours. Vous pouvez le réutiliser et le placer dans un autre layer.
 
-Ci-dessous, un exemple de game code minimal affichant un seul objet immobile. Pour l'exécuter, sélectionnez le jeu d'exemple de l'émeraude verte, supprimez tout le game code, puis copier-collez ce texte à la place.
+Ci-dessous, un exemple de code minimal affichant un seul objet immobile. Pour l'exécuter, sélectionnez le jeu d'exemple de l'émeraude verte, supprimez tout le game code, puis copier-collez ce texte à la place.
 
 ```
 import squarity
@@ -382,7 +386,7 @@ class GameModel(squarity.GameModelBase):
 
 ### Récupérer des tiles et des game objects
 
-Chaque élément du tableau 2D d'un layer est un objet `squarity.Tile`. Ces tiles sont utiles pour se déplacer dans un layer, grâce à la variable `adjacencies`. Il s'agit d'une liste de 8 éléments, contenant les tiles adjacentes (certains éléments peuvent être `None` pour les tiles qui sont au bord).
+Chaque élément du tableau 2D d'un layer est un objet `squarity.Tile`, ils sont utiles pour se déplacer dans un layer, grâce à la variable `adjacencies`. Il s'agit d'une liste de 8 éléments, contenant les tiles adjacentes. Certains de ces éléments peuvent être `None`, pour les tiles qui sont au bord.
 
 Les game objects d'une tile sont stockés dans la variable membre `game_objects` (de type `list`).
 
@@ -397,7 +401,7 @@ Ajoutez ce code après le code d'exemple précédent pour tester une récupérat
         print(tile_down.game_objects)
 ```
 
-La méthode `layer.get_game_objects(coord)` permet de récupérer directement tous les game objects aux coordonnées indiquées.
+La méthode `layer.get_game_objects(coord)` permet de récupérer directement tous les game objects situés sur `coord`.
 
 La méthode `layer.iter_all_game_objects()` permet d'itérer sur tous les game objects d'un layer.
 
@@ -410,7 +414,7 @@ La méthode `layer.iter_all_game_objects()` permet d'itérer sur tous les game o
 
 Les layers doivent être placés dans la liste `layers` du `GameModel`, cette liste contient initialement le `layer_main`.
 
-L'ordre dans la liste `layers` détermine leur ordre d'affichage. Le premier layer de la liste est dessiné en premier et apparaîtra donc en-dessous de tous les autres layers. Le dernier layer de la liste apparaîtra au-dessus de tous les autres.
+L'ordre dans `layers` détermine l'ordre d'affichage. Le premier layer de la liste est dessiné en premier et apparaîtra donc en-dessous de tous les autres layers. Le dernier layer de la liste apparaîtra au-dessus de tous les autres.
 
 Vous pouvez ajouter, enlever et réordonner les layers dans la liste à tout moment. Ce sera immédiatement pris en compte dans l'affichage de l'aire de jeu.
 
@@ -429,7 +433,7 @@ Pour gérer la logique interne de votre jeu, vous pouvez utiliser des layers de 
 
 La fonction `Layer.__init__` possède un paramètre facultatif `show_transitions`, défini à True par défaut. Lorsqu'il est défini à False, le layer ne gère aucune transition, ni pour les déplacements d'objets ni pour les modifications graphiques (scaling, décalage, ...). Lorsque vous changez les coordonnées d'un objet dans un layer sans transition, il sera instantanément déplacé vers sa case de destination.
 
-Les layers sans transition sont gérés de manière optimisée par le moteur Squarity, ils permettent des mouvements massifs et fréquents. Ils peuvent être utiles, par exemple, pour afficher le décor de fond de votre jeu, qui change d'un seul coup en passant d'un niveau à un autre.
+Les layers sans transition sont gérés de manière optimisée par le moteur Squarity, ils permettent des mouvements massifs et fréquents. Ils peuvent être utiles, par exemple, pour afficher le décor de fond de votre jeu, si ce décor change d'un seul coup d'un niveau à un autre.
 
 Le choix d'avoir ou pas des transitions peut être effectué uniquement à l'instanciation du layer. Si vous modifiez la variable `layer.show_transitions` après l'avoir créé, ce ne sera pas pris en compte par le moteur.
 
@@ -456,15 +460,15 @@ Les méthodes `get_tile` et `get_tile_xy` ne sont pas présentes dans un `LayerS
 
 ## class GameModel
 
-Il s'agit de la classe principale définissant la logique de votre jeu. Elle hérite de `GameModelBase`. Vous devez la définir, mais pas l'instancier, car c'est fait automatiquement par le moteur.
+Il s'agit de la classe principale définissant la logique de votre jeu. Elle hérite de `GameModelBase`. Vous devez la définir, mais pas l'instancier, c'est fait automatiquement par le moteur.
 
-Dans votre game model, vous pouvez définir des fonctions de callback spécifiques, qui seront automatiquement appelées sur certains événements dans le jeu.
+Le game model sert à définir des fonctions de callback, qui seront automatiquement appelées sur certains événements dans le jeu.
 
 ### Liste des callbacks
 
-`on_start(self)` : cette fonction est appelée une seule fois au début du jeu. Il est conseillé de mettre votre code d'initialisation dans cette fonction plutôt que dans `__init__`, car `on_start` permet de renvoyer un objet `EventResult` qui sera pris en compte. [Voir la classe "EventResult"](#class-eventresult)
+`on_start(self)` : cette fonction est appelée une seule fois au début du jeu. Il est conseillé de mettre votre code d'initialisation dans cette fonction plutôt que dans `__init__`, car `on_start` permet de renvoyer un objet `EventResult`. [Voir la classe "EventResult"](#class-eventresult)
 
-`on_click(self, coord)` : cette fonction est appelée chaque fois que la personne qui joue clique dans l'aire de jeu. Vous pouvez consulter le paramètre `coord` pour savoir sur quelle case le clic a eu lieu. Vous ne pouvez pas savoir précisément quel Game Object a été cliqué, ni la position exacte du clic au pixel près, car le but de Squarity est de rester simple et de se spécialiser uniquement dans les jeux en 2D sur un quadrillage.
+`on_click(self, coord)` : cette fonction est appelée à chaque clic de souris dans l'aire de jeu. Le paramètre `coord` indique la case où le clic a eu lieu. Vous ne pouvez pas savoir précisément quel Game Object a été cliqué, ni la position exacte du clic au pixel près, car le but de Squarity est de rester simple et de se spécialiser dans les jeux en 2D sur un quadrillage.
 
 Dans l'exemple ci-dessous, un diamant s'ajoute sur chaque case que vous cliquez.
 
@@ -478,9 +482,9 @@ class GameModel(squarity.GameModelBase):
             self.layer_main.add_game_object(self.gobj)
 ```
 
-`on_button_direction(self, direction)` : cette fonction est appelée lorsque l'un des 4 boutons de direction est cliqué, ou que l'une des 4 touches de direction du clavier est appuyée. Le paramètre `direction` est un objet de type `Direction`.
+`on_button_direction(self, direction)` : cette fonction est appelée lorsque l'un des 4 boutons de direction est cliqué ou que l'une des 4 touches de direction du clavier est appuyée. Le paramètre `direction` est un objet de type `Direction`.
 
-Dans l'exemple ci-dessous, l'aire de jeu affiche un seul diamant. Celui-ci se déplace lorsque vous cliquez sur un bouton de direction. Il reste bloqué dans les limites de l'aire de jeu.
+Dans l'exemple ci-dessous, l'aire de jeu affiche un diamant qui se déplace en fonction des actions de la personne qui joue, mais sans sortir de l'aire de jeu.
 
 ```
 import squarity
