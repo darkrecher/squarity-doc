@@ -484,7 +484,7 @@ class GameModel(squarity.GameModelBase):
 
 `on_button_direction(self, direction)` : cette fonction est appelée lorsque l'un des 4 boutons de direction est cliqué ou que l'une des 4 touches de direction du clavier est appuyée. Le paramètre `direction` est un objet de type `Direction`.
 
-Dans l'exemple ci-dessous, l'aire de jeu affiche un diamant qui se déplace en fonction des actions de la personne qui joue, mais sans sortir de l'aire de jeu.
+Dans l'exemple ci-dessous, l'aire de jeu affiche un diamant qui se déplace en fonction des actions de la personne qui joue.
 
 ```
 import squarity
@@ -501,35 +501,40 @@ class GameModel(squarity.GameModelBase):
             self.gobj.move_to(coord_dest)
 ```
 
-`on_button_action(self, action_name)` : cette fonction est appelée lorsque l'un des boutons d'actions "1" ou "2" est cliqué, ou lorsque l'une des touches du clavier "1" ou "2" est appuyée. Ça fonctionne avec les touches "1" et "2" au-dessus des lettres, ainsi que celles du pavé numérique.
+`on_button_action(self, action_name)` : cette fonction est appelée lorsque la personne qui joue déclenche l'action "1" ou "2", c'est à dire dans l'un des cas suivants :
 
-### Autres méthodes et variables de GameModel
+ - un des boutons "1" ou "2" à côté des flèches de direction a été cliqué.
+ - l'une des touches du clavier "1" ou "2" au-dessus des lettres a été appuyée.
+ - l'une tes touches "1" ou "2" du pavé numérique a été appuyée.
 
-Ces variables membres sont initialisées dès le départ. Il est fortement conseillé de les utiliser sans les modifier, car cela pourrait modifier le comportement de certaines fonctions.
+### Variables membres de GameModel
+
+Elles sont initialisées dès le départ. Vous pouvez les lire mais vous ne devriez pas les modifier, car elles sont utilisées dans la librairie squarity.
 
  - `self.w` : largeur de l'aire de jeu, en nombre de case. (Correspond à `nb_tile_width` dans la config json)
  - `self.h` : hauteur de l'aire de jeu, en nombre de case. (Correspond à `nb_tile_height` dans la config json)
  - `self.str_game_conf_json` : chaîne de caractère contenant la configuration json complète.
  - `self.rect` : objet `Rect` ayant les dimensions de l'aire de jeu, c'est à dire `Rect(0, 0, self.w, self.h)`.
+ - `self.transition_delay` : définit le temps par défaut (en millisecondes) de toutes les transitions effectuées suite à un changement de coordonnées d'un game object. Contrairement aux autres variables, celle-ci peut être modifiée. [Voir "Transitions"](#transitions)
+
+### Méthode get_first_gobj
 
 La méthode `self.get_first_gobj(coord, sprite_names, layer)` permet de récupérer le premier game object présent dans l'aire de jeu, selon différents critères cumulables. Les 3 paramètres sont facultatifs. Si aucun objet n'est trouvé, la méthode renvoie None.
 
  - paramètre `coord` : par défaut, l'objet est cherché sur toute l'aire de jeu. Sinon, ce paramètre peut être un `Rect` ou une `Coord`, indiquant dans quelle zone ou sur quelles coordonnées on cherche l'objet.
  - paramètre `sprite_names` : par défaut, pas de filtre sur le nom de sprite. Sinon, ce paramètre doit être une liste de strings, indiquant le ou les noms de sprite recherchés.
- - paramètre `layer` : par défaut, on cherche dans tous les Layers placés dans la liste `game_model.layers`. Sinon, ce paramètre doit être un unique `Layer`, dans lequel on cherche l'objet.
-
-La variable membre `self.transition_delay` définit le temps par défaut (en millisecondes) de toutes les transitions effectuées suite à un changement de coordonnées d'un game object. Contrairement aux autres variables membres, celle-ci peut être modifiée. [Voir "Transitions"](#transitions)
+ - paramètre `layer` : par défaut, l'objet est cherché dans tous les Layers de la liste `self.layers`. Sinon, ce paramètre doit être un unique `Layer`.
 
 
 ## class EventResult
 
 Cette classe regroupe des informations générales que vous pouvez communiquer au moteur du jeu, après l'exécution de n'importe quelle fonction de callback (provenant du game model, d'un game object ou de n'importe quoi d'autres).
 
-Par défaut, ces fonctions de callback ne renvoient rien (il n'y a pas de `return` dans la fonction). Dans ce cas, la valeur réellement renvoyée est `None`. Vous pouvez renvoyer un objet `EventResult` à la place.
+Par défaut, ces fonctions de callback ne renvoient rien (elles n'ont pas d'instruction `return`). Dans ce cas, la valeur réellement renvoyée est `None`, mais vous pouvez renvoyer un objet `EventResult` à la place.
 
 ### Callback différée
 
-Vous pouvez indiquer dans un `EventResult` que le moteur doit exécuter une de vos fonctions (une autre callback) après un délai spécifié.
+Vous pouvez indiquer dans un `EventResult` que le moteur doit exécuter une de vos fonctions (une autre callback), après un délai spécifié.
 
 Instanciez une classe `DelayedCallBack`, en indiquant le délai d'exécution en millisecondes et la callback. Vous pouvez indiquer une fonction de votre code, une méthode de votre game model (`self.my_callback`), une méthode d'un game object spécifique, etc. La callback ne peut pas avoir de paramètres.
 
@@ -554,7 +559,7 @@ class GameModel(squarity.GameModelBase):
 
 C'est un peu verbeux, on raccourcira ce code dans une version ultérieure de Squarity.
 
-Vous ne pouvez pas annuler les callbacks. Lorsque vous avez renvoyé un event result contenant une callback, celle-ci sera forcément appelée. C'est à vous de le gérer dans votre code.
+Vous ne pouvez pas annuler une callback après l'avoir renvoyée via un event result. C'est à vous de le gérer dans votre code.
 
 Il y a un bug : si vous redémarrez votre jeu, ou même si vous lancez un autre jeu, les callbacks du jeu précédent restent en mémoire et sont tout de même exécutées. Ce sera corrigé au plus vite.
 
@@ -564,18 +569,18 @@ Votre jeu aura peut-être besoin d'afficher des petites animations courtes, dura
 
 Il y a deux types de Player Locks :
 
- - custom : c'est à vous d'indiquer explicitement, via le code, à quel moments se passent les locks et unlocks.
+ - custom : vous indiquez explicitement, dans votre code, à quel moments se passent les locks et unlocks.
  - transition : les locks/unlocks sont effectués automatiquement d'après les transitions de certains game objects ([Voir "Player Lock Transi"](#blocage-de-linterface-player-lock-transi)).
 
 Pour les locks custom, le blocage est toujours montré dans l'interface : les boutons d'actions apparaissent grisé.
 
-Il est possible de locker/delocker avec plusieurs mots-clés (chaque mot-clé est vu comme une raison pour locker). L'interface redevient active lorsqu'il n'y a plus aucun mot-clé de lock en cours.
+Il est possible de locker/delocker avec plusieurs mots-clés (chacun étant considéré comme une raison pour locker). L'interface redevient active lorsqu'il n'y a plus aucun mot-clé de lock en cours.
 
-Pour locker : instanciez un `EventResult` et ajoutez une ou plusieurs strings dans la liste `event_result.plocks_custom`, représentant les mot-clés de lock. Pour enlever des locks : utilisez la liste `event_result.punlocks_custom`.
+Pour locker : instanciez un `EventResult` et ajoutez des strings dans la liste `event_result.plocks_custom`, représentant les mot-clés de lock. Pour enlever des locks : utilisez la liste `event_result.punlocks_custom`.
 
-Attention, l'interface est entièrement bloquée dès le premier mot-clé. Cela signifie qu'il faut obligatoirement prévoir les unlocks dans des fonctions de callbacks, qui sont, en général, déclarées au même moment de l'ajout d'un lock. Si ce n'est pas fait, la personne qui joue restera bloquée indéfiniment. Il est toujours possible d'appuyer sur le bouton "Exécuter le jeu", qui enlève systématiquement tous les locks, mais la partie recommence depuis le début.
+Attention, l'interface est entièrement bloquée dès le premier mot-clé. Il faut donc obligatoirement prévoir les unlocks en renvoyant des fonctions de callbacks en même temps. Si ce n'est pas fait, la personne qui joue restera bloquée. Le bouton "Exécuter le jeu" enlève tous les locks, mais il réinitialise tout le jeu au début.
 
-Il est possible d'enlever tous les mots-clés de lock d'un seul coup, en indiquant la string `"*"` dans `punlocks_custom`.
+Il est possible d'enlever tous les mots-clés de lock d'un seul coup, en ajoutant le caractère `"*"` dans `punlocks_custom`.
 
 Le code ci-dessous locke l'interface pendant 2 secondes à chaque fois que l'on clique dans l'aire de jeu.
 
@@ -647,12 +652,12 @@ Il suffit de changer directement la valeur dans le game object. La transition se
 
 Cette fonction permet d'ajouter une séquence, pouvant contenir plusieurs transitions, elle nécessite deux paramètres :
 
- - un nom de variable membre (`coord` ou `sprite_name`),
+ - une chaîne désignant une variable membre (`"coord"` ou `"sprite_name"`),
  - une liste contenant des tuples de délais et de valeurs.
 
 Avec `"coord"`, les valeurs doivent être des `Coord`. Le Game Object se déplacera vers ces coordonnées, les unes après les autres.
 
-Dans l'exemple ci-dessous, lorsqu'on clique dans l'aire de jeu, le diamant vert se déplace normalement vers la coordonnée (3, 1), puis très rapidement vers (7, 1), puis lentement vers (5, 2).
+Dans l'exemple ci-dessous, après un clic dans l'aire de jeu, le diamant vert se déplace à vitesse normale vers la coordonnée (3, 1), puis très rapidement vers (7, 1), puis lentement vers (5, 2).
 
 ```
 import squarity
@@ -680,15 +685,15 @@ Vous ne pouvez définir que le temps de déplacement, et non pas une vitesse gé
 
 Lorsque le premier paramètre de `TransitionSteps` est `"sprite_name"`, les valeurs doivent être des strings correspondant à des noms de sprites. Le game object changera successivement d'apparence.
 
-Une transition est affichée progressivement, mais elle est appliquée dans le jeu dès qu'elle est démarrée. Pour les coordonnées, c'est simple à comprendre. Pour un sprite name, l'image change dès le début de la transition et reste telle quelle durant le temps indiqué. Donc pour une transition sur un sprite name, le dernier temps n'est pas très utile et peut être zéro.
+Une transition est affichée progressivement, mais elle est appliquée dans le jeu dès qu'elle est démarrée. Pour les coordonnées, c'est simple à comprendre. Pour un sprite name, l'image change dès le début de la transition et reste telle quelle durant le temps indiqué. Donc pour une transition de sprite name, le dernier temps n'est pas très utile et peut être zéro.
 
 Dans le futur, on changera l'ordre des paramètres. D'abord le sprite name, puis le temps. Ce sera plus logique à comprendre.
 
 Si votre game object a une callback de fin de transition, définie à l'aide de la fonction `game_object.set_callback_end_transi`, cellec-ci sera déclenchée à la fin de la liste des transitions.
 
-### Gestion des transitions
+### Enchaînement des transitions
 
-Vous pouvez ajouter des transitions via la méthode `add_transition`, même si d'autres transitions sont encore en cours. Les nouvelles vont s'ajouter après les transitions existantes.
+Même si des transitions sont en cours, vous pouvez en ajouter d'autres via la méthode `add_transition`. Elles vont s'ajouter après les transitions existantes.
 
 La prise en compte des transitions par le moteur est effectuée à la fin de l'exécution du code en cours (`on_click`, `on_button_xxx`, une callback, ...). Si vous ajoutez plusieurs transitions dans le même code, elles seront déclenchées au même moment et seront exécutées en même temps. Cela permet d'avoir un objet qui se déplace tout en changeant de sprite.
 
@@ -697,7 +702,7 @@ Dans votre game object, les variables membres `coord` et `sprite_name` changent 
 Le moteur essaye, autant que faire se peut, d'avoir le même type de gestion pour les transitions ajoutées suite à une modification de variable et les transitions ajoutées avec `add_transition` :
 
  - Durant une transition provenant d'une modification de variable, la variable contient la valeur finale. C'est normal, c'est vous même qui l'avez définie avec votre code python.
- - Si vous remodifiez la variable pendant une transition, celle-ci va s'enchaîner après les transitions existantes. Dans tous les cas, votre code utilise toujours la valeur finale de tout l'enchaînement de transitions. Ça reste cohérent, c'est juste la représentation visuelle qui a du retard par rapport au code, le temps de dérouler les transitions.
+ - Si vous remodifiez la variable pendant une transition, celle-ci va s'enchaîner après les transitions existantes. Le moteur utilise toujours la valeur finale de l'enchaînement de transitions pour ajouter la prochaine.
  - Durant les transitions provenant de `add_transition`, c'est le moteur du jeu qui modifie automatiquement la variable transitionnée. Cette modification se fait au début de chaque transition, comme si c'était votre code qui le changeait manuellement, à chaque fois que la transition précédente se termine.
 
 **Attention** : il est fortement déconseillé d'avoir, sur un même game object et à un même instant, des transitions provenant de modifications de variable et des transitions provenant de `add_transition`. C'est une situation ambigüe, dans laquelle on ne pourrait pas déterminer les valeurs des variables. Le moteur essaiera de le gérer comme il peut, c'est à dire pas très bien. Avant d'ajouter de nouvelles transitions, vous devez donc vous assurer des transitions en cours et de leurs origines.
@@ -1114,5 +1119,6 @@ class GameModel(squarity.GameModelBase):
 Vous verrez tous les sprites du jeu affiché les uns après les autres dans l'aire de jeu.
 
 Cet exemple de code fonctionne avec tous les jeux (à condition de les mettre en version 2). Il peut être utile si vous voulez vérifier que vous avez bien défini toutes les coordonnées de tous les noms de sprites.
+
 
 
