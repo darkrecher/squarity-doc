@@ -753,7 +753,7 @@ class GameModel(squarity.GameModelBase):
 
 Si une touche d'action ou de direction reste appuyée, la fonction de callback correspondante sera exécutée plusieurs fois très vite, ce qui peut poser problème.
 
-Il est possible de bloquer automatiquement toute l'interface du jeu (clics et boutons) tant qu'un game object spécifique a au moins une transition en cours. C'est utile si votre jeu comporte un objet principal dirigé par la personne qui joue (héros/héroïne/avatar/etc.). Si un bouton est appuyé durant le mouvement de cet objet, ce ne sera pas pris en compte.
+Il est possible de bloquer automatiquement toute l'interface du jeu (clics et boutons) tant qu'un game object spécifique a au moins une transition en cours. C'est utile si votre jeu comporte un objet principal dirigé par la personne qui joue. Si un bouton est appuyé durant le mouvement de cet objet, ce ne sera pas pris en compte.
 
 Modifiez la variable membre `plock_transi` de votre game object principal. Celle-ci peut prendre 3 valeurs:
 
@@ -766,11 +766,11 @@ self.gobj = squarity.GameObject(squarity.Coord(5, 2), "gem_green")
 self.gobj.plock_transi = squarity.PlayerLockTransi.INVISIBLE
 ```
 
-Cette fonctionnalité provoque un micro-blocage à chaque mouvement de l'objet. Si les boutons d'interface sont grisés/dégrisés à chaque fois, ce qui peut être déroutant. C'est pourquoi il vaut mieux indiquer un blocage invisible. Les deux types de blocages ont exactement le même effet dans le fonctionnement du jeu, la différence est seulement visuelle.
+Avec le blocage visible, les boutons d'interface s'affichent en grisé pendant une fraction de seconde, à chaque mouvement de l'objet principal, ce qui peut être déroutant. C'est pourquoi il vaut mieux utiliser un blocage invisible. Les blocages visibles sont utiles pour les animations narratives (les "cut-scenes"), ils permettent d'indiquer explicitement que ce n'est pas le moment de jouer.
 
-Les blocages visibles sont utiles pour les animations narratives (les "cut-scenes"). Ils permettent d'indiquer explicitement que ce n'est pas le moment de jouer, mais de regarder ce qu'il se passe dans le jeu.
+Les deux types de blocages ont exactement le même effet, la différence est seulement visuelle.
 
-Les blocages "Player Lock Transi" sont appliqués avec tous les types de transitions, aussi bien celles provenant d'une modification de variable que celles ajoutées avec `add_transition`.
+Les blocages "Player Lock Transi" sont appliqués durant tous les types de transitions, aussi bien celles provenant d'une modification de variable que celles ajoutées avec `add_transition`.
 
 Vous pouvez avoir plusieurs game objects bloquant l'interface. Dans ce cas, l'interface est utilisable lorsqu'aucun de ces objets n'a de transition en cours.
 
@@ -791,9 +791,9 @@ Pour essayer, remettez le code du chapitre "Gestion des transitions", puis ajout
         self.gobj.clear_all_transitions()
 ```
 
-Cliquez sur un bouton de direction, et immédiatement après cliquez sur un bouton d'action (le "1" ou le "2").
+Cliquez sur un bouton de direction, immédiatement après, cliquez sur un bouton d'action (le "1" ou le "2").
 
-Selon le moment où vous avez cliqué, le diamant s'arrêtera à un endroit différent, et il sera jaune ou vert.
+Selon le moment où vous avez cliqué, le diamant s'arrêtera à un endroit différent, il sera jaune ou vert.
 
 
 ## Info supplémentaires pour les sprites
@@ -804,20 +804,22 @@ Chaque valeur du dictionnaire `config.img_coords` (dans la config JSON) définit
 
  - Coordonnée y du coin supérieur gauche de l'image.
 
- - Un nombre entier, par défaut : `config.tile_size`. Largeur de l'image prise dans le tileset. L'unité est le pixel de tileset. La largeur et la hauteur ont une influence sur la taille de l'image affichée dans l'aire de jeu. Par exemple, si on indique une largeur qui vaut un tiers de `config.tile_size`, l'image affichée fera un tiers de case dans l'aire de jeu. La méthode de positionnement du sprite dans l'aire de jeu est définie par le dernier élément de cette liste.
+ - Un nombre entier, par défaut : `config.tile_size`. Largeur de l'image prise dans le tileset. L'unité est le pixel de tileset. La largeur et la hauteur ont une influence sur la taille de l'image affichée dans l'aire de jeu. Par exemple, si on indique une largeur qui vaut un tiers de `config.tile_size`, l'image affichée fera un tiers de case dans l'aire de jeu.
 
  - Un nombre entier, par défaut : `config.tile_size`. Hauteur de l'image prise dans le tileset.
 
- - Une chaine de caractères qui vaut "center" ou "corner_upleft", par défaut : "corner_upleft". Indique où ancrer l'image par rapport à la case de l'aire de jeu, en particulier quand l'image et la case n'ont pas la même taille. Avec "corner_upleft", le coin haut gauche de l'image reste fixé sur le coin haut gauche de la case. Si on agrandit l'image, elle va dépasser vers le bas et vers la droite. Avec "center", le centre de l'image reste fixé sur le centre de la case. Si on agrandit l'image, elle va dépasser par les 4 côtés.
+ - Une chaine de caractères qui vaut "center" ou "corner_upleft", par défaut : "corner_upleft". Indique où ancrer l'image par rapport à la case de l'aire de jeu.
+   * "corner_upleft" : le coin haut gauche de l'image reste fixé sur le coin haut gauche de la case. Si on agrandit l'image, elle va dépasser vers le bas et vers la droite.
+   * "center" : le centre de l'image reste fixé sur le centre de la case. Si on agrandit l'image, elle va dépasser par les 4 côtés.
 
-Voir schéma dans le chapitre suivant (class ComponentImageModifier).
+Voir schéma dans le chapitre suivant (class `ComponentImageModifier`).
 
 
 ## class ComponentImageModifier
 
 ### Initialisation
 
-Cette classe doit être placée dans un game object, au moment de sa création. Elle permet de modifier la manière dont il est affiché dans l'aire de jeu.
+Cette classe doit être placée dans un game object, au moment de sa création. Elle permet de modifier son affichage dans l'aire de jeu.
 
 Si le `ComponentImageModifier` est ajouté après la création du game object, il ne sera pas pris en compte. Il faut donc instancier votre game object comme ceci :
 
@@ -833,7 +835,7 @@ gobj = squarity.GameObject(
 
 Toutes les variables commençant par `img_` représentent un nombre de pixels dans l'image de tileset. Ce sont des nombres entiers, positifs ou négatifs.
 
-Toutes les variables commençant par `area_` représentent un nombre de cases dans l'aire de jeu. Ce sont des nombres décimaux, positifs ou négatifs. Il est donc possible d'indiquer des fractions de cases.
+Toutes les variables commençant par `area_` représentent un nombre de cases dans l'aire de jeu. Ces nombres peuvent être négatifs, pour indiquer un sens inverse (vers le haut ou vers la gauche). Ils peuvent être également décimaux, pour indiquer une fraction de case.
 
 Le `ComponentImageModifier` possède les variables suivantes :
 
