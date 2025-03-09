@@ -123,8 +123,6 @@ Ensuite, une mise à l'échelle des images est effectuée. On part de la taille 
 
 La mise à l'échelle est effectuée selon l'algorithme "proche voisin", sans traitement ni anti-aliasing. Vous verrez donc des gros pixels carrés si vos images de tileset sont petites et que vous jouez dans une grande fenêtre.
 
-TODO : il manque des guillemets dans la config json de l'image. Bouuuh !
-
 Et il manque aussi un espace dans les divisions "300/ 5" et "200/ 9".
 
 ![https://raw.githubusercontent.com/darkrecher/squarity-doc/master/user_manual/schema_game_sizes.png](https://raw.githubusercontent.com/darkrecher/squarity-doc/master/user_manual/schema_game_sizes.png)
@@ -880,9 +878,6 @@ class GameModel(squarity.GameModelBase):
                 self.gobj.image_modifier.area_scale_y -= 0.1
                 self.gobj.image_modifier.area_scale_x += 0.1
 ```
-
-TODO : il manque des guillemets à "nb_tile_xxx"
-TODO : img_mod doit être défini plus bas.
 
 ![https://raw.githubusercontent.com/darkrecher/squarity-doc/master/user_manual/schema_sprite_infos.png](https://raw.githubusercontent.com/darkrecher/squarity-doc/master/user_manual/schema_sprite_infos.png)
 
