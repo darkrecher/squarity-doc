@@ -12,9 +12,19 @@ En bas, on met des liens vers 2 jeux.
 
 
  - "Jouer" : liste des jeux existants.
+   * Entangled ribbons
+   * Tiny Skweek plays Breakout
+   * Une émeraude cherche son ami
+   * Unlimited space
+   * Unstable Isotopes (on le laisse sur gist)
+   * Le pseudo-jeu du sorcier
+   * "Je rajouterai les autres jeux plus tard"
  - "Créer des jeux" : lien vers d'autres trucs :
    * un jeu vide pour commencer à créer
    * plein d'autres mini-jeux d'exemple qui montrent un seul truc chacun.
+     * afficher un seul objet, qui ne bouge pas.
+     * afficher un quadrillage immobile, printer les callbacks (start, action, click)
+     * afficher deux objets placés en diagonale, qui bougent.
    * le jeu d'exemple de soko-ban V2
    * documentation de référence de la V2.
    * --- grosse barre de séparation "Squarity V1". ---
