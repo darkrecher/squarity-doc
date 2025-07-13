@@ -755,5 +755,41 @@ Ce bout de code redéfinit le CSS, et c'est bien normal.
 
 Lien vers une autre source (qui explique pas grand chose) : https://www.w3schools.com/tags/att_canvas_width.asp .
 
-Juste pour info : pour récupérer la taille rélle en pixel d'un élément HTML, telle qu'il est affiché dans la page : `elem.clientHeight` et `elem.clientWidth`.
+Juste pour info : pour récupérer la taille rélle en pixel d'un élément HTML, tel qu'il est affiché dans la page : `elem.clientHeight` et `elem.clientWidth`.
+
+
+## Faisage de fonctionner le site buildé
+
+2025-07-13
+
+Lorsqu'on lance `npm run build`, le site statique est créé dans le répertoire `dist`.
+
+En théorie, si on lance un serveur web local dans ce répertoire (par exemple `python3 -m http.server`), tout est censé fonctionner normalement.
+
+Et en fait non, à cause du Vue Router qui est un peu bizarre.
+
+Certaines pages ne fonctionnent pas du tout (erreur 404). D'autres fonctionnent, puis ne fonctionnent plus quand on fait F5.
+
+Explication: le fichier index.html doit être servi par défaut lorsque l'url ne correspond à rien de spécial. Mais le serveur local python ne sait pas faire ça.
+
+Installation d'un autre serveur. Exécution de la commande:
+
+`npm install serve`
+
+Ensuite je me suis aperçu qu'il valait mieux le mettre en devDependencies. Exécution de la commande:
+
+`npm install serve --save-dev`
+
+À priori, ça met pas le bazar quand on déplace un truc déjà installé dans devDependencies.
+
+Après avoir fait le build, il faut rester dans le même répertoire et lancer la commande:
+
+`npx serve -s dist`
+
+Ne pas oublier le "-s", sinon ça plante pareil que le serveur python.
+
+Et là, ça marche. Toutes les pages s'affichent, on peut faire F5, etc.
+
+À priori, le serveur pythonanywhere est déjà bien configuré comme il faut. On verra à la prochaine mise en prod.
+
 
