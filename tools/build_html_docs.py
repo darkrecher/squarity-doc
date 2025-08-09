@@ -1,53 +1,16 @@
 """
-blah
+Petit script pour générer les docs HTML à partir de doc MarkDown,
+avec leurs sommaires (Table Of Content (Toc)).
+
+Par défaut, les fichiers générés sont placés dans squarity-code/src/components/docarticles
+Il faut activer le virtual env "venv_squarity" avant de lancer le script.
+J'ai pas mis poetry, parce que flemme.
 """
 
 from pathlib import Path
 from markdown_it import MarkdownIt
 from mdit_py_plugins.front_matter import front_matter_plugin
 from mdit_py_plugins.anchors import anchors_plugin
-
-text = """
----
-a: 1
----
-
-## Pouet !
-
-### Pouet mais de niveau 3
-
-## Pouet !
-
-a | b
-- | -
-1 | 2
-
-Osef de ta footnote
-"""
-
-text = open("../user_manual/main_doc_v2.md").read()
-
-def main():
-
-    # https://mdit-py-plugins.readthedocs.io/en/latest/#heading-anchors
-    md = (
-        MarkdownIt('commonmark', {'breaks':True,'html':True})
-        .use(front_matter_plugin)
-        .use(
-            anchors_plugin,
-            max_level=5,
-            permalink=True,
-            permalinkSymbol="&#x1F517;"
-        )
-        .enable('table')
-    )
-
-    tokens = md.parse(text)
-    html_text = md.render(text)
-
-    Path("output.html").write_text(html_text)
-
-
 from html.parser import HTMLParser
 
 TITLE_TAGS = ("h1", "h2", "h3", "h4", "h5")
@@ -80,6 +43,35 @@ class MyHTMLParser(HTMLParser):
             print("Encountered some data in the title:", data)
 
 
+class HtmlContentGenerator():
+
+    def __init__(self, markdown_text, html_content_filepath):
+        self.markdown_text = markdown_text
+        self.html_content_filepath = html_content_filepath
+
+    def generate(self):
+        # https://mdit-py-plugins.readthedocs.io/en/latest/#heading-anchors
+        md = (
+            MarkdownIt('commonmark', {'breaks':True, 'html':True})
+            .use(front_matter_plugin)
+            .use(
+                anchors_plugin,
+                max_level=5,
+                permalink=True,
+                permalinkSymbol="&#x1F517;"
+            )
+            .enable('table')
+        )
+        # tokens = md.parse(text)
+        self.html_content = md.render(self.markdown_text)
+
+    def get_html_content(self):
+        return self.html_content
+
+    def write_html_content_file(self):
+        self.html_content_filepath.write_text(self.html_content)
+
+
 class HtmlTocGenerator():
 
     def __init__(self, stored_titles):
@@ -98,7 +90,44 @@ class HtmlTocGenerator():
             self.html_toc += self.html_code_from_title_data(title_data)
 
 
-def main_test():
+class ArticleGenerator():
+
+    OUT_PATH = Path(
+        "..",
+        "..",
+        "squarity-code",
+        "src",
+        "components",
+        "docarticles",
+    )
+
+    def __init__(self, markdown_filepath, article_name):
+        self.markdown_filepath = Path(markdown_filepath)
+        self.article_name = article_name
+
+    def generate_all(self):
+        self._compute_out_filepaths()
+        self._read_markdown()
+        html_content_generator = HtmlContentGenerator(
+            self.markdown_text,
+            self.html_content_filepath
+        )
+        html_content_generator.generate()
+        self.html_content = html_content_generator.get_html_content()
+        html_content_generator.write_html_content_file()
+
+    def _compute_out_filepaths(self):
+        content_filename = self.article_name + ".vue"
+        toc_filename = self.article_name + "Toc.vue"
+        out_path = ArticleGenerator.OUT_PATH
+        self.html_content_filepath = out_path / content_filename
+        self.html_toc_filepath = out_path / toc_filename
+
+    def _read_markdown(self):
+        self.markdown_text = self.markdown_filepath.read_text()
+
+
+def main_old():
 
     parser = MyHTMLParser()
     html_text = open("output.html").read()
@@ -109,9 +138,12 @@ def main_test():
     html_toc_generator.generate()
     print(html_toc_generator.html_toc)
 
+def main():
+    article_generator = ArticleGenerator("../user_manual/main_doc_v2.md", "PouetDoc")
+    article_generator.generate_all()
 
 if __name__ == "__main__":
-    main_test()
+    main()
 
 """
 start:
