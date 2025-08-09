@@ -26,17 +26,18 @@ En bas, on met des liens vers 2 jeux.
      * afficher un quadrillage immobile, printer les callbacks (start, action, click)
      * afficher deux objets placés en diagonale, qui bougent.
      * le jeu d'exemple de soko-ban V2
+   * Partager votre jeu
+   * documentation de référence de la V2.
    * ressources externes pour apprendre le python
      * doctor python
      * l'autre truc qu'il faut que je retrouve
      * des bouquins en ligne, peut-être
-     * doc en anglais
-   * documentation de référence de la V2.
    * --- grosse barre de séparation "Squarity V1". ---
    * doc expliquant comment choisir entre V2 et V1
    * un jeu vide en V1.
    * le jeu d'exemple de soko-ban V1
-   * les 2 tutoriels V1
+   * doc de référence de la V1 (faut ajouter les actions différées)
+   * le grand tutoriel V1
  - "Squarity ?" lien vers d'autres trucs :
    * petit blabla expliquant Squarity en quelques phrases
    * mastodon

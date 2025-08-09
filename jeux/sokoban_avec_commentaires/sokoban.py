@@ -13,10 +13,12 @@ Il y a des commentaires un peu partout dans le code, pour expliquer tout un tas 
 """
 
 # url : https://raw.githubusercontent.com/darkrecher/squarity-doc/master/user_manual/sokoban_tileset.png
-TILESET = """
+CONFIGURATION_JEU = """
 {
+    "name": "Tutoriel soko-ban",
     "tile_size": 32,
-    "tile_coords": {
+    "version": "1.0.0",
+    "img_coords": {
         "herbe": [0, 0],
         "mur": [32, 0],
         "caisse": [64, 0],
@@ -152,7 +154,7 @@ corresp_game_objects_a_partir_char = {
     "*": ["herbe", "cible", "caisse"],
 }
 
-class BoardModel():
+class GameModel():
 
     def debuter_niveau(self):
         """
@@ -254,17 +256,6 @@ class BoardModel():
         # Une seconde fois pour confirmer la réinitialisation (le niveau se réinitialise
         # et la variable se remet à False).
         self.confirm_reset_level = False
-
-    def get_size(self):
-        """
-        Fonction qui renvoie la taille de l'aire de jeu.
-        C'est obligé de la créer, c'est obligé de renvoyer un tuple de deux éléments,
-        avec la largeur et la hauteur (en nombre de case) de l'aire de jeu.
-        Et dans le fonctionnement actuel de Squarity, la taille de l'aire de jeu
-        est obligatoirement (20, 14).
-        Donc pour l'instant, cette fonction ne sert à rien, mais plus tard, ça servira.
-        """
-        return self.w, self.h
 
     def export_all_tiles(self):
         """

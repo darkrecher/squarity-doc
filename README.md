@@ -8,7 +8,9 @@ Document de référence décrivant toutes les fonctionnalités de la version 1 d
 
 Tutoriel plus long, à destination des personnes qui apprennent à coder, vous permettant de créer à partir de zéro un mini-jeu complet, avec avec la version 1 du moteur : [user_manual/tutoriel_sokoban.md](https://github.com/darkrecher/squarity-doc/blob/master/user_manual/tutoriel_sokoban.md)
 
-Document de référence décrivant toutes les fonctionnalités la version 2 du moteur : [user_manual/main_doc_v2.md](https://github.com/darkrecher/squarity-doc/blob/master/user_manual/main_doc_v2.md)
+Document de référence décrivant toutes les fonctionnalités de la version 2 du moteur : [user_manual/main_doc_v2.md](https://github.com/darkrecher/squarity-doc/blob/master/user_manual/main_doc_v2.md)
+
+Document décrivant comment partager les jeux que vous créez : [user_manual/share_your_game.md](https://github.com/darkrecher/squarity-doc/blob/master/user_manual/share_your_game.md)
 
 Document expliquant pourquoi je crée Squarity : [pourquoi_squarity.md](https://github.com/darkrecher/squarity-doc/blob/master/pourquoi_squarity.md)
 
@@ -22,4 +24,12 @@ Cette documentation, ainsi que le code source de Squarity, sont distribués sous
 
 Les anciennes versions de la documentation (jusqu'au 14 avril 2025) ont été distribués sous la Licence Creative Commons CC-BY.
 
+
+## Contacter l'admin
+
+Moi c'est Réchèr. Je développe Squarity pendant mon temps libre, pour faire foisonner la créativité vidéoludique de l'humanité.
+
+Je n'ai prévu aucun moyen "officiel" pour me contacter. Il vous reste ceux que vous connaissez éventuellement déjà (réseau social, en vrai, etc.). En dernier recours, postez une petite issue dans github. J'essayerais de les consulter fréquemment.
+
+Amusez-vous bien !
 
