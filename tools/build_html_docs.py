@@ -80,13 +80,34 @@ class MyHTMLParser(HTMLParser):
             print("Encountered some data in the title:", data)
 
 
+class HtmlTocGenerator():
+
+    def __init__(self, stored_titles):
+        self.stored_titles = stored_titles
+        self.html_toc = ""
+
+    def html_code_from_title_data(self, title_data):
+        tag, title_text, title_id = title_data
+        html_title = f'<a href="{title_id}"><{tag}>{title_text}</{tag}></a>\n'
+        return html_title
+
+    def generate(self):
+        # TODO: il faut imbriquer les titres dans des divs.
+        # Comme ça on pourrait faire du CSS plus sympa avec des décalages, des cadres imbriqués, etc.
+        for title_data in self.stored_titles:
+            self.html_toc += self.html_code_from_title_data(title_data)
+
+
 def main_test():
 
     parser = MyHTMLParser()
     html_text = open("output.html").read()
     parser.feed(html_text)
-    for stored_title in parser.stored_titles:
-        print(stored_title)
+    #for stored_title in parser.stored_titles:
+    #    print(stored_title)
+    html_toc_generator = HtmlTocGenerator(parser.stored_titles)
+    html_toc_generator.generate()
+    print(html_toc_generator.html_toc)
 
 
 if __name__ == "__main__":
