@@ -123,9 +123,7 @@ Ensuite, une mise à l'échelle des images est effectuée. On part de la taille 
 
 La mise à l'échelle est effectuée selon l'algorithme "proche voisin", sans traitement ni anti-aliasing. Vous verrez donc des gros pixels carrés si vos images de tileset sont petites et que vous jouez dans une grande fenêtre.
 
-Et il manque aussi un espace dans les divisions "300/ 5" et "200/ 9".
-
-![https://raw.githubusercontent.com/darkrecher/squarity-doc/master/user_manual/schema_game_sizes.png](https://raw.githubusercontent.com/darkrecher/squarity-doc/master/user_manual/schema_game_sizes.png)
+![Schéma décrivant les tailles de case et d'aire de jeu](https://raw.githubusercontent.com/darkrecher/squarity-doc/master/user_manual/schema_game_sizes.png)
 
 
 ## class Direction
@@ -879,7 +877,7 @@ class GameModel(squarity.GameModelBase):
                 self.gobj.image_modifier.area_scale_x += 0.1
 ```
 
-![https://raw.githubusercontent.com/darkrecher/squarity-doc/master/user_manual/schema_sprite_infos.png](https://raw.githubusercontent.com/darkrecher/squarity-doc/master/user_manual/schema_sprite_infos.png)
+![Schéma décrivant les informations que l'on peut indiquer dans un "image modifier"](https://raw.githubusercontent.com/darkrecher/squarity-doc/master/user_manual/schema_sprite_infos.png)
 
 ### Transitions
 

@@ -8,6 +8,7 @@ J'ai pas mis poetry, parce que flemme.
 """
 
 from pathlib import Path
+import re
 from markdown_it import MarkdownIt
 from mdit_py_plugins.front_matter import front_matter_plugin
 from mdit_py_plugins.anchors import anchors_plugin
@@ -30,11 +31,14 @@ class HtmlContentGenerator():
         "<style lang=\"css\" scoped src=\"@/styles/docArticle.css\"></style>\n"
     )
 
+    PATH_TO_IMG = "../../assets/doc_img/"
+
     def __init__(self, markdown_text, html_content_filepath):
         self.markdown_text = markdown_text
         self.html_content_filepath = html_content_filepath
 
     def generate(self):
+        self._modify_img_links()
         # https://mdit-py-plugins.readthedocs.io/en/latest/#heading-anchors
         md = (
             MarkdownIt("commonmark", {"breaks":True, "html":True})
@@ -60,6 +64,30 @@ class HtmlContentGenerator():
             HtmlContentGenerator.COMPONENT_END
         )
         self.html_content_filepath.write_text(html_content_as_component)
+
+    def _modify_img_links(self):
+        """
+        Modifie le lien de toutes les images, en gardant le nom du fichier
+        mais en remplaçant tout ce qu'il y a avant par un chemin fixe,
+        adapté au site Squarity.
+        """
+        # C'est fait de manière très moche, mais c'est pas grave.
+        markdown_imgs = re.findall(
+            "(!\\[[^\\]]*\\]\\([^\\)]*\\))",
+            self.markdown_text
+        )
+        for markdown_img in markdown_imgs:
+            markdown_img = markdown_img[2:-1]
+            alt_text, img_link = markdown_img.split("](")
+            img_filename = img_link.split("/")[-1]
+            # TODO : en même temps, il faudrait copier les images du repository de doc
+            # vers le repository de code. Pour être sûr de les avoir à jour.
+            new_img_link = HtmlContentGenerator.PATH_TO_IMG + img_filename
+            new_markdown_img = f"![{alt_text}]({new_img_link})"
+            self.markdown_text = self.markdown_text.replace(
+                markdown_img,
+                new_markdown_img
+            )
 
 
 class MyHTMLParser(HTMLParser):
