@@ -32,7 +32,9 @@ Garder la fin de cette url, à partir de votre nom de compte github. C'est à di
 
 Ajoutez au début l'url de squarity et le préfixe `/#fetchez_githubgist_` :
 
-`squarity.fr/#fetchez_githubgist_votre-nom/xxx123/raw/super-jeu.txt`.
+`squarity.fr/game#fetchez_githubgist_votre-nom/xxx123/raw/super-jeu.txt`.
+
+**TODO** provisoire: Faut pas mettre le `/game` dans l'url. Mais après il faudra. J'y travaille. Ça arrive bientôt.
 
 Attention, si vous indiquez le protocole, mettez `http://`, et non pas `https://`. Pour l'instant le site n'est pas en HTTPS. Ce n'est pas grave, les infos qu'il contient sont publiques et non critiques.
 
@@ -44,5 +46,5 @@ Vous pouvez ensuite modifier votre gist pour améliorer ou corriger votre jeu, l
 
 Lien vers le gist : https://gist.githubusercontent.com/darkrecher/b5240940356e3bb7e59c8a2522c279d9/raw/pacman-10kbis.txt
 
-Lien pour jouer directement : [http://squarity.fr#fetchez_githubgist_darkrecher/b5240940356e3bb7e59c8a2522c279d9/raw/pacman-10kbis.txt](http://squarity.fr#fetchez_githubgist_darkrecher/b5240940356e3bb7e59c8a2522c279d9/raw/pacman-10kbis.txt)
+Lien pour jouer directement : [http://squarity.fr/game#fetchez_githubgist_darkrecher/b5240940356e3bb7e59c8a2522c279d9/raw/pacman-10kbis.txt](http://squarity.fr/game#fetchez_githubgist_darkrecher/b5240940356e3bb7e59c8a2522c279d9/raw/pacman-10kbis.txt)
 

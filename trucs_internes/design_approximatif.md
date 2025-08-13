@@ -28,6 +28,7 @@ En bas, on met des liens vers 2 jeux.
      * le jeu d'exemple de soko-ban V2
    * Partager votre jeu
    * documentation de référence de la V2.
+   * Le code python de la librairie squarity
    * ressources externes pour apprendre le python
      * doctor python
      * l'autre truc qu'il faut que je retrouve

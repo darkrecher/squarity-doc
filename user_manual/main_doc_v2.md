@@ -12,6 +12,8 @@ Un jeu est défini par trois informations :
 
 Pour l'instant, Squarity ne gère pas de comptes ni de profil personnel. Vous devez sauvegarder vos jeux par vous-même. Vous pouvez les distribuer en [les publiant sur un gist github](https://github.com/darkrecher/squarity-doc/blob/master/user_manual/share_your_game.md).
 
+**TODO** : et après faudra mettre la vraie url de la doc sur le site, quand ce sera dispo
+
 
 ## Le tileset
 

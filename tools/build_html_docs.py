@@ -188,9 +188,10 @@ class ArticleGenerator():
         "docarticles",
     )
 
-    def __init__(self, markdown_filepath, article_name):
+    def __init__(self, markdown_filepath, article_name, generate_toc=True):
         self.markdown_filepath = Path(markdown_filepath)
         self.article_name = article_name
+        self.generate_toc = generate_toc
 
     def generate_all(self):
         self._compute_out_filepaths()
@@ -202,12 +203,13 @@ class ArticleGenerator():
         html_content_generator.generate()
         self.html_content = html_content_generator.get_html_content()
         html_content_generator.write_html_content_file()
-        html_toc_generator = HtmlTocGenerator(
-            self.html_content,
-            self.html_toc_filepath
-        )
-        html_toc_generator.generate()
-        html_toc_generator.write_html_toc_file()
+        if self.generate_toc:
+            html_toc_generator = HtmlTocGenerator(
+                self.html_content,
+                self.html_toc_filepath
+            )
+            html_toc_generator.generate()
+            html_toc_generator.write_html_toc_file()
 
     def _compute_out_filepaths(self):
         content_filename = self.article_name + ".vue"
@@ -222,6 +224,8 @@ class ArticleGenerator():
 
 def main():
     article_generator = ArticleGenerator("../user_manual/main_doc_v2.md", "MainDocV2")
+    article_generator.generate_all()
+    article_generator = ArticleGenerator("../user_manual/share_your_game.md", "ShareYourGame", generate_toc=False)
     article_generator.generate_all()
     print("It is done")
 
