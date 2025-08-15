@@ -25,6 +25,7 @@ En bas, on met des liens vers 2 jeux.
      * afficher un seul objet, qui ne bouge pas.
      * afficher un quadrillage immobile, printer les callbacks (start, action, click)
      * afficher deux objets placés en diagonale, qui bougent.
+     * les layers
      * le jeu d'exemple de soko-ban V2
    * Partager votre jeu
    * documentation de référence de la V2.
@@ -47,6 +48,15 @@ En bas, on met des liens vers 2 jeux.
    * repo git (doc et code)
    * le document décrivant les intentions de Squarity.
 
+
+Pour les mini-jeux d'exemple, un tileset avec:
+
+ - deux tronches simples. Une verte et une bleue.
+ - deux sols. Terre, briques.
+ - un rond rouge transparent, comme un viseur.
+ - un chapeau violet
+ - une clé
+ - une porte
 
 Qu'est-ce qu'on affiche et comment ?
 
