@@ -24,16 +24,21 @@ En bas, on met des liens vers 2 jeux.
    * plein d'autres mini-jeux d'exemple qui montrent un seul truc chacun.
      * afficher un seul objet, qui ne bouge pas.
      * afficher un quadrillage immobile, printer les callbacks (start, action, click)
-     * afficher deux objets placés en diagonale, qui bougent.
+     * afficher deux objets, qui bougent.
      * les layers
      * le jeu d'exemple de soko-ban V2
    * Partager votre jeu
    * documentation de référence de la V2.
    * Le code python de la librairie squarity
    * ressources externes pour apprendre le python
-     * doctor python
-     * l'autre truc qu'il faut que je retrouve
-     * des bouquins en ligne, peut-être
+     * doctor python (sur webarchive https://web.archive.org/web/20230130015248/https://python.doctor/ )
+     * l'autre truc qu'il faut que je retrouve - https://codingforkids.io/fr/ - https://py-rates.fr/
+     * https://diveintopython.org/fr
+     * https://koor.developpez.com/tutoriels/python/apprendre_python_video/?page=les-bases-de-la-syntaxe-python
+     * https://frederic-lang.developpez.com/tutoriels/python/python-de-zero/
+     * https://courspython.com/bases-python.html
+     * des bouquins en ligne, peut-être - https://wiki.python.org/moin/FrenchPythonBooks
+
    * --- grosse barre de séparation "Squarity V1". ---
    * doc expliquant comment choisir entre V2 et V1
    * un jeu vide en V1.
@@ -45,9 +50,8 @@ En bas, on met des liens vers 2 jeux.
    * mastodon
    * discord
    * roadmap
-   * repo git (doc et code)
    * le document décrivant les intentions de Squarity.
-
+   * repo git (doc et code)
 
 Pour les mini-jeux d'exemple, un tileset avec:
 
