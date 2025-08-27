@@ -1,8 +1,8 @@
-# Manuel utilisateur de Squarity
+# Documentation de référence de Squarity V1
 
 [Squarity](http://squarity.fr) est un espace de création et de partage de jeux vidéo jouables en ligne.
 
-Ce manuel suppose que vous avez déjà un minimum de connaissance en informatique (langage python, format JSON, ...). Pour les personnes qui débutent, vous pouvez lire [le tutoriel soko-ban](https://github.com/darkrecher/squarity-doc/blob/master/user_manual/tutoriel_sokoban.md), plus long mais plus détaillé.
+Ce manuel suppose que vous ayez déjà un minimum de connaissance en informatique (langage python, format JSON, ...). Pour les personnes qui débutent, vous pouvez lire [le tutoriel soko-ban](https://github.com/darkrecher/squarity-doc/blob/master/user_manual/tutoriel_sokoban.md), plus long mais plus détaillé.
 
 Les jeux sont en 2D "case par case", (comme les dames, le démineur, ...). L'aire de jeu est une grille composée de carrés, sur lesquels sont placés des éléments.
 
@@ -19,9 +19,9 @@ Un jeu est défini par trois composants :
 
 Il s'agit d'une image au format jpg, png ou autre, contenant les éléments de votre jeu (décors, personnages, objets). Voici quelques exemples :
 
-![https://raw.githubusercontent.com/darkrecher/squarity-doc/master/jeux/h2o/h2o_tileset.png](https://raw.githubusercontent.com/darkrecher/squarity-doc/master/jeux/h2o/h2o_tileset.png)
+![Le tileset original (et moche) de H2O](https://raw.githubusercontent.com/darkrecher/squarity-doc/master/jeux/h2o/h2o_tileset.png)
 
-![https://opengameart.org/sites/default/files/HighContrastRoguelikeCastle.png](https://opengameart.org/sites/default/files/HighContrastRoguelikeCastle.png)
+![Le tileset utilisé dans les mini exemples de tutoriels](https://raw.githubusercontent.com/darkrecher/squarity-doc/master/jeux/tutoriels/tutorial_tileset.png)
 
 Chaque élément de jeu est contenu dans un carré, qui ont tous la même taille en pixels.
 
@@ -147,11 +147,54 @@ La fonction `on_game_event` a pour charge de modifier la situation du jeu, c'est
 
 Un rendu complet de l'aire de jeu est déclenché après chaque appel de cette fonction. Sauf si on indique explicitement qu'on ne le veut pas (fonctionnement non documenté pour l'instant).
 
-### Actions différées, actions bloquantes, annulation du rendu
 
-Non documentés pour l'instant. Ce sera fait "dès que possible". Consultez l'exemple du jeu du magicien pour (essayer de) déterminer à quoi ça sert et comment ça fonctionne.
+## Données renvoyées par on_game_event
 
-Ce sont les strings json renvoyées par `on_game_event`, permettant de montrer le déplacement progressif des boules de feu et les étapes intermédiaires lorsque le personnage passe une porte.
+La fonction `on_game_event` peut renvoyer une chaîne de caractère JSON, contenant différentes indications que le moteur de Squarity interprétera. Ce n'est pas obligatoire, la fonction peut ne contenir aucune instruction `return`, dans ce cas elle renverra `None` et le moteur ne fera rien de plus.
+
+Vous trouverez des exemples de tous les types de JSON qui peuvent être renvoyés dans le jeu du sorcier. TODO : lien.
+
+### Action différée
+
+Ce JSON peut contenir une clé `delayed_actions`. La valeur doit être une liste de sous-dictionnaire, avec une clé `name` et une clé `delay_ms`.
+
+Exemple de ligne de code renvoyant un JSON avec une action différée:
+
+`return """ { "delayed_actions": [ {"name": "my_action", "delay_ms": 500} ] } """`
+
+Avec ce JSON, le moteur exécutera à nouveau la fonction `GameModel.on_game_event`, 500 millisecondes plus tard. Le paramètre `event_name` aura la valeur `"my_action"`.
+
+Lors de cet exécution différée de `on_game_event`, il est tout à fait possible de renvoyer un autre JSON avec une (ou plusieurs) autres actions différées, et ainsi de suite.
+
+### Blocage/déblocage de l'interface
+
+Le JSON peut contenir une clé `player_locks` et/ou une clé `player_unlocks`. Les valeurs doivent être des listes de chaînes de caractères.
+
+Chaque chaîne correspond à une "raison" de bloquer l'interface de la personne qui joue.
+
+L'interface est entièrement bloquée tant qu'il y a au moins une raison en cours : les boutons de directions et d'actions apparaissent en grisé, les touches de clavier et les clics de souris n'ont aucun effet dans le jeu.
+
+Lorsque vous bloquez l'interface, il est fortement conseillé de prévoir en même temps un enchaînement d'action différée, qui finira par débloquer l'interface.
+
+Ces blocages d'interface peuvent être utile pour montrer des animations prédéfinies, à regarder sans jouer.
+
+Petit exemple :
+
+ - Vous renvoyez le JSON `""" { "delayed_actions": [ {"name": "play_anim", "delay_ms": 500} ], "player_locks": ["anim"] } """`, pour bloquer l'interface tout en planifiant l'action différée `"play_anim"`.
+ - Cette action différée déclenchera éventuellement d'autres actions différées.
+ - Au bout d'un moment, l'une de ces actions renvoie le JSON `""" { "player_unlocks": ["anim"] } """` pour débloquer l'interface.
+
+Si vous avez bloqué l'interface avec plusieurs raisons différentes et que vous ne savez plus trop lesquelles, vous pouvez renvoyer le déblocague `*` pour supprimer en une fois toutes les raisons en cours. Exemple : `""" { "player_unlocks": ["*"] } """`
+
+### Annulation du rendu
+
+Si la fonction `on_game_event` ne change pas la disposition des game objects, vous pouvez indiquer au moteur de Squarity que ce n'est pas la peine de redessiner l'aire de jeu. Ça permet d'optimiser l'exécution de votre jeu.
+
+Le JSON peut contenir une clé `redraw`, qui vaut 1 par défaut. Si vous la définissez à 0, le rendu n'est pas effectué pour cette fois.
+
+Exemple : `"""{ "redraw": 0 }"""`
+
+Il est bien entendu possible d'avoir plusieurs clés en même temps, et plusieurs éléments dans les listes, le tout dans un même JSON. Vous pourriez, en une seule fois, planifier 10 actions différées, bloquer l'interface pour 15 raisons différentes, la débloquer pour 20 autres raisons, le tout en annulant le rendu.
 
 
 ## Démarrer le jeu
@@ -165,7 +208,7 @@ Pour l'instant, il n'est pas possible de sauvegarder la partie en cours. Le jeu 
 
 ## Quelques détails techniques
 
-Le game_code doit être codé en python version 3.8, il est exécuté par votre navigateur web, grâce à [Pyodide](https://github.com/iodide-project/pyodide). Ça fonctionne plus ou moins bien sur les smartphones, selon leur type et beaucoup d'autres choses.
+Le game_code doit être codé en python version 3.7.4, il est exécuté par votre navigateur web, grâce à [Pyodide](https://github.com/iodide-project/pyodide). Ça fonctionne plus ou moins bien sur les smartphones, selon leur type et beaucoup d'autres choses.
 
 Lorsque votre code python comporte des erreurs, celles-ci apparaissent dans la zone de texte en bas de la page.
 

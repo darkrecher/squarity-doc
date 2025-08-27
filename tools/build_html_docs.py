@@ -77,8 +77,8 @@ class HtmlContentGenerator():
             self.markdown_text
         )
         for markdown_img in markdown_imgs:
-            markdown_img = markdown_img[2:-1]
-            alt_text, img_link = markdown_img.split("](")
+            markdown_img_strip = markdown_img[2:-1]
+            alt_text, img_link = markdown_img_strip.split("](")
             img_filename = img_link.split("/")[-1]
             # TODO : en même temps, il faudrait copier les images du repository de doc
             # vers le repository de code. Pour être sûr de les avoir à jour.
@@ -223,10 +223,19 @@ class ArticleGenerator():
 
 
 def main():
-    article_generator = ArticleGenerator("../user_manual/main_doc_v2.md", "MainDocV2")
-    article_generator.generate_all()
-    article_generator = ArticleGenerator("../user_manual/share_your_game.md", "ShareYourGame", generate_toc=False)
-    article_generator.generate_all()
+    DOCS_TO_GENERATE = (
+        ("../user_manual/main_doc_v2.md", "MainDocV2", True),
+        ("../user_manual/share_your_game.md", "ShareYourGame", False),
+        ("../user_manual/choose_version.md", "ChooseVersion", True),
+        ("../user_manual/main_doc_v1.md", "MainDocV1", True),
+    )
+    for markdown_filepath, article_name, generate_toc in DOCS_TO_GENERATE:
+        article_generator = ArticleGenerator(
+            markdown_filepath,
+            article_name,
+            generate_toc,
+        )
+        article_generator.generate_all()
     print("It is done")
 
 if __name__ == "__main__":
