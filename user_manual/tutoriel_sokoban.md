@@ -1,6 +1,6 @@
-# Tutoriel Soko-ban Squarity
+# Tutoriel Soko-ban (V1)
 
-Ce tutoriel vous montrera comment créer un petit jeu simple avec Squarity. Il s'agit d'un [soko-ban](https://fr.wikipedia.org/wiki/Sokoban), un jeu dans lequel un personnage doit pousser des caisses pour les ranger.
+Ce tutoriel vous permet de créer un petit jeu simple avec la version V1 de Squarity. Il s'agit d'un [soko-ban](https://fr.wikipedia.org/wiki/Sokoban), un jeu dans lequel un personnage doit pousser des caisses pour les ranger.
 
 Squarity utilise le langage de programmation python et le format de description de données JSON. Vous n'avez pas besoin de connaître ces notions, mais ça peut aider. Si vous souhaitez découvrir ou approfondir ces sujets, voici [un lien vers des cours de python](https://python.developpez.com/cours/), et la [la page Wikipedia sur le JSON](https://fr.wikipedia.org/wiki/JavaScript_Object_Notation).
 
@@ -44,6 +44,7 @@ Dans le champ en-dessous *"Config du jeu (en JSON)"*, remplacez le texte existan
 
 ```
 {
+    "version": "1.0.0",
     "tile_size": 32,
     "img_coords": {
         "herbe": [0, 0]
@@ -193,6 +194,7 @@ Remplacez la configuration du jeu par ceci :
 
 ```
 {
+    "version": "1.0.0",
     "tile_size": 32,
     "img_coords": {
         "herbe": [0, 0],
@@ -360,6 +362,7 @@ Dans le champ *"Config du jeu"*, supprimer l'ancien texte et copier-collez la co
 
 ```
 {
+    "version": "1.0.0",
     "tile_size": 32,
     "img_coords": {
         "herbe": [0, 0],
@@ -1240,6 +1243,8 @@ class GameModel():
 ```
 
 Si vous en avez assez de faire des copié-collés, vous pouvez directement jouer à la version finale de ce sokoban, ici : http://squarity.fr/#fetchez_githubgist_darkrecher/aa3e1338998cc2a20a030011fbca9ce2/raw/sokoban-tuto.txt .
+
+TODO : changer le lien ci-dessus.
 
 J'ai ajouté plein de commentaires dans le code, pour le re-expliquer plus en détail. Ça peut vous aider à comprendre comment fonctionnne certaines parties.
 
