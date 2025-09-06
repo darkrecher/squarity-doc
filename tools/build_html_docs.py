@@ -232,6 +232,7 @@ def main():
         ("../user_manual/choose_version.md", "ChooseVersion", True),
         ("../user_manual/main_doc_v1.md", "MainDocV1", True),
         ("../user_manual/tutoriel_sokoban.md", "TutorielSokobanV1", True),
+        ("../pourquoi_squarity.md", "WhySquarity", False),
     )
     for markdown_filepath, article_name, generate_toc in DOCS_TO_GENERATE:
         article_generator = ArticleGenerator(
