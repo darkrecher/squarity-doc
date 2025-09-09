@@ -73,12 +73,11 @@ Si la fenêtre est large (la limite se situe entre les tailles "sm" et "md", com
    * "manuel du jeu" (image de parchemin) (pas pour tout de suite)
    * "aller à la page d'accueil de Squarity" (image de Squassos, la fameuse mascotte de Squarity)
    * "afficher le code du jeu" (image d'accolades / curly brackets)
+ - Les 3 boutons sont intégrées dans le bloc des boutons du jeu. Mais quand on mouse-hover dessus, le texte apparait par dessus tout le reste.
 
 Si la fenêtre est petite :
 
- - on met une barre verticale en haut de la page, qui prend toute la largeur, mais qui n'a que quelques pixels de haut.
- - quand on clique sur cette barre, un sous-menu se déroule, avec les 3 boutons et le texte.
-
-
+ - on met une barre horizontale tout en bas de la page.
+ - quand on clique sur cette barre, un sous-menu se déroule (par le haut), avec les 3 boutons et leur texte de mouseover.
 
 
