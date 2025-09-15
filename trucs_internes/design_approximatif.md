@@ -1,5 +1,7 @@
 # Design approximatif
 
+## Pouet
+
 Squarity
 
 "Créer et partager des mini jeux vidéos, en python, dans un navigateur web"
@@ -80,4 +82,32 @@ Si la fenêtre est petite :
  - on met une barre horizontale tout en bas de la page.
  - quand on clique sur cette barre, un sous-menu se déroule (par le haut), avec les 3 boutons et leur texte de mouseover.
 
+
+
+## Les TODOs à régler dès qu'on a publié la nouvelle version.
+
+### MainDocV1.vue
+
+<p>La fonction <code>on_game_event</code> peut renvoyer une chaîne de caractère JSON, contenant différentes indications que le moteur de Squarity interprétera. Ce n'est pas obligatoire, la fonction peut ne contenir aucune instruction <code>return</code>, dans ce cas elle renverra <code>None</code> et le moteur ne fera rien de plus.</p>
+<p>Vous trouverez des exemples de tous les types de JSON qui peuvent être renvoyés dans le jeu du sorcier. TODO : lien.</p>
+
+### MainDocV2.vue
+
+<p>Pour l'instant, Squarity ne gère pas de comptes ni de profil personnel. Vous devez sauvegarder vos jeux par vous-même. Vous pouvez les distribuer en <a href="https://github.com/darkrecher/squarity-doc/blob/master/user_manual/share_your_game.md">les publiant sur un gist github</a>.</p>
+<p><strong>TODO</strong> : et après faudra mettre la vraie url de la doc sur le site, quand ce sera dispo</p>
+
+### ShareYourGame.vue
+
+<p><strong>TODO</strong> provisoire: Faut pas mettre le <code>/game</code> dans l'url. Mais après il faudra. J'y travaille. Ça arrive bientôt.</p>
+
+### TutorielSokobanV1.vue
+
+<p>Si vous en avez assez de faire des copié-collés, vous pouvez directement jouer à la version finale de ce sokoban, ici : http://squarity.fr/#fetchez_githubgist_darkrecher/aa3e1338998cc2a20a030011fbca9ce2/raw/sokoban-tuto.txt .</p>
+<p>TODO : changer le lien ci-dessus.</p>
+
+
+## Juste des liens, si y'a besoin pour tester
+
+// https://squarity.pythonanywhere.com/#fetchez_githubgist_darkrecher/9f4abdcecb567b7e6d7d8abb9f2c44a0/raw/skweek-breakout.txt
+// http://localhost:5173/#fetchez_githubgist_darkrecher/9f4abdcecb567b7e6d7d8abb9f2c44a0/raw/skweek-breakout.txt
 
