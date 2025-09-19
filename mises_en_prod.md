@@ -429,4 +429,33 @@ Remplacement du fichier `pyodide/v0.15.0/pyodide.asm.data.js`, car j'ai effectu�
 
 Pour une explication détaillée de la raison pour laquelle il a fallu modifier ce fichier, voir doc `trucs_internes/barre_progress_descrip.md` dans ce repository.
 
+### Mise en prod 10
 
+2025-09-15
+
+Toute la structure du site a changé.
+
+Remplacement de tous les fichiers, sauf le répertoire `pyodide/v0.15.0`.
+
+Ajout du répertoire `gamedata`
+
+Voici la config actuelle de tous les static files :
+
+| URL                | Directory                                   |
+| ------------------ | ------------------------------------------- |
+| /static/           | /home/squarity/squarity/static              |
+| /media/            | /home/squarity/squarity/media               |
+| /index.html        | /home/squarity/squastatic/index.html        |
+| /pyodide/          | /home/squarity/squastatic/pyodide           |
+| /favicon.ico       | /home/squarity/squastatic/favicon.ico       |
+| /pyodide.js        | /home/squarity/squastatic/pyodide.js        |
+| /road_map_data.txt | /home/squarity/squastatic/road_map_data.txt |
+| /assets/           | /home/squarity/squastatic/assets            |
+| /gamedata/         | /home/squarity/squastatic/gamedata          |
+| /                  | /home/squarity/squastatic/index.html        |
+
+Il y en qui ne servent peut-être plus à rien. Faudrait mettre à jour et retester.
+
+Ça fait maintenant beaucoup de fichiers à uploader, et le pythonanywhere gratuit ne permet que de les uploader un par un. Ça devient vraiment pas pratique, il va falloir faire quelque chose par rapport à ça.
+
+Et sinon, il y a plein de liens cassés. Faut que je corrige et que je refasse une mise en prod.

@@ -152,7 +152,7 @@ Un rendu complet de l'aire de jeu est déclenché après chaque appel de cette f
 
 La fonction `on_game_event` peut renvoyer une chaîne de caractère JSON, contenant différentes indications que le moteur de Squarity interprétera. Ce n'est pas obligatoire, la fonction peut ne contenir aucune instruction `return`, dans ce cas elle renverra `None` et le moteur ne fera rien de plus.
 
-Vous trouverez des exemples de tous les types de JSON qui peuvent être renvoyés dans le jeu du sorcier. TODO : lien.
+Vous trouverez des exemples de ces JSON dans [le jeu du sorcier](https://squarity.pythonanywhere.com/game/#fetchez_example_magician).
 
 ### Action différée
 

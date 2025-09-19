@@ -2,7 +2,7 @@
 
 Squarity est un espace de création et de partage de jeux vidéo jouables dans un navigateur web. Les jeux se déroulent sur une grille en 2D composée de carrés. Le fonctionnement et les règles du jeu sont définis par du code en python.
 
-Ce document décrit les fonctionnalités de la version 2.1.0 du moteur de Squarity. Il suppose que vous avez déjà un minimum de connaissance en python. Si ce n'est pas le cas, vous pouvez les acquérir avec ce tutoriel en français : https://python.doctor/
+Ce document décrit les fonctionnalités de la version 2.1.0 du moteur de Squarity. Il suppose que vous avez déjà un minimum de connaissance en python. Si ce n'est pas le cas, vous pouvez les acquérir avec la doc ["dive into python" en français](https://diveintopython.org/fr/learn).
 
 Un jeu est défini par trois informations :
 
@@ -10,9 +10,7 @@ Un jeu est défini par trois informations :
  - la configuration,
  - le "game code".
 
-Pour l'instant, Squarity ne gère pas de comptes ni de profil personnel. Vous devez sauvegarder vos jeux par vous-même. Vous pouvez les distribuer en [les publiant sur un gist github](https://github.com/darkrecher/squarity-doc/blob/master/user_manual/share_your_game.md).
-
-**TODO** : et après faudra mettre la vraie url de la doc sur le site, quand ce sera dispo
+Pour l'instant, Squarity ne gère pas de comptes ni de profil personnel. Vous devez sauvegarder vos jeux par vous-même. Vous pouvez les distribuer en [les publiant sur un gist github](https://squarity.pythonanywhere.com/create/share-your-game).
 
 
 ## Le tileset
