@@ -459,3 +459,27 @@ Il y en qui ne servent peut-être plus à rien. Faudrait mettre à jour et retes
 Ça fait maintenant beaucoup de fichiers à uploader, et le pythonanywhere gratuit ne permet que de les uploader un par un. Ça devient vraiment pas pratique, il va falloir faire quelque chose par rapport à ça.
 
 Et sinon, il y a plein de liens cassés. Faut que je corrige et que je refasse une mise en prod.
+
+
+### Modif de la config DNS
+
+2025-09-21
+
+Voir document : `trucs_internes/config_DNS.md`
+
+
+### Mise en prod 11
+
+2025-09-23
+
+Juste des correction de liens cassés.
+
+Commit squarity-code b431043941df3c7255d51c0f8db045f326d805e3.
+
+Copie des fichiers js et css du répertoire `dist/assets`.
+
+Ça marche.
+
+
+
+
