@@ -104,3 +104,9 @@ Je ne sais pas comment faire pour que l'url reste en `squarity.fr`. Je crois qu'
 Et donc, à partir de maintenant, pour partager les jeux, il faut utiliser des urls qui commencent par `https://squarity.fr/game/#fetchez_githubgist_`, même si ça change après dans la barre d'adresse.
 
 La méthode pour construire une url de partage d'un jeu est décrite dans la doc utilisateur: `user_manual/share_your_game.md`.
+
+Au passage, j'ai abandonné le domaine `squariti.fr`. En essayant de comprendre tout ce bazar, j'ai cru qu'il fallait complètement abandonner la gestion d'un domaine sur GoDaddy, pour que CloudFlare puisse le gérer correctement. Ça ne marche pas comme ça, heureusement que j'ai testé avec le domaine `squariti`.
+
+Quand on abandonne un domaine sur GoDaddy, c'est "no refund" et il faut le racheter. On verra plus tard si ça vaut le coup. Le plus important est de ne pas avoir perdu `squarity.fr`.
+
+
