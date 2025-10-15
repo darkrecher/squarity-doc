@@ -177,20 +177,20 @@ Cette classe sert à identifier une case dans l'aire de jeu ou dans un layer. El
 La classe peut être instanciée en indiquant un X et un Y, ou une autre `Coord`. Les objets `Coord` peuvent être comparés entre eux.
 
 ```
-coord_1 = squarity.Coord(5, 2)
-coord_2 = squarity.Coord(coord=coord_1)
-print(coord_1 == coord_2)
+coord_a = squarity.Coord(5, 2)
+coord_b = squarity.Coord(coord=coord_a)
+print(coord_a == coord_b)
 # La valeur 'True' s'affiche dans la console
 ```
 
-### Fonctions de base
+### Méthodes de base
 
 Les `Coord` peuvent être utilisées comme clés dans un dictionnaire. Elles ont une représentation textuelle, ce qui permet de les écrire avec un `print`. Elles peuvent être dupliquées avec la méthode `clone`.
 
 ```
-coord_1 = squarity.Coord(5, 2)
-coord_2 = coord_1.clone()
-print(coord_2)
+coord_a = squarity.Coord(5, 2)
+coord_b = coord_a.clone()
+print(coord_b)
 # Le texte "<Coord 5, 2 >" s'affiche dans la console
 ```
 
@@ -199,9 +199,9 @@ print(coord_2)
 La méthode `move_dir` permet de se déplacer dans une direction donnée, sur une distance donnée (indiquée par un `int`). La distance par défaut est 1.
 
 ```
-coord_1 = squarity.Coord(5, 2)
-coord_1.move_dir(squarity.dirs.Right, 2)
-print(coord_1)
+coord_a = squarity.Coord(5, 2)
+coord_a.move_dir(squarity.dirs.Right, 2)
+print(coord_a)
 # Affichage de "<Coord 7, 2 >"
 ```
 
@@ -210,24 +210,24 @@ La méthode `move_by_vect` permet d'appliquer un déplacement, spécifié par le
 Attention, il n'y a pas de blocage sur les bords. Les mouvements peuvent amener une coordonnée en négatif ou en dehors de l'aire de jeu.
 
 ```
-coord_1 = squarity.Coord(5, 2)
+coord_a = squarity.Coord(5, 2)
 coord_vect = squarity.Coord(0, -3)
-coord_1.move_by_vect(vector=coord_vect)
-coord_1.move_by_vect(x=1, y=-3)
-print(coord_1)
+coord_a.move_by_vect(vector=coord_vect)
+coord_a.move_by_vect(x=1, y=-3)
+print(coord_a)
 # Affichage de "<Coord 6, -4 >"
 ```
 
 La méthode `scale` permet de multiplier les coordonnées par un facteur.
 
-La méthode `reverse` prend l'opposée des deux coordonnées.
+La méthode `reverse` change `x` et `y` en leurs opposés.
 
-Toutes ces méthodes modifient les coordonnées "en place", elles ne renvoient pas un nouvel objet `Coord`. Il est possible de les enchaîner.
+Toutes ces méthodes modifient les coordonnées "en place", elles ne créent pas un nouvel objet `Coord`. Il est possible de les enchaîner.
 
 ```
-coord_1 = squarity.Coord(0, 0)
-coord_1.move_by_vect(x=1, y=3).scale(2).reverse()
-print(coord_1)
+coord_a = squarity.Coord(0, 0)
+coord_a.move_by_vect(x=1, y=3).scale(2).reverse()
+print(coord_a)
 # Affichage de "<Coord -2, -6 >"
 ```
 
@@ -236,8 +236,8 @@ print(coord_1)
 
 Définit un rectangle à partir de 4 paramètres de type `int` :
 
- - X du coin supérieur droit,
- - Y du coin supérieur droit,
+ - coordonnée X du coin supérieur droit,
+ - coordonnée Y du coin supérieur droit,
  - largeur,
  - hauteur.
 
@@ -245,7 +245,7 @@ Les coordonnées dans le rectangle s'étendent de X jusqu'à (X+largeur-1) en ab
 
 ### Création d'un Rect
 
-En plus de l'instanciation classique, avec les 4 paramètres sus-cités, il est possible de créer un `Rect` avec la fonction statique `from_coords`. Les paramètres spécifient deux coins du rectangle.
+En plus de l'instanciation classique, il est possible de créer un `Rect` avec la méthode statique `from_coords`. Les paramètres spécifient deux coins du rectangle.
 
 Pour respecter le principe précédent, la colonne de droite et la ligne du bas ne sont pas incluses dans le rectangle.
 
@@ -264,7 +264,7 @@ Renvoie une `Coord` contenant les coordonnées du coin supérieur gauche du rect
 
 ### Méthode in_bounds
 
-Indique si la Coord passée en paramètre se trouve à l'intérieur du rectangle.
+Indique si la `Coord` passée en paramètre se trouve à l'intérieur du rectangle.
 
 ```
 rect = squarity.Rect(5, 2, 3, 5)
@@ -276,14 +276,14 @@ print(rect.in_bounds(squarity.Coord(5, 4)))
 
 ### Méthode on_borders
 
-Indique si la Coord se trouve sur un bord du rectangle.
+Indique si la `Coord` se trouve sur un bord du rectangle.
 
 ```
 rect = squarity.Rect(5, 2, 3, 5)
 for x in range(4, 10):
-    coord_1 = squarity.Coord(x, 3)
-    border = rect.on_border(coord_1)
-    print(coord_1, "est-elle au bord ?", border)
+    coord_a = squarity.Coord(x, 3)
+    border = rect.on_border(coord_a)
+    print(coord_a, "est-elle au bord ?", border)
 # Les informations suivantes vont s'afficher:
 # <Coord 4, 3 > est-elle au bord ? False
 # <Coord 5, 3 > est-elle au bord ? True
@@ -295,7 +295,7 @@ for x in range(4, 10):
 
 ### Méthodes move_dir et move_by_vect
 
-Ces méthodes déplacent le rectangle selon une direction ou un vecteur. Elles fonctionnent de la même manière que les deux méthodes de la classe `Coord`.
+Ces méthodes déplacent le rectangle selon une direction ou un vecteur. Elles fonctionnent de la même manière que celles de la classe `Coord`.
 
 
 ## class GameObject
@@ -1051,9 +1051,9 @@ class GameModel(squarity.GameModelBase):
 
 ### Itérer sur les bords d'un rectangle
 
-La méthode `iter_on_border` du séquenceur permet d'itérer sur les bords d'un rectangle, en commençant en haut à gauche, puis vers la droite, vers le bas, et retour en haut à gauche.
+La méthode `iter_on_border` du séquenceur permet de faire le tour d'un rectangle, en commençant en haut à gauche, puis vers la droite, vers le bas, et retour en haut à gauche.
 
-Le paramètre optionnel `include_corners` (True par défaut) permet d'indiquer si l'itération se fait avec ou sans les coins du carré.
+Le paramètre optionnel `include_corners` (True par défaut) permet d'indiquer si l'itération se fait avec ou sans les coins du rectangle.
 
 Le paramètre `instanciate_coord` fonctionne de la même manière qu'avec `iter_on_rect`.
 
