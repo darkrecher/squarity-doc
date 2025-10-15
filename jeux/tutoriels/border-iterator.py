@@ -39,20 +39,21 @@ import squarity
 class GameModel(squarity.GameModelBase):
 
     def on_start(self):
-        self.coord_first_corner = None
+        self.coord_corner_1 = None
         self.include_corners = True
         self.add_gobj = True
 
 
     def on_click(self, coord):
 
-        if self.coord_first_corner is None:
-            self.coord_first_corner = coord.clone()
+        if self.coord_corner_1 is None:
+            self.coord_corner_1 = coord.clone()
             print("Premier coin du rectangle:", coord)
             return
 
-        rect = squarity.Rect.from_coords(self.coord_first_corner, coord)
-        self.coord_first_corner = None
+        coord_corner_2 = coord.clone().move_dir(squarity.dirs.DownRight)
+        rect = squarity.Rect.from_coords(self.coord_corner_1, coord_corner_2)
+        self.coord_corner_1 = None
 
         if self.add_gobj:
 

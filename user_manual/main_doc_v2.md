@@ -147,6 +147,8 @@ Tableau récapitulatif des directions et de leurs caractéristiques :
 | `dirs.Left`      |    6     | `"left"`       |    -1         |     0         |
 | `dirs.UpLeft`    |    7     | `"up_left"`    |    -1         |    -1         |
 
+Les directions sont "hashables", vous pouvez donc les utiliser comme clé de dictionnaire. Par exemple: `dist_to_bonus = {dirs.Up: 4, dirs.UpRight: 7}` ...
+
 ### Rotations
 
 La méthode `turn_cw` renvoie une direction tournée dans le sens des aiguilles d'une montre. La méthode `turn_ccw` renvoie une direction tournée dans le sens inverse. L'angle de rotation par défaut est de 90 degrés.
@@ -192,7 +194,7 @@ print(coord_2)
 # Le texte "<Coord 5, 2 >" s'affiche dans la console
 ```
 
-### Fonctions de modification
+### Méthodes de modification
 
 La méthode `move_dir` permet de se déplacer dans une direction donnée, sur une distance donnée (indiquée par un `int`). La distance par défaut est 1.
 
@@ -216,6 +218,19 @@ print(coord_1)
 # Affichage de "<Coord 6, -4 >"
 ```
 
+La méthode `scale` permet de multiplier les coordonnées par un facteur.
+
+La méthode `reverse` prend l'opposée des deux coordonnées.
+
+Toutes ces méthodes modifient les coordonnées "en place", elles ne renvoient pas un nouvel objet `Coord`. Il est possible de les enchaîner.
+
+```
+coord_1 = squarity.Coord(0, 0)
+coord_1.move_by_vect(x=1, y=3).scale(2).reverse()
+print(coord_1)
+# Affichage de "<Coord -2, -6 >"
+```
+
 
 ## class Rect
 
@@ -228,9 +243,28 @@ Définit un rectangle à partir de 4 paramètres de type `int` :
 
 Les coordonnées dans le rectangle s'étendent de X jusqu'à (X+largeur-1) en abscisse, et de Y jusqu'à (Y+hauteur-1) en ordonnée. C'est le même principe que la fonction python `range`.
 
-### Fonction in_bounds
+### Création d'un Rect
 
-Indique si une coordonnée se trouve à l'intérieur du rectangle.
+En plus de l'instanciation classique, avec les 4 paramètres sus-cités, il est possible de créer un `Rect` avec la fonction statique `from_coords`. Les paramètres spécifient deux coins du rectangle.
+
+Pour respecter le principe précédent, la colonne de droite et la ligne du bas ne sont pas incluses dans le rectangle.
+
+```
+rect = squarity.Rect.from_coords(
+    squarity.Coord(10, 20),
+    squarity.Coord(12, 25),
+)
+print(rect)
+# Le texte "<Rect(10, 20, 2, 5)>" s'affichera dans la console.
+```
+
+### Méthode coord_upleft
+
+Renvoie une `Coord` contenant les coordonnées du coin supérieur gauche du rectangle.
+
+### Méthode in_bounds
+
+Indique si la Coord passée en paramètre se trouve à l'intérieur du rectangle.
 
 ```
 rect = squarity.Rect(5, 2, 3, 5)
@@ -240,9 +274,9 @@ print(rect.in_bounds(squarity.Coord(5, 4)))
 # La valeur True s'affichera dans la console.
 ```
 
-### Fonction on_borders
+### Méthode on_borders
 
-Indique si une coordonnée se trouve sur un bord du rectangle.
+Indique si la Coord se trouve sur un bord du rectangle.
 
 ```
 rect = squarity.Rect(5, 2, 3, 5)
@@ -258,6 +292,10 @@ for x in range(4, 10):
 # <Coord 8, 3 > est-elle au bord ? False
 # <Coord 9, 3 > est-elle au bord ? False
 ```
+
+### Méthodes move_dir et move_by_vect
+
+Ces méthodes déplacent le rectangle selon une direction ou un vecteur. Elles fonctionnent de la même manière que les deux méthodes de la classe `Coord`.
 
 
 ## class GameObject
@@ -1008,6 +1046,27 @@ class GameModel(squarity.GameModelBase):
         for coord in seq:
             sprite_name = get_chessed_gem(coord)
             self.gobj = squarity.GameObject(coord, sprite_name)
+            self.layer_main.add_game_object(self.gobj)
+```
+
+### Itérer sur les bords d'un rectangle
+
+La méthode `iter_on_border` du séquenceur permet d'itérer sur les bords d'un rectangle, en commençant en haut à gauche, puis vers la droite, vers le bas, et retour en haut à gauche.
+
+Le paramètre optionnel `include_corners` (True par défaut) permet d'indiquer si l'itération se fait avec ou sans les coins du carré.
+
+Le paramètre `instanciate_coord` fonctionne de la même manière qu'avec `iter_on_rect`.
+
+```
+import squarity
+S = squarity.Sequencer
+
+class GameModel(squarity.GameModelBase):
+
+    def on_start(self):
+        seq = S.seq_iter(S.iter_on_border(self.rect))
+        for coord in seq:
+            self.gobj = squarity.GameObject(coord, "gem_green")
             self.layer_main.add_game_object(self.gobj)
 ```
 
