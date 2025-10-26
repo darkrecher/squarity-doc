@@ -83,9 +83,68 @@ Si la fenêtre est petite :
  - quand on clique sur cette barre, un sous-menu se déroule (par le haut), avec les 3 boutons et leur texte de mouseover.
 
 
+## Re-design de la description d'un jeu
+
+La description est définie dans le JSON (elle est optionnelle).
+
+Elle apparaît systématiquement en bas de la page web. Il faut donc scroller pour la voir.
+
+Pas besoin de faire des fonctionnalités pour masquer/afficher la description. Pour ne plus la voir, on scrolle.
+
+Mais la personne qui joue ne réalise pas forcément qu'elle peut scroller pour afficher une description.
+
+Donc on ajoute une autre fonctionnalité (activable avec la config JSON) : le gros signalement que y'a une description. Ce sera sûrement sous la forme d'une grosse flèche rouge, avec indiqué un truc du genre : "read the description".
+
+Ou alors, les instructions, elles s'affichent à la place du code. Oui mais non, parce que sur les écrans petits, ça apparaîtra en dessous...
+
+Non. Pas de flèche rouge à la con. On peut mettre les instructions au-dessus ou en-dessous. C'est indépendant du fait d'afficher/masquer le code. On choisit via la config.
+
+Mode au-dessus: il y a une croix rouge pour masquer les instructions. Quand on clique dessus, ça fait "pouf" dans le bouton pour réafficher les instructions. On utilise ce mode quand il faut vraiment lire les instructions au début.
+
+Mode en-dessous: les instructions sont en-dessous. Il faut scroller pour les voir. On ne peut pas les masquer (parce qu'on s'en fout).
+
+Pour plus tard: on enregistre dans le local storage la liste des jeux pour lesquels on a déjà masqué les instructions. Comme ça, on les remet pas à chaque fois, pour les personnes qui jouent plusieurs fois au même jeu.
+
+Et pour super plus tard, ce sera du markdown.
+
 
 ## Juste des liens, si y'a besoin pour tester
 
 // https://squarity.pythonanywhere.com/#fetchez_githubgist_darkrecher/9f4abdcecb567b7e6d7d8abb9f2c44a0/raw/skweek-breakout.txt
 // http://localhost:5173/#fetchez_githubgist_darkrecher/9f4abdcecb567b7e6d7d8abb9f2c44a0/raw/skweek-breakout.txt
+
+
+## Les étapes de chargement d'un jeu.
+
+C'est un peu compliqué à gérer.
+Le chargement d'un jeu peut provenir de deux sources différentes:
+
+1. chargement initial de la page web. Et à ce moment là, il faut tout faire.
+
+  - définir une proportion d'aire de jeu par défaut 1:1
+  - récupérer les game specs (depuis github, ou un code d'exemple)
+  - parser le json, enregistrer les game specs
+  - arranger certains trucs initiaux de l'interface, en fonction du json (hideCode, descriptionAbove, ...)
+  - mettre la description au bon endroit, avec éventuellement le bouton associé. Récupérer les proportions de l'aire de jeu.
+  - (future) : arranger d'autres trucs de l'interface. les flèches, les boutons d'actions, ...
+  - arranger la taille de l'aire de jeu
+  - récupérer pyodide
+  - interpréter le code python
+  - démarrer le jeu
+
+2. Clic sur le bouton "Exécuter", qui est dans le composant DevZone.
+
+  - récupérer les game specs, mais cette fois-ci depuis les zones de texte de la DevZone.
+  - parser le json, enregistrer les game specs
+  - mettre la description au bon endroit, avec éventuellement le bouton associé. Récupérer les proportions de l'aire de jeu.
+  - (future) : arranger d'autres trucs de l'interface. les flèches, les boutons d'actions, ...
+  - arranger la taille de l'aire de jeu
+  - interpréter le code python
+  - démarrer le jeu
+
+Et c'est le bin's, parce que y'a des trucs qui sont dans le cas 1, mais pas dans le cas 2. Mais c'est un peu tout dispersé. En particulier : "parser le json" qui est au milieu de nul part, mais qu'il faut faire à chaque fois.
+
+Et le déclencheur du cas 1 est dans le GameBoard, alors que le déclencheur du cas 2 est dans la DevZone. Ça non plus, ça aide pas.
+
+C'est quand même le GameBoard qui est le gérant principal de tout le bazar. Mais c'est pas de lui que viennent les game specs. Faut faire comme on fait actuellement, mais chaque étape est dans une petite fonction du GameBoard. Et après, on a deux grosses fonctions, qui font le cas 1 et le cas 2, et qui appellent des trucs ou d'autres.
 
