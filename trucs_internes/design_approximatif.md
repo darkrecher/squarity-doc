@@ -148,3 +148,27 @@ Et le déclencheur du cas 1 est dans le GameBoard, alors que le déclencheur du 
 
 C'est quand même le GameBoard qui est le gérant principal de tout le bazar. Mais c'est pas de lui que viennent les game specs. Faut faire comme on fait actuellement, mais chaque étape est dans une petite fonction du GameBoard. Et après, on a deux grosses fonctions, qui font le cas 1 et le cas 2, et qui appellent des trucs ou d'autres.
 
+
+## Description et Notes
+
+La description apparaît par-dessus le jeu, dès le départ. Elle doit être utilisé pour les jeux nécessitant obligatoirement des explications initiales. L'interface possède les boutons nécessaires pour afficher/masquer cette description. Ces boutons ne sont pas présents s'il n'y a pas de description.
+
+Les notes apparaissent en-dessous du jeu. Il faut scroller pour les lire. Elles doivent être utilisée pour des infos facultatives (les crédits, des anecdotes, etc.). On ne peut pas afficher/masquer les notes.
+
+Le bouton pour afficher/masquer le code est toujours présent. Mais on peut indiquer dans la config que le code peut être masqué au départ.
+
+Tout ça est à définir dans le json de config. Clés:
+
+```
+"show_code": true,
+"texts": {
+  "description": "blabla bla",
+  "show_desc": true,
+  "notes": "bla blou",
+}
+```
+
+Et plus tard, peut-être qu'on mettra des textes en plusieurs langues, et on montre le bon texte selon les params régionaux. Mais on n'en est pas là.
+
+
+
