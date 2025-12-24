@@ -72,6 +72,20 @@ Si ce nombre est "1", la version utilisée sera "1.0.0".
 
 Si ce nombre est "2", la version utilisée sera la version 2.x.y la plus récente (actuellement : "2.1.0"). Vous n'avez pas accès aux précédentes versions 2.x.y, mais elles sont censées être rétro-compatibles.
 
+### Descriptions et notes de bas de page
+
+Pas encore documenté. Ça viendra bientôt. Mais c'est assez simple à comprendre.
+
+Il s'agit des clés suivantes :
+
+ - `show_code_at_start`
+ - `appendices`
+   - `descrip_text`
+   - `descrip_img`
+   - `show_descrip_at_start`
+   - `footnotes`
+
+Il y a des exemples de ces clés dans le jeu "Tiny Skweek plays breakout" et dans le tutoriel soko-ban.
 
 ## Notions de base du "game code"
 

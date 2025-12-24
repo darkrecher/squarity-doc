@@ -41,7 +41,7 @@ Dans tous les autres cas, c'est mieux d'utiliser la V2, car elle permet de faire
 
 Bien entendu, votre choix n'est pas définitif. Vous pouvez commencer à créer quelques jeux avec la V1, puis passer à la V2. L'apprentissage de la V2 ira plus vite si vous connaissez déjà la V1, car les deux versions ont beaucoup d'éléments et de notions en commun.
 
-Il est possible de partager vos jeux aussi bien en V1 qu'en V2, la méthode est la même. Voir la page expliquant [comment partager un jeu](shareyourgame).
+Il est possible de partager vos jeux aussi bien en V1 qu'en V2, la méthode est la même. Voir la page expliquant [comment partager un jeu](share-your-game).
 
 
 ## Fonctionnalités communes aux deux versions
