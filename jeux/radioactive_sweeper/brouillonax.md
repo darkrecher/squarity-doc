@@ -173,6 +173,31 @@ Longue portée :
             2
             1
 
+Baril vert à courte portée :
+
+2 . 2 . 2 . 2
+. 2 . 2 . 2 .
+2 . 6 6 6 . 2
+. 2 6 G 6 2 .
+2 . 6 6 6 . 2
+. 2 . 2 . 2 .
+2 . 2 . 2 . 2
+
+longue portée :
+
+1 . 1 . 1 . 1 . 1 . 1
+. 1 . 1 . 1 . 1 . 1 .
+1 . 2 . 2 . 2 . 2 . 1
+. 1 . 2 . 2 . 2 . 1 .
+1 . 2 . 6 6 6 . 2 . 1
+. 1 . 2 6 G 6 2 . 1 .
+1 . 2 . 6 6 6 . 2 . 1
+. 1 . 2 . 2 . 2 . 1 .
+1 . 2 . 2 . 2 . 2 . 1
+. 1 . 1 . 1 . 1 . 1 .
+1 . 1 . 1 . 1 . 1 . 1
+
+
 Autre bonus possible : un truc qui indique la direction des radioactivités jaune et violette. (Les vertes, y'a pas vraiment de direction).
 
 Sans oublier le bonus de pouvoir annoter des cases.
@@ -287,6 +312,35 @@ On peut juste faire avec l'argent. Mais si y'a d'autres trucs possibles, ce sera
 
 Chaque étoile apporte un peu d'argent en plus au début d'un niveau.
 
+Les cases où y'avait un baril ne révèlent pas leurs infos (force, couleur), même une fois que le baril est éliminé. Sinon, c'est super facile, on attaque les bords petit à petit, et voilà.
+
+Tous les éléments à poser dans l'aire de jeu doivent l'être dans la zone "safe". La zone qui se propage à partir du point de départ, dans laquelle il n'y a ni baril, ni radioactivité. Sauf les dômes de désactivation, évidemment.
+
+Par défaut, les éléments à poser sont non déplaçable, sauf indication contraire.
+
+Trucs qu'on peut acheter :
+ - boutique où on peut acheter tout le reste (on l'a déjà au départ). 2*2.
+ - séparateur de couleurs (portée de 15 cases). Les cases révélées indique la quantité de radioactivité, et les couleurs qui la composent (sans qu'on ait le détail). 2*2.
+ - augmentation du seuil max d'affichage de radioactivité (c'est pas un élément à poser, on l'achète et c'est tout). 0*0. ou alors c'est un élément 1*1.
+ - détecteur directionnel de cases contenant de l'argent (déplaçable). 2*2.
+ - détecteur distanciel de cases contenant de l'argent (déplaçable). 2*2
+ - compteur du nombre total de baril, upgradable en détaillant les couleurs, puis en détaillant les portées. 6*6.
+ - emplacement de dôme de désactivation (ils sont de plus en plus chers). 3*3.
+ - dôme de désactivation, achetable à partir d'un emplacement de dôme. 0*0.
+ - maison pour avoir une étoile. 8*8.
+ - statue très chère pour avoir une autre étoile. 2*2.
+ - révélateur automatique de case safe, qui sont adjacente à la zone safe. (Comme dans le démineur initial). 2*2. (upgrade de Quality Of Life)
+ - tourneur automatique de dôme de désactivation, comme ça on n'a pas à le faire soi-même avant de désactiver un baril. 2*2. (upgrade de Quality Of Life)
+ - nettoyeur de case. Permet de révéler les infos d'une case qui contenait un baril éliminé. Mais ça coûte de en plus cher. 2*2.
+
+Dans les niveaux les plus durs, on peut mettre systématiquement un tonneau de chaque couleur dans chaque coin. Pour forcer à acheter les dômes de désactivation de coin. Pareil avec les bords. Ah ouais, ça claque, comme idée!!
+
+À voir si ça ajoute de l'intérêt : les barils désactivés ne rapportent pas directement de l'argent, mais des éprouvettes de liquide radioactif. 3 couleur d'éprouvette, comme les couleurs de baril. Certains éléments à acheter nécessitent des éprouvettes de n'importe quelle couleur, ou bien des éprouvette de couleurs spécifique.
+
+On ajoute également un élément achetable : convertisseur d'éprouvette en argent. On peut les vendre une par une, ou bien 3 d'un coup, de 3 couleurs différentes, et ça rapporte plus. Et on peut ajouter une upgrade de quality of life : convertisseur automatique de 3 éprouvette différentes en argent. À acheter quand on n'a plus rien d'autre à acheter avec les éprouvettes.
 
 
+Il faut une grosse pénalisation si on pose un dome sur une case qui ne contient pas de baril. Et je vois pas comment le justifier. Mais il faut. Sinon les gens vont essayer "juste au cas où". Si c'est un baril de la mauvaise couleur, il explose et on perd la partie. C'est facile à justifier. Mais si y'a rien ?
+
+Le dôme explose. On perd un emplacement de dôme. Il faut en racheter un (alors que ça coûte de plus en plus cher), et il faut aussi racheter un dôme.
 

@@ -1,4 +1,4 @@
-# https://i.ibb.co/PsvKxFgH/radioactive-tileset.png
+# https://i.ibb.co/whNpJc2T/radioactive-tileset.png
 # taille de l'aire de jeu : 40, 25 ??
 """
 {
@@ -33,6 +33,8 @@
     "block": [0, 64],
     "rad_ylw_source": [32, 64],
     "rad_ylw_barrel": [64, 64],
+    "red_cross": [0, 96],
+    "dome_3x3_neutral": [96, 64, 96, 96],
 
     "background": [0, 0]
   },
@@ -69,41 +71,34 @@ class RadTile(squarity.Tile):
     def __init__(self, layer_owner, coord):
         super().__init__(layer_owner, coord)
         self.rad_strengths = [0, 0, 0]
+        # Lorsque le barrel a été trouvé, on garde la couleur, mais on indique une strength de 0.
         self.barrel_color = None
         self.barrel_strength = None
         self._update_previous_values()
 
-    def _update_previous_values(self):
-        self.prev_rad_strengths = list(self.rad_strengths)
-        self.prev_barrel_color = self.barrel_color
-        self.prev_barrel_strength = self.barrel_strength
-
-    def has_changed(self):
-        return any(
-            (
-                self.prev_rad_strengths != self.rad_strengths,
-                self.prev_barrel_color != self.barrel_color,
-                self.prev_barrel_strength != self.barrel_strength,
-            )
-        )
+    def desactivate_barrel(self):
+        self.barrel_strength = 0
 
     def compute_game_objects(self):
 
-        if not self.has_changed():
+        if not self._has_changed():
             return
 
         for gobj in self.game_objects:
             self.layer_owner.remove_game_object(gobj)
 
-        if self.barrel_color == RadColor.YELLOW and self.barrel_strength == 1:
-            # TODO LIB : ça fait du yo-yo. On devrait avoir une fonction dans Tile,
-            # pour ajouter/supprimer des game objects directement dedans.
-            gobj_source = GameObject(self._coord, "rad_ylw_source")
-            self.layer_owner.add_game_object(gobj_source)
+        if self.barrel_color == RadColor.YELLOW:
+            if self.barrel_strength == 1:
+                # TODO LIB : ça fait du yo-yo. On devrait avoir une fonction dans Tile,
+                # pour ajouter/supprimer des game objects directement dedans.
+                gobj_source = GameObject(self._coord, "rad_ylw_source")
+                self.layer_owner.add_game_object(gobj_source)
             gobj_barrel = GameObject(self._coord, "rad_ylw_barrel")
             self.layer_owner.add_game_object(gobj_barrel)
 
         sum_strength = min(19, sum(self.rad_strengths))
+        if self.barrel_color is not None:
+            sum_strength = 0
         #print("WIP", self._coord, sum_strength)
         if sum_strength:
             if sum_strength > 19:
@@ -112,6 +107,20 @@ class RadTile(squarity.Tile):
             self.layer_owner.add_game_object(gobj_rad_indic)
 
         self._update_previous_values()
+
+    def _update_previous_values(self):
+        self.prev_rad_strengths = list(self.rad_strengths)
+        self.prev_barrel_color = self.barrel_color
+        self.prev_barrel_strength = self.barrel_strength
+
+    def _has_changed(self):
+        return any(
+            (
+                self.prev_rad_strengths != self.rad_strengths,
+                self.prev_barrel_color != self.barrel_color,
+                self.prev_barrel_strength != self.barrel_strength,
+            )
+        )
 
 class RadioactivityLayer(squarity.Layer):
 
@@ -166,20 +175,100 @@ class GameModel(squarity.GameModelBase):
         self.layers.append(self.layer_radact)
         self.layer_block = squarity.Layer(self, self.w, self.h, show_transitions=False)
         self.layers.append(self.layer_block)
+        self.layer_buildings = squarity.Layer(self, self.w, self.h, show_transitions=True)
+        self.layers.append(self.layer_buildings)
+        self.mode_lay_dome = False
+        self.layer_ihm = squarity.Layer(self, self.w, self.h, show_transitions=False)
+        self.layers.append(self.layer_ihm)
+        self.gobjs_red_crosses = []
+        self.gobjs_selected_dome = []
 
         for c in squarity.RectIterator(self.rect):
             gobj = GameObject(c, "block")
-            self.layer_block.add_game_object(gobj)
+            if c.x >= 3 or c.y >= 3:
+                self.layer_block.add_game_object(gobj)
+        self.gobj_dome = GameObject(Coord(0, 0), "dome_3x3_neutral")
+        self.layer_buildings.add_game_object(self.gobj_dome)
 
-        for _ in range(10):
-            x_barrel = random.randrange(0, self.w)
-            y_barrel = random.randrange(0, self.h)
-            self.layer_radact.add_barrel(Coord(x_barrel, y_barrel), RadColor.YELLOW)
+        for _ in range(11):
+            coord_barrel = Coord(
+                random.randrange(0, self.w),
+                random.randrange(0, self.h)
+            )
+            if coord_barrel.x >= 5 or coord_barrel.y >= 5:
+                self.layer_radact.add_barrel(coord_barrel, RadColor.YELLOW)
 
         self.layer_radact.compute_rad_indicators()
 
+    def check_dome_laying(self, coord_dome_laying):
+        """
+        Si ça marche, renvoie True.
+        Sinon, rajoute des objets de red cross, et renvoie False.
+        """
+        if self.rect.on_border(coord_dome_laying):
+            gobj = GameObject(coord_dome_laying, "red_cross")
+            self.gobjs_red_crosses.append(gobj)
+            self.layer_ihm.add_game_object(gobj)
+            print("On ne peut pas poser le dôme sur les bords de l'aire de jeu")
+            return False
+
+        laying_ok = True
+        tile_block = self.layer_block.get_tile(coord_dome_laying)
+        if not tile_block.game_objects:
+            gobj = GameObject(coord_dome_laying, "red_cross")
+            self.gobjs_red_crosses.append(gobj)
+            self.layer_ihm.add_game_object(gobj)
+            laying_ok = False
+        for tile_adj in tile_block.adjacencies:
+            if tile_adj.game_objects:
+                gobj = GameObject(tile_adj.get_coord(), "red_cross")
+                self.gobjs_red_crosses.append(gobj)
+                self.layer_ihm.add_game_object(gobj)
+                laying_ok = False
+
+        tile_radac = self.layer_radact.get_tile(coord_dome_laying)
+        if laying_ok:
+            if tile_radac.barrel_color is None:
+                print("EPIC FAIL! Vous méritez de perdre la partie !!")
+                laying_ok = False
+        return laying_ok
+
     def on_click(self, coord):
-        self.layer_block.remove_at_coord(coord)
+
+        if coord.x < 3 and coord.y < 3:
+
+            self.mode_lay_dome = not self.mode_lay_dome
+            if self.mode_lay_dome:
+                print("Mode: posage du dome de dé-radioactivisation.")
+                for _ in range(2):
+                    gobj_dome = GameObject(Coord(0, 0), "dome_3x3_neutral")
+                    self.layer_ihm.add_game_object(gobj_dome)
+                    self.gobjs_selected_dome.append(gobj_dome)
+            else:
+                for gobj in self.gobjs_selected_dome:
+                    self.layer_ihm.remove_game_object(gobj)
+                self.gobjs_selected_dome[:] = []
+                print("Mode: exploration des cases.")
+
+        else:
+
+            if not self.mode_lay_dome:
+                self.layer_block.remove_at_coord(coord)
+            else:
+                dome_laying_ok = self.check_dome_laying(coord)
+                if not dome_laying_ok:
+                    ev = squarity.EventResult()
+                    ev.add_delayed_callback(
+                        squarity.DelayedCallBack(700, self.remove_red_cross)
+                    )
+                    return ev
+                else:
+                    print("Yes, but TODO.")
+
+    def remove_red_cross(self):
+        for gobj in self.gobjs_red_crosses:
+            self.layer_ihm.remove_game_object(gobj)
+        self.gobjs_red_crosses[:] = []
 
     def on_button_direction(self, direction):
         pass
