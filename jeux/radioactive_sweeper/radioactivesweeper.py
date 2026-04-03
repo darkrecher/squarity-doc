@@ -45,6 +45,8 @@
 }
 """
 
+INDEX_LEVEL = 1
+
 import random
 from enum import IntEnum
 import squarity
@@ -76,7 +78,7 @@ class RadTile(squarity.Tile):
         self.barrel_strength = None
         self._update_previous_values()
 
-    def desactivate_barrel(self):
+    def deradioactivize(self):
         self.barrel_strength = 0
 
     def compute_game_objects(self):
@@ -84,8 +86,12 @@ class RadTile(squarity.Tile):
         if not self._has_changed():
             return
 
-        for gobj in self.game_objects:
+        #print("change on", self._coord, self.rad_strengths, "b", self.barrel_strength, self.prev_rad_strengths, "prevb", self.prev_barrel_strength)
+        while self.game_objects:
+            gobj = self.game_objects[0]
+            #print("remove", gobj.sprite_name)
             self.layer_owner.remove_game_object(gobj)
+        #print("self.game_objects", self.game_objects)
 
         if self.barrel_color == RadColor.YELLOW:
             if self.barrel_strength == 1:
@@ -106,6 +112,7 @@ class RadTile(squarity.Tile):
             gobj_rad_indic = GameObject(self._coord, f"rad_{sum_strength:02d}")
             self.layer_owner.add_game_object(gobj_rad_indic)
 
+        #print("self.game_objects", self.game_objects)
         self._update_previous_values()
 
     def _update_previous_values(self):
@@ -145,6 +152,12 @@ class RadioactivityLayer(squarity.Layer):
         tile_dest.barrel_color = rad_color
         tile_dest.barrel_strength = strength
 
+    def no_more_barrels(self):
+        for c in squarity.RectIterator(self.rect):
+            if self.get_tile(c).barrel_strength:
+                return False
+        return True
+
     def compute_rad_indicators(self):
 
         for c in squarity.RectIterator(self.rect):
@@ -162,6 +175,7 @@ class RadioactivityLayer(squarity.Layer):
                         tile_indic.rad_strengths[rad_color_index] += strength
                         #print("WIP", tile_indic.rad_strengths)
 
+        #print("----------------")
         for c in squarity.RectIterator(self.rect):
             self.get_tile(c).compute_game_objects()
 
@@ -182,23 +196,60 @@ class GameModel(squarity.GameModelBase):
         self.layers.append(self.layer_ihm)
         self.gobjs_red_crosses = []
         self.gobjs_selected_dome = []
+        self.ended_game = False
+        self.end_game_phrase = ""
 
         for c in squarity.RectIterator(self.rect):
             gobj = GameObject(c, "block")
             if c.x >= 3 or c.y >= 3:
                 self.layer_block.add_game_object(gobj)
-        self.gobj_dome = GameObject(Coord(0, 0), "dome_3x3_neutral")
+        self.gobj_dome = GameObject(
+            Coord(0, 0),
+            "dome_3x3_neutral",
+            back_caller=squarity.ComponentBackCaller()
+        )
+        self.gobj_dome.plock_transi = squarity.PlayerLockTransi.LOCK
         self.layer_buildings.add_game_object(self.gobj_dome)
 
-        for _ in range(11):
+        #for _ in range(11):
+        #    coord_barrel = Coord(
+        #        random.randrange(0, self.w),
+        #        random.randrange(0, self.h)
+        #    )
+        #    if coord_barrel.x >= 5 or coord_barrel.y >= 5:
+        #        self.layer_radact.add_barrel(coord_barrel, RadColor.YELLOW)
+        if INDEX_LEVEL == 1:
+            self.put_barrels_level_1()
+        else:
+            self.put_barrels_level_2()
+
+        self.layer_radact.compute_rad_indicators()
+
+    def put_barrels_level_1(self):
+        forbidden_rect_1 = squarity.Rect(0, 0, 4, 6)
+        forbidden_rect_2 = squarity.Rect(0, 0, 6, 3)
+        for _ in range(7):
+            coord_barrel = Coord(
+                random.randrange(1, self.w - 1),
+                random.randrange(1, self.h - 1)
+            )
+            if not forbidden_rect_1.in_bounds(coord_barrel) and not forbidden_rect_2.in_bounds(coord_barrel):
+                tile_radact = self.layer_radact.get_tile(coord_barrel)
+                no_barrel_around = all(
+                    (tile_adj is None) or not tile_adj.barrel_strength
+                    for tile_adj in tile_radact.adjacencies
+                )
+                if no_barrel_around:
+                    self.layer_radact.add_barrel(coord_barrel, RadColor.YELLOW)
+
+    def put_barrels_level_2(self):
+        for _ in range(14):
             coord_barrel = Coord(
                 random.randrange(0, self.w),
                 random.randrange(0, self.h)
             )
-            if coord_barrel.x >= 5 or coord_barrel.y >= 5:
+            if coord_barrel.x >= 4 or coord_barrel.y >= 4:
                 self.layer_radact.add_barrel(coord_barrel, RadColor.YELLOW)
-
-        self.layer_radact.compute_rad_indicators()
 
     def check_dome_laying(self, coord_dome_laying):
         """
@@ -230,10 +281,31 @@ class GameModel(squarity.GameModelBase):
         if laying_ok:
             if tile_radac.barrel_color is None:
                 print("EPIC FAIL! Vous méritez de perdre la partie !!")
+                self.ended_game = True
+                self.end_game_phrase = "EPIC FAIL! Vous méritez de perdre la partie !!"
                 laying_ok = False
         return laying_ok
 
+    def deradioactivize(self, coord):
+        tile_to_deradact = self.layer_radact.get_tile(coord)
+        tile_to_deradact.deradioactivize()
+        self.layer_block.remove_at_coord(coord)
+        self.layer_radact.compute_rad_indicators()
+        if self.layer_radact.no_more_barrels():
+            self.ended_game = True
+            if INDEX_LEVEL == 1:
+                self.end_game_phrase = "Bravo !!! Augmentez de 1 la valeur de INDEX_LEVEL au début du code source, puis, relancez une partie"
+            else:
+                self.end_game_phrase = "Bravo !!! Vous avez gagné ! Bientôt, de nouvelles versions de ce jeu seront créées."
+            print(self.end_game_phrase)
+
     def on_click(self, coord):
+
+        #self.tas_de_log(coord)
+
+        if self.ended_game:
+            print(self.end_game_phrase)
+            return
 
         if coord.x < 3 and coord.y < 3:
 
@@ -241,6 +313,7 @@ class GameModel(squarity.GameModelBase):
             if self.mode_lay_dome:
                 print("Mode: posage du dome de dé-radioactivisation.")
                 for _ in range(2):
+                    # TODO : éviter de crééer/détruire des gobjs à chaque fois.
                     gobj_dome = GameObject(Coord(0, 0), "dome_3x3_neutral")
                     self.layer_ihm.add_game_object(gobj_dome)
                     self.gobjs_selected_dome.append(gobj_dome)
@@ -253,7 +326,15 @@ class GameModel(squarity.GameModelBase):
         else:
 
             if not self.mode_lay_dome:
-                self.layer_block.remove_at_coord(coord)
+                if self.layer_radact.get_tile(coord).barrel_strength:
+                    self.ended_game = True
+                    self.end_game_phrase = "Fail !!! Cliquez sur Exécutez pour recommencer une partie."
+                    for c in squarity.RectIterator(self.rect):
+                        self.layer_block.remove_at_coord(c)
+                    print(self.end_game_phrase)
+                else:
+                    self.layer_block.remove_at_coord(coord)
+
             else:
                 dome_laying_ok = self.check_dome_laying(coord)
                 if not dome_laying_ok:
@@ -263,7 +344,27 @@ class GameModel(squarity.GameModelBase):
                     )
                     return ev
                 else:
-                    print("Yes, but TODO.")
+                    self.mode_lay_dome = False
+                    for gobj in self.gobjs_selected_dome:
+                        self.layer_ihm.remove_game_object(gobj)
+                    self.gobjs_selected_dome[:] = []
+                    dest_dome = coord.clone().move_dir(dirs.UpLeft)
+                    self.gobj_dome.add_transition(
+                        squarity.TransitionSteps(
+                            "coord",
+                            (
+                                (500, dest_dome),
+                                (600, dest_dome),
+                                (500, Coord(0, 0))
+                            )
+                        )
+                    )
+                    self.gobj_dome.back_caller.add_callback(
+                        squarity.DelayedCallBack(
+                            800,
+                            lambda: self.deradioactivize(coord)
+                        )
+                    )
 
     def remove_red_cross(self):
         for gobj in self.gobjs_red_crosses:
@@ -275,3 +376,11 @@ class GameModel(squarity.GameModelBase):
 
     def on_button_action(self, action_name):
         pass
+
+    # TODO WIP voilà voilà.
+    def tas_de_log(self, coord):
+        print("layers details")
+        for layer in self.layers:
+            print("----")
+            for gobj in layer.get_tile(coord).game_objects:
+                print(gobj._coord, gobj.sprite_name)
