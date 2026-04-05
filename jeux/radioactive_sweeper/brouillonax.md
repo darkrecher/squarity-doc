@@ -53,22 +53,22 @@ Il y a des tonneaux qui font d'autres patterns : diagonale, quadrillage, dans un
 
 Et peut-être qu'on peut construire/poser des trucs sur des zones étendus et non radioactives : un détecteur spécifique, une machine à fabriquer de l'argent, une boutique, etc.
 
-Les tonneaux violets fuient comme ça :
-
-1           1
-  2       2
-    3 3 3
-    3 V 3
-    3 3 3
-  2       2
-1           1
-
 Les tonneaux verts fuient comme ça :
+
+1           1
+  2       2
+    3 3 3
+    3 G 3
+    3 3 3
+  2       2
+1           1
+
+Les tonneaux violets fuient comme ça :
 
 1   1   1   1
   1   1   1
 1   3 3 3   1
-  1 3 G 3 1
+  1 3 V 3 1
 1   3 3 3   1
   1   1   1
 1   1   1   1
@@ -84,7 +84,7 @@ Exemple :
 1 3 3 3     1
   2 2     2
     4 3 3
-    3 V 3
+    3 G 3
     3 3 3
   2       2
 1           1
@@ -173,15 +173,15 @@ Longue portée :
             2
             1
 
-Baril vert à courte portée :
+Baril violet à courte portée :
 
-2 . 2 . 2 . 2
+1 . 1 . 1 . 1
 . 2 . 2 . 2 .
-2 . 6 6 6 . 2
-. 2 6 G 6 2 .
-2 . 6 6 6 . 2
+1 . 6 6 6 . 1
+. 2 6 V 6 2 .
+1 . 6 6 6 . 1
 . 2 . 2 . 2 .
-2 . 2 . 2 . 2
+1 . 1 . 1 . 1
 
 longue portée :
 
@@ -190,7 +190,7 @@ longue portée :
 1 . 2 . 2 . 2 . 2 . 1
 . 1 . 2 . 2 . 2 . 1 .
 1 . 2 . 6 6 6 . 2 . 1
-. 1 . 2 6 G 6 2 . 1 .
+. 1 . 2 6 V 6 2 . 1 .
 1 . 2 . 6 6 6 . 2 . 1
 . 1 . 2 . 2 . 2 . 1 .
 1 . 2 . 2 . 2 . 2 . 1
@@ -348,6 +348,10 @@ Le dôme explose. On perd un emplacement de dôme. Il faut en racheter un (alors
 
 Lorsque la safe zone se propage sur un baril désactivé, on enlève le baril. C'est un nettoyage automatique. Et du coup, ça révèle les barils qui masque une radioactivité de 0. C'est bizarre, mais c'est une mécanique intéressante.
 
+As-t-on vraiment besoin de la notion de "safe zone" ? Peut-être pas. On peut juste contrôler que tous les éléments posés dans le jeu le sont sur des cases qui n'ont aucune radioactivité. On garde, bien entendu, l'upgrade de révélateur automatique de cases à côté d'une case adjacente.
+
+Mais on perd l'idée d'enlever les barils désactivés lorsque la safe zone arrive dessus. Et puis c'est chouette de voir un "sentiment de conquête". Donc on ajoutera la safe zone si on a le temps.
+
 
 ## Tutoriels
 
@@ -407,3 +411,5 @@ Si possible, on donne la possibilité d'acheter la statue très cher pour avoir 
  - on démarre au milieu de l'aire de jeu, on peut s'étendre un peu partout.
  - on démarre dans un coin. plus on s'éloigne du coin, plus il y a de barils.
  - espace restreint, on peut poser juste les dômes dont on a besoin.
+
+
