@@ -1,3 +1,5 @@
+# https://squarity.fr/game/#fetchez_githubgist_darkrecher/6ac1768472ecd954d4818ef1dbd59d6c/raw/radioactivesweeper.txt
+# https://tinyurl.com/radswp123
 # https://i.ibb.co/whNpJc2T/radioactive-tileset.png
 # taille de l'aire de jeu : 40, 25 ??
 """
@@ -5,8 +7,8 @@
   "name": "Radioactive Sweeper",
   "version": "2.1.0",
   "game_area": {
-    "nb_tile_width": 15,
-    "nb_tile_height": 10
+    "nb_tile_width": 30,
+    "nb_tile_height": 20
   },
   "tile_size": 32,
   "img_coords": {

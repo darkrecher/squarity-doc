@@ -332,6 +332,8 @@ Trucs qu'on peut acheter :
  - révélateur automatique de case safe, qui sont adjacente à la zone safe. (Comme dans le démineur initial). 2*2. (upgrade de Quality Of Life)
  - tourneur automatique de dôme de désactivation, comme ça on n'a pas à le faire soi-même avant de désactiver un baril. 2*2. (upgrade de Quality Of Life)
  - nettoyeur de case. Permet de révéler les infos d'une case qui contenait un baril éliminé. Mais ça coûte de en plus cher. 2*2.
+ - truc qui donne de l'argent par rapport au nombre d'étoiles possédées. 1*1. (ne coûte vraiment pas cher).
+ - marqueur de case, avec les 3 couleurs et les 3 forces différentes (Quality Of Life). 3*2.
 
 Dans les niveaux les plus durs, on peut mettre systématiquement un tonneau de chaque couleur dans chaque coin. Pour forcer à acheter les dômes de désactivation de coin. Pareil avec les bords. Ah ouais, ça claque, comme idée!!
 
@@ -342,5 +344,66 @@ On ajoute également un élément achetable : convertisseur d'éprouvette en arg
 
 Il faut une grosse pénalisation si on pose un dome sur une case qui ne contient pas de baril. Et je vois pas comment le justifier. Mais il faut. Sinon les gens vont essayer "juste au cas où". Si c'est un baril de la mauvaise couleur, il explose et on perd la partie. C'est facile à justifier. Mais si y'a rien ?
 
-Le dôme explose. On perd un emplacement de dôme. Il faut en racheter un (alors que ça coûte de plus en plus cher), et il faut aussi racheter un dôme.
+Le dôme explose. On perd un emplacement de dôme. Il faut en racheter un (alors que ça coûte de plus en plus cher), et il faut aussi racheter un dôme. Ou alors, non, faut juste payer un nettoyage de l'emplacement. Mais ça coûte cher. Et on perd l'étoile de base.
 
+Lorsque la safe zone se propage sur un baril désactivé, on enlève le baril. C'est un nettoyage automatique. Et du coup, ça révèle les barils qui masque une radioactivité de 0. C'est bizarre, mais c'est une mécanique intéressante.
+
+
+## Tutoriels
+
+Ce sont des niveaux spéciaux. Si possible, la seule particularité du tutoriel, c'est un curseur de souris qui se déplace au début, pour montrer les endroits où cliquer. Le moins de texte possible, car les gens lisent pas les textes.
+
+Les premiers tutos permettent d'obtenir une seule étoile. Jusqu'au tutos expliquant comment gagner 2 autres étoiles.
+
+### Tuto 1
+
+Un baril jaune avec toutes les cases autour révélés. Comme ça on voit bien son pattern 6-4-2.
+
+À côté, un baril jaune avec trois cases non révélées autour.
+
+Encore à côté, un rectangle de cases non révélées, avec un seul baril dedans, à trouver.
+
+Le curseur se déplace sur le dôme, puis sur le premier baril, puis sur les cases à révéler du deuxième baril. puis il se dirige vers le rectangle.
+
+### Tuto 2
+
+Deux baril jaunes proches, pour montrer que les nombres s'additionnent.
+
+À côté, deux baril jaunes adjacents.
+
+Encore à côté, un rectange avec 3 barils dedans, placé aléatoirement.
+
+On a un dôme 3x3 et un dôme 3x2.
+
+Le curseur se déplace sur le dôme 3x2, puis sur le baril adjacent, puis sur le 3x3, puis sur le baril qui reste.
+
+### Tuto 3
+
+Une colonne de baril jaune, contre un mur indestructible.
+
+À côté, un rectangle pas trop grand, avec que des barils dedans.
+
+On a toutes les combinaisons de dôme. Mais ils ne sont pas orientés comme il faut.
+
+Le curseur se déplace à côté du dôme en forme de T, pour montrer qu'on peut le tourner, puis sur le baril de la colonne juste au-dessus de celui tout en bas, puis à côté du dôme 2x2, pour le tourner aussi, puis sur le baril tout en bas.
+
+Si possible, on donne la possibilité d'acheter la statue très cher pour avoir une étoile. Parce que c'est intéressant de réfléchir à la meilleure manière de désactiver ces barils.
+
+### Autres tutos
+
+ - couleurs et force des barils
+ - acheter des emplacements de dômes et des dômes
+ - séparateur de couleur
+ - seuil max de radioactivité
+ - nettoyeur de case (on rectangle de 7*7 avec que des barils jaune désactivés, sauf au milieu où il y a un baril dont on ne connait pas la couleur). Deux rectangles comme ça, un où la propagation de safe zone va révéler le pattern, un autre où ça se propage pas, et on doit acheter le nettoyage.
+ - acheter les éléments pour avoir des étoiles.
+ - détecteur d'argent.
+ - compteur du nombre total de baril.
+
+
+## Niveaux
+
+ - Zone safe déjà faite, avec la zone à explorer à côté.
+ - on démarre au milieu de l'aire de jeu, on peut s'étendre un peu partout.
+ - on démarre dans un coin. plus on s'éloigne du coin, plus il y a de barils.
+ - espace restreint, on peut poser juste les dômes dont on a besoin.
