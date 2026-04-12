@@ -1,6 +1,6 @@
 # https://squarity.fr/game/#fetchez_githubgist_darkrecher/6ac1768472ecd954d4818ef1dbd59d6c/raw/radioactivesweeper.txt
 # https://tinyurl.com/radswp123
-# https://i.ibb.co/whNpJc2T/radioactive-tileset.png
+# https://raw.githubusercontent.com/darkrecher/squarity-doc/refs/heads/master/jeux/radioactive_sweeper/radioactive_tileset.png
 # taille de l'aire de jeu : 40, 25 ??
 """
 {
@@ -36,7 +36,9 @@
     "rad_ylw_source": [32, 64],
     "rad_ylw_barrel": [64, 64],
     "red_cross": [0, 96],
-    "dome_3x3_neutral": [96, 64, 96, 96],
+    "dome_ground_base": [0, 160, 96, 96],
+    "dome_full": [96, 64, 96, 96],
+    "dome_border_0": [448, 0, 96, 64],
 
     "background": [0, 0]
   },
@@ -50,7 +52,7 @@
 INDEX_LEVEL = 1
 
 import random
-from enum import IntEnum
+from enum import Enum, IntEnum
 import squarity
 Coord = squarity.Coord
 dirs = squarity.dirs
@@ -182,6 +184,119 @@ class RadioactivityLayer(squarity.Layer):
             self.get_tile(c).compute_game_objects()
 
 
+"""
+une classe DesacDomeShape avec juste des données dedans. (image, offsets, tiles de verif).
+
+une classe RotatingDesacDome, qui gère les rotations, sélections/déselections. Validation d'une désactivation. Animation d'une désactivation.
+
+Mais c'est toujours le GameModel qui désactive les barils.
+"""
+
+class DesacDomeShape(Enum):
+    FULL = 0
+    BORDER = 1
+    CORNER = 2
+    TSHAPE = 3
+
+# Clé : un DesacDomeShape
+# Valeur : une liste, dont chaque élément représente une rotation du dome.
+#          (liste de taille 1 ou 4)
+#          Dans chaque élément de la liste, un tuple, avec :
+#           - sprite_name
+#           - coord. offset_sprite_pos. décalage (en tiles) du sprite à afficher.
+#           - liste de coords. offset_positions_to_check.
+#           - décalage des cases à vérifier quand on essaye une désactivation.
+DESAC_DOME_CONFIGS = {
+    DesacDomeShape.FULL: [
+        (
+            "dome_full",
+            Coord(0, 0),
+            (
+                Coord(0, -1), Coord(1, -1), Coord(1, 0), Coord(1, 1),
+                Coord(0, 1), Coord(-1, 1), Coord(-1, 0), Coord(-1, -1),
+            )
+        ),
+    ],
+    DesacDomeShape.BORDER: [
+        (
+            "dome_border_0",
+            Coord(0, 0),
+            (
+                Coord(0, -1), Coord(1, -1), Coord(1, 0),
+                Coord(-1, 0), Coord(-1, -1),
+            )
+        ),
+    ]
+}
+
+
+class DesacDome():
+
+    def __init__(self, shape, rot_index, pos_upleft):
+        dome_conf = DESAC_DOME_CONFIGS[shape][rot_index]
+        sprite_name, offset_sprite_pos, offset_positions_to_check = dome_conf
+        self.offset_sprite_pos = offset_sprite_pos
+        self.gobj_dome = GameObject(
+            pos_upleft.clone().move_by_vect(self.offset_sprite_pos),
+            sprite_name
+        )
+        self.gobj_dome.plock_transi = squarity.PlayerLockTransi.LOCK
+        self.offset_positions_to_check = tuple([
+            pos_upleft.clone().move_by_vect(offset)
+            for offset in offset_positions_to_check
+        ])
+        # Liste de gobj à ajouter/enlever pour montrer que ce dôme est sélectionné.
+        self.gobjs_show_selection = tuple([
+            GameObject(
+                pos_upleft.clone().move_by_vect(self.offset_sprite_pos),
+                sprite_name
+            ) for _ in range(3)
+        ])
+
+
+class RotatingDesacDome():
+
+    def __init__(self, layer_owner, shape, pos_upleft):
+        self.layer_owner = layer_owner
+        self.pos_upleft = Coord(coord=pos_upleft)
+        # (au max, 4 instances de DesacDome, indiquant les différentes positions du dôme)
+        self.dome_rotations = [
+            DesacDome(shape, 0, self.pos_upleft)
+        ]
+        self.rot_index = 0
+        self.rad_color = RadColor.YELLOW
+        self.selected = False
+        self.gobj_ground_base = GameObject(pos_upleft, "dome_ground_base")
+        self.layer_owner.add_game_object(self.gobj_ground_base)
+        self.selection_rect = squarity.Rect(
+            self.pos_upleft.x, self.pos_upleft.y, 3, 3
+        )
+        # TODO : gérer le game object indiquant la couleur du dôme. Dans un autre layer, du coup. Argh.
+
+    def select(self):
+        self.selected = True
+        for gobj in self.dome_rotations[self.rot_index].gobjs_show_selection:
+            self.layer_owner.add_game_object(gobj)
+
+    def unselect(self):
+        self.selected = False
+        for gobj in self.dome_rotations[self.rot_index].gobjs_show_selection:
+            self.layer_owner.remove_game_object(gobj)
+
+    def show_current_dome(self):
+        gobj_dome_current = self.dome_rotations[self.rot_index].gobj_dome
+        self.layer_owner.add_game_object(gobj_dome_current)
+
+
+class RotatingDesacDomeManager():
+
+    def __init__(self):
+        self.rot_desac_domes = []
+
+    def add_dome(self, rot_desac_dome):
+        self.rot_desac_domes.append(rot_desac_dome)
+
+
 class GameModel(squarity.GameModelBase):
 
     def on_start(self):
@@ -203,23 +318,21 @@ class GameModel(squarity.GameModelBase):
 
         for c in squarity.RectIterator(self.rect):
             gobj = GameObject(c, "block")
-            if c.x >= 3 or c.y >= 3:
+            if c.x >= 3 or c.y >= 9:
                 self.layer_block.add_game_object(gobj)
         self.gobj_dome = GameObject(
             Coord(0, 0),
-            "dome_3x3_neutral",
+            "dome_full",
             back_caller=squarity.ComponentBackCaller()
         )
+        self.rotating_desac_dome = RotatingDesacDome(self.layer_buildings, DesacDomeShape.FULL, Coord(0, 3))
+        self.rotating_desac_dome.show_current_dome()
+        self.rotating_desac_dome_2 = RotatingDesacDome(self.layer_buildings, DesacDomeShape.BORDER, Coord(0, 6))
+        self.rotating_desac_dome_2.show_current_dome()
+
         self.gobj_dome.plock_transi = squarity.PlayerLockTransi.LOCK
         self.layer_buildings.add_game_object(self.gobj_dome)
 
-        #for _ in range(11):
-        #    coord_barrel = Coord(
-        #        random.randrange(0, self.w),
-        #        random.randrange(0, self.h)
-        #    )
-        #    if coord_barrel.x >= 5 or coord_barrel.y >= 5:
-        #        self.layer_radact.add_barrel(coord_barrel, RadColor.YELLOW)
         if INDEX_LEVEL == 1:
             self.put_barrels_level_1()
         else:
@@ -316,7 +429,7 @@ class GameModel(squarity.GameModelBase):
                 print("Mode: posage du dome de dé-radioactivisation.")
                 for _ in range(2):
                     # TODO : éviter de crééer/détruire des gobjs à chaque fois.
-                    gobj_dome = GameObject(Coord(0, 0), "dome_3x3_neutral")
+                    gobj_dome = GameObject(Coord(0, 0), "dome_full")
                     self.layer_ihm.add_game_object(gobj_dome)
                     self.gobjs_selected_dome.append(gobj_dome)
             else:
