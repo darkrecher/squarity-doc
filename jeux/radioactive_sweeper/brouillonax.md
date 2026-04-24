@@ -334,6 +334,7 @@ Trucs qu'on peut acheter :
  - nettoyeur de case. Permet de révéler les infos d'une case qui contenait un baril éliminé. Mais ça coûte de en plus cher. 2*2.
  - truc qui donne de l'argent par rapport au nombre d'étoiles possédées. 1*1. (ne coûte vraiment pas cher).
  - marqueur de case, avec les 3 couleurs et les 3 forces différentes (Quality Of Life). 3*2.
+ - indique directement dans le jeu, combien on a d'argent et d'éprouvettes. 4*2. (upgrade de Quality Of Life)
 
 Dans les niveaux les plus durs, on peut mettre systématiquement un tonneau de chaque couleur dans chaque coin. Pour forcer à acheter les dômes de désactivation de coin. Pareil avec les bords. Ah ouais, ça claque, comme idée!!
 
