@@ -326,12 +326,14 @@ Trucs qu'on peut acheter :
  - détecteur distanciel de cases contenant de l'argent (déplaçable). 2*2
  - compteur du nombre total de baril, upgradable en détaillant les couleurs, puis en détaillant les portées. 6*6.
  - emplacement de dôme de désactivation (ils sont de plus en plus chers). 3*3.
- - dôme de désactivation, achetable à partir d'un emplacement de dôme. 0*0.
+ - dôme de désactivation, achetable à partir d'un emplacement de dôme, voire gratuit. 0*0.
  - maison pour avoir une étoile. 8*8.
  - statue très chère pour avoir une autre étoile. 2*2.
+ - convertisseur éprouvette -> argent. 1 pour 1, et 4 argents pour 3 éprouvettes de couleur différentes.
+ - automatisation de la conversion 4 argent pour 3 éprouvettes. (upgrade de Quality Of Life)
  - révélateur automatique de case safe, qui sont adjacente à la zone safe. (Comme dans le démineur initial). 2*2. (upgrade de Quality Of Life)
- - tourneur automatique de dôme de désactivation, comme ça on n'a pas à le faire soi-même avant de désactiver un baril. 2*2. (upgrade de Quality Of Life)
- - nettoyeur de case. Permet de révéler les infos d'une case qui contenait un baril éliminé. Mais ça coûte de en plus cher. 2*2.
+ - nettoyeur de case. Permet de révéler les infos d'une case qui contenait un baril éliminé. Pour les cases safes, ça coûte rien. Pour les autres, ça coûte de plus en plus cher. 2*2.
+ - nettoyage automatiques des cases safe. 1*2. (upgrade de Quality Of Life)
  - truc qui donne de l'argent par rapport au nombre d'étoiles possédées. 1*1. (ne coûte vraiment pas cher).
  - marqueur de case, avec les 3 couleurs et les 3 forces différentes (Quality Of Life). 3*2.
  - indique directement dans le jeu, combien on a d'argent et d'éprouvettes. 4*2. (upgrade de Quality Of Life)
@@ -352,6 +354,39 @@ Lorsque la safe zone se propage sur un baril désactivé, on enlève le baril. C
 As-t-on vraiment besoin de la notion de "safe zone" ? Peut-être pas. On peut juste contrôler que tous les éléments posés dans le jeu le sont sur des cases qui n'ont aucune radioactivité. On garde, bien entendu, l'upgrade de révélateur automatique de cases à côté d'une case adjacente.
 
 Mais on perd l'idée d'enlever les barils désactivés lorsque la safe zone arrive dessus. Et puis c'est chouette de voir un "sentiment de conquête". Donc on ajoutera la safe zone si on a le temps.
+
+Lorsqu'on utilise le gros dome 3*3 pour désactiver un baril, on gagne plein d'argent et une éprouvette de la couleur du baril. Certaines bonus ne peuvent s'acheter qu'avec des éprouvettes.
+
+
+## (Tentative d') équilibrage entre les coûts et les bénéfices
+
+Pour l'argent, on en gagne un par case de dôme + 1 par carré de 2x2 de dôme. Et le dôme 3x3 a un argent remplacé par une éprouvette.
+
+Ça donne :
+ - dôme en forme de T : 4 argent
+ - dôme de coin : 5 argent
+ - dôme de bord : 8 argent
+ - dôme en rond : 12 argent + 1 éprouvette
+
+On peut assez facilement avoir 50 ou 70 argent.
+Le max, c'est 12 dômes. Mais on peut s'arranger pour finir un jeu sans avoir les 12.
+
+Prix progressif des dômes :
+
+ - 0 argent (ben oui)
+ - 10
+ - 30
+ - 60
+ - 100
+ - 150
+ - 2 éprouvettes jaunes
+ - 2 éprouvettes vertes
+ - 2 éprouvettes violettes
+ - 2 éprouvettes de chaque couleur
+ - 4 éprouvettes de chaque couleur + 200 argent
+ - 6 éprouvettes de chaque couleur + 300 argent
+
+Nettoyage de baril désactivé : 5, 10, 15, 25, 40, 65 (Fibonacci...)
 
 
 ## Tutoriels
