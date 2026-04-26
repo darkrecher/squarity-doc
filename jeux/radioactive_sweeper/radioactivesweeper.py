@@ -90,11 +90,19 @@ NAME_FROM_RAD_COLOR = {
     RadColor.PURPLE: "prp",
 }
 
-PATTERN_RAD_YELLOW_1 = (
+PATTER_RAD_BASIC = (
     (0, -1, 6), (1, -1, 6), (1, 0, 6), (1, 1, 6),
     (0, 1, 6), (-1, 1, 6), (-1, 0, 6), (-1, -1, 6),
+)
+
+PATTERN_RAD_YELLOW_1 = PATTER_RAD_BASIC + (
     (0, -2, 4), (2, 0, 4), (0, 2, 4), (-2, 0, 4),
     (0, -3, 2), (3, 0, 2), (0, 3, 2), (-3, 0, 2),
+)
+
+PATTERN_RAD_GREEN_1 = PATTER_RAD_BASIC + (
+    (-2, -2, 4), (2, -2, 4), (2, 2, 4), (-2, 2, 4),
+    (-3, -3, 2), (3, -3, 2), (3, 3, 2), (-3, 3, 2),
 )
 
 
@@ -123,13 +131,14 @@ class RadTile(squarity.Tile):
             self.layer_owner.remove_game_object(gobj)
         #print("self.game_objects", self.game_objects)
 
-        if self.barrel_color == RadColor.YELLOW:
-            if self.barrel_strength == 1:
+        if self.barrel_color is not None:
+            sprite_col = NAME_FROM_RAD_COLOR[self.barrel_color]
+            if self.barrel_strength:
                 # TODO LIB : ça fait du yo-yo. On devrait avoir une fonction dans Tile,
                 # pour ajouter/supprimer des game objects directement dedans.
-                gobj_source = GameObject(self._coord, "rad_ylw_source")
-                self.layer_owner.add_game_object(gobj_source)
-            gobj_barrel = GameObject(self._coord, "rad_ylw_barrel")
+                gobj_src = GameObject(self._coord, f"rad_{sprite_col}_source")
+                self.layer_owner.add_game_object(gobj_src)
+            gobj_barrel = GameObject(self._coord, f"rad_{sprite_col}_barrel")
             self.layer_owner.add_game_object(gobj_barrel)
 
         sum_strength = sum(self.rad_strengths)
@@ -185,8 +194,6 @@ class RadioactivityLayer(squarity.Layer):
                 self.tiles[y][x].adjacencies = self._make_adjacencies(x, y)
 
     def add_barrel(self, coord_barrel, rad_color, strength=1):
-        if rad_color != RadColor.YELLOW:
-            raise Exception("TODO Rad !!")
         tile_dest = self.get_tile(coord_barrel)
         tile_dest.barrel_color = rad_color
         tile_dest.barrel_strength = strength
@@ -203,10 +210,17 @@ class RadioactivityLayer(squarity.Layer):
             self.get_tile(c).rad_strengths[:] = [0, 0, 0]
 
         for c in squarity.RectIterator(self.rect):
+
             tile_barrel = self.get_tile(c)
+            pattern = None
             if tile_barrel.barrel_color == RadColor.YELLOW and tile_barrel.barrel_strength == 1:
                 pattern = PATTERN_RAD_YELLOW_1
-                rad_color_index = RadColor.YELLOW
+            elif tile_barrel.barrel_color == RadColor.GREEN and tile_barrel.barrel_strength == 1:
+                pattern = PATTERN_RAD_GREEN_1
+            # TODO: implement other barrels
+
+            if pattern is not None:
+                rad_color_index = tile_barrel.barrel_color
                 for ofs_x, ofs_y, strength in pattern:
                     coord_indic = c.clone().move_by_vect(x=ofs_x, y=ofs_y)
                     if self.rect.in_bounds(coord_indic):
@@ -430,6 +444,8 @@ class DesacDome():
         self._show_current_dome()
 
     def check_desactivation(self, coord_desac):
+        # TODO : ça marche pas si le baril est juste à côté d'un dôme.
+        # Faut que je corrige ça.
 
         if self.is_revealed(coord_desac):
             return DesactivationResult(
@@ -609,6 +625,8 @@ class GameModel(squarity.GameModelBase):
         self.desac_dome_manager.desac_domes.append(desac_dome)
         desac_dome = DesacDome(self, self.layer_buildings, DesacDomeShape.BORDER, Coord(0, 6), RadColor.YELLOW)
         self.desac_dome_manager.desac_domes.append(desac_dome)
+        desac_dome = DesacDome(self, self.layer_buildings, DesacDomeShape.BORDER, Coord(0, 9), RadColor.GREEN)
+        self.desac_dome_manager.desac_domes.append(desac_dome)
 
         if INDEX_LEVEL == 1:
             self.put_barrels_level_1()
@@ -618,7 +636,7 @@ class GameModel(squarity.GameModelBase):
         self.layer_radact.compute_rad_indicators()
 
     def put_barrels_level_1(self):
-        forbidden_rect_1 = squarity.Rect(0, 0, 3, 6)
+        forbidden_rect_1 = squarity.Rect(0, 0, 4, 12)
         #forbidden_rect_2 = squarity.Rect(0, 0, 6, 3) TODO WIP booo !!
         for _ in range(7):
             coord_barrel = Coord(
@@ -626,8 +644,10 @@ class GameModel(squarity.GameModelBase):
                 random.randrange(0, self.h)
             )
             # TODO WIP booo !!
+            barrel_color = random.choice((RadColor.YELLOW, RadColor.GREEN))
             if _ == 0:
                 coord_barrel = Coord(6, 3)
+                barrel_color = RadColor.GREEN
             if not forbidden_rect_1.in_bounds(coord_barrel): # and not forbidden_rect_2.in_bounds(coord_barrel):
                 tile_radact = self.layer_radact.get_tile(coord_barrel)
                 no_barrel_around = all(
@@ -635,18 +655,19 @@ class GameModel(squarity.GameModelBase):
                     for tile_adj in tile_radact.adjacencies
                 )
                 if no_barrel_around:
-                    self.layer_radact.add_barrel(coord_barrel, RadColor.YELLOW)
+                    self.layer_radact.add_barrel(coord_barrel, barrel_color)
 
     def put_barrels_level_2(self):
 
-        forbidden_rect_1 = squarity.Rect(0, 0, 3, 6)
+        forbidden_rect_1 = squarity.Rect(0, 0, 3, 12)
         for _ in range(20):
             coord_barrel = Coord(
                 random.randrange(0, self.w),
                 random.randrange(0, self.h)
             )
+            barrel_color = random.choice((RadColor.YELLOW, RadColor.GREEN))
             if not forbidden_rect_1.in_bounds(coord_barrel):
-                self.layer_radact.add_barrel(coord_barrel, RadColor.YELLOW)
+                self.layer_radact.add_barrel(coord_barrel, barrel_color)
 
     def is_revealed(self, coord):
         return not bool(self.layer_block.get_game_objects(coord))
@@ -746,7 +767,7 @@ class GameModel(squarity.GameModelBase):
         elif self.desac_dome_manager.process_dome_click(coord):
             return
 
-        # TODO : fonction spécifique pour chacun de ces trucs, parce que c'est toutes les gestions des clicks.
+        # TODO : fonction spécifique pour chacun de ces trucs, parce que c'est les gestions des clicks.
         if self.desac_dome_manager.selected_dome is None:
 
             if self.layer_radact.get_tile(coord).barrel_strength:
