@@ -2,6 +2,10 @@
 # https://tinyurl.com/radswp123
 # https://raw.githubusercontent.com/darkrecher/squarity-doc/refs/heads/master/jeux/radioactive_sweeper/radioactive_tileset.png
 # taille de l'aire de jeu : 30, 20 ??
+
+# TODO : réajuster les images des dômes et des dessins de couleur, pour que le dessin touche pas les bords.
+# TODO : chiffre plus blanc, couleur de radioactivité derrière les chiffres plus foncées.
+
 """
 {
   "name": "Radioactive Sweeper",
@@ -12,35 +16,35 @@
   },
   "tile_size": 32,
   "img_coords": {
-    "rad_sing_1": [32, 0],
-    "rad_sing_2": [64, 0],
-    "rad_sing_3": [96, 0],
-    "rad_sing_4": [128, 0],
-    "rad_sing_5": [160, 0],
-    "rad_sing_6": [192, 0],
-    "rad_sing_7": [224, 0],
-    "rad_sing_8": [256, 0],
-    "rad_sing_9": [288, 0],
-    "rad_unit_0": [0, 32],
-    "rad_unit_1": [32, 32],
-    "rad_unit_2": [64, 32],
-    "rad_unit_3": [96, 32],
-    "rad_unit_4": [128, 32],
-    "rad_unit_5": [160, 32],
-    "rad_unit_6": [192, 32],
-    "rad_unit_7": [224, 32],
-    "rad_unit_8": [256, 32],
-    "rad_unit_9": [288, 32],
-    "rad_ten_1": [0, 256],
-    "rad_ten_2": [32, 256],
-    "rad_ten_3": [64, 256],
-    "rad_ten_4": [96, 256],
-    "rad_ten_5": [128, 256],
-    "rad_ten_6": [160, 256],
-    "rad_ten_7": [192, 256],
-    "rad_ten_8": [224, 256],
-    "rad_ten_9": [256, 256],
-    "rad_infinity": [288, 64],
+    "digi_sing_1": [32, 0],
+    "digi_sing_2": [64, 0],
+    "digi_sing_3": [96, 0],
+    "digi_sing_4": [128, 0],
+    "digi_sing_5": [160, 0],
+    "digi_sing_6": [192, 0],
+    "digi_sing_7": [224, 0],
+    "digi_sing_8": [256, 0],
+    "digi_sing_9": [288, 0],
+    "digi_unit_0": [0, 32],
+    "digi_unit_1": [32, 32],
+    "digi_unit_2": [64, 32],
+    "digi_unit_3": [96, 32],
+    "digi_unit_4": [128, 32],
+    "digi_unit_5": [160, 32],
+    "digi_unit_6": [192, 32],
+    "digi_unit_7": [224, 32],
+    "digi_unit_8": [256, 32],
+    "digi_unit_9": [288, 32],
+    "digi_ten_1": [0, 256],
+    "digi_ten_2": [32, 256],
+    "digi_ten_3": [64, 256],
+    "digi_ten_4": [96, 256],
+    "digi_ten_5": [128, 256],
+    "digi_ten_6": [160, 256],
+    "digi_ten_7": [192, 256],
+    "digi_ten_8": [224, 256],
+    "digi_ten_9": [256, 256],
+    "digi_infinity": [288, 64],
 
     "block": [0, 64],
     "rad_ylw_source": [32, 64],
@@ -49,6 +53,9 @@
     "rad_grn_barrel": [64, 96],
     "rad_prp_source": [32, 128],
     "rad_prp_barrel": [64, 128],
+    "rad_indic_ylw": [96, 160],
+    "rad_indic_grn": [128, 160],
+    "rad_indic_prp": [160, 160],
     "red_cross": [0, 96],
     "dome_ground_base": [0, 160, 96, 96],
     "dome_full": [96, 64, 96, 96],
@@ -56,6 +63,14 @@
     "dome_border_1": [352, 96, 64, 96],
     "dome_border_2": [448, 64, 96, 64],
     "dome_border_3": [288, 96, 64, 96],
+    "dome_corner_0": [608, 0, 64, 64],
+    "dome_corner_1": [608, 64, 64, 64],
+    "dome_corner_2": [544, 64, 64, 64],
+    "dome_corner_3": [544, 0, 64, 64],
+    "dome_tshape_0": [192, 64, 96, 64],
+    "dome_tshape_1": [320, 0, 64, 96],
+    "dome_tshape_2": [256, 64, 96, 64],
+    "dome_tshape_3": [384, 0, 64, 96],
     "dome_color_ylw": [416, 96],
     "dome_color_grn": [416, 128],
     "dome_color_prp": [416, 160],
@@ -132,6 +147,8 @@ class RadTile(squarity.Tile):
         #print("self.game_objects", self.game_objects)
 
         if self.barrel_color is not None:
+            # Si y'a un baril sur la case, on affiche pas la valeur de radioactivité,
+            # ni les indications de couleur.
             sprite_col = NAME_FROM_RAD_COLOR[self.barrel_color]
             if self.barrel_strength:
                 # TODO LIB : ça fait du yo-yo. On devrait avoir une fonction dans Tile,
@@ -141,25 +158,29 @@ class RadTile(squarity.Tile):
             gobj_barrel = GameObject(self._coord, f"rad_{sprite_col}_barrel")
             self.layer_owner.add_game_object(gobj_barrel)
 
-        sum_strength = sum(self.rad_strengths)
-        # Si y'a un baril sur la case, on affiche pas la valeur de radioactivité.
-        if self.barrel_color is not None:
-            sum_strength = 0
-        #print("WIP", self._coord, sum_strength)
-        # TODO : le 40 est arbitraire. Ce sera géré avec des objets dans le jeu.
-        if sum_strength > 40:
-            gobj_rad_indic = GameObject(self._coord, f"rad_infinity")
-            self.layer_owner.add_game_object(gobj_rad_indic)
-        elif sum_strength >= 10:
-            digit_unit = sum_strength % 10
-            gobj_rad_indic = GameObject(self._coord, f"rad_unit_{digit_unit}")
-            self.layer_owner.add_game_object(gobj_rad_indic)
-            digit_tens = sum_strength // 10
-            gobj_rad_indic = GameObject(self._coord, f"rad_ten_{digit_tens}")
-            self.layer_owner.add_game_object(gobj_rad_indic)
-        elif sum_strength:
-            gobj_rad_indic = GameObject(self._coord, f"rad_sing_{sum_strength}")
-            self.layer_owner.add_game_object(gobj_rad_indic)
+        else:
+
+            for rad_color in RadColor:
+                if self.rad_strengths[rad_color]:
+                    spr_name = "rad_indic_" + NAME_FROM_RAD_COLOR[rad_color]
+                    gobj_rad_indic_color = GameObject(self._coord, spr_name)
+                    self.layer_owner.add_game_object(gobj_rad_indic_color)
+            sum_strength = sum(self.rad_strengths)
+            #print("WIP", self._coord, sum_strength)
+            # TODO : le 40 est arbitraire. Ce sera géré avec des objets dans le jeu.
+            if sum_strength > 40:
+                gobj_rad_indic = GameObject(self._coord, f"rad_infinity")
+                self.layer_owner.add_game_object(gobj_rad_indic)
+            elif sum_strength >= 10:
+                digit_unit = sum_strength % 10
+                gobj_rad_indic = GameObject(self._coord, f"digi_unit_{digit_unit}")
+                self.layer_owner.add_game_object(gobj_rad_indic)
+                digit_tens = sum_strength // 10
+                gobj_rad_indic = GameObject(self._coord, f"digi_ten_{digit_tens}")
+                self.layer_owner.add_game_object(gobj_rad_indic)
+            elif sum_strength:
+                gobj_rad_indic = GameObject(self._coord, f"digi_sing_{sum_strength}")
+                self.layer_owner.add_game_object(gobj_rad_indic)
 
         #print("self.game_objects", self.game_objects)
         self._update_previous_values()
@@ -299,6 +320,66 @@ DESAC_DOME_CONFIGS = {
             (
                 Coord(0, 1), Coord(-1, 1), Coord(-1, 0), Coord(-1, -1),
                 Coord(-1, 0),
+            )
+        ),
+    ],
+    DesacDomeShape.CORNER: [
+        (
+            "dome_corner_0",
+            Coord(1, 0),
+            (
+                Coord(0, -1), Coord(1, -1), Coord(1, 0),
+            )
+        ),
+        (
+            "dome_corner_1",
+            Coord(1, 1),
+            (
+                Coord(1, 0), Coord(1, 1), Coord(0, 1),
+            )
+        ),
+        (
+            "dome_corner_2",
+            Coord(0, 1),
+            (
+                Coord(0, 1), Coord(-1, 1), Coord(-1, 0),
+            )
+        ),
+        (
+            "dome_corner_3",
+            Coord(0, 0),
+            (
+                Coord(-1, 0), Coord(-1, -1), Coord(0, -1),
+            )
+        ),
+    ],
+    DesacDomeShape.TSHAPE: [
+        (
+            "dome_tshape_0",
+            Coord(0, 0),
+            (
+                Coord(0, -1), Coord(1, -1), Coord(-1, -1),
+            )
+        ),
+        (
+            "dome_tshape_1",
+            Coord(1, 0),
+            (
+                Coord(1, -1), Coord(1, 0), Coord(1, 1),
+            )
+        ),
+        (
+            "dome_tshape_2",
+            Coord(0, 1),
+            (
+                Coord(1, 1), Coord(0, 1), Coord(-1, 1),
+            )
+        ),
+        (
+            "dome_tshape_3",
+            Coord(0, 0),
+            (
+                Coord(-1, 1), Coord(-1, 0), Coord(-1, -1),
             )
         ),
     ]
@@ -444,8 +525,6 @@ class DesacDome():
         self._show_current_dome()
 
     def check_desactivation(self, coord_desac):
-        # TODO : ça marche pas si le baril est juste à côté d'un dôme.
-        # Faut que je corrige ça.
 
         if self.is_revealed(coord_desac):
             return DesactivationResult(
@@ -610,7 +689,7 @@ class GameModel(squarity.GameModelBase):
         self.ended_game = False
         self.end_game_phrase = ""
 
-        rect_dome_zone = squarity.Rect(0, 3, 3, 6)
+        rect_dome_zone = squarity.Rect(0, 0, 6, 12)
         for c in squarity.RectIterator(self.rect):
             gobj = GameObject(c, "block")
             if not rect_dome_zone.in_bounds(c):
@@ -619,14 +698,23 @@ class GameModel(squarity.GameModelBase):
             self.layer_background.add_game_object(gobj)
 
         self.desac_dome_manager = DesacDomeManager(self.layer_ihm)
-        desac_dome = DesacDome(self, self.layer_buildings, DesacDomeShape.FULL, Coord(0, 0), RadColor.GREEN)
+        desac_dome = DesacDome(self, self.layer_buildings, DesacDomeShape.FULL, Coord(3, 0), RadColor.GREEN)
         self.desac_dome_manager.desac_domes.append(desac_dome)
-        desac_dome = DesacDome(self, self.layer_buildings, DesacDomeShape.FULL, Coord(0, 3), RadColor.YELLOW)
+        desac_dome = DesacDome(self, self.layer_buildings, DesacDomeShape.BORDER, Coord(3, 3), RadColor.GREEN)
         self.desac_dome_manager.desac_domes.append(desac_dome)
-        desac_dome = DesacDome(self, self.layer_buildings, DesacDomeShape.BORDER, Coord(0, 6), RadColor.YELLOW)
+        desac_dome = DesacDome(self, self.layer_buildings, DesacDomeShape.CORNER, Coord(3, 6), RadColor.GREEN)
         self.desac_dome_manager.desac_domes.append(desac_dome)
-        desac_dome = DesacDome(self, self.layer_buildings, DesacDomeShape.BORDER, Coord(0, 9), RadColor.GREEN)
+        desac_dome = DesacDome(self, self.layer_buildings, DesacDomeShape.TSHAPE, Coord(3, 9), RadColor.GREEN)
         self.desac_dome_manager.desac_domes.append(desac_dome)
+        desac_dome = DesacDome(self, self.layer_buildings, DesacDomeShape.FULL, Coord(0, 0), RadColor.YELLOW)
+        self.desac_dome_manager.desac_domes.append(desac_dome)
+        desac_dome = DesacDome(self, self.layer_buildings, DesacDomeShape.BORDER, Coord(0, 3), RadColor.YELLOW)
+        self.desac_dome_manager.desac_domes.append(desac_dome)
+        desac_dome = DesacDome(self, self.layer_buildings, DesacDomeShape.CORNER, Coord(0, 6), RadColor.YELLOW)
+        self.desac_dome_manager.desac_domes.append(desac_dome)
+        desac_dome = DesacDome(self, self.layer_buildings, DesacDomeShape.TSHAPE, Coord(0, 9), RadColor.YELLOW)
+        self.desac_dome_manager.desac_domes.append(desac_dome)
+
 
         if INDEX_LEVEL == 1:
             self.put_barrels_level_1()
@@ -636,7 +724,7 @@ class GameModel(squarity.GameModelBase):
         self.layer_radact.compute_rad_indicators()
 
     def put_barrels_level_1(self):
-        forbidden_rect_1 = squarity.Rect(0, 0, 4, 12)
+        forbidden_rect_1 = squarity.Rect(0, 0, 6, 13)
         #forbidden_rect_2 = squarity.Rect(0, 0, 6, 3) TODO WIP booo !!
         for _ in range(7):
             coord_barrel = Coord(
@@ -659,7 +747,7 @@ class GameModel(squarity.GameModelBase):
 
     def put_barrels_level_2(self):
 
-        forbidden_rect_1 = squarity.Rect(0, 0, 3, 12)
+        forbidden_rect_1 = squarity.Rect(0, 0, 6, 12)
         for _ in range(20):
             coord_barrel = Coord(
                 random.randrange(0, self.w),
