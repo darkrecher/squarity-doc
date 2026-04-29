@@ -11,7 +11,7 @@
   "name": "Radioactive Sweeper",
   "version": "2.1.0",
   "game_area": {
-    "nb_tile_width": 15,
+    "nb_tile_width": 25,
     "nb_tile_height": 20
   },
   "tile_size": 32,
@@ -84,7 +84,7 @@
 }
 """
 
-INDEX_LEVEL = 1
+INDEX_LEVEL = 2
 
 import random
 from enum import Enum, IntEnum
@@ -120,6 +120,13 @@ PATTERN_RAD_GREEN_1 = PATTER_RAD_BASIC + (
     (-3, -3, 2), (3, -3, 2), (3, 3, 2), (-3, 3, 2),
 )
 
+PATTERN_RAD_PURPLE_1 = PATTER_RAD_BASIC + (
+    (-2, -2, 2), (2, -2, 2), (2, 2, 2), (-2, 2, 2),
+    (0, -2, 2), (2, 0, 2), (0, 2, 2), (-2, 0, 2),
+    (-3, -3, 1), (3, -3, 1), (3, 3, 1), (-3, 3, 1),
+    (-3, -1, 1), (-3, 1, 1), (3, -1, 1), (3, 1, 1),
+    (1, 3, 1), (-1, 3, 1), (1, -3, 1), (-1, -3, 1),
+)
 
 class RadTile(squarity.Tile):
 
@@ -238,6 +245,8 @@ class RadioactivityLayer(squarity.Layer):
                 pattern = PATTERN_RAD_YELLOW_1
             elif tile_barrel.barrel_color == RadColor.GREEN and tile_barrel.barrel_strength == 1:
                 pattern = PATTERN_RAD_GREEN_1
+            elif tile_barrel.barrel_color == RadColor.PURPLE and tile_barrel.barrel_strength == 1:
+                pattern = PATTERN_RAD_PURPLE_1
             # TODO: implement other barrels
 
             if pattern is not None:
@@ -319,7 +328,7 @@ DESAC_DOME_CONFIGS = {
             Coord(0, 0),
             (
                 Coord(0, 1), Coord(-1, 1), Coord(-1, 0), Coord(-1, -1),
-                Coord(-1, 0),
+                Coord(0, -1),
             )
         ),
     ],
@@ -689,7 +698,7 @@ class GameModel(squarity.GameModelBase):
         self.ended_game = False
         self.end_game_phrase = ""
 
-        rect_dome_zone = squarity.Rect(0, 0, 6, 12)
+        rect_dome_zone = squarity.Rect(0, 0, 9, 12)
         for c in squarity.RectIterator(self.rect):
             gobj = GameObject(c, "block")
             if not rect_dome_zone.in_bounds(c):
@@ -714,6 +723,14 @@ class GameModel(squarity.GameModelBase):
         self.desac_dome_manager.desac_domes.append(desac_dome)
         desac_dome = DesacDome(self, self.layer_buildings, DesacDomeShape.TSHAPE, Coord(0, 9), RadColor.YELLOW)
         self.desac_dome_manager.desac_domes.append(desac_dome)
+        desac_dome = DesacDome(self, self.layer_buildings, DesacDomeShape.FULL, Coord(6, 0), RadColor.PURPLE)
+        self.desac_dome_manager.desac_domes.append(desac_dome)
+        desac_dome = DesacDome(self, self.layer_buildings, DesacDomeShape.BORDER, Coord(6, 3), RadColor.PURPLE)
+        self.desac_dome_manager.desac_domes.append(desac_dome)
+        desac_dome = DesacDome(self, self.layer_buildings, DesacDomeShape.CORNER, Coord(6, 6), RadColor.PURPLE)
+        self.desac_dome_manager.desac_domes.append(desac_dome)
+        desac_dome = DesacDome(self, self.layer_buildings, DesacDomeShape.TSHAPE, Coord(6, 9), RadColor.PURPLE)
+        self.desac_dome_manager.desac_domes.append(desac_dome)
 
 
         if INDEX_LEVEL == 1:
@@ -724,18 +741,18 @@ class GameModel(squarity.GameModelBase):
         self.layer_radact.compute_rad_indicators()
 
     def put_barrels_level_1(self):
-        forbidden_rect_1 = squarity.Rect(0, 0, 6, 13)
+        forbidden_rect_1 = squarity.Rect(0, 0, 9, 13)
         #forbidden_rect_2 = squarity.Rect(0, 0, 6, 3) TODO WIP booo !!
         for _ in range(7):
             coord_barrel = Coord(
                 random.randrange(0, self.w),
                 random.randrange(0, self.h)
             )
+            barrel_color = random.choice((RadColor.YELLOW, RadColor.GREEN, RadColor.PURPLE))
             # TODO WIP booo !!
-            barrel_color = random.choice((RadColor.YELLOW, RadColor.GREEN))
             if _ == 0:
-                coord_barrel = Coord(6, 3)
-                barrel_color = RadColor.GREEN
+                coord_barrel = Coord(9, 3)
+                barrel_color = RadColor.PURPLE
             if not forbidden_rect_1.in_bounds(coord_barrel): # and not forbidden_rect_2.in_bounds(coord_barrel):
                 tile_radact = self.layer_radact.get_tile(coord_barrel)
                 no_barrel_around = all(
@@ -747,15 +764,47 @@ class GameModel(squarity.GameModelBase):
 
     def put_barrels_level_2(self):
 
-        forbidden_rect_1 = squarity.Rect(0, 0, 6, 12)
-        for _ in range(20):
-            coord_barrel = Coord(
-                random.randrange(0, self.w),
-                random.randrange(0, self.h)
-            )
-            barrel_color = random.choice((RadColor.YELLOW, RadColor.GREEN))
-            if not forbidden_rect_1.in_bounds(coord_barrel):
-                self.layer_radact.add_barrel(coord_barrel, barrel_color)
+        forbidden_rect_1 = squarity.Rect(0, 0, 9, 12)
+        xs = []
+        increase_delay = 3
+        cur_delay = increase_delay
+        cur_mul = 1
+        for x in range(self.w):
+            xs.extend([x] * cur_mul)
+            cur_delay -= 1
+            if cur_delay == 0:
+                cur_delay = increase_delay
+                cur_mul += 1
+        ys = []
+        cur_delay = increase_delay
+        cur_mul = 1
+        for y in range(self.h):
+            ys.extend([y] * cur_mul)
+            cur_delay -= 1
+            if cur_delay == 0:
+                cur_delay = increase_delay
+                cur_mul += 1
+
+        candidate_coords = []
+        for x in xs:
+            for y in ys:
+                c = Coord(x, y)
+                if not forbidden_rect_1.in_bounds(c):
+                    candidate_coords.append(c)
+        random.shuffle(candidate_coords)
+        barrel_coords = set()
+        while len(barrel_coords) < 45:
+            barrel_coords.add(candidate_coords.pop(0))
+
+        #for _ in range(25):
+        for coord_barrel in barrel_coords:
+            #coord_barrel = Coord(
+            #    random.randrange(0, self.w),
+            #    random.randrange(0, self.h)
+            #)
+            barrel_color = random.choice((RadColor.YELLOW, RadColor.GREEN, RadColor.PURPLE))
+            #if not forbidden_rect_1.in_bounds(coord_barrel):
+            self.layer_radact.add_barrel(coord_barrel, barrel_color)
 
     def is_revealed(self, coord):
         return not bool(self.layer_block.get_game_objects(coord))
