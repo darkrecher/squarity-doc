@@ -56,6 +56,7 @@
     "rad_indic_ylw": [96, 160],
     "rad_indic_grn": [128, 160],
     "rad_indic_prp": [160, 160],
+    "rad_indic_hid": [128, 192],
     "red_cross": [0, 96],
     "dome_ground_base": [0, 160, 96, 96],
     "dome_full": [96, 64, 96, 96],
@@ -69,7 +70,7 @@
     "dome_corner_3": [544, 0, 64, 64],
     "dome_tshape_0": [192, 64, 96, 64],
     "dome_tshape_1": [320, 0, 64, 96],
-    "dome_tshape_2": [256, 64, 96, 64],
+    "dome_tshape_2": [192, 128, 96, 64],
     "dome_tshape_3": [384, 0, 64, 96],
     "dome_color_ylw": [416, 96],
     "dome_color_grn": [416, 128],
@@ -84,7 +85,7 @@
 }
 """
 
-INDEX_LEVEL = 2
+INDEX_LEVEL = 1
 
 import random
 from enum import Enum, IntEnum
@@ -161,6 +162,10 @@ class RadTile(squarity.Tile):
                 # TODO LIB : ça fait du yo-yo. On devrait avoir une fonction dans Tile,
                 # pour ajouter/supprimer des game objects directement dedans.
                 gobj_src = GameObject(self._coord, f"rad_{sprite_col}_source")
+                self.layer_owner.add_game_object(gobj_src)
+            else:
+                # TODO : re du yo-yo.
+                gobj_src = GameObject(self._coord, f"rad_indic_hid")
                 self.layer_owner.add_game_object(gobj_src)
             gobj_barrel = GameObject(self._coord, f"rad_{sprite_col}_barrel")
             self.layer_owner.add_game_object(gobj_barrel)
@@ -475,6 +480,7 @@ class DesacDome():
         self.is_revealed = game.is_revealed
         self.rect = game.rect
         self.layer_owner = layer_owner
+        self.shape = shape
         self.pos_upleft = pos_upleft.clone()
         self.rad_color = rad_color
         # Au max, on a 4 instances de DesacDome, indiquant les différentes positions du dôme.
@@ -697,6 +703,7 @@ class GameModel(squarity.GameModelBase):
         self.gobjs_red_crosses = []
         self.ended_game = False
         self.end_game_phrase = ""
+        self.score = 0
 
         rect_dome_zone = squarity.Rect(0, 0, 9, 12)
         for c in squarity.RectIterator(self.rect):
@@ -743,7 +750,7 @@ class GameModel(squarity.GameModelBase):
     def put_barrels_level_1(self):
         forbidden_rect_1 = squarity.Rect(0, 0, 9, 13)
         #forbidden_rect_2 = squarity.Rect(0, 0, 6, 3) TODO WIP booo !!
-        for _ in range(7):
+        for _ in range(12):
             coord_barrel = Coord(
                 random.randrange(0, self.w),
                 random.randrange(0, self.h)
@@ -816,11 +823,16 @@ class GameModel(squarity.GameModelBase):
         self.layer_radact.compute_rad_indicators()
         if self.layer_radact.no_more_barrels():
             self.ended_game = True
+            self.score += 100
             if INDEX_LEVEL == 1:
                 self.end_game_phrase = "Bravo !!! Augmentez de 1 la valeur de INDEX_LEVEL au début du code source, puis, relancez une partie"
             else:
-                self.end_game_phrase = "Bravo !!! Vous avez gagné ! Bientôt, de nouvelles versions de ce jeu seront créées."
+                if self.score > 119:
+                    self.end_game_phrase = "Bravo !!! Vous avez gagné ! Bientôt, de nouvelles versions de ce jeu seront créées."
+                else:
+                    self.end_game_phrase = "Bravo !!! Vous avez gagné ! Essayez de faire un score d'au moins 120."
             print(self.end_game_phrase)
+            print(f"score: {self.score}")
 
     def process_desactivation_anim(self, desac_result):
         # FUTURE LIB : c'est relou cette gestion avec des callbacks.
@@ -913,6 +925,7 @@ class GameModel(squarity.GameModelBase):
                 for c in squarity.RectIterator(self.rect):
                     self.layer_block.remove_at_coord(c)
                 print(self.end_game_phrase)
+                print(f"score: {self.score}")
             else:
                 self.layer_block.remove_at_coord(coord)
 
@@ -932,6 +945,8 @@ class GameModel(squarity.GameModelBase):
                 return ev
             elif desac_result.desac_res in (DesacRes.SUCCESS, DesacRes.SUCCESS_WITH_ROTATION):
                 ev = squarity.EventResult()
+                if desac_result.desac_dome.shape == DesacDomeShape.FULL:
+                    self.score += 1
                 func = lambda: self.process_desactivation_anim(desac_result)
                 ev.add_delayed_callback(squarity.DelayedCallBack(1, func))
                 ev.plocks_custom.append("lock_desactivation")
@@ -943,6 +958,7 @@ class GameModel(squarity.GameModelBase):
                 for c in squarity.RectIterator(self.rect):
                     self.layer_block.remove_at_coord(c)
                 print(self.end_game_phrase)
+                print(f"score: {self.score}")
 
     def on_button_direction(self, direction):
         pass
