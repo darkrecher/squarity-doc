@@ -311,20 +311,20 @@ Par défaut, les éléments à poser sont non déplaçable, sauf indication cont
 
 Trucs qu'on peut acheter :
  - boutique où on peut acheter tout le reste (on l'a déjà au départ). 2*2.
- - indicateur du nombre d'éprouvette à obtenir avoir une autre étoile. (on l'a déjà au départ). 1*1.
+ - indicateur du nombre d'éprouvette à obtenir pour avoir une autre étoile. (on l'a déjà au départ). 1*1.
+ - la banque, qui donne de l'argent par rapport au nombre d'étoiles possédées. 1*1. (on l'a déjà au départ, sauf pour les premiers tutos). La banque des tutos est petite, elle donne un max de 20 argent. La banque des vrais niveaux est grande, pas de limite d'argent.
  - point d'interrogation de tutoriel. Lorsqu'on clique dessus, un objet de curseur de souris se déplace et indique successivement les endroits où il faut cliquer. (on l'a au départ). 1*1.
- - séparateur de couleurs (portée de 15 cases). Les cases révélées indique la quantité de radioactivité, et les couleurs qui la composent (sans qu'on ait le détail). 2*2.
- - augmentation du seuil max d'affichage de radioactivité (c'est pas un élément à poser, on l'achète et c'est tout). Ou alors c'est un élément 1*1.
+ - séparateur de couleurs (portée de 15 cases). Les cases révélées indique la quantité de radioactivité, et les couleurs qui la composent (sans qu'on ait le détail). 2*2. coût en argent.
+ - augmentation du seuil max d'affichage de radioactivité (c'est pas un élément à poser, on l'achète et c'est tout). Ou alors c'est un élément 1*1. coût en argent.
  - compteur du nombre total de baril, upgradable en détaillant les couleurs, puis en détaillant les portées. 6*6. (Est-ce qu'on a vraiment besoin de ce truc ? bof...)
- - emplacement de dôme de désactivation (ils sont de plus en plus chers). 3*3.
+ - emplacement de dôme de désactivation (ils sont de plus en plus chers). 3*3. coût en argent et/ou en éprouvette.
  - dôme de désactivation, achetable à partir d'un emplacement de dôme, voire gratuit. 0*0.
- - maison très chère, pour avoir une étoile. 6*6.
- - convertisseur éprouvette -> argent. 1 pour 1, et 4 argents pour 3 éprouvettes de couleur différentes.
- - révélateur automatique de case non-radioactive, qui sont adjacentes à une case révélée et non-radioactive. (Comme dans le démineur initial). 2*2. (upgrade de Quality Of Life). Si on l'achète, on ne peut plus acheter la maison. Mais on peut acheter d'abord la maison et ensuite le révélateur.
- - nettoyeur de baril désactivé. Permet de révéler les infos d'une case qui contenait un baril éliminé. Ça coûte de plus en plus cher. 2*2.
- - truc qui donne de l'argent par rapport au nombre d'étoiles possédées. 1*1. (ne coûte vraiment pas cher).
- - marqueur de case (drapeaux), avec les 3 couleurs (Quality Of Life). 3*2.
- - indicateur, directement dans le jeu, combien on a d'argent et d'éprouvettes. 4*2. (upgrade de Quality Of Life)
+ - maison assez chère, pour avoir une étoile. 6*6. Il faut la poser avant d'avoir révélé 40 cases. coût en argent (50, à priori).
+ - convertisseur éprouvette -> argent. 1 pour 1, et 4 argents pour 3 éprouvettes de couleur différentes. coût en éprouvettes + argent.
+ - révélateur automatique de case non-radioactive, qui sont adjacentes à une case révélée et non-radioactive. (Comme dans le démineur initial). 2*2. (upgrade de Quality Of Life). Si on l'achète, on ne peut plus acheter la maison. Mais on peut acheter d'abord la maison et ensuite le révélateur. coût en éprouvettes + argent.
+ - nettoyeur de baril désactivé. Permet de révéler les infos d'une case qui contenait un baril éliminé. Ça coûte de plus en plus cher. 2*2. coût en éprouvettes + argent.
+ - marqueur de case (drapeaux), avec les 3 couleurs (Quality Of Life). 3*2. coût en éprouvettes + argent.
+ - indicateur, directement dans le jeu, combien on a d'argent et d'éprouvettes. 4*2. (upgrade de Quality Of Life). coût en éprouvettes + argent.
 
 Le convertisseur d'éprouvette vers argent, et l'indicateur de combien on en a, pourrait être la même construction. Pour éviter de multiplier les trucs et les machins.
 
@@ -345,6 +345,8 @@ As-t-on vraiment besoin de la notion de "safe zone" ? Peut-être pas. On peut ju
 Mais on perd l'idée d'enlever les barils désactivés lorsque la safe zone arrive dessus. Et puis c'est chouette de voir un "sentiment de conquête". Donc on ajoutera la safe zone si on a le temps.
 
 Lorsqu'on utilise le gros dome 3*3 pour désactiver un baril, on gagne plein d'argent et une éprouvette de la couleur du baril. Certaines bonus ne peuvent s'acheter qu'avec des éprouvettes.
+
+Si une case est trop radioactive et qu'elle dépasse le seuil, non seulement on n'affiche pas sa valeur exacte, mais en plus on n'affiche pas sa décomposition de couleur. On l'indique explicitement avec le carré gris en dessous de la valeur affichée.
 
 
 ## (Tentative d') équilibrage entre les coûts et les bénéfices
@@ -368,12 +370,18 @@ Prix progressif des dômes :
  - 60
  - 100
  - 150
- - 2 éprouvettes jaunes
+ - 2 éprouvettes jaunes (ou bien une seule ?)
  - 2 éprouvettes vertes
  - 2 éprouvettes violettes
  - 2 éprouvettes de chaque couleur
  - 4 éprouvettes de chaque couleur + 100 argent
  - 6 éprouvettes de chaque couleur + 200 argent
+
+Ou alors, pour les 3 derniers, on fait :
+
+ - 2 jaune + 2 verte + 50 argent
+ - 2 verte + 2 violette + 50 argent
+ - 2 jaune + 2 violette + 50 argent
 
 Nettoyage de baril désactivé : 5, 10, 15, 25, 40, 65 (Fibonacci...)
 
@@ -422,13 +430,15 @@ Avec ces patterns, on est obligé d'acheter un dôme rond, un dôme de coin et u
 
 On peut gagner l'étoile du nombre d'éprouvette.
 
-Tuto :Le curseur se déplace sur la boutique (si possible, ça ouvre automatiquement la boutique), puis sur un emplacement de dôme à acheter, puis sur un endroit où on peut placer l'emplacement.
+Tuto : le curseur se déplace sur la boutique (si possible, ça ouvre automatiquement la boutique), puis sur un emplacement de dôme à acheter, puis sur un endroit où on peut placer l'emplacement.
 
 ### Tuto 4 (couleurs)
 
 La boutique est dans le coin haut gauche.
 
-Les dômes ronds de 3 couleur sont disponibles. On peut acheter les autres.
+À partir de ce tuto, la banque est présente.
+
+Les dômes ronds de 3 couleurs sont disponibles. On peut acheter les autres.
 
 À droite : 3 barils de couleur différente, avec toutes les cases révélées autour. Mais on voit pas de quelle couleur ils sont, on ne voit que les patterns.
 
@@ -446,7 +456,7 @@ Rectangle de cases non révélées, avec 9 barils dedans, placés aléatoirement
 
 Pas de murs. Donc la zone conquise se propage.
 
-Tous les dômes sont achetables, mais on n'en a pas au départ. La banque et le révélateur automatique sont achetables.
+Tous les dômes sont achetables, mais on n'en a pas au départ. Le révélateur automatique est achetable.
 
 Pas de tuto, mais c'est le premier niveau où on voit la propagation de la zone conquise.
 
@@ -468,20 +478,171 @@ Un gros rectangle non révélé.
 
 Pour chaque couleur de barils, on a deux carrés de 3*3 barils, un avec une case vide au milieu, l'autre sans case vide. Ça fait des grosses valeur de radioactivité. On a les valeurs exactes que si on upgrade la construction.
 
+### Tuto 8 (nettoyeur de barils)
+
+À déterminer.
+
+La boutique est au milieu, entourés par quelques carrés à révéler (qui sont vides) . Aucun mur, la zone conquise peut se propager partout.
+
+Dans les 4 directions, alignées avec la boutique, on met des barils de couleur aléatoires, entourés de barils désactivés (tous jaunes).
+
+On ne voit pas du tout la radioactivité des barils, donc on ne connait pas leurs couleurs. Mais la propagation automatique mange les barils désactivés qui sont sur des cases non radioactives. Le pattern de propagation permet de deviner la couleur.
+
+Exemples:
+
+Avec un jaune, la propagation s'arrête 3 cases avant le baril.
+
+@@++426J
+@@++++66
+
+Avec un vert, la propagation s'arrête 1 case avant le baril.
+
+@@++++6G
+@@++++66
+
+Avec un violet, la propagation s'arrête 1 case avant le baril, et la propagation de la ligne en dessous s'arrête 3 cases avant le baril.
+
+@@+++26V
+@@++1+66
+
+On dispose des barils le long des 4 lignes de boutiques, avec une case vide entre chaque (pour pouvoir les désactiver avec des dômes ronds).
+
+Autour, même pattern, mais du coup on peut pas distinguer les verts et les violets car la propagation s'arrrêtera pareil. Et là, on utilise le nettoyeur de baril désactivé.
+
+### Tuto 9 (la maison)
+
+Boutique au milieu.
+
+À gauche, un carré de 6*6, avec 6*5 cases à révéler. Dans les coins, des barils jaunes (ou une autre couleur, si il faut).
+
+À vérifier, mais l'étoile des éprouvette devra être fixée à 5 éprouvettes. On peut pas en faire plus.
+
+Attention les yeux.
+
+```
+############
+.......OOV##
+......OOOJ###
+.......OOJJo##############
+......OOOJJoooooGoGoVoVoJ#
+.......OOJJoooooGoGoVoVoo#
+@@....OOOJJoooooGoGoVoVoo#
+@@.....OOJJoooooGoGoVoVoo#
+......ooOJJoooooGoGoVoVoG#
+.......oOJJo##############
+......oooJ###
+.......ooV##
+############
+```
+
+Solution : révéler les O majuscules (19 cases).
+
+Avec les étoiles gagnées avant, il faut avoir 20 argent. (ça va, c'est à peu près acceptable).
+
+Acheter un dôme de coin violet et un dôme T-shape jaune. Ça coûte les 10 argent qu'on a.
+
+Désactiver un baril violet et 12 barils jaunes (voir ci-dessous, pour les barils qu'on garde). Ça rapporte 53 argent (12*4 + 1*5). Ça dépense 13 cases, on en dessous de la limite des 36, tout va bien. On peut même désactiver quelques autres jaunes, ou le violet, si on n'a pas les 20 argent au départ.
+
+On peut poser la maison dans le carré de 6*6 qui est pil poil dispo (voir ci-dessous). Ça coûte 50 argent.
+
+On désactive 3 barils jaunes en bas. On garde uniquement celui qui pourra être désactivé avec un dôme rond.
+
+On désactive le baril violet qui reste.
+
+Ça rapporte 3*4+5 = 17 argent.
+
+Il reste (10 - 10 + 53 - 50 + 17) = 30 argent. Juste ce qu'il faut pour acheter un troisième dôme.
+
+
+```
+############
+..MMMMMM..##
+..M....M..###
+..M....M...o#
+..M....M.**oo
+..M....M.*2oo
+@@MMMMMM**4oo
+@@....***66oo
+.....o*246Joo
+.....ooooJJo#
+.....ooooJ###
+.....ooooV##
+############
+```
+
 ### Autres tutos
 
- - nettoyeur de case (un rectangle de 7*7 avec que des barils jaune désactivés, sauf au milieu où il y a un baril dont on ne connait pas la couleur). Deux rectangles comme ça, un où la propagation de safe zone va révéler le pattern, un autre où ça se propage pas, et on doit acheter le nettoyage.
  - compteur du nombre total de baril. (ou pas).
- - la maison !
 
+17 étoiles gagnables avec les tutos
 
 ## Niveaux
 
- - Zone safe déjà faite, avec la zone à explorer à côté.
- - on démarre au milieu de l'aire de jeu, on peut s'étendre un peu partout.
- - on démarre dans un coin. plus on s'éloigne du coin, plus il y a de barils.
- - espace restreint, on peut poser juste les dômes dont on a besoin.
+### Basique
 
+Juste un niveau avec des barils dispersés ici et là. Niveau facile, donc en plus des barils placés aléatoirement, on ajoute des barils isolés. L'étoile des éprouvettes a la valeur du nombre de baril isolés ajoutés (avec une marge).
+
+On démarre au milieu de l'aire de jeu, on peut s'étendre un peu partout.
+
+### Espace restreint
+
+Le bord de l'aire de jeu est révélé et ne contient aucun baril. Donc pas besoin d'acheter de dôme de coin.
+
+L'espace conquis permet tout juste de placer 6 dômes (3 ronds, 3 T-shapes) et la maison de 6*6. On est donc limité concernant le choix des dômes.
+
+Et ensuite, comme d'hab : une étoile à obtenir avec un certain nombre d'éprouvette, et c'est cool.
+
+Par contre, pour poser les construction de séparation des couleurs, c'est galère. Donc on va dire que la boutique est au milieu, et la zone conquise part dans les 4 directions, sur des bandes ayant une largeur de 2. Il y a des murs pour empêcher la zone conquise d'aller plus loin. Donc on peut construire plein de trucs ayant une taille de 2*x. Mais on reste limité pour les dômes.
+
+### Les coins
+
+3 barils de 3 couleurs différentes, un dans chaque coin. Donc on est obligé d'acheter les 3 dômes de coin.
+
+Une ligne de baril ayant tous la même couleur, contre un bord de l'aire de jeu. Donc on est obligé d'acheter un T-shape ayant cette couleur.
+
+Autre ligne de baril contre un autre bord de l'aire de jeu, et re pareil contre un autre bord de l'aire de jeu. Donc on est obligé d'acheter les 2 autres T-shape.
+
+Seulement deux barils au milieu de l'aire de jeu, de même couleur (mais une couleur aléatoire). Donc il faut acheter un dôme rond de cette couleur.
+
+L'étoile des éprouvette demande deux étoiles.
+
+L'argent que l'on peut gagner est calculé au plus juste, pour pouvoir construire 7 dômes et la maison. (y'aura quand même de la marge puisqu'on a l'argent de la banque).
+
+### Juste ce qu'il faut
+
+On place dans l'aire de jeu des patterns connus, ce qui permet de savoir exactement combien d'éprouvettes on peut obtenir au maximum.
+
+On démarre dans un coin. plus on s'éloigne du coin, plus il y a de barils.
+
+L'étoile des éprouvettes a cette valeur.
+
+### C'est plein !
+
+Un carré de 8*8 plein de barils placés aléatoirement.
+
+Faut calculer le nombre max d'éprouvettes qu'on peut obtenir avec un carré comme ça. Et on met ce nombre dans l'étoiles des éprouvettes.
+
+### Hard
+
+La boutique dans un coin. Aucun mur. Espace très restreint au départ, mais on peut tout conquérir.
+
+3 dômes de 3 couleur différentes, dans chaque coin.
+
+Juste plein de baril placés aléatoirement, avec une proba progressive plus grande qu'il y en ait dans le coin opposé.
+
+### Autres idées et réflexion sur les niveaux
+
+Les dômes en 3*2 ne sont pas vraiment utiles. Ils ne servent pas pour désactiver un baril qui serait dans une situation spécifique (dans un coin ou sur un bord entouré par d'autres barils). Et ils ne rapportent aucun bonus spécifique, à part de l'argent.
+
+Donc y'a de grande chance que personne ne les achète. Surtout si le prix des derniers dômes est très cher. Comment on pourrait rendre ces dômes utiles ?
+
+18 étoiles gagnables avec les niveaux
+
+38 étoiles au total.
+
+Est-ce qu'on dit qu'une étoile rapporte un argent au début des niveaux où il y a une banque ?
+
+Est-ce qu'on dit que la maison coûte 50 argent ? Et qu'il faut la poser dans les 36 premiers tours ?
 
 ## Les étoiles
 
