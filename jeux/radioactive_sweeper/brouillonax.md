@@ -702,3 +702,39 @@ Les révélations automatiques peuvent déclencher des conquêtes automatiques, 
 On peut désactiver la révélation automatique en cliquant sur la construction. Parce qu'on n'a pas forcément envie d'avoir un robot qui se promène partout pendant qu'on réfléchit.
 
 
+## Catégorisation des trucs achetables
+
+Parce que y'en a tellement, si on fait une grande liste ça va être le bazar
+
+Trucs qu'on peut acheter :
+
+ - séparateur de couleurs
+ - [augmentation du seuil max d'affichage de radioactivité]
+ - emplacement de dôme de désactivation (c'est une catégorie à part entière).
+ - maison assez chère, pour avoir une étoile.
+ - convertisseur éprouvette -> argent + indicateur de combien on en a.
+ - révélateur automatique de case non-radioactive
+ - nettoyeur de baril désactivé.
+ - marqueur de case (drapeaux)
+
+En fait ça va. Juste deux catégories : les dômes et le reste.
+
+"Design" des interfaces d'achats.
+
+ - ligne du haut (bleu turquoise)
+ - dessin du vendeur (robot ou autre chose)  |  nombre d'éprouvettes et d'argent.
+ - ...
+ - grosse ligne de séparation
+ - prix de l'objet 1                                   |  objet 1
+ - ... + mini ligne de séparation
+ - prix de l'objet 2                                   |  objet 2
+ - ... + mini ligne de séparation
+
+ etc.
+
+ - ligne du bas
+
+L'interface globale occupe 5 lignes. Il en reste 15 pour les objets à acheter. 2 lignes par objets.
+
+On peut montrer 7 objets max. Ça colle.
+
