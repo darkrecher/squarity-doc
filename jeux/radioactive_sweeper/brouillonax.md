@@ -738,3 +738,29 @@ L'interface globale occupe 5 lignes. Il en reste 15 pour les objets à acheter. 
 
 On peut montrer 7 objets max. Ça colle.
 
+
+## Drapeaux pour indiquer les barils
+
+On est d'accord que ça se fait pas avec le clic droit, parce qu'on gère pas le clic droit.
+
+On peut acheter la construction des drapeaux (4*4, ou plus petit, faut que je décide).
+
+Cette construction comporte 4 boutons : 3 avec des drapeaux (un par couleur de baril), et un bouton "dôme".
+
+On clique sur un bouton pour passer en mode "posage de drapeau", puis on clique sur des cases pour placer/enlever un drapeau dessus, puis on reclique sur le bouton pour revenir en mode normal.
+
+Est-ce qu'on prévoit 2 modes : "posage de un seul drapeau et retour automatique au mode normal", et "posage de plusieurs drapeaux jusqu'à recliquer sur le bouton du drapeau" ? On verra à l'usage.
+
+Avec le 4ème bouton, on passe en mode "dôme". Lorsqu'on clique sur une case ayant un drapeau, le jeu trouve automatiquement le dôme le plus intéressant pour désactiver le baril. S'il y en a un, on envoie le dôme, qui va soit casser, soit désactiver le baril.
+
+Si possible : on ne locke pas l'interface en mode dôme, pendant qu'on clique sur les cases. Ça permettrait de mettre en file d'attente les désactivations.
+
+Pendant une animation de désactivation de baril, on peut cliquer sur d'autres cases comportant des drapeaux, qui seront testées ensuite. C'est chaud à coder, mais c'est faisable.
+
+Si un dôme casse, ou si une désactivation n'est pas possible car on n'a pas révélé les bonnes cases autour, alors on arrête tout. On vide la file d'attente.
+
+L'animation de désactivation d'un baril est plus rapide quand on l'effectue via le mode dôme, par rapport à une désactivation "manuelle". C'est un autre avantage "Quality of Life" de cette construction permettant de poser les drapeaux.
+
+
+
+
