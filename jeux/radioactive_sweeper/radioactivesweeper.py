@@ -10,7 +10,7 @@
   "name": "Radioactive Sweeper",
   "version": "2.1.0",
   "game_area": {
-    "nb_tile_width": 25,
+    "nb_tile_width": 30,
     "nb_tile_height": 20
   },
   "tile_size": 32,
@@ -75,6 +75,12 @@
     "dome_color_grn": [416, 128],
     "dome_color_prp": [416, 160],
 
+    "building_shop": [256, 192, 64, 64],
+    "money": [160, 192],
+    "flask_ylw": [96, 224, 32, 32, "center"],
+    "flask_grn": [128, 224, 32, 32, "center"],
+    "flask_prp": [160, 224, 32, 32, "center"],
+
     "background": [0, 128]
   },
   "show_code_at_start": true,
@@ -83,7 +89,7 @@
   }
 }
 """
-
+# "building_shop": [256, 192, 64, 64],
 INDEX_LEVEL = 1
 
 import random
@@ -267,16 +273,6 @@ class RadioactivityLayer(squarity.Layer):
             self.get_tile(c).compute_game_objects()
 
 
-"""
-Une config avec juste des données dedans. (image, offsets, offsets de verif).
-
-une classe FixedDesacDome
-
-, qui gère les rotations, sélections/déselections. Validation d'une désactivation. Animation d'une désactivation.
-
-Mais c'est toujours le GameModel qui désactive les barils.
-"""
-
 class DesacDomeShape(Enum):
     FULL = 0
     BORDER = 1
@@ -291,14 +287,21 @@ class DesacDomeShape(Enum):
 #           - coord. offset_sprite_pos. décalage (en tiles) du sprite à afficher.
 #           - liste de coords. offset_positions_to_check.
 #           - décalage des cases à vérifier quand on essaye une désactivation.
+#           - liste des offsets de coordonnées, pour les pièces de monnaie.
 DESAC_DOME_CONFIGS = {
     DesacDomeShape.FULL: [
         (
             "dome_full",
             Coord(0, 0),
             (
-                Coord(0, -1), Coord(1, -1), Coord(1, 0), Coord(1, 1),
-                Coord(0, 1), Coord(-1, 1), Coord(-1, 0), Coord(-1, -1),
+                (0, -1), (1, -1), (1, 0), (1, 1),
+                (0, 1), (-1, 1), (-1, 0), (-1, -1),
+            ),
+            (
+                (-1, -1), (-1, 0), (-1, +1), (0, -1), (0, +1),
+                (+1, -1), (+1, 0), (+1, +1),
+                (-1, -1, 0.5, 0.5), (-1, +1, 0.5, -0.5),
+                (+1, -1, -0.5, 0.5), (+1, +1, -0.5, -0.5),
             )
         ),
     ],
@@ -306,33 +309,37 @@ DESAC_DOME_CONFIGS = {
         (
             "dome_border_0",
             Coord(0, 0),
+            ((0, -1), (1, -1), (1, 0), (-1, 0), (-1, -1), ),
             (
-                Coord(0, -1), Coord(1, -1), Coord(1, 0),
-                Coord(-1, 0), Coord(-1, -1),
-            )
+                (0, 0), (0, -1), (1, -1), (1, 0), (-1, 0), (-1, -1),
+                (-1, -1, 0.5, 0.5), (+1, -1, -0.5, 0.5),
+            ),
         ),
         (
             "dome_border_1",
             Coord(1, 0),
+            ((0, -1), (1, -1), (1, 0), (1, 1), (0, 1), ),
             (
-                Coord(0, -1), Coord(1, -1), Coord(1, 0),
-                Coord(1, 1), Coord(0, 1),
-            )
+                (0, 0), (0, -1), (1, -1), (1, 0), (1, 1), (0, 1),
+                (+1, -1, -0.5, 0.5), (+1, +1, -0.5, -0.5),
+            ),
         ),
         (
             "dome_border_2",
             Coord(0, 1),
+            ((1, 0), (1, 1), (0, 1), (-1, 1), (-1, 0), ),
             (
-                Coord(1, 0), Coord(1, 1),
-                Coord(0, 1), Coord(-1, 1), Coord(-1, 0),
+                (0, 0), (1, 0), (1, 1), (0, 1), (-1, 1), (-1, 0),
+                (+1, +1, -0.5, -0.5), (-1, +1, 0.5, -0.5),
             )
         ),
         (
             "dome_border_3",
             Coord(0, 0),
+            ((0, 1), (-1, 1), (-1, 0), (-1, -1), (0, -1), ),
             (
-                Coord(0, 1), Coord(-1, 1), Coord(-1, 0), Coord(-1, -1),
-                Coord(0, -1),
+                (0, 0), (0, 1), (-1, 1), (-1, 0), (-1, -1), (0, -1),
+                (-1, +1, 0.5, -0.5), (-1, -1, 0.5, 0.5),
             )
         ),
     ],
@@ -340,60 +347,52 @@ DESAC_DOME_CONFIGS = {
         (
             "dome_corner_0",
             Coord(1, 0),
-            (
-                Coord(0, -1), Coord(1, -1), Coord(1, 0),
-            )
+            ((0, -1), (1, -1), (1, 0), ),
+            ((0, 0), (0, -1), (1, -1), (1, 0), (1, -1, -0.5, 0.5))
         ),
         (
             "dome_corner_1",
             Coord(1, 1),
-            (
-                Coord(1, 0), Coord(1, 1), Coord(0, 1),
-            )
+            ((1, 0), (1, 1), (0, 1), ),
+            ((0, 0), (1, 0), (1, 1), (0, 1), (1, 1, -0.5, -0.5))
         ),
         (
             "dome_corner_2",
             Coord(0, 1),
-            (
-                Coord(0, 1), Coord(-1, 1), Coord(-1, 0),
-            )
+            ((0, 1), (-1, 1), (-1, 0), ),
+            ((0, 0), (0, 1), (-1, 1), (-1, 0), (-1, 1, 0.5, -0.5))
         ),
         (
             "dome_corner_3",
             Coord(0, 0),
-            (
-                Coord(-1, 0), Coord(-1, -1), Coord(0, -1),
-            )
+            ((-1, 0), (-1, -1), (0, -1), ),
+            ((0, 0), (-1, 0), (-1, -1), (0, -1), (-1, -1, 0.5, 0.5))
         ),
     ],
     DesacDomeShape.TSHAPE: [
         (
             "dome_tshape_0",
             Coord(0, 0),
-            (
-                Coord(0, -1), Coord(1, -1), Coord(-1, -1),
-            )
+            ((0, -1), (1, -1), (-1, -1), ),
+            ((0, 0), (0, -1), (1, -1), (-1, -1), )
         ),
         (
             "dome_tshape_1",
             Coord(1, 0),
-            (
-                Coord(1, -1), Coord(1, 0), Coord(1, 1),
-            )
+            ((1, -1), (1, 0), (1, 1), ),
+            ((0, 0), (1, -1), (1, 0), (1, 1), )
         ),
         (
             "dome_tshape_2",
             Coord(0, 1),
-            (
-                Coord(1, 1), Coord(0, 1), Coord(-1, 1),
-            )
+            ((1, 1), (0, 1), (-1, 1), ),
+            ((0, 0), (1, 1), (0, 1), (-1, 1), )
         ),
         (
             "dome_tshape_3",
             Coord(0, 0),
-            (
-                Coord(-1, 1), Coord(-1, 0), Coord(-1, -1),
-            )
+            ((-1, 1), (-1, 0), (-1, -1), ),
+            ((0, 0), (-1, 1), (-1, 0), (-1, -1), )
         ),
     ]
 }
@@ -406,11 +405,28 @@ class FixedDesacDome():
     """
 
     def __init__(self, dome_conf, pos_upleft):
-        sprite_name, offset_sprite, offset_positions_to_check = dome_conf
+        (
+            sprite_name, offset_sprite,
+            offsets_to_check, money_offset_details
+        ) = dome_conf
         self.offset_sprite = offset_sprite
         self.coord_dome = pos_upleft.clone().move_by_vect(self.offset_sprite)
         self.gobj_dome = GameObject(self.coord_dome, sprite_name)
-        self.offset_positions_to_check = offset_positions_to_check
+        self.offset_positions_to_check = [
+            Coord(ofs[0], ofs[1]) for ofs in offsets_to_check
+        ]
+        self.money_offset_details = money_offset_details
+        # TODO : money_precise_positions, ça devrait pas être ici.
+        self.money_precise_positions = []
+        for ofs in money_offset_details:
+            money_coord_offset = Coord(x=ofs[0], y=ofs[1])
+            if len(ofs) >= 4:
+                money_modifier_offset = tuple(ofs[2:4])
+            else:
+                money_modifier_offset = (0.0, 0.0)
+            self.money_precise_positions.append(
+                (money_coord_offset, money_modifier_offset)
+            )
         # Liste de gobj à ajouter/enlever pour montrer que ce dôme est sélectionné.
         # TODO : faudra aussi mettre un cadre rouge. Pas ici, mais dans le DesacDome.
         self.gobjs_show_selection = tuple([
@@ -446,7 +462,14 @@ class DesactivationResult():
     # C'est l'inverse d'une vitesse, c'est une "ralentesse".
     DEFAULT_DOME_SLOWNESS = 25
 
-    def __init__(self, desac_res, failed_coords=[], rot_index=None, rot_steps=[]):
+    def __init__(
+        self,
+        desac_res,
+        failed_coords=[],
+        rot_index=None,
+        rot_steps=[],
+        rad_color=None
+    ):
         self.desac_res = desac_res
         self.failed_coords = failed_coords
         self.rot_index = rot_index
@@ -457,7 +480,8 @@ class DesactivationResult():
         self.coord_dest_dome = None
         self.anim_step = None
         self.coord_desac = None
-        self.dome_travel_time = None
+        self.dome_travel_delay = None
+        self.rad_color = rad_color
 
     def is_desactivation_ok(self):
         return self.desac_res in (
@@ -471,12 +495,13 @@ class DesactivationResult():
             DesacRes.FAIL_UNREVEALED_TILES
         )
 
-    def compute_dome_travel_time(self, coord_return_dome):
+    def compute_dome_travel_delay(self, coord_return_dome):
         dist = (
             (self.coord_dest_dome.x - coord_return_dome.x) ** 2
             + (self.coord_dest_dome.y - coord_return_dome.y) ** 2
         )
-        self.dome_travel_time = (dist ** 0.5) * self.DEFAULT_DOME_SLOWNESS
+        dist = dist ** 0.5
+        self.dome_travel_delay = int(dist * self.DEFAULT_DOME_SLOWNESS)
 
 
 class DesacDome():
@@ -622,12 +647,14 @@ class DesacDome():
             return DesactivationResult(
                 DesacRes.SUCCESS,
                 rot_index=rot_index_ok,
+                rad_color=self.rad_color,
             )
         else:
             return DesactivationResult(
                 DesacRes.SUCCESS_WITH_ROTATION,
                 rot_index=rot_index_ok,
-                rot_steps=list(rot_steps_ok)
+                rot_steps=list(rot_steps_ok),
+                rad_color=self.rad_color,
             )
 
 
@@ -685,7 +712,7 @@ class DesacDomeManager():
             desac_result.coord_dest_dome = coord_dest
             desac_result.anim_step = 0 if desac_result.rot_steps else 1
             desac_result.coord_desac = coord_desac
-            desac_result.compute_dome_travel_time(fixed_desac_dome.coord_dome)
+            desac_result.compute_dome_travel_delay(fixed_desac_dome.coord_dome)
             self.selected_dome = None
 
         return desac_result
@@ -695,6 +722,127 @@ class DesacDomeManager():
             self.layer_ihm.remove_game_object(gobj)
         self.gobjs_red_crosses[:] = []
 
+
+class LootManager():
+
+    LOOT_SLOWNESS = 15
+
+    def __init__(self, layer_loot, rect_shop):
+        self.layer_loot = layer_loot
+        self.coord_dest = rect_shop.coord_upleft()
+        self.money = 0
+        self.flasks = [0, 0, 0]
+
+    def can_pay(self, pay_money, pay_flasks):
+        pass
+
+    def widthdraw(self, pay_money, pay_flasks):
+        pass
+
+    def get_amount(self):
+        return self.money, self.flasks
+
+    def _add_transitions_to_gobj_loot(self, gobj_loot, delay_index, coord_start, area_offset_start):
+        delay_before_move = 800 + delay_index * 50
+        dist = (
+            (coord_start.x + area_offset_start[0] - self.coord_dest.x) ** 2
+            + (coord_start.y + area_offset_start[1] - self.coord_dest.y) ** 2
+        )
+        dist = dist ** 0.5
+        delay_move = int(dist * self.LOOT_SLOWNESS)
+        gobj_loot.add_transition(
+            squarity.TransitionSteps(
+                "coord",
+                (
+                    (delay_before_move, coord_start),
+                    (delay_move, self.coord_dest),
+                )
+            )
+        )
+        # TODO LIB : c'est pas pratique du tout,
+        # de devoir ajouter 2 transition pour une pauvre coord.
+        field_names = ("area_offset_x", "area_offset_y")
+        for ao_one_coord, field_name in zip(area_offset_start, field_names):
+            if ao_one_coord != 0.5:
+                gobj_loot.image_modifier.add_transition(
+                    squarity.TransitionSteps(
+                        field_name,
+                        (
+                            (delay_before_move, ao_one_coord),
+                            (delay_move, 0.5),
+                        )
+                    )
+                )
+
+
+    def add_loot_gobjs_from_desac(self, fixed_desac_dome, color, coord_desac):
+        gobjs_loot_added = []
+        delay_indexes = list(range(len(
+            fixed_desac_dome.money_offset_details
+        )))
+        random.shuffle(delay_indexes)
+        for money_details, delay_index in zip(
+            fixed_desac_dome.money_offset_details,
+            delay_indexes
+        ):
+            coord_money = Coord(money_details[0], money_details[1])
+            coord_money.move_by_vect(coord_desac)
+            if len(money_details) >= 4:
+                area_offset_start = money_details[2:4]
+            else:
+                area_offset_start = [0.0, 0.0]
+            gobj_money = GameObject(
+                coord_money,
+                "money",
+                image_modifier=squarity.ComponentImageModifier(
+                    area_offset_x=area_offset_start[0],
+                    area_offset_y=area_offset_start[1]
+                )
+            )
+            gobj_money.loot_color = None
+            self.layer_loot.add_game_object(gobj_money)
+            self._add_transitions_to_gobj_loot(
+                gobj_money, delay_index, coord_money, area_offset_start
+            )
+            gobjs_loot_added.append(gobj_money)
+
+        if (0, 0) not in fixed_desac_dome.money_offset_details:
+            sprite_name_flask = "flask_" + NAME_FROM_RAD_COLOR[color]
+            gobj_flask = GameObject(
+                coord_desac,
+                sprite_name_flask,
+                image_modifier=squarity.ComponentImageModifier(
+                    area_scale_x=2.0,
+                    area_scale_y=2.0,
+                )
+            )
+            gobj_flask.loot_color = color
+            self.layer_loot.add_game_object(gobj_flask)
+            delay_index = len(fixed_desac_dome.money_offset_details)
+            self._add_transitions_to_gobj_loot(
+                gobj_flask, delay_index, coord_desac, (0, 0)
+            )
+            gobjs_loot_added.append(gobj_flask)
+
+        if gobjs_loot_added:
+            last_gobj = gobjs_loot_added[-1]
+            last_gobj.set_callback_end_transi(
+                lambda: self._remove_loot_gobjs(gobjs_loot_added)
+            )
+
+    def _remove_loot_gobjs(self, gobjs_loot):
+        print("remove some gobj")
+        for gobj in gobjs_loot:
+            self.layer_loot.remove_game_object(gobj)
+            if gobj.loot_color is None:
+                self.money += 1
+            else:
+                index_color = int(gobj.loot_color)
+                self.flasks[index_color] += 1
+
+
+# Ça changera selon les niveaux.
+SHOP_POSITION = Coord(1, 3)
 
 class GameModel(squarity.GameModelBase):
 
@@ -720,14 +868,23 @@ class GameModel(squarity.GameModelBase):
         self.end_game_phrase = ""
         self.score = 0
 
+        self.rect_shop = squarity.Rect(SHOP_POSITION.x, SHOP_POSITION.y, 2, 2)
+        self.loot_manager = LootManager(self.layer_movable_objs_1, self.rect_shop)
+
         rect_dome_zone = squarity.Rect(0, 0, 9, 12)
         for c in squarity.RectIterator(self.rect):
             gobj = GameObject(c, "block")
             if not rect_dome_zone.in_bounds(c):
                 self.layer_block.add_game_object(gobj)
-            gobj = GameObject(c, "background")
-            self.layer_background.add_game_object(gobj)
+            if not self.rect_shop.in_bounds(c):
+                gobj = GameObject(c, "background")
+                self.layer_background.add_game_object(gobj)
 
+        self.gobj_shop = GameObject(
+            self.rect_shop.coord_upleft(),
+            "building_shop"
+        )
+        self.layer_background.add_game_object(self.gobj_shop)
         self.desac_dome_manager = DesacDomeManager(self.layer_ihm)
         desac_dome = DesacDome(self, DesacDomeShape.FULL, Coord(3, 0), RadColor.GREEN)
         self.desac_dome_manager.desac_domes.append(desac_dome)
@@ -739,7 +896,7 @@ class GameModel(squarity.GameModelBase):
         self.desac_dome_manager.desac_domes.append(desac_dome)
         desac_dome = DesacDome(self, DesacDomeShape.FULL, Coord(0, 0), RadColor.YELLOW)
         self.desac_dome_manager.desac_domes.append(desac_dome)
-        desac_dome = DesacDome(self, DesacDomeShape.BORDER, Coord(0, 3), RadColor.YELLOW)
+        # desac_dome = DesacDome(self, DesacDomeShape.BORDER, Coord(0, 3), RadColor.YELLOW)
         self.desac_dome_manager.desac_domes.append(desac_dome)
         desac_dome = DesacDome(self, DesacDomeShape.CORNER, Coord(0, 6), RadColor.YELLOW)
         self.desac_dome_manager.desac_domes.append(desac_dome)
@@ -863,7 +1020,7 @@ class GameModel(squarity.GameModelBase):
 
         elif desac_result.anim_step == 1:
             fixed_desac_dome = desac_result.desac_dome.get_fixed_dome_cur()
-            dome_move_delay = desac_result.dome_travel_time
+            dome_move_delay = desac_result.dome_travel_delay
             fixed_desac_dome.gobj_dome.add_transition(
                 squarity.TransitionSteps(
                     "coord",
@@ -882,12 +1039,18 @@ class GameModel(squarity.GameModelBase):
         elif desac_result.anim_step == 2:
             #  TODO : animation avec une explosion dans le dôme. Boum !!!
             self.deradioactivize(desac_result.coord_desac)
+            fixed_desac_dome = desac_result.desac_dome.get_fixed_dome_cur()
+            self.loot_manager.add_loot_gobjs_from_desac(
+                fixed_desac_dome,
+                desac_result.rad_color,
+                desac_result.coord_desac
+            )
             delay_ms = 300
             desac_result.anim_step += 1
 
         elif desac_result.anim_step == 3:
             fixed_desac_dome = desac_result.desac_dome.get_fixed_dome_cur()
-            dome_move_delay = desac_result.dome_travel_time
+            dome_move_delay = desac_result.dome_travel_delay
             fixed_desac_dome.gobj_dome.add_transition(
                 squarity.TransitionSteps(
                     "coord",
@@ -961,6 +1124,10 @@ class GameModel(squarity.GameModelBase):
     def on_click(self, coord):
         if self.ended_game:
             print(self.end_game_phrase)
+            return
+        if self.rect_shop.in_bounds(coord):
+            money, flasks = self.loot_manager.get_amount()
+            print(f"Vous avez {money} moulageiger et {flasks} fioles.")
             return
         if self.desac_dome_manager.process_dome_click(coord):
             return
