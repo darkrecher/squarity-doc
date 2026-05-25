@@ -1,9 +1,13 @@
 # https://squarity.fr/game/#fetchez_githubgist_darkrecher/6ac1768472ecd954d4818ef1dbd59d6c/raw/radioactivesweeper.txt
 # https://tinyurl.com/radswp123
 # https://raw.githubusercontent.com/darkrecher/squarity-doc/refs/heads/master/jeux/radioactive_sweeper/radioactive_tileset.png
+# https://i.ibb.co/0y95d9Kk/radioactive-tileset.png
 # taille de l'aire de jeu : 30, 20 ??
 
 # TODO : réajuster les images des dômes et des dessins de couleur, pour que le dessin touche pas les bords.
+# TODO : faire un vrai dessin pour window_button_close.
+# TODO : des fioles un peu plus grosses
+# TODO : un dessin pour afficher en grisé les objets de boutiques qu'on peut pas acheter.
 
 """
 {
@@ -76,10 +80,30 @@
     "dome_color_prp": [416, 160],
 
     "building_shop": [256, 192, 64, 64],
+    "shopkeeper": [192, 192, 64, 64],
     "money": [160, 192],
     "flask_ylw": [96, 224, 32, 32, "center"],
     "flask_grn": [128, 224, 32, 32, "center"],
     "flask_prp": [160, 224, 32, 32, "center"],
+
+    "window_border_ul": [320, 192],
+    "window_border_u": [352, 192],
+    "window_border_ur": [384, 192],
+    "window_border_l": [320, 224],
+    "window_bg_inner": [352, 224],
+    "window_border_r": [384, 224],
+    "window_big_sep_l": [320, 256],
+    "window_big_sep_i": [352, 256],
+    "window_big_sep_r": [384, 256],
+    "window_lit_sep": [416, 224],
+    "window_border_dl": [320, 288],
+    "window_border_d": [352, 288],
+    "window_border_dr": [384, 288],
+    "window_bg_outer": [416, 192],
+    "window_button_close": [0, 96],
+    "plus_sign": [416, 256],
+    "right_arrow": [448, 288],
+    "semicolon": [448, 192],
 
     "background": [0, 128]
   },
@@ -841,6 +865,127 @@ class LootManager():
                 self.flasks[index_color] += 1
 
 
+class BuyableElem():
+
+    def __init__(self, price_money, price_flasks, shop_sprite_name):
+        self.price_money = price_money
+        self.price_flasks = price_flasks
+        self.shop_sprite_name = shop_sprite_name
+        self.y_location = None
+
+    def render_in_shop(self, layer_dest, y):
+        self.y_location = y
+        current_x = 3
+        gobj_elem = GameObject(
+            Coord(current_x, y),
+            self.shop_sprite_name,
+            # TODO : c'est spécifique au ground dome.
+            # Faudra gérer ça mieux quand y'aura plusieurs objets à vendre.
+            image_modifier=squarity.ComponentImageModifier(
+                area_scale_x=0.33, area_scale_y=0.33,
+            )
+        )
+        layer_dest.add_game_object(gobj_elem)
+        current_x += 2
+
+        layer_dest.add_game_object(
+            GameObject(Coord(current_x, y), "semicolon")
+        )
+        current_x += 2
+        rendered_price_elem = False
+
+        # TODO : affichage d'un nombre. À factoriser dans une fonction commune. Et faut gérer les centaines.
+        if self.price_money:
+            layer_dest.add_game_object(
+                GameObject(Coord(current_x, y), f"digi_unit_{self.price_money % 10}")
+            )
+            layer_dest.add_game_object(
+                GameObject(Coord(current_x + 1, y), "money")
+            )
+            if self.price_money > 10:
+                layer_dest.add_game_object(
+                    GameObject(Coord(current_x, y), f"digi_ten_{self.price_money // 10}")
+                )
+            current_x += 3
+            rendered_price_elem = True
+
+        for index_col in range(3):
+            price_flask = self.price_flasks[index_col]
+            if price_flask:
+                color_name = NAME_FROM_RAD_COLOR[RadColor(index_col)]
+                sprite_name_flask = f"flask_{color_name}"
+                if rendered_price_elem:
+                    layer_dest.add_game_object(
+                        GameObject(Coord(current_x, y), "plus_sign")
+                    )
+                    current_x += 2
+                layer_dest.add_game_object(
+                    GameObject(Coord(current_x, y), sprite_name_flask)
+                )
+                current_x += 1
+                # TODO : c'est pas géré si on a des prix avec plus de 2 flasks. Mais c'est pas trop censé arriver.
+                if price_flask > 1:
+                    layer_dest.add_game_object(
+                        GameObject(Coord(current_x, y), sprite_name_flask)
+                    )
+                    current_x += 1
+                current_x += 1
+                rendered_price_elem = True
+
+
+class MainShop():
+
+    def __init__(self, rect_shop, layer_shop_ihm):
+        self.rect_shop = rect_shop
+        self.layer_shop_ihm = layer_shop_ihm
+        self.rect_layer = squarity.Rect(
+            0, 0, self.layer_shop_ihm.w, self.layer_shop_ihm.h
+        )
+        self.buyables = [
+            BuyableElem(1, [0, 0, 0], "dome_ground_base"),
+            BuyableElem(0, [1, 0, 1], "dome_ground_base"),
+            BuyableElem(0, [0, 1, 0], "dome_ground_base"),
+            BuyableElem(15, [2, 2, 2], "dome_ground_base"),
+        ]
+
+    def compute_shop_ihm(self):
+        # TODO LIB : une fonction dans la lib pour enlever tous les gobjs d'un layer.
+        # TODO : il faut indiquer les ressources qu'on a, en haut de la shop ihm. (Avec des grosses fioles)
+        for coord in squarity.Sequencer.iter_on_rect(self.rect_layer):
+            self.layer_shop_ihm.remove_at_coord(coord)
+        gobj = GameObject(Coord(1, 1), "shopkeeper")
+        self.layer_shop_ihm.add_game_object(gobj)
+        current_y = 4
+        for buyable in self.buyables:
+            buyable.render_in_shop(self.layer_shop_ihm, current_y)
+            for x in range(1, self.rect_layer.w - 1):
+                self.layer_shop_ihm.add_game_object(
+                    GameObject(Coord(x, current_y + 1), "window_lit_sep")
+                )
+            current_y += 2
+
+"""
+Comment on gère le placement d'un building dans l'aire de jeu ?
+C'est le MainShop qui le gère, parce que y'a que ce truc là qui déclenche des placements de building.
+Il y a des buildings qui demandent de sélectionner une case (genre le nettoyeur de baril),
+mais aucun building (à part le MainShop) qui demandent de construire un autre building.
+
+On a le booleen shop_opened qui doit être dans le MainShop. Pour capter les clics, ou pas.
+
+Dans le MainShop, on a aussi un rect de placement, qui peut être None.
+Quand il est pas None, on capte les clics et on exécute la fonction de vérif de placement.
+(qu'il faut confirmer en cliquant 2 fois, donc y'a un autre état pour ça).
+
+On peut annuler un placement, en cliquant sur le MainShop.
+Il faudra un icône d'annulation, genre une flèche bleue vers l'arrière.
+
+Il faut une classe générique Building, avec :
+ - le rect,
+ - le game object de représentation dans le MainShop, quand on veut l'acheter,
+ - la fonction à exécuter quand le building est placé. (en paramètre, le layer des buildings).
+"""
+
+
 # Ça changera selon les niveaux.
 SHOP_POSITION = Coord(1, 3)
 
@@ -861,15 +1006,24 @@ class GameModel(squarity.GameModelBase):
         # Contient les objets : dome_color_xxxx
         self.layer_movable_objs_2 = squarity.Layer(self, self.w, self.h, True)
         self.layers.append(self.layer_movable_objs_2)
+        # Contient les croix rouge indiquant qu'on a mal posé un dôme.
+        # TODO : Faudrait plus, sinon ça mérite pas de créer un layer pour ça.
         self.layer_ihm = squarity.Layer(self, self.w, self.h, False)
         self.layers.append(self.layer_ihm)
+        self.layer_window_bg = squarity.Layer(self, self.w, self.h, False)
+        self.layer_window = squarity.Layer(self, self.w, self.h, False)
+        self.layer_shop_ihm = squarity.Layer(self, self.w, self.h, False)
         self.gobjs_red_crosses = []
         self.ended_game = False
         self.end_game_phrase = ""
         self.score = 0
+        self.active_ihm_layer_indexes = []
+        self.shop_opened = False
 
         self.rect_shop = squarity.Rect(SHOP_POSITION.x, SHOP_POSITION.y, 2, 2)
         self.loot_manager = LootManager(self.layer_movable_objs_1, self.rect_shop)
+        self.main_shop = MainShop(self.rect_shop, self.layer_shop_ihm)
+        self.init_window_shop()
 
         rect_dome_zone = squarity.Rect(0, 0, 9, 12)
         for c in squarity.RectIterator(self.rect):
@@ -911,13 +1065,59 @@ class GameModel(squarity.GameModelBase):
         desac_dome = DesacDome(self, DesacDomeShape.TSHAPE, Coord(6, 9), RadColor.PURPLE)
         self.desac_dome_manager.desac_domes.append(desac_dome)
 
-
         if INDEX_LEVEL == 1:
             self.put_barrels_level_1()
         else:
             self.put_barrels_level_2()
 
         self.layer_radact.compute_rad_indicators()
+
+    def init_window_shop(self):
+        corners = (
+            ("window_border_ul", Coord(0, 0)),
+            ("window_border_ur", Coord(self.w - 1, 0)),
+            ("window_border_dl", Coord(0, self.h - 1)),
+            ("window_border_dr", Coord(self.w - 1, self.h - 1)),
+        )
+        for sprite_name, coord in corners:
+            gobj = GameObject(coord, sprite_name)
+            self.layer_window.add_game_object(gobj)
+        for x in range(1, self.rect.w - 1):
+            gobj = GameObject(Coord(x, 0), "window_border_u")
+            self.layer_window.add_game_object(gobj)
+            gobj = GameObject(Coord(x, 3), "window_big_sep_i")
+            self.layer_window.add_game_object(gobj)
+            gobj = GameObject(Coord(x, self.rect.h - 1), "window_border_d")
+            self.layer_window.add_game_object(gobj)
+        for y in range(1, self.rect.h - 1):
+            gobj = GameObject(Coord(0, y), "window_border_l")
+            self.layer_window.add_game_object(gobj)
+            gobj = GameObject(Coord(self.rect.w - 1, y), "window_border_r")
+            self.layer_window.add_game_object(gobj)
+        gobj_sep = self.layer_window.get_game_objects(Coord(0, 3))[0]
+        gobj_sep.sprite_name = "window_big_sep_l"
+        gobj_sep = self.layer_window.get_game_objects(Coord(self.w - 1, 3))[0]
+        gobj_sep.sprite_name = "window_big_sep_r"
+        for coord in squarity.Sequencer.iter_on_rect(self.rect):
+            if self.rect.on_border(coord):
+                sprite_name = "window_bg_outer"
+            else:
+                sprite_name = "window_bg_inner"
+            gobj = GameObject(coord, sprite_name)
+            self.layer_window_bg.add_game_object(gobj)
+        # TODO LIB : une fonction layer.new_gobj, qui renvoie le gobj.
+        self.layer_window.add_game_object(
+            GameObject(Coord(self.w - 3, 1), "window_border_l")
+        )
+        self.layer_window.add_game_object(
+            GameObject(Coord(self.w - 2, 1), "window_button_close")
+        )
+        self.layer_window.add_game_object(
+            GameObject(Coord(self.w - 3, 2), "window_border_dl")
+        )
+        self.layer_window.add_game_object(
+            GameObject(Coord(self.w - 2, 2), "window_border_d")
+        )
 
     def put_barrels_level_1(self):
         forbidden_rect_1 = squarity.Rect(0, 0, 9, 13)
@@ -1122,12 +1322,57 @@ class GameModel(squarity.GameModelBase):
             return None
 
     def on_click(self, coord):
+        # TODO : Faut définir un mode : "normal", "désactivation de baril", "nettoyage de baril", ...
+        # Selon le mode, on exécute une fonction ou une autre.
+        # Il y a des actions qui sont toujours valable quel que soit le mode.
+        # Et il faut une fonction qui annule le mode en cours.
+        # Exemple : en mode "nettoyage de baril", on clique sur le main shop.
+        # Ça annule le truc en cours, et ça ouvre la boutique.
+        # Autre exemple : en mode "désactivation de baril", on clique sur un dôme.
+        # Ça annule la désactivation en cours, et ça en remet une autre, avec le nouveau dôme.
+        # Éventuellement, un cadre blanc flashy, autour du building ou de la partie de building concernée,
+        # qui indique le mode en cours.
+        #
+        # Quand il y a une interface d'ouvert (main shop, choix du dôme, ...) c'est aussi un mode.
+        # Mais un mode que quand il est désactivé, on enlève l'interface concernée.
+        #
+        # Et peut-être que ces modes pourraient être définies par des classes héritées de InteractionMode.
+        # Et le InteractionMode pourrait renvoyer un event, ou pas.
+
         if self.ended_game:
             print(self.end_game_phrase)
             return
+
+        if self.shop_opened:
+            close_shop = (
+                self.rect.on_border(coord) or
+                self.get_first_gobj(
+                    coord,
+                    ["window_button_close"],
+                    self.layer_window
+                )
+            )
+            if close_shop:
+                # TODO LIB : non mais là, j'aurais du gérer la variable "visible" des layers.
+                # C'est nimp ce qui se passe, là.
+                for layer_index in self.active_ihm_layer_indexes[::-1]:
+                    del self.layers[layer_index]
+                self.active_ihm_layer_indexes = []
+                self.shop_opened = False
+            return
+
+            #gobjs_ihm = self.layer_shop_ihm.get_game_objects(coord)
         if self.rect_shop.in_bounds(coord):
             money, flasks = self.loot_manager.get_amount()
             print(f"Vous avez {money} moulageiger et {flasks} fioles.")
+            self.main_shop.compute_shop_ihm()
+            self.layers.append(self.layer_window_bg)
+            self.active_ihm_layer_indexes.append(len(self.layers) - 1)
+            self.layers.append(self.layer_window)
+            self.active_ihm_layer_indexes.append(len(self.layers) - 1)
+            self.layers.append(self.layer_shop_ihm)
+            self.active_ihm_layer_indexes.append(len(self.layers) - 1)
+            self.shop_opened = True
             return
         if self.desac_dome_manager.process_dome_click(coord):
             return

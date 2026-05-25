@@ -644,6 +644,9 @@ Est-ce qu'on dit qu'une étoile rapporte un argent au début des niveaux où il 
 
 Est-ce qu'on dit que la maison coûte 50 argent ? Et qu'il faut la poser dans les 36 premiers tours ?
 
+Un niveau avec que des barils verts et violets, et seulement 3 barils jaunes, qui sont forcément pas sur les bords. Il faut les désactiver avec des dômes ronds car c'est le seul moyen d'acheter quelques dômes à pas cher, avec les fioles jaunes. (ou alors un peu plus que 3 barils jaunes, faut voir).
+
+
 ## Les étoiles
 
 Pour chaque niveau, on peut gagner entre 1 et 3 étoiles, selon sa config.
