@@ -297,6 +297,76 @@ class RadioactivityLayer(squarity.Layer):
             self.get_tile(c).compute_game_objects()
 
 
+class InteracResType(Enum):
+    NO_CHANGE = 0
+    SET_INTERAC_MODE = 1
+    STACK_INTERAC_MODE = 2
+    UNSTACK_INTERAC_MODE = 3
+
+
+class InteracResult():
+    def __init__(
+        self,
+        interac_res_type=InteracResType.NO_CHANGE,
+        next_interac_id=None,
+        event_result=None
+    ):
+        self.interac_res_type = interac_res_type
+        self.next_interac_id = next_interac_id
+        self.event_result = event_result
+
+
+class InteractionBase():
+    """
+    TODO : si ça marche, faut documenter ce truc un minimum.
+    """
+    def __init__(self, name, forbidden_interactions=None):
+        self.name = name
+        self.forbidden_interactions = (
+            [] if forbidden_interactions is None
+            else forbidden_interactions
+        )
+        self.can_change_interaction_mode = False
+        self.block_other_interactions = False
+
+    def try_to_change_interaction_mode(self, coord):
+        return None
+
+    def on_enter(self):
+        pass
+
+    def process_click(self, coord):
+        return None
+
+    def on_out(self):
+        pass
+
+
+class InteractionRevealTile(InteractionBase):
+
+    def __init__(
+        self,
+        name,
+        layer_radact,
+        layer_block,
+        end_game_with_fail,
+    ):
+        super().__init__(name)
+        self.layer_radact = layer_radact
+        self.layer_block = layer_block
+        # TODO : peut-être que la fin d'une partie (échec ou victoire)
+        # pourrait être un mode d'interaction spécifique.
+        self.end_game_with_fail = end_game_with_fail
+
+    def process_click(self, coord):
+        if self.layer_radact.get_tile(coord).barrel_strength:
+            self.end_game_with_fail(
+                "Fail !!! Cliquez sur Exécutez pour recommencer une partie."
+            )
+        else:
+            self.layer_block.remove_at_coord(coord)
+
+
 class DesacDomeShape(Enum):
     FULL = 0
     BORDER = 1
@@ -578,11 +648,13 @@ class DesacDome():
         return self.dome_rotations[self.rot_index_cur]
 
     def select(self):
+        print("aaaaa select", self.pos_upleft)
         self.selected = True
         for gobj in self.gobjs_show_selection:
             self.layer_dome.add_game_object(gobj)
 
     def unselect(self):
+        print("aaaaa unselect", self.pos_upleft)
         self.selected = False
         for gobj in self.gobjs_show_selection:
             self.layer_dome.remove_game_object(gobj)
@@ -682,7 +754,7 @@ class DesacDome():
             )
 
 
-class DesacDomeManager():
+class InteractionUseDesacDome(InteractionBase):
     """
     Manager de tous les dômes placés dans l'aire de jeu.
 
@@ -692,39 +764,101 @@ class DesacDomeManager():
     Mais c'est toujours le GameModel qui désactive les barils.
     """
 
-    def __init__(self, layer_ihm):
+    def __init__(
+        self,
+        name,
+        layer_ihm,
+        end_game_with_fail,
+        process_desactivation_anim
+    ):
+        super().__init__(name)
+        self.can_change_interaction_mode = True
         self.layer_ihm = layer_ihm
+        self.end_game_with_fail = end_game_with_fail
+        self.process_desactivation_anim = process_desactivation_anim
         self.desac_domes = []
         self.selected_dome = None
         self.gobjs_red_crosses = []
 
-    def process_dome_click(self, coord):
+    def try_to_change_interaction_mode(self, coord):
         for desac_dome in self.desac_domes:
             if desac_dome.selection_rect.in_bounds(coord):
-                if self.selected_dome is not None:
-                    self.selected_dome.unselect()
-                if self.selected_dome != desac_dome:
-                    desac_dome.select()
-                    self.selected_dome = desac_dome
-                else:
-                    self.selected_dome = None
-                return True
-        return False
+                self.selected_dome = desac_dome
+                return InteracResult(
+                    InteracResType.SET_INTERAC_MODE,
+                    "use_desac_dome"
+                )
 
-    def process_desac_try(self, coord_desac):
+    def on_enter(self):
+        self.selected_dome.select()
+
+    def process_click(self, coord):
+
+        for desac_dome in self.desac_domes:
+            if desac_dome.selection_rect.in_bounds(coord):
+                if self.selected_dome == desac_dome:
+                    # TODO : default InteracResType, when next_interac_id is defined.
+                    return InteracResult(
+                        InteracResType.SET_INTERAC_MODE,
+                        "reveal_tile"
+                    )
+                else:
+                    self.selected_dome.unselect()
+                    self.selected_dome = desac_dome
+                    self.selected_dome.select()
+                return
+
+        desac_result = self._process_desac_try(coord)
+        if desac_result.has_failed_from_reveals():
+            #print("need to remove red crosses.")
+            event_result = squarity.EventResult()
+            event_result.add_delayed_callback(
+                squarity.DelayedCallBack(
+                    700,
+                    self.remove_red_crosses
+                )
+            )
+            return InteracResult(event_result=event_result)
+        elif desac_result.is_desactivation_ok():
+            event_result = squarity.EventResult()
+            func = lambda: self.process_desactivation_anim(desac_result)
+            event_result.add_delayed_callback(squarity.DelayedCallBack(1, func))
+            event_result.plocks_custom.append("lock_desactivation")
+            return InteracResult(
+                InteracResType.SET_INTERAC_MODE,
+                next_interac_id="reveal_tile",
+                event_result=event_result
+            )
+        else:
+            # TODO : là, faudrait juste casser le dôme, et non pas terminer le jeu.
+            self.end_game_with_fail(
+                "Fail !! Mauvaise couleur, ou bien pas de baril !!! Cliquez sur Exécutez pour recommencer une partie."
+            )
+            print("zut")
+
+    def on_out(self):
+        print("on out use dome")
+        # TODO : on devrait pas avoir besoin de checker ce truc.
+        if self.selected_dome:
+            print("unselect")
+            self.selected_dome.unselect()
+        self.selected_dome = None
+
+    def add_desac_dome(self, desac_dome):
+        self.desac_domes.append(desac_dome)
+
+    def _process_desac_try(self, coord_desac):
         desac_result = self.selected_dome.check_desactivation(coord_desac)
         #print("desac_result", desac_result.desac_res)
         #print(desac_result.failed_coords, desac_result.rot_index)
 
         if desac_result.has_failed_from_reveals():
-
             for failed_coord in desac_result.failed_coords:
                 gobj = GameObject(failed_coord, "red_cross")
                 self.gobjs_red_crosses.append(gobj)
                 self.layer_ihm.add_game_object(gobj)
 
         elif desac_result.is_desactivation_ok():
-
             self.selected_dome.unselect()
             fixed_desac_dome = self.selected_dome.dome_rotations[
                 desac_result.rot_index
@@ -766,6 +900,9 @@ class LootManager():
     def get_amount(self):
         return self.money, self.flasks
 
+    def get_score(self):
+        return self.money + sum(self.flasks)
+
     def _add_transitions_to_gobj_loot(self, gobj_loot, delay_index, coord_start, area_offset_start):
         delay_before_move = 800 + delay_index * 50
         dist = (
@@ -797,7 +934,6 @@ class LootManager():
                         )
                     )
                 )
-
 
     def add_loot_gobjs_from_desac(self, fixed_desac_dome, color, coord_desac):
         gobjs_loot_added = []
@@ -986,6 +1122,70 @@ Il faut une classe générique Building, avec :
 """
 
 
+class InteractionMainShop(InteractionBase):
+
+    def __init__(
+        self,
+        layers,
+        main_shop,
+        loot_manager,
+        layer_window_bg,
+        layer_window,
+        layer_shop_ihm,
+    ):
+        super().__init__("main_shop")
+        self.can_change_interaction_mode = True
+        self.block_other_interactions = True
+
+        self.active_ihm_layer_indexes = []
+        self.layers = layers
+        self.main_shop = main_shop
+        self.loot_manager = loot_manager
+        self.layer_window_bg = layer_window_bg
+        self.layer_window = layer_window
+        self.layer_shop_ihm = layer_shop_ihm
+        self.rect = squarity.Rect(
+            0, 0, self.layer_window.w, self.layer_window.h
+        )
+
+    def on_enter(self):
+        money, flasks = self.loot_manager.get_amount()
+        print(f"Vous avez {money} moulageiger et {flasks} fioles.")
+        self.main_shop.compute_shop_ihm()
+        self.layers.append(self.layer_window_bg)
+        self.active_ihm_layer_indexes.append(len(self.layers) - 1)
+        self.layers.append(self.layer_window)
+        self.active_ihm_layer_indexes.append(len(self.layers) - 1)
+        self.layers.append(self.layer_shop_ihm)
+        self.active_ihm_layer_indexes.append(len(self.layers) - 1)
+
+    def try_to_change_interaction_mode(self, coord):
+        if self.main_shop.rect_shop.in_bounds(coord):
+            return InteracResult(
+                InteracResType.STACK_INTERAC_MODE,
+                "main_shop"
+            )
+
+    def process_click(self, coord):
+        close_shop = self.rect.on_border(coord)
+        if not close_shop:
+            sprite_names_on_coord = [
+                gobj.sprite_name
+                for gobj
+                in self.layer_window.get_game_objects(coord)
+            ]
+            close_shop = "window_button_close" in sprite_names_on_coord
+        if close_shop:
+            return InteracResult(InteracResType.UNSTACK_INTERAC_MODE)
+
+    def on_out(self):
+        # TODO LIB : non mais là, j'aurais du gérer la variable "visible" des layers.
+        # C'est nimp ce qui se passe, là.
+        for layer_index in self.active_ihm_layer_indexes[::-1]:
+            del self.layers[layer_index]
+        self.active_ihm_layer_indexes = []
+
+
 # Ça changera selon les niveaux.
 SHOP_POSITION = Coord(1, 3)
 
@@ -1016,14 +1216,41 @@ class GameModel(squarity.GameModelBase):
         self.gobjs_red_crosses = []
         self.ended_game = False
         self.end_game_phrase = ""
-        self.score = 0
-        self.active_ihm_layer_indexes = []
-        self.shop_opened = False
-
+        # TODO : faut pas passer les name en param. C'est en dur dans la classe héritée.
+        self.interact_mode_reveal = InteractionRevealTile(
+            "reveal_tile",
+            self.layer_radact,
+            self.layer_block,
+            self.end_game_with_fail
+        )
+        self.interact_mode_use_desac_dome = InteractionUseDesacDome(
+            "use_desac_dome",
+            self.layer_ihm,
+            self.end_game_with_fail,
+            self.process_desactivation_anim,
+        )
+        self.cur_interac_mode = self.interact_mode_reveal
+        self.stacked_interact_mode = []
         self.rect_shop = squarity.Rect(SHOP_POSITION.x, SHOP_POSITION.y, 2, 2)
         self.loot_manager = LootManager(self.layer_movable_objs_1, self.rect_shop)
         self.main_shop = MainShop(self.rect_shop, self.layer_shop_ihm)
         self.init_window_shop()
+
+        self.interact_mode_main_shop = InteractionMainShop(
+            self.layers,
+            self.main_shop,
+            self.loot_manager,
+            self.layer_window_bg,
+            self.layer_window,
+            self.layer_shop_ihm,
+        )
+
+        # TODO : faut gérer les interaction_id mieux que ça. Et y'a un nom de variable pourri "name" à changer.
+        self.interaction_modes = {
+            "reveal_tile": self.interact_mode_reveal,
+            "use_desac_dome": self.interact_mode_use_desac_dome,
+            "main_shop": self.interact_mode_main_shop,
+        }
 
         rect_dome_zone = squarity.Rect(0, 0, 9, 12)
         for c in squarity.RectIterator(self.rect):
@@ -1039,31 +1266,30 @@ class GameModel(squarity.GameModelBase):
             "building_shop"
         )
         self.layer_background.add_game_object(self.gobj_shop)
-        self.desac_dome_manager = DesacDomeManager(self.layer_ihm)
         desac_dome = DesacDome(self, DesacDomeShape.FULL, Coord(3, 0), RadColor.GREEN)
-        self.desac_dome_manager.desac_domes.append(desac_dome)
+        self.interact_mode_use_desac_dome.add_desac_dome(desac_dome)
         desac_dome = DesacDome(self, DesacDomeShape.BORDER, Coord(3, 3), RadColor.GREEN)
-        self.desac_dome_manager.desac_domes.append(desac_dome)
+        self.interact_mode_use_desac_dome.add_desac_dome(desac_dome)
         desac_dome = DesacDome(self, DesacDomeShape.CORNER, Coord(3, 6), RadColor.GREEN)
-        self.desac_dome_manager.desac_domes.append(desac_dome)
+        self.interact_mode_use_desac_dome.add_desac_dome(desac_dome)
         desac_dome = DesacDome(self, DesacDomeShape.TSHAPE, Coord(3, 9), RadColor.GREEN)
-        self.desac_dome_manager.desac_domes.append(desac_dome)
+        self.interact_mode_use_desac_dome.add_desac_dome(desac_dome)
         desac_dome = DesacDome(self, DesacDomeShape.FULL, Coord(0, 0), RadColor.YELLOW)
-        self.desac_dome_manager.desac_domes.append(desac_dome)
+        self.interact_mode_use_desac_dome.add_desac_dome(desac_dome)
         # desac_dome = DesacDome(self, DesacDomeShape.BORDER, Coord(0, 3), RadColor.YELLOW)
-        self.desac_dome_manager.desac_domes.append(desac_dome)
+        # self.interact_mode_use_desac_dome.add_desac_dome(desac_dome)
         desac_dome = DesacDome(self, DesacDomeShape.CORNER, Coord(0, 6), RadColor.YELLOW)
-        self.desac_dome_manager.desac_domes.append(desac_dome)
+        self.interact_mode_use_desac_dome.add_desac_dome(desac_dome)
         desac_dome = DesacDome(self, DesacDomeShape.TSHAPE, Coord(0, 9), RadColor.YELLOW)
-        self.desac_dome_manager.desac_domes.append(desac_dome)
+        self.interact_mode_use_desac_dome.add_desac_dome(desac_dome)
         desac_dome = DesacDome(self, DesacDomeShape.FULL, Coord(6, 0), RadColor.PURPLE)
-        self.desac_dome_manager.desac_domes.append(desac_dome)
+        self.interact_mode_use_desac_dome.add_desac_dome(desac_dome)
         desac_dome = DesacDome(self, DesacDomeShape.BORDER, Coord(6, 3), RadColor.PURPLE)
-        self.desac_dome_manager.desac_domes.append(desac_dome)
+        self.interact_mode_use_desac_dome.add_desac_dome(desac_dome)
         desac_dome = DesacDome(self, DesacDomeShape.CORNER, Coord(6, 6), RadColor.PURPLE)
-        self.desac_dome_manager.desac_domes.append(desac_dome)
+        self.interact_mode_use_desac_dome.add_desac_dome(desac_dome)
         desac_dome = DesacDome(self, DesacDomeShape.TSHAPE, Coord(6, 9), RadColor.PURPLE)
-        self.desac_dome_manager.desac_domes.append(desac_dome)
+        self.interact_mode_use_desac_dome.add_desac_dome(desac_dome)
 
         if INDEX_LEVEL == 1:
             self.put_barrels_level_1()
@@ -1072,6 +1298,7 @@ class GameModel(squarity.GameModelBase):
 
         self.layer_radact.compute_rad_indicators()
 
+    # TODO : ce serait bien de mettre ce truc dans la classe de l'interaction mode MainShop
     def init_window_shop(self):
         corners = (
             ("window_border_ul", Coord(0, 0)),
@@ -1195,16 +1422,16 @@ class GameModel(squarity.GameModelBase):
         self.layer_radact.compute_rad_indicators()
         if self.layer_radact.no_more_barrels():
             self.ended_game = True
-            self.score += 100
+            final_score = 100 + self.loot_manager.get_score()
             if INDEX_LEVEL == 1:
                 self.end_game_phrase = "Bravo !!! Augmentez de 1 la valeur de INDEX_LEVEL au début du code source, puis, relancez une partie"
             else:
-                if self.score > 119:
+                if final_score > 119:
                     self.end_game_phrase = "Bravo !!! Vous avez gagné ! Bientôt, de nouvelles versions de ce jeu seront créées."
                 else:
                     self.end_game_phrase = "Bravo !!! Vous avez gagné ! Essayez de faire un score d'au moins 120."
             print(self.end_game_phrase)
-            print(f"score: {self.score}")
+            print(f"score: {final_score}")
 
     def process_desactivation_anim(self, desac_result):
         # FUTURE LIB : c'est relou cette gestion avec des callbacks.
@@ -1279,47 +1506,14 @@ class GameModel(squarity.GameModelBase):
             ev.add_delayed_callback(squarity.DelayedCallBack(delay_ms, func))
         return ev
 
-    def process_click_normal_mode(self, coord):
-        if self.layer_radact.get_tile(coord).barrel_strength:
-            self.ended_game = True
-            self.end_game_phrase = "Fail !!! Cliquez sur Exécutez pour recommencer une partie."
-            for c in squarity.RectIterator(self.rect):
-                self.layer_block.remove_at_coord(c)
-            print(self.end_game_phrase)
-            print(f"score: {self.score}")
-        else:
-            self.layer_block.remove_at_coord(coord)
-        return None
-
-    def process_click_selected_dome(self, coord):
-        desac_result = self.desac_dome_manager.process_desac_try(coord)
-        if desac_result.has_failed_from_reveals():
-            #print("need to remove red crosses.")
-            ev = squarity.EventResult()
-            ev.add_delayed_callback(
-                squarity.DelayedCallBack(
-                    700,
-                    self.desac_dome_manager.remove_red_crosses
-                )
-            )
-            return ev
-        elif desac_result.is_desactivation_ok():
-            ev = squarity.EventResult()
-            if desac_result.desac_dome.shape == DesacDomeShape.FULL:
-                self.score += 1
-            func = lambda: self.process_desactivation_anim(desac_result)
-            ev.add_delayed_callback(squarity.DelayedCallBack(1, func))
-            ev.plocks_custom.append("lock_desactivation")
-            return ev
-        else:
-            # TODO : là, faudrait juste casser le dôme, et non pas terminer le jeu.
-            self.ended_game = True
-            self.end_game_phrase = "Fail !! Mauvais couleur, ou bien pas de baril !!! Cliquez sur Exécutez pour recommencer une partie."
-            for c in squarity.RectIterator(self.rect):
-                self.layer_block.remove_at_coord(c)
-            print(self.end_game_phrase)
-            print(f"score: {self.score}")
-            return None
+    def end_game_with_fail(self, end_game_phrase):
+        self.ended_game = True
+        self.end_game_phrase = end_game_phrase
+        for c in squarity.RectIterator(self.rect):
+            self.layer_block.remove_at_coord(c)
+        print(self.end_game_phrase)
+        score = self.loot_manager.get_score()
+        print(f"score: {score}")
 
     def on_click(self, coord):
         # TODO : Faut définir un mode : "normal", "désactivation de baril", "nettoyage de baril", ...
@@ -1338,46 +1532,54 @@ class GameModel(squarity.GameModelBase):
         #
         # Et peut-être que ces modes pourraient être définies par des classes héritées de InteractionMode.
         # Et le InteractionMode pourrait renvoyer un event, ou pas.
+        #
+        # Les fonctions exécutées par les modes sont des fonctions du GameModel. Comme ça y'a tout le bazar dedans.
+        # Une classe InteractionMode est juste un ensemble de trucs dans lequel on met des infos et des fonctions.
+        # Y'a pas vraiment de méthode dans InteractionMode.
+        # Y'a aussi des infos du genre : est-ce que le mode est dans la game area ou pas ?
+        # Ça permet de savoir si on détecte les clics sur la base ou les dômes, pour déclencher un changement de mode.
+        # Exemple : en mode "achat dans la base", c'est non. En mode "désactivation de baril" c'est oui.
 
+        # TODO : ceci devrait être un interaction mode, mais vu qu'il va dégager assez vite, on le garde là pour l'instant.
         if self.ended_game:
             print(self.end_game_phrase)
             return
 
-        if self.shop_opened:
-            close_shop = (
-                self.rect.on_border(coord) or
-                self.get_first_gobj(
-                    coord,
-                    ["window_button_close"],
-                    self.layer_window
-                )
-            )
-            if close_shop:
-                # TODO LIB : non mais là, j'aurais du gérer la variable "visible" des layers.
-                # C'est nimp ce qui se passe, là.
-                for layer_index in self.active_ihm_layer_indexes[::-1]:
-                    del self.layers[layer_index]
-                self.active_ihm_layer_indexes = []
-                self.shop_opened = False
-            return
+        interac_result = None
+        if not self.cur_interac_mode.block_other_interactions:
+            for interac_mode_name, interaction_mode in self.interaction_modes.items():
+                # TODO : gérer les forbidden interaction mode... ou pas.
+                if interaction_mode.can_change_interaction_mode and self.cur_interac_mode != interaction_mode:
+                    interac_result = interaction_mode.try_to_change_interaction_mode(coord)
+                    if interac_result is not None:
+                        break
 
-            #gobjs_ihm = self.layer_shop_ihm.get_game_objects(coord)
-        if self.rect_shop.in_bounds(coord):
-            money, flasks = self.loot_manager.get_amount()
-            print(f"Vous avez {money} moulageiger et {flasks} fioles.")
-            self.main_shop.compute_shop_ihm()
-            self.layers.append(self.layer_window_bg)
-            self.active_ihm_layer_indexes.append(len(self.layers) - 1)
-            self.layers.append(self.layer_window)
-            self.active_ihm_layer_indexes.append(len(self.layers) - 1)
-            self.layers.append(self.layer_shop_ihm)
-            self.active_ihm_layer_indexes.append(len(self.layers) - 1)
-            self.shop_opened = True
-            return
-        if self.desac_dome_manager.process_dome_click(coord):
-            return
-        if self.desac_dome_manager.selected_dome is None:
-            return self.process_click_normal_mode(coord)
+        if interac_result is None:
+            interac_result = self.cur_interac_mode.process_click(coord)
+
+        if interac_result is not None:
+            irt = interac_result.interac_res_type
+            if irt == InteracResType.SET_INTERAC_MODE:
+                self.cur_interac_mode.on_out()
+                self.cur_interac_mode = self.interaction_modes[
+                    interac_result.next_interac_id
+                ]
+                self.cur_interac_mode.on_enter()
+                print("new interac mode:", self.cur_interac_mode.name)
+            elif irt == InteracResType.STACK_INTERAC_MODE:
+                self.stacked_interact_mode.append(self.cur_interac_mode)
+                self.cur_interac_mode = self.interaction_modes[
+                    interac_result.next_interac_id
+                ]
+                self.cur_interac_mode.on_enter()
+                print("stack. new is:", self.cur_interac_mode.name)
+            elif irt == InteracResType.UNSTACK_INTERAC_MODE:
+                self.cur_interac_mode.on_out()
+                self.cur_interac_mode = self.stacked_interact_mode.pop(0)
+                print("unstack. back to:", self.cur_interac_mode.name)
+            event_result = interac_result.event_result
         else:
-            return self.process_click_selected_dome(coord)
+            event_result = None
+
+        return event_result
 
