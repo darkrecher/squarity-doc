@@ -104,6 +104,7 @@
     "plus_sign": [416, 256],
     "right_arrow": [448, 288],
     "semicolon": [448, 192],
+    "cancel_shop": [480, 224, 64, 64],
 
     "background": [0, 128]
   },
@@ -170,6 +171,10 @@ class RadTile(squarity.Tile):
 
     def deradioactivize(self):
         self.barrel_strength = 0
+
+    def remove_inactive_barrel(self):
+        if self.barrel_strength == 0:
+            self.barrel_color = None
 
     def compute_game_objects(self):
 
@@ -602,14 +607,40 @@ class DesacDome():
     """
     Un dôme spécifique, placé dans l'aire de jeu.
     Gère les rotations et la validation d'une désactivation.
+    Il peut être vide : on a la ground base (le carré gris), mais sans dôme.
+    La personne qui joue devra définir le dôme à mettre dessus.
     """
 
+    # TODO : parameter orders. pos_upleft on first
     def __init__(self, game, shape, pos_upleft, rad_color):
         self.game = game
         self.layer_dome = self.game.layer_movable_objs_1
         self.layer_color_indicator = self.game.layer_movable_objs_2
         self.shape = shape
         self.pos_upleft = pos_upleft.clone()
+        self.rad_color = rad_color
+        self.gobj_dome_cur = None
+        self.gobjs_show_selection = []
+        self.rot_index_cur = 0
+        self.selected = False
+        self.selection_rect = squarity.Rect(
+            self.pos_upleft.x, self.pos_upleft.y, 3, 3
+        )
+        # -- Placement du background --
+        # TODO LIB : faudrait qu'on puisse directement itérer avec un rect.
+        for coord_bg in squarity.Sequencer.iter_on_rect(self.selection_rect):
+            self.game.layer_background.remove_at_coord(coord_bg)
+        self.gobj_ground_base = GameObject(pos_upleft, "dome_ground_base")
+        self.game.layer_background.add_game_object(self.gobj_ground_base)
+
+        if shape is not None and rad_color is not None:
+            self.add_dome(shape, rad_color)
+        else:
+            self.shape = None
+            self.rad_color = None
+
+    def add_dome(self, shape, rad_color):
+        self.shape = shape
         self.rad_color = rad_color
         # -- Création des Fixed desactivation dome --
         # Au max, on a 4 instances de DesacDome, indiquant les différentes positions du dôme.
@@ -618,31 +649,19 @@ class DesacDome():
             FixedDesacDome(dome_conf, self.pos_upleft)
             for dome_conf in DESAC_DOME_CONFIGS[shape]
         ]
-        self.gobj_dome_cur = None
-        self.gobjs_show_selection = []
-        self.rot_index_cur = 0
-        self.selected = False
-        self.selection_rect = squarity.Rect(
-            self.pos_upleft.x, self.pos_upleft.y, 3, 3
-        )
-
-        # -- Placement du background --
-        # TODO LIB : faudrait qu'on puisse directement itérer avec un rect.
-        for coord_bg in squarity.Sequencer.iter_on_rect(self.selection_rect):
-            self.game.layer_background.remove_at_coord(coord_bg)
-        self.gobj_ground_base = GameObject(pos_upleft, "dome_ground_base")
-        self.game.layer_background.add_game_object(self.gobj_ground_base)
-
         # -- Placement du game object indiquant la couleur du dôme --
         sprite_name_col = "dome_color_" + NAME_FROM_RAD_COLOR[self.rad_color]
-        self.coord_color_indicator = pos_upleft.clone().move_by_vect(x=1, y=1)
+        self.coord_color_indic = self.pos_upleft.clone().move_by_vect(x=1, y=1)
         self.gobj_dome_color = GameObject(
-            self.coord_color_indicator,
+            self.coord_color_indic,
             sprite_name_col
         )
         self.layer_color_indicator.add_game_object(self.gobj_dome_color)
         # -- Placement du game object représentant le dôme --
         self._show_current_dome()
+
+    def has_dome(self):
+        return self.shape is not None and self.rad_color is not None
 
     def get_fixed_dome_cur(self):
         return self.dome_rotations[self.rot_index_cur]
@@ -783,11 +802,15 @@ class InteractionUseDesacDome(InteractionBase):
     def try_to_change_interaction_mode(self, coord):
         for desac_dome in self.desac_domes:
             if desac_dome.selection_rect.in_bounds(coord):
-                self.selected_dome = desac_dome
-                return InteracResult(
-                    InteracResType.SET_INTERAC_MODE,
-                    "use_desac_dome"
-                )
+                if desac_dome.has_dome():
+                    self.selected_dome = desac_dome
+                    return InteracResult(
+                        InteracResType.SET_INTERAC_MODE,
+                        "use_desac_dome"
+                    )
+                else:
+                    print("TODO : Ce dome est vide pour l'instant")
+                    desac_dome.add_dome(DesacDomeShape.TSHAPE, RadColor.PURPLE)
 
     def on_enter(self):
         self.selected_dome.select()
@@ -802,10 +825,12 @@ class InteractionUseDesacDome(InteractionBase):
                         InteracResType.SET_INTERAC_MODE,
                         "reveal_tile"
                     )
-                else:
+                elif desac_dome.has_dome():
                     self.selected_dome.unselect()
                     self.selected_dome = desac_dome
                     self.selected_dome.select()
+                else:
+                    print("TODO : Ce dome est vide pour l'instant")
                 return
 
         desac_result = self._process_desac_try(coord)
@@ -889,13 +914,27 @@ class LootManager():
         self.layer_loot = layer_loot
         self.coord_dest = rect_shop.coord_upleft()
         self.money = 0
-        self.flasks = [0, 0, 0]
+        # TODO WIP : faut commencer à 0, mais là, je teste des trucs.
+        self.flasks = [0, 10, 0]
 
-    def can_pay(self, pay_money, pay_flasks):
-        pass
+    def can_pay(self, money_to_pay, flasks_to_pay):
+        to_pay = [money_to_pay] + flasks_to_pay
+        owned = [self.money] + self.flasks
+        for to_p, ow in zip(to_pay, owned):
+            if to_p > ow:
+                return False
+        return True
 
-    def widthdraw(self, pay_money, pay_flasks):
-        pass
+    def can_buy(self, buyable_elem):
+        return self.can_pay(
+            buyable_elem.price_money, buyable_elem.price_flasks,
+        )
+
+    def widthdraw(self, price_money, price_flasks):
+        self.money -= price_money
+        # TODO : fucking constant 3
+        for index_col in range(3):
+            self.flasks[index_col] -= price_flasks[index_col]
 
     def get_amount(self):
         return self.money, self.flasks
@@ -1003,10 +1042,13 @@ class LootManager():
 
 class BuyableElem():
 
-    def __init__(self, price_money, price_flasks, shop_sprite_name):
+    def __init__(
+        self, price_money, price_flasks, shop_sprite_name, building_size=(3, 3)
+    ):
         self.price_money = price_money
         self.price_flasks = price_flasks
         self.shop_sprite_name = shop_sprite_name
+        self.building_size = building_size
         self.y_location = None
 
     def render_in_shop(self, layer_dest, y):
@@ -1083,6 +1125,7 @@ class MainShop():
             BuyableElem(0, [0, 1, 0], "dome_ground_base"),
             BuyableElem(15, [2, 2, 2], "dome_ground_base"),
         ]
+        self.selected_buyable = None
 
     def compute_shop_ihm(self):
         # TODO LIB : une fonction dans la lib pour enlever tous les gobjs d'un layer.
@@ -1099,6 +1142,19 @@ class MainShop():
                     GameObject(Coord(x, current_y + 1), "window_lit_sep")
                 )
             current_y += 2
+
+    def select_buyable(self, coord):
+        self.selected_buyable = None
+        if not(2 <= coord.x < self.rect_layer.w - 2):
+            return None
+        for buyable in self.buyables:
+            if buyable.y_location == coord.y:
+                self.selected_buyable = buyable
+                return self.selected_buyable
+        return None
+
+    def unselect(self):
+        self.selected_buyable = None
 
 """
 Comment on gère le placement d'un building dans l'aire de jeu ?
@@ -1178,6 +1234,18 @@ class InteractionMainShop(InteractionBase):
         if close_shop:
             return InteracResult(InteracResType.UNSTACK_INTERAC_MODE)
 
+        if self.main_shop.select_buyable(coord) is not None:
+            print("selected buyable", self.main_shop.selected_buyable)
+            if not self.loot_manager.can_buy(self.main_shop.selected_buyable):
+                # TODO : un feedback d'ihm meilleur pour montrer que c'est trop cher.
+                print("This thing is too expensive")
+                return None
+            else:
+                return InteracResult(
+                    InteracResType.SET_INTERAC_MODE, "place_building"
+                )
+        return None
+
     def on_out(self):
         # TODO LIB : non mais là, j'aurais du gérer la variable "visible" des layers.
         # C'est nimp ce qui se passe, là.
@@ -1186,12 +1254,77 @@ class InteractionMainShop(InteractionBase):
         self.active_ihm_layer_indexes = []
 
 
+class InteractionPlaceBuilding(InteractionBase):
+
+    def __init__(self, layer_ihm, main_shop, is_tile_buildable, add_building):
+        super().__init__("place_building")
+        self.layer_ihm = layer_ihm
+        self.main_shop = main_shop
+        self.is_tile_buildable = is_tile_buildable
+        self.add_building = add_building
+        self.block_other_interactions = True
+        self.rect = squarity.Rect(0, 0, self.layer_ihm.w, self.layer_ihm.h)
+        self.gobj_cancel = GameObject(
+            self.main_shop.rect_shop.coord_upleft(),
+            "cancel_shop"
+        )
+        self.building_size = None
+        self.building_coord_to_confirm = None
+
+    def on_enter(self):
+        self.layer_ihm.add_game_object(self.gobj_cancel)
+        self.building_size = self.main_shop.selected_buyable.building_size
+        self.building_coord_to_confirm = None
+
+    def process_click(self, coord):
+
+        if self.main_shop.rect_shop.in_bounds(coord):
+            return InteracResult(InteracResType.UNSTACK_INTERAC_MODE)
+
+        if self.building_coord_to_confirm is None:
+            rect_to_check = squarity.Rect(
+                coord.x, coord.y, *self.building_size
+            )
+            print("rect_to_check", rect_to_check)
+            showable_failed_coords = []
+            can_build = True
+            for c in squarity.Sequencer.iter_on_rect(rect_to_check):
+                if not self.rect.in_bounds(c):
+                    can_build = False
+                elif not self.is_tile_buildable(c):
+                    showable_failed_coords.append(c.clone())
+                    can_build = False
+            if not can_build:
+                # TODO : il faudra montrer visuellement les cases qui fail.
+                # TODO : si trop de fail, montrer visuellement le cancel de la shop.
+                # car on comprend pas forcément qu'on peut cancel en cliquant sur la shop.
+                print("build failed", showable_failed_coords)
+            else:
+                # TODO : montrer visuellement où la construction se fera.
+                print("possible build")
+                self.building_coord_to_confirm = coord.clone()
+
+        else:
+            if self.building_coord_to_confirm == coord:
+                print("TODO : Let's build !!!")
+                self.add_building(coord, "dome_ground_base")
+                return InteracResult(InteracResType.UNSTACK_INTERAC_MODE)
+            else:
+                # TODO : enlever le montrage de construction possible.
+                self.building_coord_to_confirm = None
+
+    def on_out(self):
+        self.layer_ihm.remove_game_object(self.gobj_cancel)
+
+
 # Ça changera selon les niveaux.
 SHOP_POSITION = Coord(1, 3)
 
 class GameModel(squarity.GameModelBase):
 
     def on_start(self):
+        # Contient les objets :
+        # carrés noirs, buildings (shop, dome_ground_base, ...)
         self.layer_background = self.layer_main
         # TODO LIB : les params width et height devraient être des params facultatifs.
         self.layer_radact = RadioactivityLayer(self, self.w, self.h, False)
@@ -1216,6 +1349,11 @@ class GameModel(squarity.GameModelBase):
         self.gobjs_red_crosses = []
         self.ended_game = False
         self.end_game_phrase = ""
+        # Layer dans lequel on mettra juste des booleans, pour dire où se trouve les buildings.
+        self.layer_has_building = squarity.Layer(self, self.w, self.h)
+        for c in squarity.Sequencer.iter_on_rect(self.rect):
+            tile = self.layer_has_building.get_tile(c)
+            tile.has_b = False
         # TODO : faut pas passer les name en param. C'est en dur dans la classe héritée.
         self.interact_mode_reveal = InteractionRevealTile(
             "reveal_tile",
@@ -1234,6 +1372,9 @@ class GameModel(squarity.GameModelBase):
         self.rect_shop = squarity.Rect(SHOP_POSITION.x, SHOP_POSITION.y, 2, 2)
         self.loot_manager = LootManager(self.layer_movable_objs_1, self.rect_shop)
         self.main_shop = MainShop(self.rect_shop, self.layer_shop_ihm)
+        for c in squarity.Sequencer.iter_on_rect(self.rect_shop):
+            tile = self.layer_has_building.get_tile(c)
+            tile.has_b = True
         self.init_window_shop()
 
         self.interact_mode_main_shop = InteractionMainShop(
@@ -1244,12 +1385,19 @@ class GameModel(squarity.GameModelBase):
             self.layer_window,
             self.layer_shop_ihm,
         )
+        self.interact_mode_place_building = InteractionPlaceBuilding(
+            self.layer_ihm,
+            self.main_shop,
+            self.is_tile_buildable,
+            self.add_building,
+        )
 
         # TODO : faut gérer les interaction_id mieux que ça. Et y'a un nom de variable pourri "name" à changer.
         self.interaction_modes = {
             "reveal_tile": self.interact_mode_reveal,
             "use_desac_dome": self.interact_mode_use_desac_dome,
             "main_shop": self.interact_mode_main_shop,
+            "place_building": self.interact_mode_place_building,
         }
 
         rect_dome_zone = squarity.Rect(0, 0, 9, 12)
@@ -1288,7 +1436,8 @@ class GameModel(squarity.GameModelBase):
         self.interact_mode_use_desac_dome.add_desac_dome(desac_dome)
         desac_dome = DesacDome(self, DesacDomeShape.CORNER, Coord(6, 6), RadColor.PURPLE)
         self.interact_mode_use_desac_dome.add_desac_dome(desac_dome)
-        desac_dome = DesacDome(self, DesacDomeShape.TSHAPE, Coord(6, 9), RadColor.PURPLE)
+        #desac_dome = DesacDome(self, DesacDomeShape.TSHAPE, Coord(6, 9), RadColor.PURPLE)
+        desac_dome = DesacDome(self, None, Coord(6, 9), None)
         self.interact_mode_use_desac_dome.add_desac_dome(desac_dome)
 
         if INDEX_LEVEL == 1:
@@ -1415,6 +1564,21 @@ class GameModel(squarity.GameModelBase):
     def is_revealed(self, coord):
         return not bool(self.layer_block.get_game_objects(coord))
 
+    def is_tile_buildable(self, coord):
+        """
+        Indique si la case aux coordonnées spécifiée peut avoir un building.
+        """
+        if not self.is_revealed(coord):
+            return False
+        tile_radact = self.layer_radact.get_tile(coord)
+        if tile_radact.barrel_strength:
+            return False
+        if sum(tile_radact.rad_strengths):
+            return False
+        if self.layer_has_building.get_tile(coord).has_b:
+            return False
+        return True
+
     def deradioactivize(self, coord):
         tile_to_deradact = self.layer_radact.get_tile(coord)
         tile_to_deradact.deradioactivize()
@@ -1484,7 +1648,7 @@ class GameModel(squarity.GameModelBase):
                     ((dome_move_delay, fixed_desac_dome.coord_dome), )
                 )
             )
-            coord_return_color = desac_result.desac_dome.coord_color_indicator
+            coord_return_color = desac_result.desac_dome.coord_color_indic
             desac_result.desac_dome.gobj_dome_color.add_transition(
                 squarity.TransitionSteps(
                     "coord",
@@ -1505,6 +1669,21 @@ class GameModel(squarity.GameModelBase):
             func = lambda: self.process_desactivation_anim(desac_result)
             ev.add_delayed_callback(squarity.DelayedCallBack(delay_ms, func))
         return ev
+
+    def add_building(self, pos_upleft, building_type):
+        if building_type != "dome_ground_base":
+            raise NotImplemented("TODO buildings!!")
+        # TODO : une petite animation de construction de building, ce serait classe !
+        desac_dome = DesacDome(self, None, pos_upleft, None)
+        self.interact_mode_use_desac_dome.add_desac_dome(desac_dome)
+        rect_dome = squarity.Rect(pos_upleft.x, pos_upleft.y, 3, 3)
+        for c in squarity.Sequencer.iter_on_rect(rect_dome):
+            # TODO : faut enlever le barrel, mais ce serait pas à cet endroit là.
+            tile_radact = self.layer_radact.get_tile(c)
+            tile_radact.remove_inactive_barrel()
+            tile_radact.compute_game_objects()
+            tile = self.layer_has_building.get_tile(c)
+            tile.has_b = True
 
     def end_game_with_fail(self, end_game_phrase):
         self.ended_game = True
