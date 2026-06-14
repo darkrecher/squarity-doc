@@ -114,7 +114,7 @@
   }
 }
 """
-# "building_shop": [256, 192, 64, 64],
+
 INDEX_LEVEL = 1
 
 import random
@@ -124,6 +124,9 @@ Coord = squarity.Coord
 dirs = squarity.dirs
 GameObject = squarity.GameObject
 
+# TODO : init d'une variable globale : GAME_RECT = Rect(0, 0, 30, 20).
+# Pour éviter d'avoir à se trimbaler des rect et des w, h de partout.
+# Et tant pis si c'est en dur. Y'aura qu'à raise une exception dès le début.
 
 class RadColor(IntEnum):
     YELLOW = 0
@@ -634,12 +637,12 @@ class DesacDome():
         self.game.layer_background.add_game_object(self.gobj_ground_base)
 
         if shape is not None and rad_color is not None:
-            self.add_dome(shape, rad_color)
+            self.define_dome(shape, rad_color)
         else:
             self.shape = None
             self.rad_color = None
 
-    def add_dome(self, shape, rad_color):
+    def define_dome(self, shape, rad_color):
         self.shape = shape
         self.rad_color = rad_color
         # -- Création des Fixed desactivation dome --
@@ -802,15 +805,11 @@ class InteractionUseDesacDome(InteractionBase):
     def try_to_change_interaction_mode(self, coord):
         for desac_dome in self.desac_domes:
             if desac_dome.selection_rect.in_bounds(coord):
-                if desac_dome.has_dome():
-                    self.selected_dome = desac_dome
-                    return InteracResult(
-                        InteracResType.SET_INTERAC_MODE,
-                        "use_desac_dome"
-                    )
-                else:
-                    print("TODO : Ce dome est vide pour l'instant")
-                    desac_dome.add_dome(DesacDomeShape.TSHAPE, RadColor.PURPLE)
+                self.selected_dome = desac_dome
+                return InteracResult(
+                    InteracResType.SET_INTERAC_MODE,
+                    "use_desac_dome"
+                )
 
     def on_enter(self):
         self.selected_dome.select()
@@ -913,9 +912,9 @@ class LootManager():
     def __init__(self, layer_loot, rect_shop):
         self.layer_loot = layer_loot
         self.coord_dest = rect_shop.coord_upleft()
-        self.money = 0
         # TODO WIP : faut commencer à 0, mais là, je teste des trucs.
-        self.flasks = [0, 10, 0]
+        self.money = 5
+        self.flasks = [0, 0, 0]
 
     def can_pay(self, money_to_pay, flasks_to_pay):
         to_pay = [money_to_pay] + flasks_to_pay
@@ -926,15 +925,17 @@ class LootManager():
         return True
 
     def can_buy(self, buyable_elem):
-        return self.can_pay(
-            buyable_elem.price_money, buyable_elem.price_flasks,
-        )
+        b = buyable_elem
+        return self.can_pay(b.price_money, b.price_flasks)
 
     def widthdraw(self, price_money, price_flasks):
         self.money -= price_money
         # TODO : fucking constant 3
         for index_col in range(3):
             self.flasks[index_col] -= price_flasks[index_col]
+
+    def buy(self, buyable_elem):
+        self.widthdraw(buyable_elem.price_money, buyable_elem.price_flasks)
 
     def get_amount(self):
         return self.money, self.flasks
@@ -1043,12 +1044,14 @@ class LootManager():
 class BuyableElem():
 
     def __init__(
-        self, price_money, price_flasks, shop_sprite_name, building_size=(3, 3)
+        self, price_money, price_flasks, shop_sprite_name, building_size=(3, 3), unlock_id=None, buyable_once=True
     ):
         self.price_money = price_money
         self.price_flasks = price_flasks
         self.shop_sprite_name = shop_sprite_name
         self.building_size = building_size
+        self.unlock_id = unlock_id
+        self.buyable_once = buyable_once
         self.y_location = None
 
     def render_in_shop(self, layer_dest, y):
@@ -1080,7 +1083,7 @@ class BuyableElem():
             layer_dest.add_game_object(
                 GameObject(Coord(current_x + 1, y), "money")
             )
-            if self.price_money > 10:
+            if self.price_money >= 10:
                 layer_dest.add_game_object(
                     GameObject(Coord(current_x, y), f"digi_ten_{self.price_money // 10}")
                 )
@@ -1119,17 +1122,32 @@ class MainShop():
         self.rect_layer = squarity.Rect(
             0, 0, self.layer_shop_ihm.w, self.layer_shop_ihm.h
         )
+
+        self.locked_buyables = {
+            "money_2": [BuyableElem(10, [0, 0, 0], "dome_ground_base", unlock_id="money_3")],
+            "money_3": [BuyableElem(30, [0, 0, 0], "dome_ground_base", unlock_id="money_4")],
+            "money_4": [BuyableElem(60, [0, 0, 0], "dome_ground_base", unlock_id="money_5")],
+            "money_5": [BuyableElem(100, [0, 0, 0], "dome_ground_base", unlock_id="money_6")],
+            "money_6": [BuyableElem(150, [0, 0, 0], "dome_ground_base")],
+            "flasks": [
+                BuyableElem(50, [2, 2, 0], "dome_ground_base"),
+                BuyableElem(50, [2, 0, 2], "dome_ground_base"),
+                BuyableElem(50, [0, 2, 2], "dome_ground_base"),
+            ]
+        }
         self.buyables = [
-            BuyableElem(1, [0, 0, 0], "dome_ground_base"),
-            BuyableElem(0, [1, 0, 1], "dome_ground_base"),
-            BuyableElem(0, [0, 1, 0], "dome_ground_base"),
-            BuyableElem(15, [2, 2, 2], "dome_ground_base"),
+            BuyableElem(5, [0, 0, 0], "dome_ground_base", unlock_id="money_2"),
+            BuyableElem(0, [1, 0, 0], "dome_ground_base", unlock_id="flasks"),
+            BuyableElem(0, [0, 1, 0], "dome_ground_base", unlock_id="flasks"),
+            BuyableElem(0, [0, 0, 1], "dome_ground_base", unlock_id="flasks"),
         ]
         self.selected_buyable = None
 
     def compute_shop_ihm(self):
         # TODO LIB : une fonction dans la lib pour enlever tous les gobjs d'un layer.
         # TODO : il faut indiquer les ressources qu'on a, en haut de la shop ihm. (Avec des grosses fioles)
+        # TODO : c'est bourrin, cette fonction est appelée à chaque ouverture de la shop.
+        #        on pète tout et on refait tout à chaque fois. Faut définir ce qui doit être pété et ce qui doit pas l'être.
         for coord in squarity.Sequencer.iter_on_rect(self.rect_layer):
             self.layer_shop_ihm.remove_at_coord(coord)
         gobj = GameObject(Coord(1, 1), "shopkeeper")
@@ -1152,6 +1170,24 @@ class MainShop():
                 self.selected_buyable = buyable
                 return self.selected_buyable
         return None
+
+    def acknowledge_buying(self, bought=None):
+        if bought is None:
+            bought = self.select_buyable
+        self.unselect()
+        unlock_id = bought.unlock_id
+        if bought.buyable_once:
+            self.buyables.remove(bought)
+        if unlock_id is not None:
+            locked_bs = self.locked_buyables.get(unlock_id)
+            if locked_bs is not None:
+                insert_at_start = sum(locked_bs[0].price_flasks) == 0
+                if insert_at_start:
+                    for buyable in locked_bs:
+                        self.buyables.insert(0, buyable)
+                else:
+                    self.buyables.extend(locked_bs)
+                del self.locked_buyables[unlock_id]
 
     def unselect(self):
         self.selected_buyable = None
@@ -1177,7 +1213,6 @@ Il faut une classe générique Building, avec :
  - la fonction à exécuter quand le building est placé. (en paramètre, le layer des buildings).
 """
 
-
 class InteractionMainShop(InteractionBase):
 
     def __init__(
@@ -1186,7 +1221,7 @@ class InteractionMainShop(InteractionBase):
         main_shop,
         loot_manager,
         layer_window_bg,
-        layer_window,
+        layer_window_shop,
         layer_shop_ihm,
     ):
         super().__init__("main_shop")
@@ -1198,10 +1233,10 @@ class InteractionMainShop(InteractionBase):
         self.main_shop = main_shop
         self.loot_manager = loot_manager
         self.layer_window_bg = layer_window_bg
-        self.layer_window = layer_window
+        self.layer_window_shop = layer_window_shop
         self.layer_shop_ihm = layer_shop_ihm
         self.rect = squarity.Rect(
-            0, 0, self.layer_window.w, self.layer_window.h
+            0, 0, self.layer_window_shop.w, self.layer_window_shop.h
         )
 
     def on_enter(self):
@@ -1210,7 +1245,7 @@ class InteractionMainShop(InteractionBase):
         self.main_shop.compute_shop_ihm()
         self.layers.append(self.layer_window_bg)
         self.active_ihm_layer_indexes.append(len(self.layers) - 1)
-        self.layers.append(self.layer_window)
+        self.layers.append(self.layer_window_shop)
         self.active_ihm_layer_indexes.append(len(self.layers) - 1)
         self.layers.append(self.layer_shop_ihm)
         self.active_ihm_layer_indexes.append(len(self.layers) - 1)
@@ -1226,9 +1261,8 @@ class InteractionMainShop(InteractionBase):
         close_shop = self.rect.on_border(coord)
         if not close_shop:
             sprite_names_on_coord = [
-                gobj.sprite_name
-                for gobj
-                in self.layer_window.get_game_objects(coord)
+                gobj.sprite_name for gobj
+                in self.layer_window_shop.get_game_objects(coord)
             ]
             close_shop = "window_button_close" in sprite_names_on_coord
         if close_shop:
@@ -1252,6 +1286,121 @@ class InteractionMainShop(InteractionBase):
         for layer_index in self.active_ihm_layer_indexes[::-1]:
             del self.layers[layer_index]
         self.active_ihm_layer_indexes = []
+
+
+class InteractionDefineDome(InteractionBase):
+
+    def __init__(
+        self,
+        layers,
+        layer_window_bg,
+        layer_window_define_dome,
+        define_dome,
+    ):
+        super().__init__("define_dome")
+        self.can_change_interaction_mode = True
+        self.block_other_interactions = True
+        self.layers = layers
+        self.layer_window_bg = layer_window_bg
+        self.layer_window_define_dome = layer_window_define_dome
+        self.define_dome = define_dome
+        self.empty_desac_domes = []
+        self.selected_dome = None
+        self.active_ihm_layer_indexes = []
+        self.rect = squarity.Rect(
+            0, 0, self.layer_window_define_dome.w, self.layer_window_define_dome.h
+        )
+        # Dict stockant les dômes définissables. (pas de classe juste pour ça)
+        # clé : rad_color, shape
+        # valeur : available, gobj_dome, gobj_color, rect d'interaction
+        self.available_domes = {}
+        for rad_color in RadColor:
+            for shape in DesacDomeShape:
+                self.available_domes[(rad_color, shape)] = (
+                    False, None, None, None
+                )
+        # TODO : mettre un gros séparateur dans la fenêtre (en fait, c'est générique à toutes les fenêtres)
+        # TODO : mettre un sprite de ground_dome_base en haut à gauche. Avec une transition classe, comme la tête du robot (qu'est pas encore faite mais ça va bien)
+
+    def try_to_change_interaction_mode(self, coord):
+        for desac_dome in self.empty_desac_domes:
+            if desac_dome.selection_rect.in_bounds(coord):
+                self.selected_dome = desac_dome
+                return InteracResult(
+                    InteracResType.STACK_INTERAC_MODE,
+                    "define_dome"
+                )
+
+    def on_enter(self):
+        self.layers.append(self.layer_window_bg)
+        self.active_ihm_layer_indexes.append(len(self.layers) - 1)
+        self.layers.append(self.layer_window_define_dome)
+        self.active_ihm_layer_indexes.append(len(self.layers) - 1)
+
+    def process_click(self, coord):
+        close_shop = self.rect.on_border(coord)
+        if not close_shop:
+            sprite_names_on_coord = [
+                gobj.sprite_name for gobj
+                in self.layer_window_define_dome.get_game_objects(coord)
+            ]
+            close_shop = "window_button_close" in sprite_names_on_coord
+        if close_shop:
+            return InteracResult(InteracResType.UNSTACK_INTERAC_MODE)
+
+        for key_dome, val_dome in self.available_domes.items():
+            active, _, __, rect_interac = val_dome
+            if active and rect_interac.in_bounds(coord):
+                rad_color, shape = key_dome
+                self.define_dome(self.selected_dome, rad_color, shape)
+                return InteracResult(InteracResType.UNSTACK_INTERAC_MODE)
+
+        return None
+
+    def on_out(self):
+        # TODO LIB : non mais là, j'aurais du gérer la variable "visible" des layers.
+        # C'est nimp ce qui se passe, là.
+        for layer_index in self.active_ihm_layer_indexes[::-1]:
+            del self.layers[layer_index]
+        self.active_ihm_layer_indexes = []
+        self.selected_dome = None
+
+    def make_rad_color_available(self, rad_color):
+        # TODO : mettre des cadres bleus autour de chaque dôme.
+        y = 6 + int(rad_color) * 4
+        x = 5
+        for shape in DesacDomeShape:
+            sprite_name_dome, coord_offset, *_ =  DESAC_DOME_CONFIGS[shape][0]
+            gobj_dome = GameObject(
+                Coord(x, y).move_by_vect(coord_offset),
+                sprite_name_dome
+            )
+            gobj_color = GameObject(
+                Coord(x, y).move_by_vect(x=1, y=1),
+                "dome_color_" + NAME_FROM_RAD_COLOR[rad_color]
+            )
+            rect_interac = squarity.Rect(x, y, 3, 3)
+            self.available_domes[(rad_color, shape)] = (
+                True, gobj_dome, gobj_color, rect_interac
+            )
+            self.layer_window_define_dome.add_game_object(gobj_dome)
+            self.layer_window_define_dome.add_game_object(gobj_color)
+            x += 5
+
+    # TODO : homogénéité ordre des params. Partout, c'est color puis shape.
+    def make_dome_unavailable(self, rad_color, shape):
+        _, gobj_dome, gobj_color, __ = self.available_domes[(rad_color, shape)]
+        self.layer_window_define_dome.remove_game_object(gobj_dome)
+        self.layer_window_define_dome.remove_game_object(gobj_color)
+        self.available_domes[(rad_color, shape)] = (
+            False, None, None, None
+        )
+
+    def add_empty_desac_dome(self, desac_dome):
+        self.empty_desac_domes.append(desac_dome)
+
+    def remove_empty_desac_dome(self, desac_dome):
+        self.empty_desac_domes.remove(desac_dome)
 
 
 class InteractionPlaceBuilding(InteractionBase):
@@ -1307,7 +1456,11 @@ class InteractionPlaceBuilding(InteractionBase):
         else:
             if self.building_coord_to_confirm == coord:
                 print("TODO : Let's build !!!")
-                self.add_building(coord, "dome_ground_base")
+                self.add_building(
+                    coord,
+                    "dome_ground_base",
+                    self.main_shop.selected_buyable
+                )
                 return InteracResult(InteracResType.UNSTACK_INTERAC_MODE)
             else:
                 # TODO : enlever le montrage de construction possible.
@@ -1344,8 +1497,9 @@ class GameModel(squarity.GameModelBase):
         self.layer_ihm = squarity.Layer(self, self.w, self.h, False)
         self.layers.append(self.layer_ihm)
         self.layer_window_bg = squarity.Layer(self, self.w, self.h, False)
-        self.layer_window = squarity.Layer(self, self.w, self.h, False)
+        self.layer_window_shop = squarity.Layer(self, self.w, self.h, False)
         self.layer_shop_ihm = squarity.Layer(self, self.w, self.h, False)
+        self.layer_window_define_dome = squarity.Layer(self, self.w, self.h, False)
         self.gobjs_red_crosses = []
         self.ended_game = False
         self.end_game_phrase = ""
@@ -1375,6 +1529,8 @@ class GameModel(squarity.GameModelBase):
         for c in squarity.Sequencer.iter_on_rect(self.rect_shop):
             tile = self.layer_has_building.get_tile(c)
             tile.has_b = True
+        self.init_window_background(self.layer_window_bg)
+        self.init_window_base(self.layer_window_define_dome)
         self.init_window_shop()
 
         self.interact_mode_main_shop = InteractionMainShop(
@@ -1382,9 +1538,17 @@ class GameModel(squarity.GameModelBase):
             self.main_shop,
             self.loot_manager,
             self.layer_window_bg,
-            self.layer_window,
+            self.layer_window_shop,
             self.layer_shop_ihm,
         )
+        self.interact_mode_define_dome = InteractionDefineDome(
+            self.layers,
+            self.layer_window_bg,
+            self.layer_window_define_dome,
+            self.define_dome,
+        )
+        for rad_color in RadColor:
+            self.interact_mode_define_dome.make_rad_color_available(rad_color)
         self.interact_mode_place_building = InteractionPlaceBuilding(
             self.layer_ihm,
             self.main_shop,
@@ -1398,6 +1562,7 @@ class GameModel(squarity.GameModelBase):
             "use_desac_dome": self.interact_mode_use_desac_dome,
             "main_shop": self.interact_mode_main_shop,
             "place_building": self.interact_mode_place_building,
+            "define_dome": self.interact_mode_define_dome,
         }
 
         rect_dome_zone = squarity.Rect(0, 0, 9, 12)
@@ -1414,6 +1579,7 @@ class GameModel(squarity.GameModelBase):
             "building_shop"
         )
         self.layer_background.add_game_object(self.gobj_shop)
+        """
         desac_dome = DesacDome(self, DesacDomeShape.FULL, Coord(3, 0), RadColor.GREEN)
         self.interact_mode_use_desac_dome.add_desac_dome(desac_dome)
         desac_dome = DesacDome(self, DesacDomeShape.BORDER, Coord(3, 3), RadColor.GREEN)
@@ -1436,9 +1602,12 @@ class GameModel(squarity.GameModelBase):
         self.interact_mode_use_desac_dome.add_desac_dome(desac_dome)
         desac_dome = DesacDome(self, DesacDomeShape.CORNER, Coord(6, 6), RadColor.PURPLE)
         self.interact_mode_use_desac_dome.add_desac_dome(desac_dome)
+        self.interact_mode_define_dome.make_dome_unavailable(RadColor.PURPLE, DesacDomeShape.FULL)
         #desac_dome = DesacDome(self, DesacDomeShape.TSHAPE, Coord(6, 9), RadColor.PURPLE)
         desac_dome = DesacDome(self, None, Coord(6, 9), None)
-        self.interact_mode_use_desac_dome.add_desac_dome(desac_dome)
+        #self.interact_mode_use_desac_dome.add_desac_dome(desac_dome)
+        self.interact_mode_define_dome.add_empty_desac_dome(desac_dome)
+        """
 
         if INDEX_LEVEL == 1:
             self.put_barrels_level_1()
@@ -1447,53 +1616,63 @@ class GameModel(squarity.GameModelBase):
 
         self.layer_radact.compute_rad_indicators()
 
-    # TODO : ce serait bien de mettre ce truc dans la classe de l'interaction mode MainShop
-    def init_window_shop(self):
-        corners = (
-            ("window_border_ul", Coord(0, 0)),
-            ("window_border_ur", Coord(self.w - 1, 0)),
-            ("window_border_dl", Coord(0, self.h - 1)),
-            ("window_border_dr", Coord(self.w - 1, self.h - 1)),
-        )
-        for sprite_name, coord in corners:
-            gobj = GameObject(coord, sprite_name)
-            self.layer_window.add_game_object(gobj)
-        for x in range(1, self.rect.w - 1):
-            gobj = GameObject(Coord(x, 0), "window_border_u")
-            self.layer_window.add_game_object(gobj)
-            gobj = GameObject(Coord(x, 3), "window_big_sep_i")
-            self.layer_window.add_game_object(gobj)
-            gobj = GameObject(Coord(x, self.rect.h - 1), "window_border_d")
-            self.layer_window.add_game_object(gobj)
-        for y in range(1, self.rect.h - 1):
-            gobj = GameObject(Coord(0, y), "window_border_l")
-            self.layer_window.add_game_object(gobj)
-            gobj = GameObject(Coord(self.rect.w - 1, y), "window_border_r")
-            self.layer_window.add_game_object(gobj)
-        gobj_sep = self.layer_window.get_game_objects(Coord(0, 3))[0]
-        gobj_sep.sprite_name = "window_big_sep_l"
-        gobj_sep = self.layer_window.get_game_objects(Coord(self.w - 1, 3))[0]
-        gobj_sep.sprite_name = "window_big_sep_r"
-        for coord in squarity.Sequencer.iter_on_rect(self.rect):
+    # TODO : init_window_base et init_window_background à mettre dans une classe statique.
+    def init_window_background(self, layer_window_bg):
+        rect = squarity.Rect(0, 0, layer_window_bg.w, layer_window_bg.h)
+        for coord in squarity.Sequencer.iter_on_rect(rect):
             if self.rect.on_border(coord):
                 sprite_name = "window_bg_outer"
             else:
                 sprite_name = "window_bg_inner"
             gobj = GameObject(coord, sprite_name)
-            self.layer_window_bg.add_game_object(gobj)
+            layer_window_bg.add_game_object(gobj)
+
+    def init_window_base(self, layer_window):
+        w = layer_window.w
+        h = layer_window.h
+        corners = (
+            ("window_border_ul", Coord(0, 0)),
+            ("window_border_ur", Coord(w - 1, 0)),
+            ("window_border_dl", Coord(0, self.h - 1)),
+            ("window_border_dr", Coord(w - 1, h - 1)),
+        )
+        for sprite_name, coord in corners:
+            gobj = GameObject(coord, sprite_name)
+            layer_window.add_game_object(gobj)
+        for x in range(1, self.rect.w - 1):
+            gobj = GameObject(Coord(x, 0), "window_border_u")
+            layer_window.add_game_object(gobj)
+            gobj = GameObject(Coord(x, self.rect.h - 1), "window_border_d")
+            layer_window.add_game_object(gobj)
+        for y in range(1, self.rect.h - 1):
+            gobj = GameObject(Coord(0, y), "window_border_l")
+            layer_window.add_game_object(gobj)
+            gobj = GameObject(Coord(self.rect.w - 1, y), "window_border_r")
+            layer_window.add_game_object(gobj)
         # TODO LIB : une fonction layer.new_gobj, qui renvoie le gobj.
-        self.layer_window.add_game_object(
-            GameObject(Coord(self.w - 3, 1), "window_border_l")
+        layer_window.add_game_object(
+            GameObject(Coord(w - 3, 1), "window_border_l")
         )
-        self.layer_window.add_game_object(
-            GameObject(Coord(self.w - 2, 1), "window_button_close")
+        layer_window.add_game_object(
+            GameObject(Coord(w - 2, 1), "window_button_close")
         )
-        self.layer_window.add_game_object(
-            GameObject(Coord(self.w - 3, 2), "window_border_dl")
+        layer_window.add_game_object(
+            GameObject(Coord(w - 3, 2), "window_border_dl")
         )
-        self.layer_window.add_game_object(
-            GameObject(Coord(self.w - 2, 2), "window_border_d")
+        layer_window.add_game_object(
+            GameObject(Coord(w - 2, 2), "window_border_d")
         )
+
+    # TODO : ce serait bien de mettre ce truc dans la classe de l'interaction mode MainShop
+    def init_window_shop(self):
+        self.init_window_base(self.layer_window_shop)
+        for x in range(1, self.w - 1):
+            gobj = GameObject(Coord(x, 3), "window_big_sep_i")
+            self.layer_window_shop.add_game_object(gobj)
+        gobj_sep = self.layer_window_shop.get_game_objects(Coord(0, 3))[0]
+        gobj_sep.sprite_name = "window_big_sep_l"
+        gobj_sep = self.layer_window_shop.get_game_objects(Coord(self.w - 1, 3))[0]
+        gobj_sep.sprite_name = "window_big_sep_r"
 
     def put_barrels_level_1(self):
         forbidden_rect_1 = squarity.Rect(0, 0, 9, 13)
@@ -1670,20 +1849,32 @@ class GameModel(squarity.GameModelBase):
             ev.add_delayed_callback(squarity.DelayedCallBack(delay_ms, func))
         return ev
 
-    def add_building(self, pos_upleft, building_type):
+    def add_building(self, pos_upleft, building_type, selected_buyable):
         if building_type != "dome_ground_base":
             raise NotImplemented("TODO buildings!!")
         # TODO : une petite animation de construction de building, ce serait classe !
         desac_dome = DesacDome(self, None, pos_upleft, None)
-        self.interact_mode_use_desac_dome.add_desac_dome(desac_dome)
+        self.interact_mode_define_dome.add_empty_desac_dome(desac_dome)
         rect_dome = squarity.Rect(pos_upleft.x, pos_upleft.y, 3, 3)
+        if (
+            selected_buyable is not None
+            and self.main_shop.selected_buyable == selected_buyable
+        ):
+            self.loot_manager.buy(selected_buyable)
+            self.main_shop.acknowledge_buying(selected_buyable)
         for c in squarity.Sequencer.iter_on_rect(rect_dome):
-            # TODO : faut enlever le barrel, mais ce serait pas à cet endroit là.
+            # TODO : là on enlève le barrel, mais faut pas le faire à cet endroit là.
             tile_radact = self.layer_radact.get_tile(c)
             tile_radact.remove_inactive_barrel()
             tile_radact.compute_game_objects()
             tile = self.layer_has_building.get_tile(c)
             tile.has_b = True
+
+    def define_dome(self, dome_to_define, rad_color, shape):
+        dome_to_define.define_dome(shape, rad_color)
+        self.interact_mode_define_dome.remove_empty_desac_dome(dome_to_define)
+        self.interact_mode_define_dome.make_dome_unavailable(rad_color, shape)
+        self.interact_mode_use_desac_dome.add_desac_dome(dome_to_define)
 
     def end_game_with_fail(self, end_game_phrase):
         self.ended_game = True

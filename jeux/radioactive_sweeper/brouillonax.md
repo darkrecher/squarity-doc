@@ -364,7 +364,7 @@ Le max, c'est 12 dômes. Mais on peut s'arranger pour finir un jeu sans avoir le
 
 Prix progressif des dômes :
 
- - 0 argent (ben oui)
+ - 0 argent (ben oui) (ou alors 5)
  - 10
  - 30
  - 60
