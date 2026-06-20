@@ -311,7 +311,7 @@ Par défaut, les éléments à poser sont non déplaçable, sauf indication cont
 
 Trucs qu'on peut acheter :
  - boutique où on peut acheter tout le reste (on l'a déjà au départ). 2*2.
- - indicateur du nombre d'éprouvette à obtenir pour avoir une autre étoile. (on l'a déjà au départ). 1*1.
+ - indicateur du nombre d'éprouvette à obtenir pour avoir une autre étoile. (on l'a déjà au départ). 1*1. Selon le niveau, il faut obtenir X éprouvettes de n'importe quelle couleur, ou bien Y éprouvettes de chaque couleur (zézette épouse X).
  - la banque, qui donne de l'argent par rapport au nombre d'étoiles possédées. 1*1. (on l'a déjà au départ, sauf pour les premiers tutos). La banque des tutos est petite, elle donne un max de 20 argent. La banque des vrais niveaux est grande, pas de limite d'argent.
  - point d'interrogation de tutoriel. Lorsqu'on clique dessus, un objet de curseur de souris se déplace et indique successivement les endroits où il faut cliquer. (on l'a au départ). 1*1.
  - séparateur de couleurs (portée de 15 cases). Les cases révélées indique la quantité de radioactivité, et les couleurs qui la composent (sans qu'on ait le détail). 2*2. coût en argent.
@@ -510,6 +510,8 @@ On dispose des barils le long des 4 lignes de boutiques, avec une case vide ent
 Autour, même pattern, mais du coup on peut pas distinguer les verts et les violets car la propagation s'arrrêtera pareil. Et là, on utilise le nettoyeur de baril désactivé.
 
 ### Tuto 9 (la maison)
+
+C'est stupide cette histoire de maison. C'est intéressant que pour ce niveau et pas les vrais niveaux, donc on oublie.
 
 Boutique au milieu.
 
@@ -764,6 +766,46 @@ Si un dôme casse, ou si une désactivation n'est pas possible car on n'a pas r�
 
 L'animation de désactivation d'un baril est plus rapide quand on l'effectue via le mode dôme, par rapport à une désactivation "manuelle". C'est un autre avantage "Quality of Life" de cette construction permettant de poser les drapeaux.
 
+
+
+## Comment on pourrait ajouter des étoiles dans les niveaux.
+
+ - Une étoile pour la réussite simple. (ou pas)
+ - Une pour la réussite sans casser de dôme.
+ - Une pour avoir obtenu le nombre d'éprouvette requis.
+
+Qu'est-ce qu'on pourrait avoir d'autres ?
+
+Une pour des combos ? Isoler un groupe de X barils, et les détruire tous d'un coup, sans révéler de tile entre temps. On trace un carré pour annoncer le combo, et on les désactive ? C'est un peu trop compliqué.
+
+Quand on désactive un baril, les 9 cases autour deviennent brillantes. Si on redésactive un baril sur une de ces cases, ça fait un combo. Les 9 nouvelles cases deviennent brillantes (et les 9 anciennes le sont toujours, mais il y en a plusieurs en commun). Si on reredésactive un baril sur une case brillante, ça fait un recombo. Et ainsi de suite.
+
+Dès qu'on désactive un baril ailleurs, ou dès qu'on révèle une case, on débrille toutes les cases brillantes.
+
+Maintenant y'a plus qu'à expliquer ça de manière simple dans un tutoriel.
+
+Et comme ça on peut faire des niveaux dans lesquels on sait à l'avance qu'on a placé un combo de 5, de 6, etc.
+
+Yes !!!
+
+
+## Ajustement
+
+C'est pas très fun d'amasser des pièces d'or qui servent à rien, et qui vont être relou à équilibrer.
+
+Donc, c'est pas des pièces d'or, c'est des boulons. Leur fonctionnement encourage à faire des combos.
+
+Quand on désactive un baril (quel que soit le dôme), on gagne un boulon de fer, et toutes les cases non révélées adjacentes ont un boulon de fer dessiné dessus.
+
+Quand on désactive un baril sur un boulon de fer, on gagne deux boulon de fer, et toutes les cases non révélées adjacentes ont un boulon de bronze dessus, et les cases qui avaient déjà un boulon de fer deviennent avec boulon de bronze.
+
+Ensuite, boulon d'argent, et ainsi de suite.
+
+Tous les boulons s'annulent quand on révèle une case ou quand on désactive un baril n'ayant aucun boulon.
+
+Et faut tout rééquilibrer...
+
+Les dômes de border n'ont plus aucun intérêt. On les vire. Et faudra changer le prix des ground base. Faut que ça augmente plus.
 
 
 

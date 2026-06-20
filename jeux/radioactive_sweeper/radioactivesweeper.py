@@ -8,6 +8,7 @@
 # TODO : faire un vrai dessin pour window_button_close.
 # TODO : des fioles un peu plus grosses
 # TODO : un dessin pour afficher en grisé les objets de boutiques qu'on peut pas acheter.
+# TODO : redessiner les barils, vu de haut.
 
 """
 {
@@ -81,7 +82,7 @@
 
     "building_shop": [256, 192, 64, 64],
     "shopkeeper": [192, 192, 64, 64],
-    "money": [160, 192],
+    "money": [160, 192, 32, 32, "center"],
     "flask_ylw": [96, 224, 32, 32, "center"],
     "flask_grn": [128, 224, 32, 32, "center"],
     "flask_prp": [160, 224, 32, 32, "center"],
@@ -105,6 +106,24 @@
     "right_arrow": [448, 288],
     "semicolon": [448, 192],
     "cancel_shop": [480, 224, 64, 64],
+
+    "ihm_rect_red_0": [512, 128],
+    "ihm_rect_red_1": [544, 128],
+    "ihm_rect_red_2": [544, 160],
+    "ihm_rect_red_3": [544, 192],
+    "ihm_rect_red_4": [512, 192],
+    "ihm_rect_red_5": [480, 192],
+    "ihm_rect_red_6": [480, 160],
+    "ihm_rect_red_7": [480, 128],
+    "ihm_rect_green_0": [608, 128],
+    "ihm_rect_green_1": [640, 128],
+    "ihm_rect_green_2": [640, 160],
+    "ihm_rect_green_3": [640, 192],
+    "ihm_rect_green_4": [608, 192],
+    "ihm_rect_green_5": [576, 192],
+    "ihm_rect_green_6": [576, 160],
+    "ihm_rect_green_7": [576, 128],
+    "ihm_green_tick": [608, 160],
 
     "background": [0, 128]
   },
@@ -162,6 +181,52 @@ PATTERN_RAD_PURPLE_1 = PATTER_RAD_BASIC + (
     (1, 3, 1), (-1, 3, 1), (1, -3, 1), (-1, -3, 1),
 )
 
+def display_numeric_value(layer_dest, coord, value, coord_hundred=None, show_zero=False):
+    gobjs = []
+    value_tens_unit = value % 100
+    if value_tens_unit >= 10:
+        gobj_unit = GameObject(coord, f"digi_unit_{value_tens_unit % 10}")
+        layer_dest.add_game_object(gobj_unit)
+        gobjs.append(gobj_unit)
+        gobj_tens = GameObject(coord, f"digi_ten_{value_tens_unit // 10}")
+        layer_dest.add_game_object(gobj_tens)
+        gobjs.append(gobj_tens)
+    elif value_tens_unit:
+        gobj_unit = GameObject(coord, f"digi_sing_{value_tens_unit}")
+        layer_dest.add_game_object(gobj_unit)
+        gobjs.append(gobj_unit)
+    elif show_zero:
+        gobj_unit = GameObject(coord, f"digi_unit_0")
+        layer_dest.add_game_object(gobj_unit)
+        gobjs.append(gobj_unit)
+
+    if value >= 100 and coord_hundred:
+        gobjs.extend(
+            display_numeric_value(layer_dest, coord_hundred, value // 100)
+        )
+    return gobjs
+
+def display_ihm_rect(layer_dest, rect, color):
+    sprite_prefix = f"ihm_rect_{color}_"
+    x_right = rect.x + rect.w - 1
+    y_down = rect.y + rect.h - 1
+    gobjs = [
+        GameObject(Coord(rect.x, rect.y), sprite_prefix + "7"),
+        GameObject(Coord(x_right, rect.y), sprite_prefix + "1"),
+        GameObject(Coord(x_right, y_down), sprite_prefix + "3"),
+        GameObject(Coord(rect.x, y_down), sprite_prefix + "5"),
+    ]
+    for x in range(rect.x + 1, x_right):
+        gobjs.append(GameObject(Coord(x, rect.y), sprite_prefix + "0"))
+        gobjs.append(GameObject(Coord(x, y_down), sprite_prefix + "4"))
+    for y in range(rect.y + 1, y_down):
+        gobjs.append(GameObject(Coord(rect.x, y), sprite_prefix + "6"))
+        gobjs.append(GameObject(Coord(x_right, y), sprite_prefix + "2"))
+    for gobj in gobjs:
+        layer_dest.add_game_object(gobj)
+    return gobjs
+
+
 class RadTile(squarity.Tile):
 
     def __init__(self, layer_owner, coord):
@@ -196,40 +261,29 @@ class RadTile(squarity.Tile):
             # ni les indications de couleur.
             sprite_col = NAME_FROM_RAD_COLOR[self.barrel_color]
             if self.barrel_strength:
-                # TODO LIB : ça fait du yo-yo. On devrait avoir une fonction dans Tile,
+                # TO-DO LIB : ça fait du yo-yo. On devrait avoir une fonction dans Tile,
                 # pour ajouter/supprimer des game objects directement dedans.
                 gobj_src = GameObject(self._coord, f"rad_{sprite_col}_source")
                 self.layer_owner.add_game_object(gobj_src)
             else:
-                # TODO LIB : re du yo-yo.
+                # TO-DO LIB : re du yo-yo.
                 gobj_src = GameObject(self._coord, f"rad_indic_hid")
                 self.layer_owner.add_game_object(gobj_src)
             gobj_barrel = GameObject(self._coord, f"rad_{sprite_col}_barrel")
             self.layer_owner.add_game_object(gobj_barrel)
 
         else:
-
             for rad_color in RadColor:
                 if self.rad_strengths[rad_color]:
                     spr_name = "rad_indic_" + NAME_FROM_RAD_COLOR[rad_color]
                     gobj_rad_indic_color = GameObject(self._coord, spr_name)
                     self.layer_owner.add_game_object(gobj_rad_indic_color)
-            sum_strength = sum(self.rad_strengths)
-            #print("WIP", self._coord, sum_strength)
-            # TODO : le 40 est arbitraire. Ce sera géré avec des objets dans le jeu.
-            if sum_strength > 40:
-                gobj_rad_indic = GameObject(self._coord, f"rad_infinity")
-                self.layer_owner.add_game_object(gobj_rad_indic)
-            elif sum_strength >= 10:
-                digit_unit = sum_strength % 10
-                gobj_rad_indic = GameObject(self._coord, f"digi_unit_{digit_unit}")
-                self.layer_owner.add_game_object(gobj_rad_indic)
-                digit_tens = sum_strength // 10
-                gobj_rad_indic = GameObject(self._coord, f"digi_ten_{digit_tens}")
-                self.layer_owner.add_game_object(gobj_rad_indic)
-            elif sum_strength:
-                gobj_rad_indic = GameObject(self._coord, f"digi_sing_{sum_strength}")
-                self.layer_owner.add_game_object(gobj_rad_indic)
+            # Si la radioactivité est supérieure à 100, ce sera pas affiché.
+            # Mais c'est pas censé arriver.
+            # Au pire, on reprendra l'idée d'afficher un signe "infini".
+            display_numeric_value(
+                self.layer_owner, self._coord, sum(self.rad_strengths)
+            )
 
         #print("self.game_objects", self.game_objects)
         self._update_previous_values()
@@ -258,7 +312,7 @@ class RadioactivityLayer(squarity.Layer):
 
     def init_with_rad_tiles(self):
         self.rect = squarity.Rect(0, 0, self.w, self.h)
-        # TODO LIB : on doit pouvoir indiquer une autre classe Tile, que le Layer instanciera dans tiles.
+        # TO-DO LIB : on doit pouvoir indiquer une autre classe Tile, que le Layer instanciera dans tiles.
         self.tiles = [
             [
                 RadTile(self, Coord(x, y)) for x in range(self.w)
@@ -530,7 +584,7 @@ class FixedDesacDome():
                 (money_coord_offset, money_modifier_offset)
             )
         # Liste de gobj à ajouter/enlever pour montrer que ce dôme est sélectionné.
-        # TODO : faudra aussi mettre un cadre rouge. Pas ici, mais dans le DesacDome.
+        # TODO : faudra aussi mettre un cadre rouge ou blanc. Pas ici, mais dans le DesacDome.
         self.gobjs_show_selection = tuple([
             GameObject(self.coord_dome, sprite_name)
             for _ in range(3)
@@ -630,7 +684,7 @@ class DesacDome():
             self.pos_upleft.x, self.pos_upleft.y, 3, 3
         )
         # -- Placement du background --
-        # TODO LIB : faudrait qu'on puisse directement itérer avec un rect.
+        # TO-DO LIB : faudrait qu'on puisse directement itérer avec un rect.
         for coord_bg in squarity.Sequencer.iter_on_rect(self.selection_rect):
             self.game.layer_background.remove_at_coord(coord_bg)
         self.gobj_ground_base = GameObject(pos_upleft, "dome_ground_base")
@@ -654,6 +708,8 @@ class DesacDome():
         ]
         # -- Placement du game object indiquant la couleur du dôme --
         sprite_name_col = "dome_color_" + NAME_FROM_RAD_COLOR[self.rad_color]
+        # TO-DO lib : y'en a marre de mettre des "coord.clone()" partout,
+        # juste pour décaler une foutue coord.
         self.coord_color_indic = self.pos_upleft.clone().move_by_vect(x=1, y=1)
         self.gobj_dome_color = GameObject(
             self.coord_color_indic,
@@ -912,7 +968,7 @@ class LootManager():
     def __init__(self, layer_loot, rect_shop):
         self.layer_loot = layer_loot
         self.coord_dest = rect_shop.coord_upleft()
-        # TODO WIP : faut commencer à 0, mais là, je teste des trucs.
+        # TODO : faut commencer à 0, mais là, je teste des trucs.
         self.money = 5
         self.flasks = [0, 0, 0]
 
@@ -945,11 +1001,9 @@ class LootManager():
 
     def _add_transitions_to_gobj_loot(self, gobj_loot, delay_index, coord_start, area_offset_start):
         delay_before_move = 800 + delay_index * 50
-        dist = (
-            (coord_start.x + area_offset_start[0] - self.coord_dest.x) ** 2
-            + (coord_start.y + area_offset_start[1] - self.coord_dest.y) ** 2
-        )
-        dist = dist ** 0.5
+        d_x = (coord_start.x + area_offset_start[0] - self.coord_dest.x)
+        d_y = (coord_start.y + area_offset_start[1] - self.coord_dest.y)
+        dist = (d_x ** 2 + d_y ** 2) ** 0.5
         delay_move = int(dist * self.LOOT_SLOWNESS)
         gobj_loot.add_transition(
             squarity.TransitionSteps(
@@ -960,7 +1014,7 @@ class LootManager():
                 )
             )
         )
-        # TODO LIB : c'est pas pratique du tout,
+        # TO-DO LIB : c'est pas pratique du tout,
         # de devoir ajouter 2 transition pour une pauvre coord.
         field_names = ("area_offset_x", "area_offset_y")
         for ao_one_coord, field_name in zip(area_offset_start, field_names):
@@ -1075,18 +1129,16 @@ class BuyableElem():
         current_x += 2
         rendered_price_elem = False
 
-        # TODO : affichage d'un nombre. À factoriser dans une fonction commune. Et faut gérer les centaines.
         if self.price_money:
-            layer_dest.add_game_object(
-                GameObject(Coord(current_x, y), f"digi_unit_{self.price_money % 10}")
+            display_numeric_value(
+                layer_dest,
+                Coord(current_x, y),
+                self.price_money,
+                Coord(current_x - 1, y),
             )
             layer_dest.add_game_object(
                 GameObject(Coord(current_x + 1, y), "money")
             )
-            if self.price_money >= 10:
-                layer_dest.add_game_object(
-                    GameObject(Coord(current_x, y), f"digi_ten_{self.price_money // 10}")
-                )
             current_x += 3
             rendered_price_elem = True
 
@@ -1116,9 +1168,10 @@ class BuyableElem():
 
 class MainShop():
 
-    def __init__(self, rect_shop, layer_shop_ihm):
+    def __init__(self, rect_shop, layer_shop_ihm, loot_manager):
         self.rect_shop = rect_shop
         self.layer_shop_ihm = layer_shop_ihm
+        self.loot_manager = loot_manager
         self.rect_layer = squarity.Rect(
             0, 0, self.layer_shop_ihm.w, self.layer_shop_ihm.h
         )
@@ -1144,14 +1197,14 @@ class MainShop():
         self.selected_buyable = None
 
     def compute_shop_ihm(self):
-        # TODO LIB : une fonction dans la lib pour enlever tous les gobjs d'un layer.
-        # TODO : il faut indiquer les ressources qu'on a, en haut de la shop ihm. (Avec des grosses fioles)
+        # TO-DO LIB : une fonction dans la lib pour enlever tous les gobjs d'un layer.
         # TODO : c'est bourrin, cette fonction est appelée à chaque ouverture de la shop.
         #        on pète tout et on refait tout à chaque fois. Faut définir ce qui doit être pété et ce qui doit pas l'être.
         for coord in squarity.Sequencer.iter_on_rect(self.rect_layer):
             self.layer_shop_ihm.remove_at_coord(coord)
         gobj = GameObject(Coord(1, 1), "shopkeeper")
         self.layer_shop_ihm.add_game_object(gobj)
+        self.show_resources()
         current_y = 4
         for buyable in self.buyables:
             buyable.render_in_shop(self.layer_shop_ihm, current_y)
@@ -1191,6 +1244,32 @@ class MainShop():
 
     def unselect(self):
         self.selected_buyable = None
+
+    def show_resources(self):
+        coord_cur = Coord(13, 2)
+        for sprite_name in ["money", "flask_ylw", "flask_grn", "flask_prp"]:
+            self.layer_shop_ihm.add_game_object(
+                GameObject(
+                    coord_cur,
+                    sprite_name,
+                    image_modifier=squarity.ComponentImageModifier(
+                        area_offset_x=0.25, area_scale_x=2, area_scale_y=2
+                    )
+                )
+            )
+            coord_cur.move_by_vect(x=4)
+
+        coord_cur = Coord(12, 2)
+        coord_left = coord_cur.clone().move_by_vect(x=-1)
+        money, flasks = self.loot_manager.get_amount()
+        vals = [money] + flasks
+        for val in vals:
+            display_numeric_value(
+                self.layer_shop_ihm, coord_cur, val, coord_left, True
+            )
+            coord_cur.move_by_vect(x=4)
+            coord_left.move_by_vect(x=4)
+
 
 """
 Comment on gère le placement d'un building dans l'aire de jeu ?
@@ -1281,7 +1360,7 @@ class InteractionMainShop(InteractionBase):
         return None
 
     def on_out(self):
-        # TODO LIB : non mais là, j'aurais du gérer la variable "visible" des layers.
+        # TO-DO LIB : non mais là, j'aurais du gérer la variable "visible" des layers.
         # C'est nimp ce qui se passe, là.
         for layer_index in self.active_ihm_layer_indexes[::-1]:
             del self.layers[layer_index]
@@ -1358,7 +1437,7 @@ class InteractionDefineDome(InteractionBase):
         return None
 
     def on_out(self):
-        # TODO LIB : non mais là, j'aurais du gérer la variable "visible" des layers.
+        # TO-DO LIB : non mais là, j'aurais du gérer la variable "visible" des layers.
         # C'est nimp ce qui se passe, là.
         for layer_index in self.active_ihm_layer_indexes[::-1]:
             del self.layers[layer_index]
@@ -1405,9 +1484,17 @@ class InteractionDefineDome(InteractionBase):
 
 class InteractionPlaceBuilding(InteractionBase):
 
-    def __init__(self, layer_ihm, main_shop, is_tile_buildable, add_building):
+    def __init__(
+        self,
+        layer_ihm,
+        layer_movable_objs,
+        main_shop,
+        is_tile_buildable,
+        add_building
+    ):
         super().__init__("place_building")
         self.layer_ihm = layer_ihm
+        self.layer_movable_objs = layer_movable_objs
         self.main_shop = main_shop
         self.is_tile_buildable = is_tile_buildable
         self.add_building = add_building
@@ -1415,59 +1502,109 @@ class InteractionPlaceBuilding(InteractionBase):
         self.rect = squarity.Rect(0, 0, self.layer_ihm.w, self.layer_ihm.h)
         self.gobj_cancel = GameObject(
             self.main_shop.rect_shop.coord_upleft(),
-            "cancel_shop"
+            "cancel_shop",
+            image_modifier=squarity.ComponentImageModifier(
+                img_size_x=64, img_size_y=64
+            ),
         )
         self.building_size = None
         self.building_coord_to_confirm = None
+        self.ihm_gobjs = []
 
     def on_enter(self):
-        self.layer_ihm.add_game_object(self.gobj_cancel)
+        self.layer_movable_objs.add_game_object(self.gobj_cancel)
         self.building_size = self.main_shop.selected_buyable.building_size
         self.building_coord_to_confirm = None
+        self.shake_counter = 0
 
     def process_click(self, coord):
-
         if self.main_shop.rect_shop.in_bounds(coord):
             return InteracResult(InteracResType.UNSTACK_INTERAC_MODE)
 
-        if self.building_coord_to_confirm is None:
-            rect_to_check = squarity.Rect(
-                coord.x, coord.y, *self.building_size
-            )
-            print("rect_to_check", rect_to_check)
-            showable_failed_coords = []
-            can_build = True
-            for c in squarity.Sequencer.iter_on_rect(rect_to_check):
-                if not self.rect.in_bounds(c):
-                    can_build = False
-                elif not self.is_tile_buildable(c):
-                    showable_failed_coords.append(c.clone())
-                    can_build = False
-            if not can_build:
-                # TODO : il faudra montrer visuellement les cases qui fail.
-                # TODO : si trop de fail, montrer visuellement le cancel de la shop.
-                # car on comprend pas forcément qu'on peut cancel en cliquant sur la shop.
-                print("build failed", showable_failed_coords)
-            else:
-                # TODO : montrer visuellement où la construction se fera.
-                print("possible build")
-                self.building_coord_to_confirm = coord.clone()
-
-        else:
-            if self.building_coord_to_confirm == coord:
-                print("TODO : Let's build !!!")
-                self.add_building(
-                    coord,
-                    "dome_ground_base",
-                    self.main_shop.selected_buyable
-                )
-                return InteracResult(InteracResType.UNSTACK_INTERAC_MODE)
-            else:
-                # TODO : enlever le montrage de construction possible.
+        rect_to_check = squarity.Rect(coord.x, coord.y, *self.building_size)
+        print("rect_to_check", rect_to_check)
+        showable_failed_coords = []
+        can_build = True
+        for c in squarity.Sequencer.iter_on_rect(rect_to_check):
+            if not self.rect.in_bounds(c):
+                can_build = False
+            elif not self.is_tile_buildable(c):
+                showable_failed_coords.append(c.clone())
+                can_build = False
+        if not can_build:
+            if self.building_coord_to_confirm is not None:
+                self.remove_ihm_gobjs()
                 self.building_coord_to_confirm = None
+            if not self.ihm_gobjs:
+                for c in showable_failed_coords:
+                    gobj = GameObject(c, "red_cross")
+                    self.ihm_gobjs.append(gobj)
+                    self.layer_ihm.add_game_object(gobj)
+                red_rect_gobjs = display_ihm_rect(
+                    self.layer_ihm,
+                    squarity.Rect(coord.x, coord.y, 3, 3),
+                    "red",
+                )
+                self.ihm_gobjs.extend(red_rect_gobjs)
+                self.shake_counter += 1
+                if self.shake_counter > 3:
+                    # La personne qui joue a échoué trop souvent à placer un building.
+                    # On shake le bouton permettant d'annuler le placement.
+                    # Car on comprend pas forcément qu'on peut annuler en cliquant sur la shop.
+                    self.shake_gobj_cancel()
+                event_result = squarity.EventResult()
+                event_result.add_delayed_callback(
+                    squarity.DelayedCallBack(
+                        800, self.remove_ihm_gobjs_with_check
+                    )
+                )
+                return InteracResult(event_result=event_result)
+            return
+
+        self.remove_ihm_gobjs()
+        self.shake_counter = 0
+        if self.building_coord_to_confirm is None or self.building_coord_to_confirm != coord:
+            self.building_coord_to_confirm = coord.clone()
+            green_rect_gobjs = display_ihm_rect(
+                self.layer_ihm,
+                squarity.Rect(coord.x, coord.y, 3, 3),
+                "green",
+            )
+            self.ihm_gobjs.extend(green_rect_gobjs)
+            gobj = GameObject(coord, "ihm_green_tick")
+            self.ihm_gobjs.append(gobj)
+            self.layer_ihm.add_game_object(gobj)
+        else:
+            self.add_building(
+                coord,
+                "dome_ground_base",
+                self.main_shop.selected_buyable
+            )
+            return InteracResult(InteracResType.UNSTACK_INTERAC_MODE)
 
     def on_out(self):
-        self.layer_ihm.remove_game_object(self.gobj_cancel)
+        self.layer_movable_objs.remove_game_object(self.gobj_cancel)
+
+    def remove_ihm_gobjs(self):
+        for gobj in self.ihm_gobjs:
+            self.layer_ihm.remove_game_object(gobj)
+        self.ihm_gobjs[:] = []
+
+    def remove_ihm_gobjs_with_check(self):
+        if self.building_coord_to_confirm is None:
+            self.remove_ihm_gobjs()
+
+    def shake_gobj_cancel(self):
+        offsets_x =[ (50, random.random() * 2 - 1.0) for _ in range(5) ]
+        offsets_x += [(50, 0.0)]
+        offsets_y =[ (50, random.random() * 2 - 1.0) for _ in range(5) ]
+        offsets_y += [(50, 0.0)]
+        self.gobj_cancel.image_modifier.add_transition(
+            squarity.TransitionSteps("area_offset_x", tuple(offsets_x))
+        )
+        self.gobj_cancel.image_modifier.add_transition(
+            squarity.TransitionSteps("area_offset_y", tuple(offsets_y))
+        )
 
 
 # Ça changera selon les niveaux.
@@ -1479,14 +1616,14 @@ class GameModel(squarity.GameModelBase):
         # Contient les objets :
         # carrés noirs, buildings (shop, dome_ground_base, ...)
         self.layer_background = self.layer_main
-        # TODO LIB : les params width et height devraient être des params facultatifs.
+        # TO-DO LIB : les params width et height devraient être des params facultatifs.
         self.layer_radact = RadioactivityLayer(self, self.w, self.h, False)
         self.layer_radact.init_with_rad_tiles()
         self.layers.append(self.layer_radact)
         self.layer_block = squarity.Layer(self, self.w, self.h, False)
         self.layers.append(self.layer_block)
         # Contient les objets :
-        # dome_full, dome_border_x, dome_corner_x, dome_tshape_x
+        # dome_full, dome_border_x, dome_corner_x, dome_tshape_x, cancel_shop
         self.layer_movable_objs_1 = squarity.Layer(self, self.w, self.h, True)
         self.layers.append(self.layer_movable_objs_1)
         # Contient les objets : dome_color_xxxx
@@ -1525,7 +1662,7 @@ class GameModel(squarity.GameModelBase):
         self.stacked_interact_mode = []
         self.rect_shop = squarity.Rect(SHOP_POSITION.x, SHOP_POSITION.y, 2, 2)
         self.loot_manager = LootManager(self.layer_movable_objs_1, self.rect_shop)
-        self.main_shop = MainShop(self.rect_shop, self.layer_shop_ihm)
+        self.main_shop = MainShop(self.rect_shop, self.layer_shop_ihm, self.loot_manager)
         for c in squarity.Sequencer.iter_on_rect(self.rect_shop):
             tile = self.layer_has_building.get_tile(c)
             tile.has_b = True
@@ -1551,6 +1688,7 @@ class GameModel(squarity.GameModelBase):
             self.interact_mode_define_dome.make_rad_color_available(rad_color)
         self.interact_mode_place_building = InteractionPlaceBuilding(
             self.layer_ihm,
+            self.layer_movable_objs_1,
             self.main_shop,
             self.is_tile_buildable,
             self.add_building,
@@ -1579,35 +1717,15 @@ class GameModel(squarity.GameModelBase):
             "building_shop"
         )
         self.layer_background.add_game_object(self.gobj_shop)
-        """
-        desac_dome = DesacDome(self, DesacDomeShape.FULL, Coord(3, 0), RadColor.GREEN)
-        self.interact_mode_use_desac_dome.add_desac_dome(desac_dome)
-        desac_dome = DesacDome(self, DesacDomeShape.BORDER, Coord(3, 3), RadColor.GREEN)
-        self.interact_mode_use_desac_dome.add_desac_dome(desac_dome)
-        desac_dome = DesacDome(self, DesacDomeShape.CORNER, Coord(3, 6), RadColor.GREEN)
-        self.interact_mode_use_desac_dome.add_desac_dome(desac_dome)
-        desac_dome = DesacDome(self, DesacDomeShape.TSHAPE, Coord(3, 9), RadColor.GREEN)
-        self.interact_mode_use_desac_dome.add_desac_dome(desac_dome)
-        desac_dome = DesacDome(self, DesacDomeShape.FULL, Coord(0, 0), RadColor.YELLOW)
-        self.interact_mode_use_desac_dome.add_desac_dome(desac_dome)
-        # desac_dome = DesacDome(self, DesacDomeShape.BORDER, Coord(0, 3), RadColor.YELLOW)
-        # self.interact_mode_use_desac_dome.add_desac_dome(desac_dome)
-        desac_dome = DesacDome(self, DesacDomeShape.CORNER, Coord(0, 6), RadColor.YELLOW)
-        self.interact_mode_use_desac_dome.add_desac_dome(desac_dome)
-        desac_dome = DesacDome(self, DesacDomeShape.TSHAPE, Coord(0, 9), RadColor.YELLOW)
-        self.interact_mode_use_desac_dome.add_desac_dome(desac_dome)
-        desac_dome = DesacDome(self, DesacDomeShape.FULL, Coord(6, 0), RadColor.PURPLE)
-        self.interact_mode_use_desac_dome.add_desac_dome(desac_dome)
-        desac_dome = DesacDome(self, DesacDomeShape.BORDER, Coord(6, 3), RadColor.PURPLE)
-        self.interact_mode_use_desac_dome.add_desac_dome(desac_dome)
-        desac_dome = DesacDome(self, DesacDomeShape.CORNER, Coord(6, 6), RadColor.PURPLE)
-        self.interact_mode_use_desac_dome.add_desac_dome(desac_dome)
-        self.interact_mode_define_dome.make_dome_unavailable(RadColor.PURPLE, DesacDomeShape.FULL)
-        #desac_dome = DesacDome(self, DesacDomeShape.TSHAPE, Coord(6, 9), RadColor.PURPLE)
-        desac_dome = DesacDome(self, None, Coord(6, 9), None)
+        #desac_dome = DesacDome(self, DesacDomeShape.FULL, Coord(0, 0), RadColor.PURPLE)
         #self.interact_mode_use_desac_dome.add_desac_dome(desac_dome)
-        self.interact_mode_define_dome.add_empty_desac_dome(desac_dome)
-        """
+        # TODO : si on ajoute un dôme dans le jeu, faut notifier la shop,
+        # pour faire comme si on l'avait acheté, pour réactualiser les prix.
+        #self.interact_mode_define_dome.make_dome_unavailable(RadColor.PURPLE, DesacDomeShape.FULL)
+        # TODO : Et faut gérer mieux que ça le "has_building"
+        #for c in squarity.Sequencer.iter_on_rect(squarity.Rect(0, 0, 3, 3)):
+        #    tile = self.layer_has_building.get_tile(c)
+        #    tile.has_b = True
 
         if INDEX_LEVEL == 1:
             self.put_barrels_level_1()
@@ -1649,7 +1767,7 @@ class GameModel(squarity.GameModelBase):
             layer_window.add_game_object(gobj)
             gobj = GameObject(Coord(self.rect.w - 1, y), "window_border_r")
             layer_window.add_game_object(gobj)
-        # TODO LIB : une fonction layer.new_gobj, qui renvoie le gobj.
+        # TO-DO LIB : une fonction layer.new_gobj, qui renvoie le gobj.
         layer_window.add_game_object(
             GameObject(Coord(w - 3, 1), "window_border_l")
         )
@@ -1886,7 +2004,8 @@ class GameModel(squarity.GameModelBase):
         print(f"score: {score}")
 
     def on_click(self, coord):
-        # TODO : Faut définir un mode : "normal", "désactivation de baril", "nettoyage de baril", ...
+        # TODO : relire le truc ci-dessous et réactualiser. Et le mettre en docstring de interaction mode.
+        # Faut définir un mode : "normal", "désactivation de baril", "nettoyage de baril", ...
         # Selon le mode, on exécute une fonction ou une autre.
         # Il y a des actions qui sont toujours valable quel que soit le mode.
         # Et il faut une fonction qui annule le mode en cours.
