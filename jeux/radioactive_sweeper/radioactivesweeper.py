@@ -1,7 +1,7 @@
 # https://squarity.fr/game/#fetchez_githubgist_darkrecher/6ac1768472ecd954d4818ef1dbd59d6c/raw/radioactivesweeper.txt
 # https://tinyurl.com/radswp123
 # https://raw.githubusercontent.com/darkrecher/squarity-doc/refs/heads/master/jeux/radioactive_sweeper/radioactive_tileset.png
-# https://i.ibb.co/0y95d9Kk/radioactive-tileset.png
+# https://i.ibb.co/kgr5xbvz/radioactive-tileset.png
 # taille de l'aire de jeu : 30, 20 ??
 
 # TODO : réajuster les images des dômes et des dessins de couleur, pour que le dessin touche pas les bords.
@@ -48,6 +48,7 @@
     "digi_ten_7": [192, 256],
     "digi_ten_8": [224, 256],
     "digi_ten_9": [256, 256],
+    "digi_ten_0": [288, 256],
     "digi_infinity": [288, 64],
 
     "block": [0, 64],
@@ -159,32 +160,29 @@ NAME_FROM_RAD_COLOR = {
 }
 
 PATTER_RAD_BASIC = (
-    (0, -1, 6), (1, -1, 6), (1, 0, 6), (1, 1, 6),
-    (0, 1, 6), (-1, 1, 6), (-1, 0, 6), (-1, -1, 6),
+    (0, -1, 3), (1, -1, 3), (1, 0, 3), (1, 1, 3),
+    (0, 1, 3), (-1, 1, 3), (-1, 0, 3), (-1, -1, 3),
 )
 
 PATTERN_RAD_YELLOW_1 = PATTER_RAD_BASIC + (
-    (0, -2, 4), (2, 0, 4), (0, 2, 4), (-2, 0, 4),
-    (0, -3, 2), (3, 0, 2), (0, 3, 2), (-3, 0, 2),
+    (0, -2, 2), (2, 0, 2), (0, 2, 2), (-2, 0, 2),
+    (0, -3, 1), (3, 0, 1), (0, 3, 1), (-3, 0, 1),
 )
 
 PATTERN_RAD_GREEN_1 = PATTER_RAD_BASIC + (
-    (-2, -2, 4), (2, -2, 4), (2, 2, 4), (-2, 2, 4),
-    (-3, -3, 2), (3, -3, 2), (3, 3, 2), (-3, 3, 2),
+    (-2, -2, 2), (2, -2, 2), (2, 2, 2), (-2, 2, 2),
+    (-3, -3, 1), (3, -3, 1), (3, 3, 1), (-3, 3, 1),
 )
 
 PATTERN_RAD_PURPLE_1 = PATTER_RAD_BASIC + (
-    (-2, -2, 2), (2, -2, 2), (2, 2, 2), (-2, 2, 2),
-    (0, -2, 2), (2, 0, 2), (0, 2, 2), (-2, 0, 2),
-    (-3, -3, 1), (3, -3, 1), (3, 3, 1), (-3, 3, 1),
-    (-3, -1, 1), (-3, 1, 1), (3, -1, 1), (3, 1, 1),
-    (1, 3, 1), (-1, 3, 1), (1, -3, 1), (-1, -3, 1),
+    (0, -2, 1), (2, 0, 1), (0, 2, 1), (-2, 0, 1),
+    (-2, -2, 1), (2, -2, 1), (2, 2, 1), (-2, 2, 1),
 )
 
 def display_numeric_value(layer_dest, coord, value, coord_hundred=None, show_zero=False):
     gobjs = []
     value_tens_unit = value % 100
-    if value_tens_unit >= 10:
+    if value_tens_unit >= 10 or value >= 100:
         gobj_unit = GameObject(coord, f"digi_unit_{value_tens_unit % 10}")
         layer_dest.add_game_object(gobj_unit)
         gobjs.append(gobj_unit)
@@ -195,7 +193,7 @@ def display_numeric_value(layer_dest, coord, value, coord_hundred=None, show_zer
         gobj_unit = GameObject(coord, f"digi_sing_{value_tens_unit}")
         layer_dest.add_game_object(gobj_unit)
         gobjs.append(gobj_unit)
-    elif show_zero:
+    elif value == 0 and show_zero:
         gobj_unit = GameObject(coord, f"digi_unit_0")
         layer_dest.add_game_object(gobj_unit)
         gobjs.append(gobj_unit)
@@ -1500,11 +1498,11 @@ class InteractionPlaceBuilding(InteractionBase):
         self.add_building = add_building
         self.block_other_interactions = True
         self.rect = squarity.Rect(0, 0, self.layer_ihm.w, self.layer_ihm.h)
-        self.gobj_cancel = GameObject(
+        self.gobj_cancel_shakable = GameObject(
             self.main_shop.rect_shop.coord_upleft(),
             "cancel_shop",
             image_modifier=squarity.ComponentImageModifier(
-                img_size_x=64, img_size_y=64
+                img_size_x=64, img_size_y=64,
             ),
         )
         self.building_size = None
@@ -1512,7 +1510,7 @@ class InteractionPlaceBuilding(InteractionBase):
         self.ihm_gobjs = []
 
     def on_enter(self):
-        self.layer_movable_objs.add_game_object(self.gobj_cancel)
+        self.layer_movable_objs.add_game_object(self.gobj_cancel_shakable)
         self.building_size = self.main_shop.selected_buyable.building_size
         self.building_coord_to_confirm = None
         self.shake_counter = 0
@@ -1583,7 +1581,8 @@ class InteractionPlaceBuilding(InteractionBase):
             return InteracResult(InteracResType.UNSTACK_INTERAC_MODE)
 
     def on_out(self):
-        self.layer_movable_objs.remove_game_object(self.gobj_cancel)
+        self.remove_ihm_gobjs()
+        self.layer_movable_objs.remove_game_object(self.gobj_cancel_shakable)
 
     def remove_ihm_gobjs(self):
         for gobj in self.ihm_gobjs:
@@ -1595,14 +1594,26 @@ class InteractionPlaceBuilding(InteractionBase):
             self.remove_ihm_gobjs()
 
     def shake_gobj_cancel(self):
-        offsets_x =[ (50, random.random() * 2 - 1.0) for _ in range(5) ]
-        offsets_x += [(50, 0.0)]
-        offsets_y =[ (50, random.random() * 2 - 1.0) for _ in range(5) ]
-        offsets_y += [(50, 0.0)]
-        self.gobj_cancel.image_modifier.add_transition(
+        self.gobj_cancel_shakable.image_modifier.add_transition(
+            squarity.TransitionSteps("area_scale_x", ((25, 1.5), (250, 1.5), (25, 1)))
+        )
+        self.gobj_cancel_shakable.image_modifier.add_transition(
+            squarity.TransitionSteps("area_scale_y", ((25, 1.5), (250, 1.5), (25, 1)))
+        )
+        offsets_x = (
+            [(25, -0.5)]
+            + [ (25, random.random() - 1.0) for _ in range(10) ]
+            + [(25, 0.0)]
+        )
+        offsets_y = (
+            [(25, -0.5)]
+            + [ (25, random.random() - 1.0) for _ in range(10) ]
+            + [(25, 0.0)]
+        )
+        self.gobj_cancel_shakable.image_modifier.add_transition(
             squarity.TransitionSteps("area_offset_x", tuple(offsets_x))
         )
-        self.gobj_cancel.image_modifier.add_transition(
+        self.gobj_cancel_shakable.image_modifier.add_transition(
             squarity.TransitionSteps("area_offset_y", tuple(offsets_y))
         )
 
@@ -1626,13 +1637,13 @@ class GameModel(squarity.GameModelBase):
         # dome_full, dome_border_x, dome_corner_x, dome_tshape_x, cancel_shop
         self.layer_movable_objs_1 = squarity.Layer(self, self.w, self.h, True)
         self.layers.append(self.layer_movable_objs_1)
-        # Contient les objets : dome_color_xxxx
-        self.layer_movable_objs_2 = squarity.Layer(self, self.w, self.h, True)
-        self.layers.append(self.layer_movable_objs_2)
         # Contient les croix rouge indiquant qu'on a mal posé un dôme.
         # TODO : Faudrait plus, sinon ça mérite pas de créer un layer pour ça.
         self.layer_ihm = squarity.Layer(self, self.w, self.h, False)
         self.layers.append(self.layer_ihm)
+        # Contient les objets : dome_color_xxxx
+        self.layer_movable_objs_2 = squarity.Layer(self, self.w, self.h, True)
+        self.layers.append(self.layer_movable_objs_2)
         self.layer_window_bg = squarity.Layer(self, self.w, self.h, False)
         self.layer_window_shop = squarity.Layer(self, self.w, self.h, False)
         self.layer_shop_ihm = squarity.Layer(self, self.w, self.h, False)
