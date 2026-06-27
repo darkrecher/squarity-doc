@@ -789,7 +789,7 @@ Et comme ça on peut faire des niveaux dans lesquels on sait à l'avance qu'on a
 Yes !!!
 
 
-## Ajustement
+## Réflexions en vrac
 
 C'est pas très fun d'amasser des pièces d'or qui servent à rien, et qui vont être relou à équilibrer.
 
@@ -806,6 +806,64 @@ Tous les boulons s'annulent quand on révèle une case ou quand on désactive un
 Et faut tout rééquilibrer...
 
 Les dômes de border n'ont plus aucun intérêt. On les vire. Et faudra changer le prix des ground base. Faut que ça augmente plus.
+
+
+## Autre idée
+
+Il faut récompenser le fait de connaître les cases autour d'un baril (et idéalement, le fait d'isoler des groupes de barils). Sans pour autant prendre la tête avec des règles compliquées.
+
+Et aussi donner le choix, pour un groupe donnée, de faire des combos ou bien d'isoler le plus possible de barils pour récupérer des fioles.
+
+Donc je propose un autre truc.
+
+3 types de dômes : rond, bord, coin. La plupart du temps, on utilisera que les ronds.
+
+On peut envoyer un dôme quel que soit les cases révélées autour du baril ciblé. Pour chaque case adjacente avec un baril, on ajoute un "cube de métal" ou on monte le niveau du cube de métal existant. Pour chaque case adjacente ne contenant aucun baril, on la craquelle, pour indiquer qu'il n'y a rien.
+
+À la fin d'une partie gagnée, on a une étoile si on a craquelé aucune case. De cette manière :
+
+ - on simplifie beaucoup la vie des personnes qui ne savent pas bien jouer, car les cases craquelées donne un indice important.
+ - on récompense les personnes qui veulent faire un jeu parfait.
+ - on fait quand même gagner des cubes à tout le monde (même si les personnes meilleures en auront plus).
+
+On garde la règle du dôme qui se casse si on l'envoie sur un baril de mauvaise couleur, ou sur une case vide.
+
+Il n'y a plus de pièce d'argent, mais les cubes de métal.
+
+Si on envoie un dôme rond sur un baril isolé, on gagne la fiole, mais pas d'argent.
+
+Lorsqu'on envoie un dôme sur une case ayant un cube, on gagne des cubes (plus le niveau du cube est haut, plus on en gagne).
+
+Le niveau max de cube sur une case est 8 : on avait 8 barils sur les cases adjacentes, et on les a tous désactivés un par un.
+
+Le nombre de cube gagné en fonction du niveau du cube n'est pas linéaire, pour encourager l'accumulation sur une seule case. On pourra essayer du Fibonacci.
+ - niveau de cube 1 : +1 cube
+ - niveau de cube 2 : +2 cubes
+ - niveau de cube 3 : +3 cubes
+ - niveau de cube 4 : +5 cubes
+ - etc.
+
+Les dômes de bords et de coins sont toujours utiles, mais pour les barils dans les bords et les coins. Mais lorsqu'il y a des murs impassables, on peut obliger l'utilisation de ces dômes. Ce qui permettra de faire quelques niveaux labyrinthiques, pour le fun.
+
+Petit souci : on peut utiliser un dôme de bord en plein milieu de l'aire de jeu, pour avoir moins de cases à déduire avant. (Les cases qui ne sont pas sous le dôme de bord ne seront ni craquelées, ni cubifiée). Pour régler ça, bottage en touche. On peut pas envoyer un dôme de bord si on n'est pas au bord.
+
+Visuellement, c'est pas des étoiles, mais des boulons. C'est plus fun.
+
+Liste des boulons gagnables :
+
+ - On ne casse aucun dôme,
+ - On obtient suffisamment de cubes et/ou  on monte le niveau de cube assez haut sur une case
+ - On récupère suffisamment de fioles (avec ou sans les contraintes de couleur)
+ - Non-craquelage des cases
+
+Et on rajoute un type de baril, puisque y'a moins de type de dôme et que y'en a plein qui seront facultatifs.
+
+Mais ce serait bien que y'ait d'autres trucs à acheter, du coup.
+
+Le fameux séparateur de couleur ?
+
+Un truc qui permet d'indiquer précisément les points de chaque couleur, sur une case spécifiée ? ouais, ça c'est cool. Et la portée est assez longue, mais on choisit l'orientation au moment de le poser.
+
 
 
 
