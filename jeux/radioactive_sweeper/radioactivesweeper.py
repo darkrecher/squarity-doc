@@ -1528,7 +1528,6 @@ class InteractionDefineDome(InteractionBase):
         self.gobj_ground_base.image_modifier.add_transition(
             squarity.TransitionSteps("area_scale_y", ((250, 0.8), ))
         )
-        # TODO : une transition sur la taille du ground base, pour que ça rentre dans la fenêtre.
 
     def _show_layers(self):
         self.layer_movable_objs.remove_game_object(self.gobj_ground_base)

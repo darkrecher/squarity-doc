@@ -870,5 +870,24 @@ Le fameux séparateur de couleur ? Ou alors, un détecteur indiquant les couleur
 Un truc qui permet d'indiquer précisément les points de chaque couleur, sur une case spécifiée ? ouais, ça c'est cool. Et la portée est assez longue, mais on choisit l'orientation au moment de le poser. Ou alors, c'est juste un bâtiment, et ensuite on choisit une case à détailler. C'est payant à chaque fois. Mais on peut revoir gratuitement le détail d'une case payée. Et le détail se remet à jour, évidemment.
 
 
+C'est un peu trop compliqué cette histoire de cube, avec ces dômes de plein de formes différentes, et les pièces et tout ça. Je propose un autre truc.
+
+ - on n'a que des dômes ronds (un de chaque couleur), faut les acheter et les poser.
+ - quand on révèle une case vide et non craquelée, on récupère une pièce.
+ - quand on fait exploser un baril, ça craquelle les cases vide autour, et ça craquelle pas les cases à baril autour.
+ - faut récupérer 100% des pièces possibles pour gagner le boulon d'or à un niveau.
+
+Jusqu'ici c'est simple, mais ça encourage pas trop à isoler des zones de baril. Donc on ajoute d'autres trucs.
+
+ - quand on fait exploser un baril et qu'il n'y a aucune case non révélées autour (avec ou sans baril dessous), on gagne 2 fioles (ou plus, c'est à équilibrer).
+ - dans les niveaux plus avancés, il y a un nouveau bâtiment, qui permet de délimiter des "rectangles de sécurité".
+    * une délimitation coûte un nombre de pièce proportionnel à la surface délimité (donc vaut mieux délimiter plusieurs petites surface qu'une seule grande.)
+    * toutes les cases de bords d'une délimitation doivent avoir été révélées. Donc ça encourage à isoler des trucs.
+    * lorsqu'on fait exploser un baril dans une zone délimitée, on obtient une fiole en plus (c'est à dire 1 fiole dans le cas normal, et 3 dans le cas d'une case entièrement isolée).
+
+Et en plus c'est une occasion de dépenser des pièces.
+
+Du coup, on peut puet-être oublier cette histoire de détecteur. Tous les numéros et les couleurs des cases révélées sont systématiquement visibles. On verra dans un épisode 2 du jeu (si jamais on y arrive).
+
 
 
